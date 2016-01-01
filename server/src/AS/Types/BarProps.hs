@@ -1,6 +1,8 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.BarProps where
+
+import AS.ASJSON
 
 import GHC.Generics
 import Data.Aeson
@@ -47,15 +49,9 @@ emptyProps = ASBarProps M.empty
 -- removeProp pt (ASBarProps m) = ASBarProps $ M.delete pt m
 
 -- Frontend should actually never pass BarProps to backend. 
-instance FromJSON ASBarProps where
-  parseJSON v = error "Attempted to pass ASBarProps from frontend"
+asToFromJSON ''BarProp 
+asToFromJSON ''BarPropType
 
 instance ToJSON ASBarProps where
   toJSON (ASBarProps m) = toJSON $ M.elems m
-
-instance FromJSON BarProp
-instance ToJSON BarProp
-
-instance Serialize BarPropType
-instance Serialize BarProp
 instance Serialize ASBarProps

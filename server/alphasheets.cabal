@@ -15,7 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     AS.Daemon
+  exposed-modules:     AS.ASJSON
+                       AS.Daemon
                        AS.LanguageDefs
                        AS.DB.API
                        AS.DB.Eval

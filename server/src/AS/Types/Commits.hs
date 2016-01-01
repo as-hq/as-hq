@@ -1,6 +1,8 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.Commits where
+
+import AS.ASJSON
 
 import AS.Types.Cell
 import AS.Types.CondFormat
@@ -9,11 +11,10 @@ import AS.Types.Bar
 import AS.Types.RangeDescriptor
 
 import GHC.Generics
-import Data.Aeson hiding (Success)
+import Data.Serialize (Serialize)
+
 import Data.List
 import qualified Data.Text as T
-
-import Data.Serialize (Serialize)
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,18 +60,9 @@ sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
 sheetUpdateFromCells :: [ASCell] -> SheetUpdate
 sheetUpdateFromCells cs = SheetUpdate (Update cs []) emptyUpdate emptyUpdate emptyUpdate
 
-instance FromJSON ASTime
-instance ToJSON ASTime
-
-instance FromJSON ASCommit
-instance ToJSON ASCommit
-
-instance FromJSON SheetUpdate
-instance ToJSON SheetUpdate
-
-instance Serialize ASTime
+asToJSON ''ASTime
+asToJSON ''SheetUpdate
 instance Serialize ASCommit
-instance Serialize SheetUpdate
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

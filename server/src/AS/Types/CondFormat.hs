@@ -1,8 +1,9 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, TemplateHaskell #-}
 
 --TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
+
+import AS.ASJSON 
 
 import AS.Types.Cell
 import AS.Types.Locations
@@ -12,9 +13,7 @@ import Data.List
 import AS.Types.Updates
 
 import GHC.Generics
-import Data.Aeson hiding (Success)
 import Data.Aeson.Types
-import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
 type CondFormatRuleId = T.Text
@@ -232,62 +231,18 @@ instance HasKey CondFormatRule where
   type KeyType CondFormatRule = CondFormatRuleId
   key = condFormatRuleId
 
-instance ToJSON CondFormatRule
-instance FromJSON CondFormatRule
-instance Serialize CondFormatRule
-
-instance ToJSON CondFormatRuleDiff
-instance FromJSON CondFormatRuleDiff
-instance Serialize CondFormatRuleDiff
-
-instance ToJSON CondFormatCondition
-instance FromJSON CondFormatCondition
-instance Serialize CondFormatCondition
-
-instance ToJSON CondFormatRuleUpdate
-instance FromJSON CondFormatRuleUpdate
-instance Serialize CondFormatRuleUpdate
-
-instance ToJSON CustomCondition
-instance FromJSON CustomCondition
-instance Serialize CustomCondition
-
-instance ToJSON GreaterThanCondition
-instance FromJSON GreaterThanCondition
-instance Serialize GreaterThanCondition
-
-instance ToJSON LessThanCondition
-instance FromJSON LessThanCondition
-instance Serialize LessThanCondition
-
-instance ToJSON GeqCondition
-instance FromJSON GeqCondition
-instance Serialize GeqCondition
-
-instance ToJSON LeqCondition
-instance FromJSON LeqCondition
-instance Serialize LeqCondition
-
-instance ToJSON EqualsCondition
-instance FromJSON EqualsCondition
-instance Serialize EqualsCondition
-
-instance ToJSON NotEqualsCondition
-instance FromJSON NotEqualsCondition
-instance Serialize NotEqualsCondition
-
-instance ToJSON IsEmptyCondition
-instance FromJSON IsEmptyCondition
-instance Serialize IsEmptyCondition
-
-instance ToJSON IsNotEmptyCondition
-instance FromJSON IsNotEmptyCondition
-instance Serialize IsNotEmptyCondition
-
-instance ToJSON IsBetweenCondition
-instance FromJSON IsBetweenCondition
-instance Serialize IsBetweenCondition
-
-instance ToJSON IsNotBetweenCondition
-instance FromJSON IsNotBetweenCondition
-instance Serialize IsNotBetweenCondition
+asToFromJSON ''CondFormatRule
+asToFromJSON ''CondFormatCondition
+asToFromJSON ''CondFormatRuleDiff
+asToFromJSON ''CondFormatRuleUpdate
+asToFromJSON ''CustomCondition
+asToFromJSON ''GreaterThanCondition
+asToFromJSON ''LessThanCondition
+asToFromJSON ''GeqCondition
+asToFromJSON ''LeqCondition
+asToFromJSON ''EqualsCondition
+asToFromJSON ''NotEqualsCondition
+asToFromJSON ''IsEmptyCondition
+asToFromJSON ''IsNotEmptyCondition
+asToFromJSON ''IsBetweenCondition
+asToFromJSON ''IsNotBetweenCondition

@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, DefaultSignatures, TemplateHaskell #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell
@@ -8,6 +6,8 @@ module AS.Types.Cell
   , module AS.Types.CellProps
   , module AS.Types.Values
   ) where
+
+import AS.ASJSON
 
 import AS.Types.Locations
 import AS.Types.RangeDescriptor
@@ -66,32 +66,14 @@ instance ToJSON ASExpression where
                                                "expandingType" .= (show dtype),
                                                "rangeKey" .= key]
 instance FromJSON ASExpression where
-  parseJSON (Object v) = do
-    dType <- (v .:? "expandingType") :: Parser (Maybe ExpandingType)
-    case dType of 
-      Just _ -> Coupled <$> v .: "expression"
-                           <*> v .: "language"
-                           <*> v .: "expandingType"
-                           <*> v .: "rangeKey"
-      Nothing -> Expression <$> v .: "expression" <*> v .: "language"
-
-instance ToJSON ASCell
-instance FromJSON ASCell
-
-instance FromJSON CellDiff
-instance ToJSON CellDiff
-
-instance FromJSON CellUpdate
-instance ToJSON CellUpdate
-
-instance ToJSON ASLanguage
-instance FromJSON ASLanguage
-
-instance Serialize ASCell
-instance Serialize CellDiff
-instance Serialize CellUpdate
+  parseJSON (Object v) = Expression <$> v .: "expression" <*> v .: "language"
 instance Serialize ASExpression
-instance Serialize ASLanguage
+
+asToFromJSON ''ASLanguage
+
+asToJSON ''ASCell
+asToJSON ''CellDiff
+asToJSON ''CellUpdate
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, DataKinds, KindSignatures, GADTs #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
@@ -6,7 +6,6 @@ module AS.Types.DB
   ) where
 
 import Prelude
-import GHC.Generics
 
 import AS.Types.Cell
 import AS.Types.Commits

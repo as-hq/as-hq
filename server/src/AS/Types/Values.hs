@@ -1,10 +1,10 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.Values where 
 
+import AS.ASJSON
+
 import GHC.Generics
-import Data.Aeson hiding (Array)
-import Data.Serialize (Serialize)
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import qualified Data.Map as M
@@ -41,22 +41,10 @@ data ExpandingValue =
 -- Represents all the types that could possibly arise from an evaluation. 
 data CompositeValue = Expanding ExpandingValue | CellValue ASValue deriving (Show, Read, Eq, Generic)
 
-instance ToJSON ASValue
-instance FromJSON ASValue
-
-instance FromJSON Collection
-instance ToJSON Collection
-
-instance FromJSON ExpandingValue
-instance ToJSON ExpandingValue
-
-instance FromJSON CompositeValue
-instance ToJSON CompositeValue
-
-instance Serialize ASValue
-instance Serialize Collection
-instance Serialize ExpandingValue
-instance Serialize CompositeValue
+asToFromJSON ''ASValue
+asToFromJSON ''Collection
+asToFromJSON ''ExpandingValue
+asToFromJSON ''CompositeValue
 
 -- memory region exposure instances for R value unboxing
 instance NFData ASValue             where rnf = genericRnf

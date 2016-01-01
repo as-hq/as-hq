@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving #-}
 
 module AS.Types.Updates where
 

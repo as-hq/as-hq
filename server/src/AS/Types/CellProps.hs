@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.CellProps
   ( CellPropType(..), 
@@ -26,6 +26,7 @@ module AS.Types.CellProps
 
 import AS.Types.User
 import AS.Types.Common
+import AS.ASJSON
 
 import GHC.Generics
 import Data.Aeson
@@ -163,38 +164,16 @@ data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving 
 -- a cell to do eval, which has an ASCellProps field. It is always blank though and always should be blank. Currently
 -- defining this as a hack just to get it to compile -- the correcdt solution is to make this an error and have 
 -- frontend stop sending ASCell's. 
-instance FromJSON ASCellProps where
-  parseJSON v = return emptyProps
 instance ToJSON ASCellProps where
   toJSON (ASCellProps m cm) = toJSON $ M.elems $ M.union cm m
 instance Serialize ASCellProps
 
-instance FromJSON CellProp
-instance ToJSON CellProp
-instance Serialize CellProp
 
-instance FromJSON VAlignType
-instance ToJSON VAlignType
-instance Serialize VAlignType
-
-instance FromJSON HAlignType
-instance ToJSON HAlignType
-instance Serialize HAlignType
-
-instance ToJSON FormatType
-instance FromJSON FormatType
-
-instance ToJSON Bloomberg
-instance FromJSON Bloomberg
-instance Serialize Bloomberg
-
-instance ToJSON Stream
-instance FromJSON Stream
-instance Serialize Stream
-
-instance ToJSON StreamSource
-instance FromJSON StreamSource
-instance Serialize StreamSource
-
-instance Serialize CellPropType
-instance Serialize FormatType
+asToFromJSON ''CellProp
+asToFromJSON ''CellPropType
+asToFromJSON ''VAlignType
+asToFromJSON ''HAlignType
+asToFromJSON ''FormatType
+asToFromJSON ''Bloomberg
+asToFromJSON ''Stream
+asToFromJSON ''StreamSource

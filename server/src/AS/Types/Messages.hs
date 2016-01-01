@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.Messages where
 
 import AS.Window
+import AS.ASJSON
 
 import AS.Types.Commits
 import AS.Types.Selection
@@ -19,9 +20,7 @@ import AS.Types.CondFormat
 import AS.Types.Updates 
 
 import GHC.Generics
-import Data.Aeson hiding (Success)
 import Data.Aeson.Types (defaultOptions)
-import Data.Serialize (Serialize)
 import qualified Data.Text as T
 
 
@@ -104,32 +103,15 @@ data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :
 --------------------------------------------------------------------------------------------------------------
 -- Instances
 
--- The format Frontend uses for both client->server and server->client is
--- { messageUserId: blah, action: blah, result: blah, payload: blah }
-instance ToJSON ServerMessage
-instance FromJSON ServerMessage
+asToFromJSON ''ServerMessage
+asToFromJSON ''ServerAction
+asToFromJSON ''MutateType
+asToFromJSON ''EvalInstruction
 
-instance ToJSON ClientMessage
-instance FromJSON ClientMessage
+asToJSON ''ClientMessage
+asToJSON ''ClientAction
 
-instance ToJSON ClientAction
-instance FromJSON ClientAction
 
-instance ToJSON ServerAction
-instance FromJSON ServerAction
-
-instance ToJSON EvalInstruction
-instance FromJSON EvalInstruction
-
-instance ToJSON MutateType
-instance FromJSON MutateType
-
-instance Serialize ClientMessage
-instance Serialize ServerMessage
-instance Serialize ClientAction
-instance Serialize ServerAction
-instance Serialize EvalInstruction
-instance Serialize MutateType
 -- are legit.
 --------------------------------------------------------------------------------------------------------------
 -- Helpers

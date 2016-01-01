@@ -1,10 +1,6 @@
 -- TODO: split this up to, and separate types into core types and Excel types? 
 
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 
 module AS.Types.Excel where
 
@@ -15,7 +11,6 @@ import AS.Types.Errors
 import AS.Types.Sheets
 
 import Prelude
-import GHC.Generics
 import Data.List
 
 import Text.Read

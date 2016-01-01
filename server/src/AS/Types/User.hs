@@ -1,13 +1,13 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.User where
+
+import AS.ASJSON
 
 import AS.Types.Common
 
 import GHC.Generics
 import Data.Text hiding (any)
-import Data.Aeson
-import Data.Serialize (Serialize)
 
 type ASUserId = Text
 
@@ -23,18 +23,9 @@ data ASPermissions = Blacklist [ASUserEntity] |
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
 
-instance FromJSON ASUserGroup
-instance ToJSON ASUserGroup
-
-instance FromJSON ASUserEntity
-instance ToJSON ASUserEntity
-
-instance FromJSON ASPermissions
-instance ToJSON ASPermissions
-
-instance Serialize ASPermissions
-instance Serialize ASUserEntity
-instance Serialize ASUserGroup
+asToFromJSON ''ASUserGroup
+asToFromJSON ''ASUserEntity
+asToFromJSON ''ASPermissions
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
