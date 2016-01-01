@@ -51,7 +51,6 @@ import Control.Exception (catch, SomeException)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
-type EvalCode = String
 type ASFilePath = String
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

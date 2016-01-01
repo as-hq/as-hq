@@ -27,7 +27,7 @@ data ASCommit = Commit { barDiff :: BarDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
-data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
+data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId } deriving (Generic)
 
 type CommitTransform = ASCommit -> ASCommit
 

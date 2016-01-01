@@ -200,7 +200,7 @@ instance Show2 (RedisKey a) where
     PopCommitKey c                    -> (keyPrefix PopCommitType) ++ show c
     LastMessageKey c                  -> (keyPrefix LastMessageType) ++ show c
     CFRulesKey sid                    -> (keyPrefix CFRulesType) ++ T.unpack sid
-    BarKey (BarIndex sid t ind)  -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
+    BarKey (BarIndex sid t ind)       -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) -- #refactor this show
     AllWorkbooksKey                   -> keyPrefix AllWorkbooksType
     AllSheetsKey                      -> keyPrefix AllSheetsType
     VolatileLocsKey                   -> keyPrefix VolatileLocsType

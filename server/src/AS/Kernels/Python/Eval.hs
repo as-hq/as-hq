@@ -12,6 +12,7 @@ import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Util
+import AS.Logging
 import AS.Config.Settings
 
 import Control.Exception (catch, SomeException)
@@ -19,6 +20,10 @@ import Control.Exception (catch, SomeException)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+
+testCell :: EvalCode -> IO ()
+testCell code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate "" code)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 

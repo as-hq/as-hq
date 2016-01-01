@@ -71,7 +71,7 @@ class ASShell(InteractiveShell):
     Parameters
     ----------
     sheet_id: str
-      The namespace id to run the cell against.
+      The namespace id to run the code against.
     raw_cell : str
       The code (including IPython code such as %magic functions) to run.
     store_history : bool
@@ -94,6 +94,11 @@ class ASShell(InteractiveShell):
     result : :class:`ExecutionResult`
     """
     result = ExecutionResult()
+
+    # initialize the sheet if it doesn't exist
+    # needsrefactor this should be called eagerly (e.g. on sheet open) instead of lazily (on eval)
+    if not (sheet_id in self.sheet_nss):
+      self.init_sheet_ns(sheet_id)
 
     if (not raw_cell) or raw_cell.isspace():
         return result
@@ -144,6 +149,7 @@ class ASShell(InteractiveShell):
 
     # Display the exception if input processing failed.
     if preprocessing_exc_tuple is not None:
+        print "GOT HERE"
         self.showtraceback(preprocessing_exc_tuple)
         if store_history:
             self.execution_count += 1
@@ -226,7 +232,7 @@ class ASShell(InteractiveShell):
       Will be passed to the compiler as the filename of the cell. Typically
       the value returned by ip.compile.cache(cell).
     sheet_id : str
-      the sheetid to run the cell in.
+      The namespace to run the cell in.
     interactivity : str
       'all', 'last', 'last_expr' or 'none', specifying which nodes should be
       run interactively (displaying output from expressions). 'last_expr'
@@ -296,6 +302,7 @@ class ASShell(InteractiveShell):
         # We do only one try/except outside the loop to minimize the impact
         # on runtime, and also because if any node in the node list is
         # broken, we should stop execution completely.
+        print "GOT HERE"
         if result:
             result.error_before_exec = sys.exc_info()[1]
         self.showtraceback()
@@ -351,9 +358,58 @@ class ASShell(InteractiveShell):
             result.error_in_exec = value
         self.CustomTB(etype, value, tb)
     except:
+        print "GOT HERE"
         if result is not None:
             result.error_in_exec = sys.exc_info()[1]
         self.showtraceback()
     else:
         outflag = 0
     return outflag
+
+def get_formatted_traceback(self, exc_tuple=None, filename=None, tb_offset=None,
+                exception_only=False):
+  """Display the exception that just occurred.
+
+  If nothing is known about the exception, this is the method which
+  should be used throughout the code for presenting user tracebacks,
+  rather than directly invoking the InteractiveTB object.
+
+  A specific showsyntaxerror() also exists, but this method can take
+  care of calling it if needed, so unless you are explicitly catching a
+  SyntaxError exception, don't try to analyze the stack manually and
+  simply call this method."""
+
+  try:
+      stb = None
+      # catch exceptions while trying to get the exception
+      try:
+          etype, value, tb = self._get_exc_info(exc_tuple)
+      except ValueError:
+          return 'No traceback available to show.'
+      
+      if issubclass(etype, SyntaxError):
+          # Though this won't be called by syntax errors in the input
+          # line, there may be SyntaxError cases with imported code.
+          stb = self.SyntaxTB.structured_traceback(etype, value, [])
+      elif etype is UsageError:
+          self.show_usage_error(value)
+      else:
+          if exception_only:
+              stb = ['An exception has occurred, use %tb to see '
+                     'the full traceback.\n']
+              stb.extend(self.InteractiveTB.get_exception_only(etype,
+                                                               value))
+          else:
+              try:
+                  # Exception classes can customise their traceback - we
+                  # use this in IPython.parallel for exceptions occurring
+                  # in the engines. This should return a list of strings.
+                  stb = value._render_traceback_()
+              except Exception:
+                  stb = self.InteractiveTB.structured_traceback(etype,
+                                      value, tb, tb_offset=tb_offset)
+
+          return self.InteractiveTB.stb2text(stb)
+
+  except KeyboardInterrupt:
+      self.write_err('\n' + self.get_exception_only())

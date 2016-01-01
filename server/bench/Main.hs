@@ -13,7 +13,6 @@ import AS.Types.CellProps
 import AS.Types.Eval
 import AS.Types.Messages
 import AS.Types.DB
-import AS.Types.RowColProps
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
@@ -22,6 +21,7 @@ import qualified AS.DB.Internal as DI
 import AS.Window
 import AS.Util
 import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python.EvalPrime as EP
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
@@ -40,15 +40,15 @@ main :: IO ()
 main = do
   defaultMain [
 
-    describe "dispatch"
+    xdescribe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
           it "dispatches 1000 cells" $ 
-            runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv)
+            runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv) id
       ]
 
     , has (testCells [1..1000]) $ \ ~(_, cells) -> 
         xdescribe "serialization"
-          [ it "serializes 10000 cells with cereal" $ 
+          [ it "serializes 1000 cells with cereal" $ 
               run (map S.encode) cells 
 
           , it "serializes 1000 cells with bytestrings" $ 
@@ -72,7 +72,7 @@ main = do
 
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
-              [ it "merges two lists using hashmaps" $ 
+              [ it "merges two lists using maps" $ 
                   run (\(c1, c2) -> mergeCells c1 c2) (cells, rcells)  
               ]
           ]
@@ -80,7 +80,7 @@ main = do
     , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
         xdescribe "DB"
           [ it "inserts 10000 cells with binary serialization" $ 
-              runIO $ (DB.setCells (envConn myEnv) cells1) 
+              runIO $ DB.setCells (envConn myEnv) cells1 
 
           , it "gets all cells after having inserted 10000" $ 
               runIO $ DB.getAllCells (envConn myEnv)
@@ -92,4 +92,11 @@ main = do
               runIO $ DB.deleteLocsInSheet (envConn myEnv) "BENCH_ID"
           ]
 
+    , describe "python kernel"
+      [ it "evaluates a simple expression using the new kernel" $ 
+          runIO $ EP.testCell "INIT_SHEET_ID" "1+1"
+
+      , it "evaluates range(1000)" $ 
+          runIO $ EP.testCell "INIT_SHEET_ID" "range(10000)"
+      ]
     ]

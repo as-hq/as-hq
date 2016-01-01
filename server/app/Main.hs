@@ -95,7 +95,9 @@ initApp = do
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
   putStrLn "\n\n Evaluating debug statements..."
-  putStrLn . show =<< (runEitherT $ EP.evaluate "INIT_SHEET_ID" "1+1")
+  EP.testHeader "INIT_SHEET_ID" "a=1+1; a"
+  EP.testCell "INIT_SHEET_ID" "a+5"
+  EP.testCell "INIT_SHEET_ID2" "a+5"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

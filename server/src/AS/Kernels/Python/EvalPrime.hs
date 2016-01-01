@@ -7,26 +7,32 @@ import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Pyfi
 
+import AS.Logging
+import AS.Config.Settings
 import qualified AS.Parsing.Read as R
 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
-import AS.Config.Settings
 
 import Data.Maybe (fromJust)
 import Data.Aeson 
 import Data.Aeson.Types (Parser)
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.Text as T
 
 import Control.Exception (catch, SomeException)
 import System.ZMQ4.Monadic
 
--- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+testCell :: ASSheetId -> EvalCode -> IO ()
+testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
+
+testHeader :: ASSheetId -> EvalCode -> IO ()
+testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
 ---------------------------------------------------------------------------------
 -- this portion is a drop-in replacement for Eval
 
