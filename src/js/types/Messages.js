@@ -228,6 +228,11 @@ export type PayloadCondFormatUpdate = {
   contents: CondFormatRuleUpdate;
 };
 
+export type PayloadGetBar = {
+  tag: 'PayloadGetBar';
+  contents: BarIndex;
+};
+
 export type PayloadSetBarProp = {
   tag: 'PayloadSetBarProp';
   contents: [BarIndex, BarProp];

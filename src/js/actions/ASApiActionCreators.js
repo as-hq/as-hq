@@ -52,6 +52,10 @@ import type {
 } from '../types/Updates';
 
 import type {
+  BarIndex
+} from '../types/Bar';
+
+import type {
   ASClientWindow,
   ASClientExpression
 } from '../types/State';
@@ -433,6 +437,11 @@ const API = {
       contents: U.Conversion.simpleToASRange(rng)
     };
     API.sendMessageWithAction(msg);
+  },
+
+  getBar(bInd: BarIndex) { 
+    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.GetBar, "PayloadGetBar", bInd);
+    this.send(msg); 
   },
 
   setColumnWidth(col: number, width: number) {
