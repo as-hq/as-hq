@@ -58,103 +58,60 @@ keepUnequal x = (ls1, ls2)
     ls1 = map      fst unequals
     ls2 = mapMaybe snd unequals
 
--- #lenses
--- | For a mutate, maps the old row and column to the new row and column.
-barIndexMutate :: MutateType -> BarIndex -> Maybe BarIndex
-barIndexMutate (InsertCol c') bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType -> Just $ BarIndex sid typ (if bari >= c' then bari+1 else bari)
-       RowType -> Just bar
-barIndexMutate (InsertRow r') bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType -> Just bar
-       RowType -> Just $ BarIndex sid typ (if bari >= r' then bari+1 else bari)
-barIndexMutate (DeleteCol c') bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType | bari == c' -> Nothing
-                     | otherwise -> Just $ BarIndex sid typ (if bari >= c' then bari-1 else bari)
-       RowType -> Just bar
-barIndexMutate (DeleteRow r') bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType -> Just bar
-       RowType | bari == r' ->  Nothing
-                  | otherwise -> Just $ BarIndex sid typ (if bari >= r' then bari-1 else bari)
-
-barIndexMutate (DragCol oldC newC) bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType
-         | bari < min oldC newC -> Just bar
-         | bari > max oldC newC -> Just bar
-         | bari == oldC         -> Just $ BarIndex sid typ newC
-         | oldC < newC       -> Just $ BarIndex sid typ (bari-1) -- here on we assume c is strictly between oldC and newC
-         | oldC > newC       -> Just $ BarIndex sid typ (bari+1)
-       RowType -> Just bar
-barIndexMutate (DragRow oldR newR) bar@(BarIndex sid typ bari) =
-  case typ of
-       ColumnType -> Just bar
-       RowType
-         | bari < min oldR newR -> Just bar
-         | bari > max oldR newR -> Just bar
-         | bari == oldR         -> Just $ BarIndex sid typ newR
-         | oldR < newR       -> Just $ BarIndex sid typ (bari-1)-- here on we assume r is strictly between oldR and newR
-         | oldR > newR       -> Just $ BarIndex sid typ (bari+1)
-  -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
-
--- #lens
-barMutate :: MutateType -> Bar -> Maybe Bar
-barMutate mt (Bar bInd bProps) = fmap (`Bar` bProps) (barIndexMutate mt bInd)
-
--- TODO: timchu, 12/29/15. Make a ASColumn so that col mutations can occur?
--- Ridiculous amounts of code duplication.
-columnMutate :: MutateType -> Col -> Maybe Col -- TODO: timchu, 12/29/15. add in sheetId
-columnMutate (InsertCol c') c = Just $ if c >= c' then c+1 else c
-columnMutate (DeleteCol c') c
+-- Helper functions for barIndex and index mutate.
+colMutate :: MutateType -> Col -> Maybe Col
+colMutate (InsertCol c') c = Just $ if c >= c' then (c+1) else c
+colMutate (DeleteCol c') c
   | c == c'  = Nothing
   | c > c'   = Just $ c-1
   | c < c'   = Just c
-columnMutate (DragCol oldC newC) c -- DragCol 3 1 : (123) -> (312)
+colMutate (DragCol oldC newC) c -- DragCol 3 1 : (123) -> (312)
   | c < min oldC newC = Just c
   | c > max oldC newC = Just c
   | c == oldC         = Just newC
   | oldC < newC       = Just $ c-1
   | oldC > newC       = Just $ c+1
-columnMutate (DeleteRow r') c = Just c
-columnMutate (InsertRow r') c = Just c
-columnMutate (DragRow oldR newR) c = Just c
-
--- TODO: timchu, 12/29/15. Replace duplication between indexMutate and barMutate.
--- TODO: timchu, 12/29/15. Should be coord -> Maybe coord? (Would eliminate the ridiculous pattern matches in refMutate).
-indexMutate :: MutateType -> (ASIndex -> Maybe ASIndex)
-indexMutate (InsertCol c') (Index sid (c, r)) = Just $ Index sid (if c >= c' then c+1 else c, r)
-indexMutate (InsertRow r') (Index sid (c, r)) = Just $ Index sid (c, if r >= r' then r+1 else r)
-indexMutate (DeleteCol c') i@(Index sid (c, r))
-  | c == c'  = Nothing
-  | c > c'   = Just $ Index sid (c-1, r)
-  | c < c'   = Just i
-indexMutate (DeleteRow r') i@(Index sid (c, r))
-  | r == r'  = Nothing
-  | r > r'   = Just $ Index sid (c, r-1)
-  | r < r'   = Just i
-indexMutate (DragCol oldC newC) i@(Index sid (c, r)) -- DragCol 3 1 : (123) -> (312)
-  | c < min oldC newC = Just i
-  | c > max oldC newC = Just i
-  | c == oldC         = Just $ Index sid (newC, r)
-  | oldC < newC       = Just $ Index sid (c-1, r) -- here on we assume c is strictly between oldC and newC
-  | oldC > newC       = Just $ Index sid (c+1, r)
   -- case oldC == newC can't happen because oldC < c < newC since third pattern-match
-indexMutate (DragRow oldR newR) i@(Index sid (c, r))
-  | r < min oldR newR = Just i
-  | r > max oldR newR = Just i
-  | r == oldR         = Just $ Index sid (c, newR)
-  | oldR < newR       = Just $ Index sid (c, r-1) -- here on we assume r is strictly between oldR and newR
-  | oldR > newR       = Just $ Index sid (c, r+1)
+colMutate _ c = Just c
+
+rowMutate :: MutateType -> Row -> Maybe Row
+rowMutate (InsertRow r') r = Just $ if r >= r' then (r+1) else r
+rowMutate (DeleteRow r') r
+  | r == r'  = Nothing
+  | r >  r'   = Just $ r-1
+  | r <  r'   = Just r
+rowMutate (DragRow oldR newR) r -- DragRow 3 1 : (123) -> (312)
+  | r < min oldR newR = Just r
+  | r > max oldR newR = Just r
+  | r == oldR         = Just newR
+  | oldR < newR       = Just $ r-1
+  | oldR > newR       = Just $ r+1
   -- case oldR == newR can't happen because oldR < r < newR since third pattern-match
+rowMutate _ r = Just r
+
+-- #lenses
+-- | For a mutate, maps the old row and column to the new row and column.
+barIndexMutate :: MutateType -> BarIndex -> Maybe BarIndex
+barIndexMutate mt bar@(BarIndex sid typ bari) = do
+  bari' <- case typ of
+             ColumnType -> colMutate mt bari
+             RowType -> rowMutate mt bari
+  return $ BarIndex sid typ bari'
+
+-- #lens
+barMutate :: MutateType -> Bar -> Maybe Bar
+barMutate mt (Bar bInd bProps) = fmap (`Bar` bProps) (barIndexMutate mt bInd)
+
+indexMutate :: MutateType -> (ASIndex -> Maybe ASIndex)
+indexMutate mt (Index sid (c, r)) = do
+    c' <- colMutate mt c
+    r' <- colMutate mt r
+    return $ Index sid (c', r')
 
 refMutate :: MutateType -> (ExRef -> ExRef)
 refMutate mt ExOutOfBounds = ExOutOfBounds
 refMutate mutateType exLocRef@(ExLocRef (ExIndex indexRefType _ _) sheetName workbookName) = exLocRef'
   where -- feels kinda ugly...
-  -- #Question, why do you need a T.pack here? timchu, 12/29/15.
     IndexRef ind = exRefToASRef (T.pack "") exLocRef
     exLocRef' = case (indexMutate mutateType ind) of
       Nothing -> ExOutOfBounds
@@ -168,15 +125,7 @@ refMutate mutateType er@(ExRangeRef (ExRange tl br) sheetName workbookName) = Ex
   where
     ExLocRef tl' _ _ = refMutate mutateType (ExLocRef tl sheetName workbookName)
     ExLocRef br' _ _ = refMutate mutateType (ExLocRef br sheetName workbookName)
--- TODO: timchu, 12/29/15. Problem if columnMutate returns a nothing. Use colRangeMutate instead?
-refMutate mutateType ecr@(ExColRangeRef (ExColRange tl r@(ExCol sRefType rCol)) sheetName workbookName) = ExColRangeRef (ExColRange tl' r') sheetName workbookName
-  where
-    ExLocRef tl' _ _ = refMutate mutateType (ExLocRef tl sheetName workbookName)
-    rColNumber = colStrToInt rCol -- :: Col. TODO: timchu, 12/29/15.  Refactor into colStrToCol? This seems really janky.
-    -- TODO: timchu, 12/29/15. This is bad! 0 is a hack.
-    rColStr = intToColStr $ fromMaybe 0 $ columnMutate mutateType rColNumber
-    r' = ExCol sRefType rColStr
-    -- What?
+-- TODO: timchu, 12/29/15. Problem if colMutate returns a nothing. Use colRangeMutate instead?
 refMutate mutateType er@(ExPointerRef exLoc sheetName workbookName) = ExPointerRef exLoc' sheetName workbookName
   where
     ExLocRef exLoc' _ _ = refMutate mutateType (ExLocRef exLoc sheetName workbookName)
