@@ -89,6 +89,7 @@ instance Client ASUserClient where
       Drag selRng dragRng         -> handleDrag user state selRng dragRng
       Decouple                    -> handleDecouple user state
       UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules user state cfru
+      GetBar bInd                 -> handleGetBar user state bInd
       SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))

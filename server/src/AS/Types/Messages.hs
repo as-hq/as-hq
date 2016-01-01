@@ -48,6 +48,7 @@ data ClientAction =
   | MakeSelection Selection
   | LoadImportedCells [ASCell] -- cells to add to sheet
   | ShowHeaderResult CompositeValue
+  | PassBarToTest Bar
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -62,6 +63,7 @@ data ServerAction =
   | Evaluate [EvalInstruction]
   | EvaluateHeader ASExpression
   | Get [ASIndex]
+  | GetBar BarIndex
   | Delete ASRange
   | ClearSheetServer ASSheetId
   | Undo 
