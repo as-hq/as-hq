@@ -28,6 +28,11 @@ import type {
 } from '../types/Messages';
 
 import type {
+  Bar, 
+  BarIndex
+} from '../types/Bar';
+
+import type {
   CondFormatRule,
   CondFormatCondition,
   CustomCondition,
@@ -93,6 +98,15 @@ export function locToExcel(loc: NakedRange): string {
 
 export function numToAlpha(num: number): string {
   return String.fromCharCode(num + 'A'.charCodeAt(0));
+}
+
+export function colIndex(ind: number): BarIndex {
+  return { 
+    tag: "BarIndex", 
+    barSheetId: "INIT_SHEET_ID", // #needsrefactor
+    barType: "ColumnType", 
+    barNumber: ind
+  };
 }
 
 export function asIndex(loc: string): ASIndex {
@@ -462,6 +476,12 @@ export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: B
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
+export function setColumnWidth(col: number, dim: number): Prf { 
+  return apiExec(() => {
+    API.setColumnWidth(col, dim); 
+  });
+}
+
 export function valueD(val: number): ValueD {
   return { tag: 'ValueD', contents: val };
 }
@@ -534,7 +554,7 @@ export function shouldError(prf: Prf): Prf {
   return responseShouldSatisfy(prf, ({ clientAction: { tag } }) => tag === 'ShowFailureMessage');
 }
 
-export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
+export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);
@@ -563,8 +583,54 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
   });
 }
 
+export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf {
+  return promise((fulfill, reject) => {
+    API.test(() => {
+      API.getBar(barInd); 
+    }, {
+      fulfill: (result: ?ClientMessage) => {
+        if (! result) {
+          console.log("Null message received from server in barShouldSatisfy");
+          reject();
+          return;
+        }
+
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassBarToTest') {
+          console.log("Message action was not PassBarToTest. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        fn(clientAction.contents);
+        fulfill();
+      },
+      reject: reject
+    });
+  });
+}
+
+export function colShouldHaveDimension(ind: number, dim: number): Prf { 
+  return barShouldSatisfy(colIndex(ind), (bar) => { 
+    logDebug(`${bar} should have dimension ${dim}`);
+
+    let dimInd = bar.barProps.map(({tag}) => tag).indexOf("Dimension");
+    expect(dimInd >= 0).toBe(true);
+    expect(bar.barProps[dimInd].contents).toBe(dim); 
+  });
+}
+
+export function colShouldNotHaveDimensionProp(ind: number, dim: number): Prf { 
+  return barShouldSatisfy(colIndex(ind), (bar) => { 
+    logDebug(`${bar} should not have a dimension prop`); 
+
+    expect(bar.barProps.map(({tag}) => tag).indexOf("Dimension")).toBe(-1); 
+    
+  });
+}
+
 export function expressionShouldSatisfy(loc: string, fn: (exp: ASExpression) => boolean): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} expression should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0);
@@ -582,7 +648,7 @@ export function expressionShouldBe(loc: string, xp: string): Prf {
 }
 
 export function shouldHaveProp(loc: string, prop: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
     expect(cs.length).not.toBe(0);
@@ -596,7 +662,7 @@ export function shouldHaveProp(loc: string, prop: string): Prf {
 }
 
 export function shouldNotHaveProp(loc: string, prop: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
     if (cs.length == 0) {
@@ -610,7 +676,7 @@ export function shouldNotHaveProp(loc: string, prop: string): Prf {
 }
 
 export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0, 'which was the length of the cell value message');
@@ -642,7 +708,7 @@ export function shouldBeImage(loc: string): Prf {
 }
 
 export function shouldBeNothing(loc: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should be nothing`);
     //server should return either nothing at the location or a blank cell
     let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");

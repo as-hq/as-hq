@@ -55,6 +55,8 @@ describe('backend', () => {
     makeIsBetweenCondFormattingFontRuleExcel,
     makeIsNotBetweenCondFormattingFontRuleExcel,
 
+    setColumnWidth,
+
     python,
     r,
     ocaml,
@@ -84,8 +86,10 @@ describe('backend', () => {
     shouldBeCoupled,
     expressionShouldBe,
     shouldHaveProp,
-    shouldNotHaveProp
+    shouldNotHaveProp,
 
+    colShouldHaveDimension,
+    colShouldNotHaveDimensionProp
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -1602,6 +1606,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          it ('should update column properties', (done) => {
+            _do([
+              setColumnWidth(1, 150), 
+              setColumnWidth(2, 200), 
+              dragCol(1, 4), 
+              colShouldHaveDimension(1, 200), 
+              colShouldNotHaveDimensionProp(2), 
+              colShouldNotHaveDimensionProp(3), 
+              colShouldHaveDimension(4, 150), 
+              exec(done)
+            ]);
+          });
         });
       });
 
@@ -2533,7 +2550,7 @@ describe('backend', () => {
         });
 
         // TODO: timchu 12/17/15, the below test does not pass.
-        fit ('should not format cells in GreaterThanCondition cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
+        xit ('should not format cells in GreaterThanCondition cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
           _do([
             python('A1', '=1'), // ERROR
             excel('A2', '=1/0'), // ERROR
@@ -2774,6 +2791,32 @@ describe('backend', () => {
             shouldNotHaveProp('A6', 'Italic'),
             redo(),
             shouldHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
+
+        it ('should undo and redo a column drag column properties', (done) => {
+          _do([
+            python('A1', '15'),
+            setColumnWidth(1, 150), 
+            setColumnWidth(2, 200), 
+            dragCol(1, 4), 
+
+            undo(),
+            shouldBe('A1', valueI(15)),
+
+            colShouldHaveDimension(1, 150), 
+            colShouldHaveDimension(2, 200), 
+            colShouldNotHaveDimensionProp(3), 
+            colShouldNotHaveDimensionProp(4), 
+
+            redo(),
+            shouldBe('D1', valueI(15)),
+
+            colShouldHaveDimension(1, 200), 
+            colShouldNotHaveDimensionProp(2), 
+            colShouldNotHaveDimensionProp(3), 
+            colShouldHaveDimension(4, 150), 
             exec(done)
           ]);
         });

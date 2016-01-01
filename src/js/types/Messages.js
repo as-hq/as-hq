@@ -228,11 +228,6 @@ export type PayloadCondFormatUpdate = {
   contents: CondFormatRuleUpdate;
 };
 
-export type PayloadGetBar = {
-  tag: 'PayloadGetBar';
-  contents: BarIndex;
-};
-
 export type PayloadSetBarProp = {
   tag: 'PayloadSetBarProp';
   contents: [BarIndex, BarProp];
@@ -304,6 +299,7 @@ export type ServerAction =
   | Evaluate
   | EvaluateHeader
   | Get
+  | GetBar
   | Delete
   | ClearSheetServer
   | Undo
@@ -367,6 +363,11 @@ export type EvaluateHeader = {
 export type Get = {
   tag: "Get";
   contents: Array<ASIndex>;
+};
+
+export type GetBar = {
+  tag: "Get";
+  contents: BarIndex;
 };
 
 export type Delete = {

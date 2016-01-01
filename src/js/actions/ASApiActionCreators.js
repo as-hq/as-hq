@@ -228,7 +228,7 @@ wss.onopen = (evt) => {
 };
 
 const API = {
-  sendMessageWithAction(action: ServerAction) {
+  sendMessageWithAction(action: any) {
     let msg = {serverAction: action}; //::ALEX::
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
@@ -440,8 +440,11 @@ const API = {
   },
 
   getBar(bInd: BarIndex) { 
-    let msg = U.Conversion.makeClientMessage(Constants.ServerActions.GetBar, "PayloadGetBar", bInd);
-    this.send(msg); 
+    let msg = {
+      tag: "GetBar",
+      contents: bInd
+    };
+    API.sendMessageWithAction(msg); 
   },
 
   setColumnWidth(col: number, width: number) {
