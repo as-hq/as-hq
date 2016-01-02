@@ -176,7 +176,7 @@ exColRangeMutate mt (ExColRange tl r) =
     (Nothing, Nothing) -> Nothing
     (Nothing, Just r') -> Just $ ExColRange tl r'
     (Just tl', Nothing) -> Just $ ExColRange tl' (shiftColLeft r) -- in this case, tl' should equal tl
-    (Just tl', Just r') -> Just $ ExColRange tl' r
+    (Just tl', Just r') -> Just $ ExColRange tl' r'
 
 -- returns Nothing if any of the mutations give out of bounds.
 refMutate' :: MutateType -> (ExRef -> Maybe ExRef)
