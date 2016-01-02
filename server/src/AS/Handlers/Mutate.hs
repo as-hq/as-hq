@@ -198,11 +198,8 @@ refMutate' mt er@(ExPointerRef exLoc sheetName workbookName) = do
 refMutate :: MutateType -> ExRef -> ExRef
 refMutate mt exRef  = fromMaybe ExOutOfBounds $ refMutate' mt exRef
 
--- TODO: timchu, this is the proper expression:
--- expressionMutate mt = replaceRefs (show . (refMutate mt))
--- The different one is only for tracing!
 expressionMutate :: MutateType -> (ASExpression -> ASExpression)
-expressionMutate mt xp = trace' "NEW ASEXPRESSION: " (replaceRefs (show . (refMutate mt)) xp)
+expressionMutate mt = replaceRefs (show . (refMutate mt))
 
 cellMutate :: MutateType -> (ASCell -> Maybe ASCell)
 cellMutate mt c@(Cell loc xp v ps) = case ((indexMutate mt) loc) of
