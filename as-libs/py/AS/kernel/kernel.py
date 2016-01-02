@@ -30,10 +30,11 @@ class ASKernel(object):
   def handle_incoming(self):
     recvMsg = json.loads(self.socket.recv())
     replyMsg = self.process_message(recvMsg)
-    print "sending reply:", replyMsg
+    # print "sending reply:", replyMsg
     self.socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
+    print 'processing', msg['type']
     if msg['type'] == 'evaluate':
       result = None
       if msg['scope'] == 'Header':

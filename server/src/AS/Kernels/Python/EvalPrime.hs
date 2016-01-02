@@ -28,13 +28,20 @@ import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+---------------------------------------------------------------------------------
+-- Exposed functions
+
+evaluate = evaluateWithScope Cell
+evaluateHeader = evaluateWithScope Header
+
 testCell :: ASSheetId -> EvalCode -> IO ()
 testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
 
 testHeader :: ASSheetId -> EvalCode -> IO ()
 testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
+
 ---------------------------------------------------------------------------------
--- this portion is a drop-in replacement for Eval
+-- Helpers
 
 data EvalScope = Header | Cell deriving (Generic)
 data KernelMessage = 
@@ -71,23 +78,20 @@ instance FromJSON KernelResponse where
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
 
-evaluate = evaluateWithScope Cell
-evaluateHeader = evaluateWithScope Header
-
 evaluateWithScope :: EvalScope -> ASSheetId -> String -> EitherTExec CompositeValue
 evaluateWithScope scope sid code = do
   (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
   case v of 
     Nothing -> case err of 
       Just e -> return . CellValue $ ValueError e ""
-      Nothing -> error "fucked up"
+      Nothing -> left KernelError
     Just v -> hoistEither $ R.parseValue Python v
 
 sendMessage :: KernelMessage -> EitherTExec KernelResponse
 sendMessage msg = do
   resp <- liftIO $ runZMQ $ do
     reqSocket <- socket Req
-    connect reqSocket "tcp://localhost:20000"
+    connect reqSocket pykernelHost
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
   case resp of 

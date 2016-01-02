@@ -113,6 +113,7 @@ data ASExecError =
   | SyntaxError
   | HighDimensionalValue
   | APIError
+  | KernelError
   deriving (Show, Read, Eq, Generic)
 
 instance ToJSON ASExecError

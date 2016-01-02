@@ -8,7 +8,7 @@ import AS.Types.Commits
 import AS.Types.Eval
 
 import AS.Dispatch.Core
-import AS.Dispatch.Repl
+--import AS.Dispatch.Repl
 import AS.Dispatch.EvalHeader
 
 import AS.DB.API
@@ -36,11 +36,12 @@ handleEval uc state payload  = do
   errOrCommit <- runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc) id
   broadcastFiltered state uc $ makeReplyMessageFromErrOrCommit errOrCommit
 
-handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
-handleEvalRepl uc (PayloadXp xp) = do
-  let sid = userSheetId uc
-  msg' <- runReplDispatch sid xp
-  sendToOriginal uc msg'
+-- DEPRECATED for now (anand 1/1/16)
+--handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
+--handleEvalRepl uc (PayloadXp xp) = do
+--  let sid = userSheetId uc
+--  msg' <- runReplDispatch sid xp
+--  sendToOriginal uc msg'
 
 handleEvalHeader :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 handleEvalHeader uc state (PayloadXp xp@(Expression str lang)) = do

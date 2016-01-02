@@ -21,7 +21,7 @@ import Control.Monad.Trans.Either
 runEvalHeader :: ASSheetId -> ASExpression -> IO ASServerMessage
 runEvalHeader sid xp = do
     let lang = language xp
-    val <- runEitherT $ R.evaluateHeader xp
+    val <- runEitherT $ R.evaluateHeader sid xp
     return $ case val of 
         Left e -> ServerMessage EvaluateHeader (Failure $ generateErrorMessage e) (PayloadValue (CellValue $ execErrorToValueError e) lang)
         Right v -> ServerMessage EvaluateHeader Success (PayloadValue v lang)

@@ -21,7 +21,6 @@ import qualified AS.DB.Internal as DI
 import AS.Window
 import AS.Util
 import qualified AS.Kernels.Python.Eval as KP
-import qualified AS.Kernels.Python.EvalPrime as EP
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
@@ -94,9 +93,9 @@ main = do
 
     , describe "python kernel"
       [ it "evaluates a simple expression using the new kernel" $ 
-          runIO $ EP.testCell "INIT_SHEET_ID" "1+1"
+          runIO $ KP.testCell "INIT_SHEET_ID" "1+1"
 
-      , it "evaluates range(1000)" $ 
-          runIO $ EP.testCell "INIT_SHEET_ID" "range(10000)"
+      , it "evaluates range(10000)" $ 
+          runIO $ KP.testCell "INIT_SHEET_ID" "range(10000)"
       ]
     ]

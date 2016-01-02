@@ -23,8 +23,8 @@ class ASDisplayHook(DisplayHook):
       else:
         super(ASDisplayHook, self).write_output_prompt()
 
-    def write_format_data(self):
+    def write_format_data(self, format_dict, md_dict=None):
       if self.silent:
         return
       else:
-        super(ASDisplayHook, self).write_format_data()
+        super(ASDisplayHook, self).write_format_data(format_dict, md_dict)

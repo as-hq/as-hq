@@ -18,7 +18,6 @@ import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
 import qualified AS.Kernels.Python.Eval as KP
-import qualified AS.Kernels.Python.EvalPrime as EP
 
 import Prelude
 import System.Environment (getArgs)
@@ -41,7 +40,6 @@ import qualified Data.List as L
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
 
--- EitherT
 import Control.Monad.Trans.Either
 
 import Language.R.Instance as R
@@ -95,9 +93,6 @@ initApp = do
 initDebug :: R.Connection -> MVar ServerState -> IO ()
 initDebug conn state = do
   putStrLn "\n\n Evaluating debug statements..."
-  EP.testHeader "INIT_SHEET_ID" "a=1+1; a"
-  EP.testCell "INIT_SHEET_ID" "a+5"
-  EP.testCell "INIT_SHEET_ID2" "a+5"
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

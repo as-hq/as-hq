@@ -266,7 +266,7 @@ addCellsToContext cells ctx = ctx { contextMap = newMap, addedCells = newAddedCe
 -- Returns the new context and the blanked out indices, if any
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
 delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of 
-  Expression _ _         ->  return (ctx, Nothing)
+  Expression _ _    ->  return (ctx, Nothing)
   Coupled _ _ _ key -> if (isFatCellHead c)
     then do 
       let indices = rangeKeyToIndices key
@@ -277,7 +277,7 @@ delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of
       -- Remove the descriptor from context, and then add the blank cells to the list of added cells. This must be done
       -- so that the blanked out cells make it into the commit (ie so that the context is correct up to now). If anything
       -- replaces these blanked out cells, they will be merged in by a future contextInsert.
-      let ctx' =  addCellsToContext blankCells $ removeMaybeDescriptorFromContext descriptor ctx
+      let ctx' = addCellsToContext blankCells $ removeMaybeDescriptorFromContext descriptor ctx
       return (ctx', Just indices)
     else left WillNotEvaluate
 

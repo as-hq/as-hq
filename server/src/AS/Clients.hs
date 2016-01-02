@@ -58,7 +58,8 @@ instance Client ASUserClient where
       Import             -> handleImport user state payload
       Export             -> handleExport user state payload
       Evaluate           -> handleEval user state payload
-      EvaluateRepl       -> handleEvalRepl user payload
+      -- this case is deprecated for now. (anand 1/1/16)
+      --EvaluateRepl       -> handleEvalRepl user payload
       EvaluateHeader     -> handleEvalHeader user state payload
       Get                -> handleGet user state payload
       Delete             -> handleDelete user state payload

@@ -61,21 +61,23 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
       otherwise -> do 
         header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
-        return <$> execEvalInLang header lang xpWithValuesSubstituted 
+        return <$> execEvalInLang sid header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
 evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
-evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
-evaluateLanguageRepl header (Expression str lang) = case lang of
-  Python  -> KP.evaluateRepl header str
-  R       -> KR.evaluateRepl str
-  SQL     -> KP.evaluateSqlRepl header str
-  OCaml   -> KO.evaluateRepl header str
+-- DEPRECATED for now
+--evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
+--evaluateLanguageRepl header (Expression str lang) = case lang of
+--  Python  -> KP.evaluateRepl header str
+--  R       -> KR.evaluateRepl str
+--  SQL     -> KP.evaluateSqlRepl header str
+--  OCaml   -> KO.evaluateRepl header str
 
-evaluateHeader :: ASExpression -> EitherTExec CompositeValue
-evaluateHeader (Expression str lang) = case lang of 
-  Python -> KP.evaluateHeader str
+-- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
+evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
+evaluateHeader sid (Expression str lang) = case lang of 
+  Python -> KP.evaluateHeader sid str
   R      -> KR.evaluateHeader str
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -134,9 +136,10 @@ handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
 handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
-execEvalInLang :: String -> ASLanguage -> String -> EitherTExec CompositeValue
-execEvalInLang header lang = case lang of
-  Python  -> KP.evaluate header 
+-- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
+execEvalInLang :: ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec CompositeValue
+execEvalInLang sid header lang = case lang of
+  Python  -> KP.evaluate sid
   R       -> KR.evaluate header 
   SQL     -> KP.evaluateSql header 
   OCaml   -> KO.evaluate header
