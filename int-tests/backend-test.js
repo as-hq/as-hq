@@ -55,6 +55,8 @@ describe('backend', () => {
     makeIsBetweenCondFormattingFontRuleExcel,
     makeIsNotBetweenCondFormattingFontRuleExcel,
 
+    setColumnWidth,
+
     python,
     r,
     ocaml,
@@ -84,8 +86,10 @@ describe('backend', () => {
     shouldBeCoupled,
     expressionShouldBe,
     shouldHaveProp,
-    shouldNotHaveProp
+    shouldNotHaveProp,
 
+    colShouldHaveDimension,
+    colShouldNotHaveDimensionProp
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -402,6 +406,17 @@ describe('backend', () => {
               python('A1', '[1,2]'),
               decouple(),
               shouldBeError('B2'), // an error should show up inside B2
+              exec(done)
+            ]);
+          });
+
+          it ('should be decoupled when referencing a list that got deleted', (done) => {
+            _do([
+              python('A1', 'range(5)'),
+              python('B2', '@A1'),
+              delete_('A2'),
+              decouple(),
+              shouldBeDecoupled('B2'), // an error should show up inside B2
               exec(done)
             ]);
           });
@@ -2076,6 +2091,19 @@ describe('backend', () => {
               exec(done)
             ]);
           });
+
+          it ('should update column properties', (done) => {
+            _do([
+              setColumnWidth(1, 150), 
+              setColumnWidth(2, 200), 
+              dragCol(1, 4), 
+              colShouldHaveDimension(1, 200), 
+              colShouldNotHaveDimensionProp(2), 
+              colShouldNotHaveDimensionProp(3), 
+              colShouldHaveDimension(4, 150), 
+              exec(done)
+            ]);
+          });
         });
       });
 
@@ -2418,7 +2446,7 @@ describe('backend', () => {
           _do([
             excel('A1', '10'),
             updateCondFormattingRule(
-              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
+              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldNotHaveProp('A1', 'Bold'),
             delete_('A1'), 
@@ -2538,17 +2566,6 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should not re-eval the head of a fat cell', (done) => {
-          _do([
-            python('A1', 'range(10)'),
-            cut('A1', 'B1'),
-            decouple(),
-            shouldBe('B1', valueI(0)),
-            shouldBe('A2', valueI(1)),
-            exec(done)
-          ]);
-        });
-
         it ('pointer to decoupled cells from cut gives error', (done) => {
           _do([
             python('A1', 'range(10)'),
@@ -2556,6 +2573,17 @@ describe('backend', () => {
             cut('A1', 'B1'),
             decouple(),
             shouldBeError('C1'),
+            exec(done)
+          ]);
+        });
+
+        it ('should not re-eval the head of a fat cell', (done) => {
+          _do([
+            python('A1', 'range(10)'),
+            cut('A1', 'B1'),
+            decouple(),
+            shouldBe('B1', valueI(0)),
+            shouldBe('A2', valueI(1)),
             exec(done)
           ]);
         });
@@ -2586,6 +2614,8 @@ describe('backend', () => {
       });
 
       // Currently not supporting (Alex 12/29)
+      // note -- there is a known backend bug that causes these to sometimes not pass. clearSheet doesn't properly
+      // delete the keys in the database that store repeat information. 
       xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
@@ -2851,7 +2881,7 @@ describe('backend', () => {
           _do([
             python('A1', 'range(5)'),
             updateCondFormattingRule(
-              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold"),
+              makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldNotHaveProp('A5', 'Bold'),
             shouldHaveProp('A6', 'Bold'),
@@ -3010,7 +3040,7 @@ describe('backend', () => {
         xit ('should not format cells in GreaterThanCondition cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
           _do([
             python('A1', '=1'), // ERROR
-            excel('A2', '1/0'), // ERROR
+            excel('A2', '=1/0'), // ERROR
             python('A4', '4'),
             python('B1', '1'),
             updateCondFormattingRule(
@@ -3020,8 +3050,8 @@ describe('backend', () => {
               makeGreaterThanCondFormattingFontRuleExcel("B1:B10", "Bold", "$A$4")
             ),
             shouldNotHaveProp('A3', 'Bold'),
-            shouldNotHaveProp('A1', 'Bold'),
-            shouldNotHaveProp('A2', 'Bold'),
+            // shouldNotHaveProp('A1', 'Bold'),
+            // shouldNotHaveProp('A2', 'Bold'),
             shouldNotHaveProp('A4', 'Bold'),
             shouldNotHaveProp('B1', 'Bold'),
             shouldNotHaveProp('B3', 'Bold'),
@@ -3030,6 +3060,7 @@ describe('backend', () => {
         });
       });
 
+      
       describe('Updating on mutation', () => {
         it ('shifts formatting rules on column drag', (done) => {
           _do([
@@ -3247,6 +3278,32 @@ describe('backend', () => {
             shouldNotHaveProp('A6', 'Italic'),
             redo(),
             shouldHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
+
+        it ('should undo and redo a column drag column properties', (done) => {
+          _do([
+            python('A1', '15'),
+            setColumnWidth(1, 150), 
+            setColumnWidth(2, 200), 
+            dragCol(1, 4), 
+
+            undo(),
+            shouldBe('A1', valueI(15)),
+
+            colShouldHaveDimension(1, 150), 
+            colShouldHaveDimension(2, 200), 
+            colShouldNotHaveDimensionProp(3), 
+            colShouldNotHaveDimensionProp(4), 
+
+            redo(),
+            shouldBe('D1', valueI(15)),
+
+            colShouldHaveDimension(1, 200), 
+            colShouldNotHaveDimensionProp(2), 
+            colShouldNotHaveDimensionProp(3), 
+            colShouldHaveDimension(4, 150), 
             exec(done)
           ]);
         });

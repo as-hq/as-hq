@@ -1,66 +1,67 @@
+/* @flow */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
+// $FlowFixMe
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
 
+// $FlowFixMe
 let Tooltip = require("react-tooltip");
 
 
-export default React.createClass({
+type ToolbarTextFieldDefaultProps = {
+  width: number; 
+  height: number; 
+  spacing: number; 
+  onClick: (e: SyntheticMouseEvent) => void; 
+  showTooltip: boolean; 
+  arrowSize: number; 
+};
+
+type ToolbarTextFieldProps = {
+  displayValue: string; 
+  onClick: (e: SyntheticMouseEvent) => void; 
+  width: number; 
+  height: number; 
+  spacing: number; 
+  tooltip: string; 
+  showTooltip: boolean; 
+  arrowSize: number; 
+};
+
+type ToolbarTextFieldState = {
+  cursor: string; 
+};
+
+export default class ToolbarTextField
+  extends React.Component<ToolbarTextFieldDefaultProps, ToolbarTextFieldProps, ToolbarTextFieldState>
+{
+  constructor(props: ToolbarTextFieldProps) {
+    super(props);
+
+    this.state = { 
+      cursor: 'auto'
+    };
+  }
 
   /*************************************************************************************************************************/
   // Prop and state methods
 
-  getInitialState() {
-    return {
-      cursor: 'auto' // cursor icon over text field
-    }
-  },
-
-  /* We need the following props
-    1) displayValue to be shown in the text field
-    2) onClick callback
-    3,4,5) size params
-    6) tooltip to display as hint
-    7) should we show tooltip
-    8) arrowSize: size of the arrow icon (square)
-  */
-  propTypes: {
-    displayValue: React.PropTypes.string.isRequired,
-    onClick: React.PropTypes.func,
-    width: React.PropTypes.number,
-    height: React.PropTypes.number,
-    spacing: React.PropTypes.number,
-    tooltip: React.PropTypes.string,
-    showTooltip: React.PropTypes.bool,
-    arrowSize: React.PropTypes.number
-  },
-
-  getDefaultProps() {
-    return {
-      width: 100,
-      height: 36,
-      spacing: 0, // most of the time there's a separator right before this element, so no spacing required
-      onClick: (active) => {},
-      showTooltip: true,
-      arrowSize: 15
-    };
-  },
-
   /*************************************************************************************************************************/
   // Responding to events
 
-  _onMouseOver(e) {
+  _onMouseOver(e: SyntheticMouseEvent) {
     this.setState({cursor: 'pointer'});
-  },
+  }
 
   /*************************************************************************************************************************/
   // Styles and rendering
 
-  getStyles() {
+  getStyles(): any {
     return {
       outer: {
         display: 'inline-block', // should stack horizontally with other toolbar components
@@ -95,18 +96,18 @@ export default React.createClass({
         left: '10%'
       },
     };
-  },
+  }
 
   // Return a component with underline, arrow, and text, and a tooltip if applicable
   // There's some redundancy that can probably be eliminated with React helpers
-  render() {
+  render(): React.Element {
     let styles = this.getStyles(); 
     // We have an outer div, possibly with tooltip info, inside which is the displayValue, arrow, and underline, each styled
     // All of the children are absolutely positioned with respect to the outer div
     // The tooltip itself uses the tooltip as a uid an implements a delay
     if (this.props.showTooltip) {
       return (
-        <span style={styles.span} onMouseOver={this._onMouseOver}>
+        <span style={styles.span} onMouseOver={this._onMouseOver.bind(this)}>
           <div style={styles.outer} onClick={this.props.onClick} data-for={this.props.tooltip} data-tip={this.props.tooltip} >
             <div style={styles.label}>
               {this.props.displayValue}
@@ -135,7 +136,33 @@ export default React.createClass({
         </div>
       );
     }
-  },
+  }
+}
 
+  /* We need the following props
+    1) displayValue to be shown in the text field
+    2) onClick callback
+    3,4,5) size params
+    6) tooltip to display as hint
+    7) should we show tooltip
+    8) arrowSize: size of the arrow icon (square)
+  */
+ToolbarTextField.propTypes = {
+  displayValue: React.PropTypes.string.isRequired,
+  onClick: React.PropTypes.func,
+  width: React.PropTypes.number,
+  height: React.PropTypes.number,
+  spacing: React.PropTypes.number,
+  tooltip: React.PropTypes.string,
+  showTooltip: React.PropTypes.bool,
+  arrowSize: React.PropTypes.number
+};
 
-});
+ToolbarTextField.defaultProps = {
+  width: 100,
+  height: 36,
+  spacing: 0, // most of the time there's a separator right before this element, so no spacing required
+  onClick: (active) => {},
+  showTooltip: true,
+  arrowSize: 15
+};

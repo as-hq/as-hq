@@ -33,10 +33,12 @@ import type {
   ServerAction,
   ASAPICallbackPair,
   ClearSheetServer,
-  UpdateWindow, 
-  SetProp, 
+  UpdateWindow,
+  SetProp,
   Delete,
-  ToggleProp
+  ToggleProp,
+  Evaluate, 
+  EvalInstruction
 } from '../types/Messages';
 
 import type {
@@ -48,6 +50,10 @@ import type {
   SheetUpdate,
   CondFormatRuleUpdate
 } from '../types/Updates';
+
+import type {
+  BarIndex
+} from '../types/Bar';
 
 import type {
   ASClientWindow,
@@ -102,10 +108,10 @@ wss.onmessage = (event: MessageEvent) => {
     let f = U.File.blobToFile(((event.data: any): Blob), fName);
     U.File.promptSave(f);
 
-    return; 
+    return;
   }
 
-  let msg: ClientMessage = JSON.parse(event.data), 
+  let msg: ClientMessage = JSON.parse(event.data),
       action = msg.clientAction;
   if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
@@ -120,7 +126,7 @@ wss.onmessage = (event: MessageEvent) => {
       isRunningTest = false;
     }
 
-    return; 
+    return;
   }
 
   if (isRunningTest && (!uiTestMode || (action.tag != 'SetInitialProperties')) && currentCbs) {
@@ -133,7 +139,7 @@ wss.onmessage = (event: MessageEvent) => {
     Dispatcher.dispatch({
       _type: 'EVAL_TRIED_TO_DECOUPLE'
     });
-    return; 
+    return;
   }
 
   switch (action.tag) {
@@ -148,7 +154,7 @@ wss.onmessage = (event: MessageEvent) => {
     case 'NoAction':
       break;
     case 'SetInitialProperties':
-      dispatchSheetUpdate(action.contents[0]); 
+      dispatchSheetUpdate(action.contents[0]);
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
         expressions: action.contents[1],
@@ -197,16 +203,22 @@ wss.onmessage = (event: MessageEvent) => {
   }
 };
 
-function dispatchSheetUpdate(sheetUpdate: SheetUpdate) { 
+function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
+  Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
+    newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
+    oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
+  });
+
   Dispatcher.dispatch({
     _type: 'GOT_UPDATED_CELLS',
-    newCells: sheetUpdate.cellUpdates.newVals, 
+    newCells: sheetUpdate.cellUpdates.newVals,
     oldLocs: sheetUpdate.cellUpdates.oldKeys
   });
 
   Dispatcher.dispatch({
     _type: 'GOT_UPDATED_BARS',
-    newBars: sheetUpdate.barUpdates.newVals, 
+    newBars: sheetUpdate.barUpdates.newVals,
     oldBarLocs: sheetUpdate.barUpdates.oldKeys
   });
 
@@ -222,8 +234,8 @@ wss.onopen = (evt) => {
 };
 
 const API = {
-  sendMessageWithAction(action: ServerAction) {
-    let msg = {serverAction: action}; //::ALEX::
+  sendMessageWithAction(action: any) {
+    let msg = {serverAction: action}; 
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.serverAction} message`);
@@ -242,8 +254,8 @@ const API = {
   },
 
   initMessage() {
-    let msg = { 
-      tag: "Initialize", 
+    let msg = {
+      tag: "Initialize",
       connUserId: SheetStateStore.getUserId(),
       connSheetId: SheetStateStore.getCurrentSheet().sheetId
     };
@@ -252,7 +264,7 @@ const API = {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; // ::ALEX::  
+    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; 
     innerClient.send(JSON.stringify(msg));
   },
 
@@ -286,10 +298,10 @@ const API = {
   },
 
   export(sheet: ASSheet) {
-    let msg = { 
-      tag: "Export", 
+    let msg = {
+      tag: "Export",
       contents: sheet.sheetId
-    }; 
+    };
     API.sendMessageWithAction(msg);
   },
 
@@ -301,7 +313,7 @@ const API = {
   importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
     let asIndex = U.Conversion.simpleToASIndex(origin);
     let msg = {
-      tag: "ImportCSV", 
+      tag: "ImportCSV",
       csvIndex: asIndex,
       csvLang: lang,
       csvFileName: fileName
@@ -316,11 +328,14 @@ const API = {
   /* This function is called by handleEvalRequest in the eval pane */
   evaluate(origin: NakedIndex, xp: ASClientExpression) {
     let asIndex = U.Conversion.simpleToASIndex(origin),
-        msg = { 
-          tag: "Evaluate", 
-          evalXp: xp,
-          evalLoc: asIndex
-        }; 
+        msg: Evaluate = {
+          tag: "Evaluate",
+          contents: [{ 
+            tag: "EvalInstruction", 
+            evalXp: xp, 
+            evalLoc: U.Conversion.simpleToASIndex(origin)
+          }]
+        };
     API.sendMessageWithAction(msg);
   },
 
@@ -328,7 +343,7 @@ const API = {
     let msg = {
       tag: "EvaluateHeader",
       contents: {
-        tag: "ASExpression", 
+        tag: "ASExpression",
         expression: expression,
         language: language
       }
@@ -347,9 +362,9 @@ const API = {
   // },
 
   decouple() {
-    let msg = { 
-      tag: "Decouple", 
-      contents: [] 
+    let msg = {
+      tag: "Decouple",
+      contents: []
     };
 
     API.sendMessageWithAction(msg);
@@ -359,7 +374,7 @@ const API = {
 
   undo() {
     let msg = {
-      tag: "Undo", 
+      tag: "Undo",
       contents: []
     };
     API.sendMessageWithAction(msg);
@@ -367,16 +382,16 @@ const API = {
 
   redo() {
     let msg = {
-      tag: "Redo", 
+      tag: "Redo",
       contents: []
     };
     API.sendMessageWithAction(msg);
   },
 
   clearSheet() {
-    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
         msg: ClearSheetServer = {
-          tag: "ClearSheetServer", 
+          tag: "ClearSheetServer",
           contents: sid
         };
     API.sendMessageWithAction(msg);
@@ -385,7 +400,7 @@ const API = {
   find(findText: string) {
     // Currently not supporting -- Alex. (12/29)
     // let msg = {
-    //   tag: "Find", 
+    //   tag: "Find",
     //   contents: {
     //     tag: "PayloadFind",
     //     findText: findText,
@@ -401,7 +416,7 @@ const API = {
   jumpSelect(range: NakedRange, origin: NakedIndex, isShifted: boolean, direction: Direction) {
     // Currently not supporting -- Alex. (12/29)
     // let msg = {
-    //   tag: "JumpSelect", 
+    //   tag: "JumpSelect",
     //   contents: {
     //     tag: "PayloadJump",
     //     isShifted: isShifted,
@@ -415,7 +430,7 @@ const API = {
 
   bugReport(report: string) {
     let msg = {
-      tag: "BugReport", 
+      tag: "BugReport",
       contents: report
     };
 
@@ -424,18 +439,34 @@ const API = {
 
   deleteRange(rng: NakedRange) {
     let msg: Delete = {
-      tag: "Delete", 
+      tag: "Delete",
       contents: U.Conversion.simpleToASRange(rng)
     };
     API.sendMessageWithAction(msg);
   },
 
+  getBar(bInd: BarIndex) { 
+    let msg = {
+      tag: "GetBar",
+      contents: bInd
+    };
+    API.sendMessageWithAction(msg); 
+  },
+
+  getIsCoupled(ind: ASIndex) { 
+    let msg = {
+      tag: "GetIsCoupled",
+      contents: ind
+    };
+    API.sendMessageWithAction(msg); 
+  },
+
   setColumnWidth(col: number, width: number) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
         msg = {
-          tag: "SetBarProp", 
+          tag: "SetBarProp",
           contents: [
-            {tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col}, 
+            {tag: 'BarIndex', barSheetId: sid, barType: 'ColumnType', barNumber: col},
             {tag: 'Dimension', contents: width}
           ]
         };
@@ -444,32 +475,32 @@ const API = {
   },
 
   setRowHeight(row: number, height: number) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId, 
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
         msg = {
-          tag: "SetBarProp", 
+          tag: "SetBarProp",
           contents: [
-            {tag: 'BarIndex', barSheetId: sid, barType: 'RowType', barNumber: row}, 
+            {tag: 'BarIndex', barSheetId: sid, barType: 'RowType', barNumber: row},
             {tag: 'Dimension', contents: height}
           ]
         };
-        
+
     API.sendMessageWithAction(msg);
   },
 
   toggleProp(prop: ASCellProp, rng: NakedRange) {
     let msg: ToggleProp = {
-      tag: "ToggleProp", 
+      tag: "ToggleProp",
       contents: [prop, U.Conversion.simpleToASRange(rng)]
     };
 
     API.sendMessageWithAction(msg);
   },
 
-  // #needsrefactor should privatize, and expose only the functions that construct the prop too, 
-  // e.g. setTextColor. 
+  // #needsrefactor should privatize, and expose only the functions that construct the prop too,
+  // e.g. setTextColor.
   setProp(prop: ASCellProp, rng: NakedRange) {
     let msg: SetProp = {
-      tag: "SetProp", 
+      tag: "SetProp",
       contents: [prop, U.Conversion.simpleToASRange(rng)]
     };
 
@@ -542,7 +573,7 @@ const API = {
 
   drag(activeRng: NakedRange, dragRng: NakedRange) {
     let msg = {
-      tag: "Drag", 
+      tag: "Drag",
       initialRange: U.Conversion.simpleToASRange(activeRng),
       dragRange: U.Conversion.simpleToASRange(dragRng)
     };
@@ -552,7 +583,7 @@ const API = {
 
   copy(fromRng: ASRange, toRng: ASRange) {
     let msg = {
-      tag: "Copy", 
+      tag: "Copy",
       copyFrom: fromRng,
       copyTo: toRng
     };
@@ -561,26 +592,25 @@ const API = {
 
   cut(fromRng: ASRange, toRng: ASRange) {
     let msg = {
-      tag: "Cut", 
+      tag: "Cut",
       cutFrom: fromRng,
       cutTo: toRng
     };
     API.sendMessageWithAction(msg);
   },
 
-  pasteSimple(cells: Array<ASCell>) {
-    // ::ALEX::
-    // let msg = {
-    //   tag: "Evaluate", 
-    //   contents: cells
-    // };
+  pasteSimple(evalInstructions: Array<EvalInstruction>) {
+    let msg = {
+      tag: "Evaluate",
+      contents: evalInstructions
+    };
 
-    // API.sendMessageWithAction(msg);
+    API.sendMessageWithAction(msg);
   },
 
   getIndices(locs: Array<ASIndex>) {
     let msg = {
-      tag: "Get", 
+      tag: "Get",
       contents: locs
     };
     API.sendMessageWithAction(msg);
@@ -589,7 +619,7 @@ const API = {
   repeat(sel: ASSelection) {
     // temporarily not maintaining (Alex 12/29)
     // let msg = {
-    //   tag: "Repeat", 
+    //   tag: "Repeat",
     //   contents:  {
     //     selectionRange: U.Conversion.simpleToASRange(sel.range),
     //     selectionOrigin: U.Conversion.simpleToASIndex(sel.origin)
@@ -603,7 +633,7 @@ const API = {
       insertColNum: c
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -615,7 +645,7 @@ const API = {
       insertRowNum: r
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -627,7 +657,7 @@ const API = {
       deleteColNum: c
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -639,7 +669,7 @@ const API = {
       deleteRowNum: r
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -652,7 +682,7 @@ const API = {
       newColNum: c2
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -665,7 +695,7 @@ const API = {
       newRowNum: r2
     };
     let msg = {
-      tag: "MutateSheet", 
+      tag: "MutateSheet",
       contents: mutateType
     };
     API.sendMessageWithAction(msg);
@@ -675,7 +705,7 @@ const API = {
   openSheet(mySheet?: ASSheet) {
     let sheet = mySheet || SheetStateStore.getCurrentSheet(),
         msg = {
-          tag: "Open", 
+          tag: "Open",
           contents: sheet.sheetId
         };
     API.sendMessageWithAction(msg);
@@ -701,10 +731,10 @@ const API = {
 
   updateCondFormattingRule(rule: CondFormatRule) {
     let msg = {
-      tag: "UpdateCondFormatRules", 
+      tag: "UpdateCondFormatRules",
       contents: {
         tag: "Update",
-        newVals: [rule], 
+        newVals: [rule],
         oldKeys: []
       }
     };
@@ -713,10 +743,10 @@ const API = {
 
   removeCondFormattingRule(ruleId: string) {
     let msg = {
-      tag: "UpdateCondFormatRules", 
-      contents: { 
-        tag: "Update", 
-        newVals: [], 
+      tag: "UpdateCondFormatRules",
+      contents: {
+        tag: "Update",
+        newVals: [],
         oldKeys: [ruleId]
       }
     };
@@ -724,10 +754,10 @@ const API = {
   },
 
   updateViewingWindow(vWindow: ASClientWindow) {
-    let msg: UpdateWindow = { 
-      tag: "UpdateWindow", 
+    let msg: UpdateWindow = {
+      tag: "UpdateWindow",
       contents: vWindow
-    }; 
+    };
     API.sendMessageWithAction(msg);
   },
 

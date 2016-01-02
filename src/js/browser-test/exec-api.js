@@ -28,6 +28,11 @@ import type {
 } from '../types/Messages';
 
 import type {
+  Bar, 
+  BarIndex
+} from '../types/Bar';
+
+import type {
   CondFormatRule,
   CondFormatCondition,
   CustomCondition,
@@ -93,6 +98,15 @@ export function locToExcel(loc: NakedRange): string {
 
 export function numToAlpha(num: number): string {
   return String.fromCharCode(num + 'A'.charCodeAt(0));
+}
+
+export function colIndex(ind: number): BarIndex {
+  return { 
+    tag: "BarIndex", 
+    barSheetId: "INIT_SHEET_ID", // #needsrefactor
+    barType: "ColumnType", 
+    barNumber: ind
+  };
 }
 
 export function asIndex(loc: string): ASIndex {
@@ -462,6 +476,12 @@ export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: B
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
+export function setColumnWidth(col: number, dim: number): Prf { 
+  return apiExec(() => {
+    API.setColumnWidth(col, dim); 
+  });
+}
+
 export function valueD(val: number): ValueD {
   return { tag: 'ValueD', contents: val };
 }
@@ -534,7 +554,7 @@ export function shouldError(prf: Prf): Prf {
   return responseShouldSatisfy(prf, ({ clientAction: { tag } }) => tag === 'ShowFailureMessage');
 }
 
-export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
+export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);
@@ -547,13 +567,13 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
         }
 
         let {clientAction} = result;
-        if (clientAction.tag !== 'UpdateSheet') {
+        if (clientAction.tag !== 'PassCellsToTest') {
           console.log("Message was not a sheet update. This is what it was: ", clientAction);
           reject();
           return;
         }
 
-        let {contents: {cellUpdates: {newVals: cs}}} = clientAction;
+        let {contents: cs} = clientAction;
         fn(cs);
 
         fulfill();
@@ -563,8 +583,90 @@ export function messageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => voi
   });
 }
 
+function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
+  return promise((fulfill, reject) => {
+    API.test(() => {
+      API.getIsCoupled(asIndex(loc)); 
+    }, {
+      fulfill: (result: ?ClientMessage) => {
+        if (! result) {
+          console.log("Null message received from server in shouldBeCoupled");
+          reject();
+          return;
+        }
+
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassIsCoupledToTest') {
+          console.log("Message action was not PassBarToTest. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        expect(clientAction.contents).toBe(isCoupled); 
+        fulfill();
+      },
+      reject: reject
+    });
+  });
+}
+
+export function shouldBeCoupled(loc: string): Prf { 
+  return _determineIfCoupled(loc, true); 
+}
+
+export function shouldBeDecoupled(loc: string): Prf { 
+  return _determineIfCoupled(loc, false); 
+}
+
+
+export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf {
+  return promise((fulfill, reject) => {
+    API.test(() => {
+      API.getBar(barInd); 
+    }, {
+      fulfill: (result: ?ClientMessage) => {
+        if (! result) {
+          console.log("Null message received from server in barShouldSatisfy");
+          reject();
+          return;
+        }
+
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassBarToTest') {
+          console.log("Message action was not PassBarToTest. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        fn(clientAction.contents);
+        fulfill();
+      },
+      reject: reject
+    });
+  });
+}
+
+export function colShouldHaveDimension(ind: number, dim: number): Prf { 
+  return barShouldSatisfy(colIndex(ind), (bar) => { 
+    logDebug(`${bar} should have dimension ${dim}`);
+
+    let dimInd = bar.barProps.map(({tag}) => tag).indexOf("Dimension");
+    expect(dimInd >= 0).toBe(true);
+    expect(bar.barProps[dimInd].contents).toBe(dim); 
+  });
+}
+
+export function colShouldNotHaveDimensionProp(ind: number, dim: number): Prf { 
+  return barShouldSatisfy(colIndex(ind), (bar) => { 
+    logDebug(`${bar} should not have a dimension prop`); 
+
+    expect(bar.barProps.map(({tag}) => tag).indexOf("Dimension")).toBe(-1); 
+    
+  });
+}
+
 export function expressionShouldSatisfy(loc: string, fn: (exp: ASExpression) => boolean): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} expression should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0);
@@ -582,7 +684,7 @@ export function expressionShouldBe(loc: string, xp: string): Prf {
 }
 
 export function shouldHaveProp(loc: string, prop: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
     expect(cs.length).not.toBe(0);
@@ -596,7 +698,7 @@ export function shouldHaveProp(loc: string, prop: string): Prf {
 }
 
 export function shouldNotHaveProp(loc: string, prop: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} cell should have prop ${prop}`);
 
     if (cs.length == 0) {
@@ -610,7 +712,7 @@ export function shouldNotHaveProp(loc: string, prop: string): Prf {
 }
 
 export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0, 'which was the length of the cell value message');
@@ -642,7 +744,7 @@ export function shouldBeImage(loc: string): Prf {
 }
 
 export function shouldBeNothing(loc: string): Prf {
-  return messageShouldSatisfy(loc, (cs) => {
+  return cellMessageShouldSatisfy(loc, (cs) => {
     logDebug(`${loc} should be nothing`);
     //server should return either nothing at the location or a blank cell
     let isEmpty = (cs.length == 0) || (cs[0].cellExpression.expression == "");
@@ -654,14 +756,6 @@ export function shouldBeSerialized(loc: string): Prf {
   return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueSerialized'));
 }
 
-export function shouldBeDecoupled(loc: string): Prf {
-  return expressionShouldSatisfy(loc, (xp) => (!xp.hasOwnProperty('rangeKey')));
-}
-
-export function shouldBeCoupled(loc: string): Prf {
-  return expressionShouldSatisfy(loc, (xp) => (xp.hasOwnProperty('rangeKey')));
-}
-
 // [String] -> [ASValue] -> (() -> Promise ())
 export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
   return promise((fulfill, reject) => {
@@ -669,13 +763,21 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
       API.getIndices(locs.map(asIndex));
     }, {
       fulfill: (result: ?ClientMessage) => {
-        if (result == null || result.clientAction.tag !== 'UpdateSheet') {
-          console.log("result tag is not a SheetUpdate; instead, it was", result); 
+        if (result == null) {
+          console.log("result message in shouldBeL is null."); 
           reject();
           return;
         }
 
-        let cellValues = result.clientAction.contents.cellUpdates.newVals.map((x) => x.cellValue);
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassCellsToTest') {
+          console.log("Message was not a sheet update. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        let {contents: cs} = clientAction;
+        let cellValues = cs.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).

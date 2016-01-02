@@ -56,7 +56,7 @@ import * as BrowserTests from '../browser-test/index';
 
 // import Repl from './repl/Repl.jsx'
 import EvalHeader from './eval-header/EvalHeader.jsx'
-import ResizableRightPanel from './repl/ResizableRightPanel.jsx'
+import ResizablePanel from './ResizablePanel.jsx'
 import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
 import FindAction from '../actions/ASFindActionCreators';
@@ -376,9 +376,9 @@ export default class ASEvalPane
         let lang = ExpStore.getLanguage();
         let plain = e.clipboardData.getData("text/plain"),
             vals = ClipboardUtils.plainStringToVals(plain),
-            cells = ClipboardUtils.externalStringsToASCells(sel.origin, vals, lang),
-            concatCells = U.Array.concatAll(cells);
-        API.pasteSimple(concatCells);
+            evalInstructions2d = ClipboardUtils.externalStringsToEvalInstructions(sel.origin, vals, lang),
+            evalInstructions = U.Array.concatAll(evalInstructions2d);
+        API.pasteSimple(evalInstructions);
         // The normal eval handling will make the paste show up
       } else {
         // TODO: Not handling html conversion for now
@@ -794,7 +794,7 @@ export default class ASEvalPane
       onSubmitEvalHeader={this._onSubmitEvalHeader.bind(this)} />;
 
     return (
-      <ResizableRightPanel leftComp={leftEvalPane} sidebar={sidebarContent} docked={this.state.evalHeaderOpen} />
+      <ResizablePanel content={leftEvalPane} sidebar={sidebarContent} sidebarVisible={this.state.evalHeaderOpen} />
     );
   }
 

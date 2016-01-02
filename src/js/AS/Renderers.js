@@ -253,10 +253,10 @@ const Renderers = {
         cell = CellStore.getCell({col: col, row: row});
 
     // tag-based cell styling
-    if (cell !== null && cell !== undefined) {
+    if (cell != null) {
       Util.Render.valueToRenderConfig(config, cell.cellValue);
-      if (cell.cellExpression.expandingType) {
-        Util.Render.expandingTypeToRenderConfig(config, cell.cellExpression.expandingType);
+      if (cell.expandingType != null) {
+        Util.Render.expandingTypeToRenderConfig(config, cell.expandingType);
       }
 
       // props take highest precedence

@@ -11,6 +11,10 @@ import type {
 	ASCell
 } from '../../types/Eval';
 
+import type { 
+  EvalInstruction
+} from '../../types/Messages';
+
 import {logDebug} from '../Logger';
 
 import CellStore from '../../stores/ASCellStore';
@@ -58,14 +62,32 @@ const Clipboard = {
 	},
 
   getAttrsFromHtmlString(s: string): ASClipboardAttrs {
-		// I'm aware this is dumb, but it's sufficient for now
-    s += "</meta>"; // works in Chrome, which puts a single unclosed <meta> tag at the beginning of the paste string.
-    let parser = new DOMParser(),
-        doc = parser.parseFromString(s, "text/xml"),
-        table = doc.firstChild.firstChild,
-        fromSheetId = (table: any).getAttribute('data-sheet-id'),
-        fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-    return {fromSheetId: fromSheetId, fromRange: fromRange};
+    // #needsrefactor should build better model of what causes various formats to show up, and handle them better
+    if (s.indexOf("<!--StartFragment-->") == -1) {
+      // I'm aware this is dumb, but it's sufficient for now
+      // assumes the format is something like: 
+      // <meta http-equiv="content-type" content="text/html; charset=utf-8"><table id="alphasheets" data-sheet-id="INIT_SHEET_ID" data-from-range="{&quot;tl&quot;:{&quot;row&quot;:6,&quot;col&quot;:2},&quot;br&quot;:{&quot;row&quot;:6,&quot;col&quot;:2}}"><tbody><tr><td>151515</td></tr></tbody></table>
+      s += "</meta>"; // works in Chrome, which puts a single unclosed <meta> tag at the beginning of the paste string.
+      let parser = new DOMParser(),
+          doc = parser.parseFromString(s, "text/xml"),
+          table = doc.firstChild.firstChild,
+          fromSheetId = (table: any).getAttribute('data-sheet-id'),
+          fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
+      return {fromSheetId: fromSheetId, fromRange: fromRange};
+    } else { 
+      // assumes the format is something like 
+      // <html>
+      // <body>
+      // <!--StartFragment--><table id="alphasheets" data-sheet-id="Predictions" data-from-range="{&quot;tl&quot;:{&quot;row&quot;:7,&quot;col&quot;:1},&quot;br&quot;:{&quot;row&quot;:7,&quot;col&quot;:1}}"><tbody><tr><td>Critch uses on his own accord by 11/15</td></tr></tbody></table><!--EndFragment-->
+      // </body>
+      // </html>
+      let parser = new DOMParser(),
+          doc = parser.parseFromString(s, "text/xml"),
+          table = (doc.firstChild: any).firstElementChild.firstElementChild, 
+          fromSheetId = (table: any).getAttribute('data-sheet-id'),
+          fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
+      return {fromSheetId: fromSheetId, fromRange: fromRange};
+    }
   },
 
 	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major)
@@ -139,31 +161,31 @@ const Clipboard = {
     }
   },
 
-  _arrayToASCells(ind: NakedIndex, language: ASLanguage):
-	 	(i: number) => (v: string, j: number) => ASCell {
+  _arrayToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	 	(i: number) => (v: string, j: number) => EvalInstruction {
     let self = Clipboard;
      return (i) => {
        return (v, j) => {
         let asIndex = TC.simpleToASIndex(Location.shiftIndex(ind, i, j)),
             xpObj = { expression: self.externalStringToExpression(v, language),
                       language: language} ;
-         return TC.makeEvalCell(asIndex, xpObj);
+         return TC.makeEvalInstruction(asIndex, xpObj);
        };
      };
    },
 
-  _rowValuesToASCells(ind: NakedIndex, language: ASLanguage):
-	  (values: Array<string>, i: number) => Array<ASCell> {
+  _rowValuesToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+	  (values: Array<string>, i: number) => Array<EvalInstruction> {
     var self = Clipboard;
     return (values, i) => {
-      return values.map(self._arrayToASCells(ind, language)(i));
+      return values.map(self._arrayToEvalInstructions(ind, language)(i));
     };
   },
 
   // takes in a set of locations and the values at those locations,
-  externalStringsToASCells(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
-	 	Array<Array<ASCell>> {
-    return strs.map(Clipboard._rowValuesToASCells(ind, language));
+  externalStringsToEvalInstructions(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
+	 	Array<Array<EvalInstruction>> {
+    return strs.map(Clipboard._rowValuesToEvalInstructions(ind, language));
   }
 }
 

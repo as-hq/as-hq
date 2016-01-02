@@ -68,17 +68,17 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
-      case Constants.ActionTypes.EDITOR_CHANGED:
-      case Constants.ActionTypes.TEXTBOX_CHANGED:
+      case 'EDITOR_CHANGED':
+      case 'TEXTBOX_CHANGED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
         break;
-      case Constants.ActionTypes.GRID_KEY_PRESSED:
+      case 'GRID_KEY_PRESSED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr, action.cursorPos);
         break;
-      case Constants.ActionTypes.NORMAL_SEL_CHANGED:
+      case 'NORMAL_SEL_CHANGED':
         ASExpStore.updateStoreSelChange(action.xpStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
+      case 'PARTIAL_REF_CHANGE_WITH_GRID':
         let curXpStr = ASExpStore.getExpression(),
             lastRef = ASExpStore.getLastRef(),
             newXpStr = lastRef ?
@@ -86,29 +86,29 @@ const ASExpStore = Object.assign({}, BaseStore, {
               curXpStr + action.excelStr;
         ASExpStore.updatePartialRef(action._type, newXpStr, action.excelStr);
         break;
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-      case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_TEXTBOX:
+      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
+      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX':
         ASExpStore.updatePartialRef(action._type,action.xpStr,action.excelStr);
         break;
-      case Constants.ActionTypes.ESC_PRESSED:
+      case 'ESC_PRESSED':
         ASExpStore.setExpression("");
         ASExpStore.setUserIsTyping(false);
         ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
       // Also need to update after some "Eval"-type events
-      case Constants.ActionTypes.GOT_UNDO:
-      case Constants.ActionTypes.GOT_REDO:
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
+      case 'GOT_UNDO':
+      case 'GOT_REDO':
+      case 'GOT_UPDATED_CELLS':
         Dispatcher.waitFor([CellStore.dispatcherIndex]);
         SelectionStore.withActiveSelection(({origin}) => {
           let cell = CellStore.getCell(origin);
           ASExpStore.updateOnBackendChange(cell);
         });
         break;
-      // This action is called when the toolbar's language picker or a shortcut toggles a language. 
+      // This action is called when the toolbar's language picker or a shortcut toggles a language.
       // In this case, we want the default language to reflect this user change, in addition to the current language.
-      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+      case 'LANGUAGE_TOGGLED':
         ASExpStore.setLanguage(action.lang);
         ASExpStore.setDefaultLanguage(action.lang);
         ASExpStore.setXpChangeOrigin(action._type);
@@ -225,31 +225,31 @@ const ASExpStore = Object.assign({}, BaseStore, {
   // Inserting ref helpers
 
   editorCanInsertRef(editor) : boolean {
-    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.EDITOR)) { 
+    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.EDITOR)) {
       if (_data.refInsertionBypass) {
-        return true; 
+        return true;
       }
 
       let lastRef = ASExpStore.getLastRef();
-      if (lastRef != null) { 
+      if (lastRef != null) {
         return Util.Parsing.canInsertCellRef(editor, lastRef);
       }
     }
-    return false; 
+    return false;
   },
 
   textBoxCanInsertRef(editor) : boolean {
-    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX)) { 
+    if ((ASExpStore.getLastCursorPosition() === Constants.CursorPosition.TEXTBOX)) {
       if (_data.refInsertionBypass) {
-        return true; 
+        return true;
       }
 
       let lastRef = ASExpStore.getLastRef();
-      if (lastRef != null) { 
+      if (lastRef != null) {
         return Util.Parsing.canInsertCellRef(editor, lastRef);
       }
     }
-    return false; 
+    return false;
   },
 
   gridCanInsertRef() : boolean {

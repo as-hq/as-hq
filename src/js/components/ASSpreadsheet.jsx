@@ -254,10 +254,6 @@ export default class ASSpreadsheet
     return this._getHypergrid().getBehavior();
   }
 
-  _getSheetDOMNode() {
-    return ReactDOM.findDOMNode(this.refs.sheet);
-  }
-
   getSelectionArea(): ASSelection {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().getSelections()[0],

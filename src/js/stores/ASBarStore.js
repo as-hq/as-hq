@@ -36,11 +36,11 @@ const ASBarStore = Object.assign({}, BaseStore, {
       case 'GOT_UPDATED_BARS':
         _data.lastUpdatedBars = []; 
 
-        let newBars = action.newBars;
-        ASBarStore._updateBars(newBars);
-
         let oldBarLocs = action.oldBarLocs;
         ASBarStore._removeBarsAt(oldBarLocs);
+
+        let newBars = action.newBars;
+        ASBarStore._updateBars(newBars);
 
         ASBarStore.emitChange();
         break;
@@ -66,6 +66,7 @@ const ASBarStore = Object.assign({}, BaseStore, {
     return dims;
   },
 
+  // #incomplete must also filter by sheet
   getLastUpdatedBarsDimensions(): BarDimensions { 
     return ASBarStore._getDimensions(_data.lastUpdatedBars);
   },
