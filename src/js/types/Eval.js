@@ -180,7 +180,7 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
   expression: string;
-  language: ?ASLanguage; // ::ALEX:: why is this an ?ASLanguage ??? 
+  language: ?ASLanguage; 
   dependencies?: Array<NakedRange>;
 };
 
@@ -346,6 +346,10 @@ export type ASCell = {
   // For now, the easiest fast way to provide this information to the renderer is to just add this attribute to cells. An alternative
   // would be to store all the range descriptors in a store, and check whether each cell belongs in a range every time we render it, but 
   // accessing a store is slow compared with accessing an object's member directly. 
+  cellRangeKey?: RangeKey; 
+  // Indicates whether the cell belongs to a range, and if so, the dimensions of the range. This should only ever be used
+  // in conjunction with the RangeKeyStore to determine expandingType, and should only exist transiently -- namely, when an updated 
+  // cell is passed from the server, and before its expandingType is set (by looking up the cellRangeKey in the RangeDescriptorStore)
 };
 
 // backend actually has more fields than this, but this is all frontend needs
@@ -356,5 +360,10 @@ export type RangeDescriptor = {
 
 export type RangeKey = { 
   keyIndex: ASIndex; 
-  keyDimensions: [number, number];
+  keyDimensions: RangeKeyDimensions;
+};
+
+export type RangeKeyDimensions = { 
+  width: number; 
+  height: number; 
 };

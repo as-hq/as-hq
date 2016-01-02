@@ -13,7 +13,8 @@ import type {
   ASSheet,
   ASCell,
   ASLanguage,
-  ASSelection
+  ASSelection,
+  RangeDescriptor
 } from '../types/Eval';
 
 import type {
@@ -38,6 +39,7 @@ import U from '../AS/Util';
 import Render from '../AS/Renderers';
 import SheetStateStore from './ASSheetStateStore.js';
 import SelectionStore from './ASSelectionStore.js';
+import DescriptorStore from './ASRangeDescriptorStore.js';
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
   1) Sheet name
@@ -70,9 +72,14 @@ const ASCellStore = Object.assign({}, BaseStore, {
         Called from Dispatcher, fired by API response from server
       */
       case 'GOT_UPDATED_CELLS':
+        // The expanding types that we put into the cells depends on the updated range descriptors
+        Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
+
         _data.lastUpdatedCells = [];
         ASCellStore.removeLocations(action.oldLocs);
-        ASCellStore.updateCells(action.newCells);
+
+        let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells); 
+        ASCellStore.updateCells(newCellsWithExpandingTypes);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
         break;
@@ -365,7 +372,33 @@ const ASCellStore = Object.assign({}, BaseStore, {
       default:
         return null;
     };
-  }
+  },
+
+  // When we receive cell updates from the backend, we're given a list of *all* the cells that have changed, 
+  // including those that have gotten coupled/gotten decoupled. We need to figure out the expandingType's of these
+  // cells, for rendering. 
+  _addExpandingTypesToCells(cs: Array<ASCell>): Array<ASCell> { 
+    let foos = cs.map((c) => ASCellStore._addExpandingTypeToCell(c)); 
+    return foos; 
+  },
+
+  _addExpandingTypeToCell(c: ASCell): ASCell {
+    let newC = _.cloneDeep(c); //might end up remaining the same as the c passed in, if c isn't in any of the ranges. 
+
+    if (newC.cellRangeKey != null) {
+      let rd = DescriptorStore.getRangeDescriptor(newC.cellRangeKey);
+      if (rd != null) { 
+        newC.expandingType = rd.expandingType; 
+        delete newC.cellRangeKey; // no need for this attribute anymore
+      } else { 
+        let ds = DescriptorStore; 
+        debugger;
+        throw "null range descriptor at the range descriptor key passed in to _addExpandingTypeToCell";
+      }
+    } 
+
+    return newC; 
+  },
 });
 
 

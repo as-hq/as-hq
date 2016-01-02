@@ -567,13 +567,13 @@ export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) =>
         }
 
         let {clientAction} = result;
-        if (clientAction.tag !== 'UpdateSheet') {
+        if (clientAction.tag !== 'PassCellsToTest') {
           console.log("Message was not a sheet update. This is what it was: ", clientAction);
           reject();
           return;
         }
 
-        let {contents: {cellUpdates: {newVals: cs}}} = clientAction;
+        let {contents: cs} = clientAction;
         fn(cs);
 
         fulfill();
@@ -582,6 +582,7 @@ export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) =>
     });
   });
 }
+
 function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
@@ -762,13 +763,21 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
       API.getIndices(locs.map(asIndex));
     }, {
       fulfill: (result: ?ClientMessage) => {
-        if (result == null || result.clientAction.tag !== 'UpdateSheet') {
-          console.log("result tag is not a SheetUpdate; instead, it was", result); 
+        if (result == null) {
+          console.log("result message in shouldBeL is null."); 
           reject();
           return;
         }
 
-        let cellValues = result.clientAction.contents.cellUpdates.newVals.map((x) => x.cellValue);
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassCellsToTest') {
+          console.log("Message was not a sheet update. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        let {contents: cs} = clientAction;
+        let cellValues = cs.map((x) => x.cellValue);
 
         expect(_.
             zip(cellValues, vals).

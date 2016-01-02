@@ -205,11 +205,15 @@ wss.onmessage = (event: MessageEvent) => {
 
 function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   Dispatcher.dispatch({
+    _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
+    newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
+    oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
+  });
+
+  Dispatcher.dispatch({
     _type: 'GOT_UPDATED_CELLS',
     newCells: sheetUpdate.cellUpdates.newVals,
-    oldLocs: sheetUpdate.cellUpdates.oldKeys,
-    newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals, 
-    oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
+    oldLocs: sheetUpdate.cellUpdates.oldKeys
   });
 
   Dispatcher.dispatch({
@@ -231,7 +235,7 @@ wss.onopen = (evt) => {
 
 const API = {
   sendMessageWithAction(action: any) {
-    let msg = {serverAction: action}; //::ALEX::
+    let msg = {serverAction: action}; 
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.serverAction} message`);
@@ -260,7 +264,7 @@ const API = {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; // ::ALEX::
+    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; 
     innerClient.send(JSON.stringify(msg));
   },
 
