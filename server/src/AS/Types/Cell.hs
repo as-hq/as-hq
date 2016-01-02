@@ -131,4 +131,4 @@ setCellProp :: CellProp -> ASCell -> ASCell
 setCellProp cp  = cellProps %~ setProp cp
 
 mapCellLocation :: [ASCell] -> [ASIndex]
-mapCellLocation = mapCellLocation
+mapCellLocation = map (view cellLocation)

@@ -155,7 +155,7 @@ expressionMap mt = replaceRefs (show . (refMap mt))
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
 cellMap mt c = case indexMap mt $ c^.cellLocation of
   Nothing -> Nothing 
-  Just loc' -> Just $ sanitizeMutateCell mt loc' $ c & cellExpression %~ expressionMap mt
+  Just loc' -> Just $ sanitizeMutateCell mt loc' $ c & cellExpression %~ expressionMap mt & cellLocation .~ loc'
 
 -- | If the cell passed in is uncoupled, leave it as is. Otherwise: 
 -- * if its range would get decoupled by the mutation, decouple it. 
