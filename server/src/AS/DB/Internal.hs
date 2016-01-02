@@ -87,10 +87,10 @@ getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack patt
 -- Fat cells
 
 toDecoupled :: ASCell -> ASCell
-toDecoupled c@(Cell { cellRangeKey = Just _ }) = c { cellExpression = e', cellRangeKey = Nothing } 
+toDecoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellExpression .~ e' & cellRangeKey .~ Nothing  -- #expert
   where 
-    lang = (cellExpression c)^.language
-    v = cellValue c
+    lang = c^.cellExpression.language
+    v = c^.cellValue
     e' = case v of 
              NoValue   -> Expression "" lang
              otherwise -> Expression (showPrimitive lang v) lang
@@ -98,7 +98,7 @@ toDecoupled c = c
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
-toUncoupled c@(Cell { cellRangeKey = Just _ }) = c { cellRangeKey = Nothing } 
+toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 -- DB conversions

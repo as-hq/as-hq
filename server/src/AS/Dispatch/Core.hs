@@ -38,6 +38,7 @@ import AS.Parsing.Show hiding (first)
 import AS.Parsing.Read
 
 import Control.Monad
+import Control.Lens
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
@@ -89,7 +90,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
   time <- getASTime 
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
-    let initialEvalMap = M.fromList $ zip (map cellLocation cs) cs
+    let initialEvalMap = M.fromList $ zip (mapCellLocation cs) cs
         initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) 
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
@@ -139,7 +140,7 @@ dispatch conn roots oldContext descSetting = do
 -- Currently, the graph returns only indices as descendants
 getEvalLocs :: Connection -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
 getEvalLocs conn origCells descSetting = do
-  let locs = map cellLocation origCells
+  let locs = mapCellLocation origCells
   vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
   case descSetting of 
     ProperDescendants -> G.getProperDescendantsIndices $ (locs ++ vLocs)
@@ -172,14 +173,14 @@ getModifiedContext conn ancs oldContext = do
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
 retrieveValue c = case c of
-  Just (Single cell) -> CellValue $ cellValue cell
+  Just (Single cell) -> CellValue $ cell^.cellValue
   Just (Fat fcell) -> DE.recomposeCompositeValue fcell
   Nothing -> CellValue NoValue
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
 formatCell mf c = case mf of 
   Nothing -> c
-  Just f -> c { cellProps = setProp (ValueFormat f) (cellProps c) }
+  Just f -> c & cellProps %~ setProp (ValueFormat f)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
@@ -202,7 +203,7 @@ evalChainWithException conn cells ctx =
 evalChain :: Connection -> [ASCell] -> EvalTransform
 evalChain conn cells ctx = evalChain' conn cells'' ctx
   where 
-    hasCoupledCounterpartInMap c = case (cellLocation c) `M.lookup` (virtualCellsMap ctx) of
+    hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter isEvaluable cells
@@ -253,7 +254,7 @@ addCellsToContext :: [ASCell] -> PureEvalTransform
 addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
   where
     newAddedCells = mergeCells cells (newCellsInContext ctx)
-    newMap   = insertMultiple (virtualCellsMap ctx) (map cellLocation cells) cells
+    newMap   = insertMultiple (virtualCellsMap ctx) (mapCellLocation cells) cells
 
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 

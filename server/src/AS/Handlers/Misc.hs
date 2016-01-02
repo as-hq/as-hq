@@ -50,6 +50,7 @@ import qualified Network.WebSockets as WS
 import Control.Concurrent
 import Control.Exception
 import Control.Applicative
+import Control.Lens
 import Control.Monad.Trans.Either
 
 -- Used solely for acknowledging keepalive messages sent from the frontend. 
@@ -147,7 +148,7 @@ handleIsCoupled :: ASUserClient -> MVar ServerState -> ASIndex -> IO ()
 handleIsCoupled uc state loc = do 
   conn <- dbConn <$> readMVar state
   mCell <- DB.getCell conn loc
-  let isCoupled = maybe False (isJust . cellRangeKey) mCell
+  let isCoupled = maybe False (isJust . view cellRangeKey) mCell
   sendToOriginal uc $ ClientMessage $ PassIsCoupledToTest isCoupled
 
 

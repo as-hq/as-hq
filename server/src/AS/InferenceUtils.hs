@@ -31,7 +31,7 @@ type PatternGroup = [ASCell]
 type Pattern = ([ASCell],(Int -> ASValue))
 
 pos :: ASCell -> Position
-pos = index . cellLocation
+pos = index . view cellLocation
 
 ------------------------------------------------------------------------------------------------------------------
 -- Deal with offsets and positions
@@ -88,18 +88,18 @@ filterMaybeNumCells mCells = map (map (\(Just c) -> c)) cells
 isFormulaCell :: ASCell -> Bool
 isFormulaCell cell = not valExpEqual
   where
-    lang = (cellExpression cell)^.language
-    xp = (cellExpression cell)^.expression
+    lang = cell^.cellExpression.language
+    xp = cell^.cellExpression.expression
     valExpEqual = case lang of
       Excel -> case maybeVal of
         Nothing  -> False
-        Just val -> orig val == cellValue cell
+        Just val -> orig val == cell^.cellValue
         where
           formula = parse literal "" xp
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
-      otherwise -> (parseValue lang xp) == (Right (CellValue (cellValue cell)))
+      otherwise -> parseValue lang xp == Right (CellValue $ cell^.cellValue)
 
 -- Given the 2D list of cells in the sel range, extract all formula cells
 extractFormulaCells :: [[ASCell]] -> [ASCell]
@@ -167,11 +167,11 @@ translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
         newPositions = getAbsoluteDragPositions r1 r2 (pos cell)
         num = length newPositions
         seriesIndices = [ind,(ind+len)..(ind+(num-1)*len)]
-        lang = (cellExpression cell)^.language
+        lang = cell^.cellExpression.language
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals
-        newCells = map (\(l,e,v) -> Cell l e v (cellProps cell) Nothing) $ zip3 newLocs newExpressions newVals
+        newCells = map (\(l,e,v) -> Cell l e v (cell^.cellProps) Nothing) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------
 -- deal with the actual pattern matching (quite literally)
@@ -194,7 +194,7 @@ patternMatchers :: [PatternMatcher]
 patternMatchers = [sequenceMatcher,arithMatcher,trivialMatcher]
 
 trivialMatcher :: PatternMatcher
-trivialMatcher [c] = Just $ ([c],\n -> cellValue c)
+trivialMatcher [c] = Just $ ([c],\n -> c^.cellValue)
 trivialMatcher _ = Nothing
 
 -- Solely for convenience in using the arithmetic operations in arithMatcher. If we end up 
@@ -231,7 +231,7 @@ isArithmSeq (x:y:z:xs) = (eqDouble (x - y) (y - z)) && isArithmSeq (y:z:xs)
 arithMatcher :: PatternMatcher
 arithMatcher cells = result 
   where
-    vals = map cellValue cells
+    vals = map (view cellValue) cells
     mDoubles = map toDouble vals
     result = if (any isNothing mDoubles)
       then Nothing
@@ -252,7 +252,7 @@ sequenceMatcher :: PatternMatcher
 sequenceMatcher [] = Nothing -- don't match an empty pattern as a subsequence
 sequenceMatcher cells = result
   where
-    vals' = map cellValue cells
+    vals' = map (view cellValue) cells
     vals = map lowercase vals' -- match lowercase
     seqMatches = filter (\seq -> L.isInfixOf vals seq) sequences -- match infix (consecutive subsequence)
     result = if (length seqMatches == 0)

@@ -12,6 +12,7 @@ import AS.Eval.Core as R
 import AS.Util as U
 import AS.DB.API as DB
 import AS.DB.Internal as DI
+
 {-
     Middlewares take a message (cells, etc) pushed to server, and process them before handing them off (to eval, etc)
     Here we apply a stack of middlewares
@@ -24,7 +25,7 @@ evalMiddleware = return
 
 -- addBackTags :: [ASCell] -> IO [ASCell]
 -- addBackTags cells = do 
---   mOldCells <- DB.getCells (map cellLocation cells)
+--   mOldCells <- DB.getCells (mapCellLocation cells)
 --   return $ (flip map) (zip cells mOldCells) $ \(c, mc) -> case mc of 
 --     Nothing -> c
 --     Just c' -> c { cellTags = (cellTags c) `union` filteredOldTags }

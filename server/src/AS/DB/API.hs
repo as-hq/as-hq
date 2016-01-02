@@ -91,7 +91,7 @@ getCells conn locs = runRedis conn $ do
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
-setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
+setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode $ c^.cellLocation) (S.encode c)) cs
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -153,7 +153,7 @@ getPossiblyBlankCells conn locs = do
     Nothing -> blankCellAt l) (zip locs cells)
 
 getPropsAt :: Connection -> ASIndex -> IO ASCellProps
-getPropsAt conn ind = cellProps <$> getPossiblyBlankCell conn ind
+getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
@@ -370,13 +370,13 @@ getVolatileLocs conn = runRedis conn $ do
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
+  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells
   sadd (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
+  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells -- #lens
   srem (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
@@ -399,7 +399,7 @@ canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True
 -- (ServerMessage _ payload) = case payload of 
---   PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
+--   PayloadCL cells -> canAccessAll conn uid (mapCellLocation cells)
 --   PayloadLL locs -> canAccessAll conn uid locs
 --   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
 --   PayloadW window -> canAccessSheet conn uid (windowSheetId window)

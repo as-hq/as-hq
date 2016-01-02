@@ -73,10 +73,10 @@ rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = locSheetId . keyIndex
 
 isFatCellHead :: ASCell -> Bool 
-isFatCellHead c = maybe False ((== cellLocation c) . keyIndex) (cellRangeKey c)
+isFatCellHead c = maybe False ((== c^.cellLocation) . keyIndex) (c^.cellRangeKey)
 
 isCoupled :: ASCell -> Bool
-isCoupled = isJust . cellRangeKey 
+isCoupled = isJust . view cellRangeKey 
 
 isEvaluable :: ASCell -> Bool
 isEvaluable c = isFatCellHead c || (not $ isCoupled c)

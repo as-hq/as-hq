@@ -21,6 +21,7 @@ import Database.Redis (Connection)
 import Control.Monad (forM_, forever, (>=>))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (left)
+import Control.Lens
 import Data.Maybe
 
 import AS.Logging
@@ -35,7 +36,7 @@ import AS.Logging
 -- timchu, 12/17/15.
 conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
 conditionallyFormatCells conn origSid cells rules ctx = do
-  let cells' = map (\c -> c { cellProps = clearCondFormatProps (cellProps c) }) cells
+  let cells' = map (cellProps %~ clearCondFormatProps) cells
       transforms = map (ruleToCellTransform conn origSid ctx) rules
       transformsComposed = foldr (>=>) return transforms
   mapM transformsComposed cells'

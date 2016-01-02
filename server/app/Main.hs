@@ -66,8 +66,8 @@ main = R.withEmbeddedR R.defaultConfig $ do
 
 initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
+  putStrLn "running dummy eval"
   runEitherT $ KP.evaluate "" "\'test!\'" -- force load C python sources so that first eval isn't slow
-
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
