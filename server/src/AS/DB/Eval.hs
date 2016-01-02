@@ -14,6 +14,7 @@ import AS.Logging
 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
+import qualified Data.List as L
 
 import Database.Redis hiding (decode)
 import Data.List
@@ -106,9 +107,6 @@ evalContextCellsByCol (EvalContext virtualCellsMap _) sid column =
   filter (\c -> (getCol c == column)) $ cellsInCtx where
     cellsInCtx = M.elems virtualCellsMap
 
-equalIndex :: ASCell -> ASCell -> Bool
-equalIndex cell1 cell2 = (cellLocation cell1) == (cellLocation cell2)
-
 compareCellByRow:: ASCell -> ASCell -> Ordering
 compareCellByRow c1 c2  = compare (row $ index $ cellLocation c1) (row $ index $ cellLocation c2)
 
@@ -117,7 +115,7 @@ compareCellByRow c1 c2  = compare (row $ index $ cellLocation c1) (row $ index $
 maxNonBlankRow :: [ASCell] -> Row
 maxNonBlankRow cells =
   -- must sort cells by row in order for removeEmptyCellsAtEndOfList to work
-  let cellsSortedByRows =  Data.List.sortBy (compareCellByRow) cells
+  let cellsSortedByRows =  L.sortBy (compareCellByRow) cells
       rowListWithEmptiesRemovedFromEnd = map getRow $ removeEmptyCellsFromEndOfList $ cellsSortedByRows
    in
    case rowListWithEmptiesRemovedFromEnd of
@@ -128,42 +126,51 @@ maxNonBlankRow cells =
 maxNonBlankRowInListOfLists :: [[ASCell]] -> Row
 maxNonBlankRowInListOfLists ll = maximum (map maxNonBlankRow ll)
 
+-- helper function in colRangeWith(DBAnd)ContextToRange
+rectifiedColRangeAndListOfCellsByColToRange :: ASColRange -> [[ASCell]] -> ASRange
+rectifiedColRangeAndListOfCellsByColToRange c@(ColRange sid ((startCol, t), endCol)) cellsByCol = 
+  case startCol <= endCol of
+    True ->
+      let maxRowInCols = maxNonBlankRowInListOfLists cellsByCol
+      in
+      if (maxRowInCols < t)
+         then Range sid ((startCol, t), (endCol, t))
+         else Range sid ((startCol, t), (endCol, maxRowInCols))
+    False -> error "colRange startCol > endCol in rectifiedColRangeAndListOfCellsByColToRange "
+
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
--- Note; this is inefficient, as I convert cells to indices, and later in eval they're reconverted to cells.
--- Note: I actually don't know the best way to do this directly.
+-- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range
+-- Range((l,t),(r,t))
+-- Note: this is very inefficient: this converts cells to indices, where they're later converted back to cells.
 -- Only used in getModifiedContext
 colRangeWithDBAndContextToRange :: Connection -> EvalContext -> ASColRange -> IO ASRange
 colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
-  let cellsByCol :: Col -> IO [ASCell]
-      cellsByCol column = do
+  let cellsInCol :: Col -> IO [ASCell]
+      cellsInCol column = do
         let ctxCells = evalContextCellsByCol ctx sid column
         dbCells <- lookUpDBCellsByCol conn sid column
-        return $ unionBy equalIndex ctxCells dbCells
+        return $ unionBy isColocated ctxCells dbCells
       startCol = min l r
       endCol = max l r
-  listOfCellsByCol <- mapM cellsByCol [startCol..endCol] -- :: [[ASIndex]]
-  let maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
-  -- TODO: timchu,code duplication.
-  -- handles the case if maxRowInCols  is smaller than the top of the colRange.
-  if (maxRowInCols < t)
-     then return $ Range sid ((startCol, t), (endCol, t))
-     else return $ Range sid ((startCol, t), (endCol, maxRowInCols))
+  cellsByCol <- mapM cellsInCol [startCol..endCol] -- :: [[ASIndex]]
+  return $ rectifiedColRangeAndListOfCellsByColToRange (ColRange sid ((startCol, t), endCol)) cellsByCol
 
--- TODO: timchu 12/26/15. blatant code duplication. Don't know how to unduplicate further.
 -- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range
 -- Range((l,t),(r,t))
+-- This is used in list interpolation. In this case, the evalContext has all the cells needed to
+-- get the range corresponding to the column range, due to invariants within evalChain' since all the
+-- ancestor cells were loaded in the beginning of dispatch.
+-- Note: this is very inefficient: this converts cells to indices, where they're later converted back to cells.
+-- Note: I actually don't know the best way to do this directly.
 colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
 colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
-  let cellsByCol :: Col -> [ASCell]
-      cellsByCol column = evalContextCellsByCol ctx sid column
+  let cellsInCol :: Col -> [ASCell]
+      cellsInCol column = evalContextCellsByCol ctx sid column
       startCol = min l r
       endCol = max l r
-      listOfCellsByCol = map cellsByCol [startCol..endCol] -- :: [[ASIndex]]
-      maxRowInCols = maxNonBlankRowInListOfLists listOfCellsByCol
-   in
-   if (maxRowInCols < t)
-      then Range sid ((startCol, t), (endCol, t))
-      else Range sid ((startCol, t), (endCol, maxRowInCols))
+      cellsByCol = map cellsInCol [startCol..endCol] -- :: [[ASIndex]]
+  in
+  rectifiedColRangeAndListOfCellsByColToRange (ColRange sid ((startCol, t), endCol)) cellsByCol
 
 -- TODO: timchu, leave very clear comments about where these are used!
 -- Uses the evalcontext and column range to extract the indices used in a column range.
@@ -174,9 +181,7 @@ colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ c
 -- For use in conditional formatting and shortCircuit.
 -- TODO: timchu, 12/29/15. Haven't checked that anything works with cond format.
 colRangeWithDBAndContextToIndices :: Connection -> EvalContext -> ASColRange -> IO [ASIndex]
-colRangeWithDBAndContextToIndices conn ctx cr = do
-  underlyingRange <- colRangeWithDBAndContextToRange conn ctx cr
-  return $ rangeToIndices underlyingRange
+colRangeWithDBAndContextToIndices conn ctx cr = rangeToIndices <$> colRangeWithDBAndContextToRange conn ctx cr
 
 
 ---- TODO: timchu, 12/25/15. Never used. Delete this if never needs to be used.
