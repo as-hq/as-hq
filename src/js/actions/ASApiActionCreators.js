@@ -207,7 +207,9 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   Dispatcher.dispatch({
     _type: 'GOT_UPDATED_CELLS',
     newCells: sheetUpdate.cellUpdates.newVals,
-    oldLocs: sheetUpdate.cellUpdates.oldKeys
+    oldLocs: sheetUpdate.cellUpdates.oldKeys,
+    newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals, 
+    oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
   });
 
   Dispatcher.dispatch({

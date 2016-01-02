@@ -3,6 +3,8 @@
 import type { 
   ASCell, 
   ASLocation, 
+  RangeDescriptor, 
+  RangeKey
 } from'./Eval';
 
 import type { 
@@ -21,7 +23,7 @@ export type SheetUpdate = {
   cellUpdates: CellUpdate;
   barUpdates: BarUpdate;
   condFormatRulesUpdates: CondFormatRuleUpdate;
-  //#incomplete updatedRangeDescriptors: DescriptorUpdate;
+  descriptorUpdates: RangeDescriptorUpdate;
 };
 
 export type CellUpdate = {
@@ -40,4 +42,10 @@ export type CondFormatRuleUpdate = {
   tag: 'Update';
   newVals: Array<CondFormatRule>;
   oldKeys: Array<string>;
+};
+
+export type RangeDescriptorUpdate = {
+  tag: 'Update';
+  newVals: Array<RangeDescriptor>;
+  oldKeys: Array<RangeKey>;
 };

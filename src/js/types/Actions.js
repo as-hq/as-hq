@@ -9,7 +9,9 @@ import type {
   ASValue,
   ASCompositeValue,
   ASSelection,
-  ASLanguage
+  ASLanguage,
+  RangeDescriptor,
+  RangeKey
 } from './Eval';
 
 import type {
@@ -54,6 +56,8 @@ export type GotUpdatedCellsAction = {
   _type: 'GOT_UPDATED_CELLS';
   newCells: Array<ASCell>;
   oldLocs: Array<ASLocation>;
+  newRangeDescriptors: Array<RangeDescriptor>;
+  oldRangeKeys: Array<RangeKey>;
 };
 
 export type GotUpdatedBarsAction = {

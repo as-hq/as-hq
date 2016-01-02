@@ -181,8 +181,6 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage; // ::ALEX:: why is this an ?ASLanguage ??? 
-  expandingType?: ExpandingType;
-  rangeKey?: string;
   dependencies?: Array<NakedRange>;
 };
 
@@ -343,4 +341,20 @@ export type ASCell = {
   cellValue: ASValue;
   cellLocation: ASIndex;
   cellProps: Array<ASCellProp>;
+  expandingType?: ExpandingType; 
+  // The color of the rendered cell depends on the cell's expanding type (e.g., whether it's a list or dataframe or general object.)
+  // For now, the easiest fast way to provide this information to the renderer is to just add this attribute to cells. An alternative
+  // would be to store all the range descriptors in a store, and check whether each cell belongs in a range every time we render it, but 
+  // accessing a store is slow compared with accessing an object's member directly. 
+};
+
+// backend actually has more fields than this, but this is all frontend needs
+export type RangeDescriptor = { 
+  expandingType: ExpandingType; 
+  descriptorKey: RangeKey;
+};
+
+export type RangeKey = { 
+  keyIndex: ASIndex; 
+  keyDimensions: [number, number];
 };
