@@ -63,7 +63,6 @@ const Clipboard = {
 
   getAttrsFromHtmlString(s: string): ASClipboardAttrs {
     // #needsrefactor should build better model of what causes various formats to show up, and handle them better
-    debugger;
     if (s.indexOf("<!--StartFragment-->") == -1) {
       // I'm aware this is dumb, but it's sufficient for now
       // assumes the format is something like: 
@@ -82,13 +81,11 @@ const Clipboard = {
       // <!--StartFragment--><table id="alphasheets" data-sheet-id="Predictions" data-from-range="{&quot;tl&quot;:{&quot;row&quot;:7,&quot;col&quot;:1},&quot;br&quot;:{&quot;row&quot;:7,&quot;col&quot;:1}}"><tbody><tr><td>Critch uses on his own accord by 11/15</td></tr></tbody></table><!--EndFragment-->
       // </body>
       // </html>
-      debugger;
       let parser = new DOMParser(),
           doc = parser.parseFromString(s, "text/xml"),
           table = (doc.firstChild: any).firstElementChild.firstElementChild, 
           fromSheetId = (table: any).getAttribute('data-sheet-id'),
           fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-      debugger;
       return {fromSheetId: fromSheetId, fromRange: fromRange};
     }
   },
