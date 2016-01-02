@@ -22,6 +22,8 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 
+import Control.Lens hiding (index)
+
 import Database.Redis (Connection)
 
 type Position = (Col,Row)
@@ -86,8 +88,8 @@ filterMaybeNumCells mCells = map (map (\(Just c) -> c)) cells
 isFormulaCell :: ASCell -> Bool
 isFormulaCell cell = not valExpEqual
   where
-    lang = language $ cellExpression cell
-    xp = expression $ cellExpression cell
+    lang = (cellExpression cell)^.language
+    xp = (cellExpression cell)^.expression
     valExpEqual = case lang of
       Excel -> case maybeVal of
         Nothing  -> False
@@ -165,7 +167,7 @@ translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
         newPositions = getAbsoluteDragPositions r1 r2 (pos cell)
         num = length newPositions
         seriesIndices = [ind,(ind+len)..(ind+(num-1)*len)]
-        lang = language $ cellExpression cell
+        lang = (cellExpression cell)^.language
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals

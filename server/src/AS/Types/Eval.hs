@@ -15,6 +15,8 @@ import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Updates
 
+import Control.Lens
+
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (isJust)

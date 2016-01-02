@@ -25,6 +25,7 @@ import qualified Data.Map as M
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
+import Control.Lens hiding ((.=))
 import Control.Applicative (liftA2)
 import Control.DeepSeq.Generics (genericRnf)
 
@@ -44,6 +45,8 @@ data ASCell = Cell { cellLocation :: ASIndex
                    -- implement efficiently (would probably involve storing the RangeKeys in a nontrivial structure in the 
                    -- database) and would be O(log # RangeKeys) rather than O(1), so we're just going to duplicate 
                    -- this information 
+
+makeLenses ''ASExpression
 
 -- NORM: never expand this type; always modify it using the records. (So we don't confuse 
 -- before and after accidentally.)
