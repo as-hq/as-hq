@@ -424,28 +424,6 @@ exRefToASRef sid exRef = case exRef of
   ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
 
-asRefToExRef :: ASReference -> ExRef
-asRefToExRef OutOfBounds = ExOutOfBounds
-asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (PointerRef (Pointer sid (a,b))) = ExPointerRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (ColRangeRef (ColRange sid (i1,c2))) = ExColRangeRef colrng sname Nothing
-  where
-    sname = sheetIdToSheetName sid
-    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index sid i1
-    c2' = ExCol REL (intToColStr c2)
-    colrng = ExColRange i1' c2'
-    -- #TempQuestion: Why are there two nothings in the ExRangeRef?
-asRefToExRef (RangeRef (Range sid (i1, i2))) = ExRangeRef rng sname Nothing
-  where
-    sname = sheetIdToSheetName sid
-    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index sid i1
-    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index sid i2
-    rng = ExRange i1' i2'
-
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
 -- equating sheet names and sheet id's with the dialog box, 
 sheetIdToSheetName :: ASSheetId -> Maybe SheetName

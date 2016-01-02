@@ -58,7 +58,10 @@ keepUnequal x = (ls1, ls2)
     ls1 = map      fst unequals
     ls2 = mapMaybe snd unequals
 
--- Helper functions for barIndex and index mutate.
+-- Functions from colMutate and rowMutate are helper functions for barIndexMutate,
+-- indexMutate, exIndexMutate, exRangeMutate.
+-- TODO: timchu 1/1/15, could have better typing on rows and columns so that
+-- compiler can catch accidental mistakes when switching col and row.
 colMutate :: MutateType -> Col -> Maybe Col
 colMutate (InsertCol c') c = Just $ if c >= c' then (c+1) else c
 colMutate (DeleteCol c') c
@@ -105,7 +108,7 @@ barMutate mt (Bar bInd bProps) = fmap (`Bar` bProps) (barIndexMutate mt bInd)
 indexMutate :: MutateType -> (ASIndex -> Maybe ASIndex)
 indexMutate mt (Index sid (c, r)) = do
     c' <- colMutate mt c
-    r' <- colMutate mt r
+    r' <- rowMutate mt r
     return $ Index sid (c', r')
 
 rowStrToInt :: String -> Int
@@ -129,7 +132,7 @@ exColMutate mt (ExCol singleRefType cStr) = do
 -- | timchu, 1/1/16. Many of the below are helper functions used for range mutation, in the case where
 -- the br is deleted but the tl is not.
 
--- TODO: timchu, 1/1/16.This is terrible typing.
+-- TODO: timchu, 1/1/16. The type safety on these methods is not great.
 shiftColStrLeft :: String -> String
 shiftColStrLeft col = intToColStr $ (colStrToInt col) - 1
 
@@ -152,13 +155,14 @@ exRangeMutate mt (ExRange tl br) =
     (Nothing, Nothing) -> Nothing
     (Nothing, Just br') -> Just $ ExRange tl br'
     (Just tl', Nothing) -> case mt of -- in this case, tl' should just equal tl
-                              (DeleteRow _) -> Just $ ExRange tl' $ shiftExIndexUp br
-                              (DeleteCol _) -> Just $ ExRange tl' $ shiftExIndexLeft br
-                              otherwise -> Nothing
+                             (DeleteRow _) -> Just $ ExRange tl' $ shiftExIndexUp br
+                             (DeleteCol _) -> Just $ ExRange tl' $ shiftExIndexLeft br
+                             otherwise -> Nothing
     (Just tl', Just br') -> Just $ ExRange tl' br'
 
--- timchu, 1/1/2016. Only works if l <= r
--- Note; this will cause problems since this operation does not preserve l <= r
+-- timchu, 1/1/2016. Only works if l <= r.
+-- Note: this will cause problems since this operation does not preserve l <= r
+-- r the name for the rightmost column.
 exColRangeMutate :: MutateType -> ExColRange -> Maybe ExColRange
 exColRangeMutate mt (ExColRange tl r) =
   let maybeTl = exIndexMutate mt tl
@@ -194,8 +198,11 @@ refMutate' mt er@(ExPointerRef exLoc sheetName workbookName) = do
 refMutate :: MutateType -> ExRef -> ExRef
 refMutate mt exRef  = fromMaybe ExOutOfBounds $ refMutate' mt exRef
 
+-- TODO: timchu, this is the proper expression:
+-- expressionMutate mt = replaceRefs (show . (refMutate mt))
+-- The different one is only for tracing!
 expressionMutate :: MutateType -> (ASExpression -> ASExpression)
-expressionMutate mt = replaceRefs (show . (refMutate mt))
+expressionMutate mt xp = trace' "NEW ASEXPRESSION: " (replaceRefs (show . (refMutate mt)) xp)
 
 cellMutate :: MutateType -> (ASCell -> Maybe ASCell)
 cellMutate mt c@(Cell loc xp v ps) = case ((indexMutate mt) loc) of
