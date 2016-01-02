@@ -104,7 +104,7 @@ handleUpdateWindow cid state w = do
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
+    mcells <- DB.getCells (dbConn curState) $ concatMap rangeToIndices newLocs
     sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 

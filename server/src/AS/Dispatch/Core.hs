@@ -302,7 +302,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  let decoupledLocs = concat $ map (rangeKeyToIndices . descriptorKey) newlybeforeVals
+  let decoupledLocs = concatMap (rangeKeyToIndices . descriptorKey) newlybeforeVals
   decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of

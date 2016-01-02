@@ -98,7 +98,7 @@ codeGen sig = runIdentity $ do
         ]
 
 main = do
-    x <- return $ concat $ map (flip replicateM "OV") [1..5]
+    x <- return $ concatMap (flip replicateM "OV") [1..5]
     x2 <- return $ map makeArgs x
     result <- return $ intercalate "\n\n" $ map codeGen x2
     putStrLn $ intercalate "\n" $ map (\sig -> "    " ++ funcname sig ++ ",") x2

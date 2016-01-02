@@ -101,7 +101,7 @@ isFormulaCell cell = not valExpEqual
 
 -- Given the 2D list of cells in the sel range, extract all formula cells
 extractFormulaCells :: [[ASCell]] -> [ASCell]
-extractFormulaCells cells = concat $ map (filter isFormulaCell) cells
+extractFormulaCells cells = concatMap (filter isFormulaCell) cells
 
 -- Given the sel range, drag range, and 2D list of sel range cells, return all cells corresponding to formula cells
 -- (for each formula cell, do a copy-like operation to fill the drag range)
@@ -120,10 +120,10 @@ getMappedFormulaCells r1 r2 cells = catMaybes $ concatMap translateCell formulaC
 
 -- By splitting between formula cells, extract all pattern groups
 extractPatternGroups :: [[ASCell]] -> [PatternGroup]
-extractPatternGroups cells = concat $ map (LS.splitWhen isFormulaCell) cells
+extractPatternGroups cells = concatMap (LS.splitWhen isFormulaCell) cells
 
 getMappedPatternGroups :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
-getMappedPatternGroups r1 r2 cells = concat $ map (translatePatternGroupCells r1 r2) patternGroups
+getMappedPatternGroups r1 r2 cells = concatMap (translatePatternGroupCells r1 r2) patternGroups
   where
     patternGroups = extractPatternGroups cells
 
@@ -132,7 +132,7 @@ translatePatternGroupCells :: ASRange -> ASRange -> PatternGroup -> [ASCell]
 translatePatternGroupCells r1 r2 pg = cells
   where
     patterns = decomposePatternGroup pg
-    cells = concat $ map (translatePatternCells r1 r2) patterns
+    cells = concatMap (translatePatternCells r1 r2) patterns
 
 -- Decompose a pattern group into patterns
 -- A pattern has a bunch of cells, and a function from term number -> ASValue
@@ -156,7 +156,7 @@ decomposePatternGroup pg = patterns
 
 -- Get the cells corresponding to a pattern using position offsets (expression = value)
 translatePatternCells :: ASRange -> ASRange -> Pattern -> [ASCell]
-translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCells
+translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
   where
     len = length (fst pattern)
     indexCells = zip (fst pattern) [0..(len-1)]
