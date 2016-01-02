@@ -38,6 +38,7 @@ import Database.Redis (Connection)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 
@@ -117,7 +118,7 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   ve@(ValueError _ _)     -> handleErrorInLang lang ve
   otherwise               -> Nothing 
   where
-    lang           = language xp
+    lang           = xp^.language
     values         = map (cellValue . ((virtualCellsMap ctx) M.!)) depInds
 
 

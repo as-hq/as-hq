@@ -34,6 +34,7 @@ import Foreign.C
 import Control.Applicative
 import Control.Concurrent
 import Control.Monad
+import Control.Lens hiding (set)
 import Control.Monad.Trans
 import Data.Time
 import Database.Redis hiding (decode)
@@ -138,10 +139,10 @@ getCellsByKeyPattern conn pattern = do
 -- this function is order-preserving
 getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
 getBlankedCellsAt conn locs = 
-  let blank xp = Expression "" (language xp)
+  let blankExpr = expression .~ "" -- replaces the expression in ASExpression with an empty string
   in do 
     cells <- getPossiblyBlankCells conn locs
-    return $ map (\(Cell l xp v ts rk) -> Cell l (blank xp) NoValue ts Nothing) cells -- #lens
+    return $ map (\(Cell l xp v ts rk) -> Cell l (blankExpr xp) NoValue ts Nothing) cells -- #lens
 
 -- this function is order-preserving
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]

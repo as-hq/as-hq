@@ -16,7 +16,7 @@ import qualified Data.Map as M
 
 import Database.Redis hiding (decode)
 import Control.Monad
-import Control.Lens
+import Control.Lens hiding (set)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 

@@ -11,6 +11,7 @@ import Prelude
 
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
+import Control.Lens hiding (noneOf)
 import AS.Parsing.Excel
 import AS.Types.Excel
 import AS.Types.Cell
@@ -70,14 +71,16 @@ parseUnquotedMatchesWithContext a = do
   return (inter,matches)
 
 getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
-getUnquotedMatchesWithContext (Expression { language = language, expression = expression }) p = 
+getUnquotedMatchesWithContext xp p = 
   if (isExcelLiteral)
-    then ([expression], [])
-    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expression)
+    then ([expr], [])
+    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expr)
   where
+    lang = xp^.language 
+    expr = xp^.expression
     fromRight (Right x) = x
-    isExcelLiteral = (language == Excel) && parsedCorrectly
-    parsedCorrectly = case (parse formula "" expression) of 
+    isExcelLiteral = (lang == Excel) && parsedCorrectly
+    parsedCorrectly = case (parse formula "" expr) of 
       Right _ -> False 
       Left  _ -> True
 
@@ -89,19 +92,18 @@ blend [] y = concat y
 blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp@(Expression { language = lang }) = xp'
+replaceRefs f xp = xp & expression .~ expression'
   where 
     (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
     exRefs'         = map f exRefs 
     expression'     = blend inter exRefs'
-    xp' = Expression expression' lang
 
 replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
 replaceRefsIO f xp = do 
   let (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
   exRefs' <- mapM f exRefs 
   let expression' = blend inter exRefs'
-  return $ xp { expression = expression' } 
+  return $ xp & expression .~ expression'
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

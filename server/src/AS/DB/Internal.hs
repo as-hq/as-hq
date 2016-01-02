@@ -38,6 +38,7 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
+import Control.Lens
 
 import Foreign
 import Foreign.C.Types
@@ -88,7 +89,7 @@ getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack patt
 toDecoupled :: ASCell -> ASCell
 toDecoupled c@(Cell { cellRangeKey = Just _ }) = c { cellExpression = e', cellRangeKey = Nothing } 
   where 
-    lang = language $ cellExpression c
+    lang = (cellExpression c)^.language
     v = cellValue c
     e' = case v of 
              NoValue   -> Expression "" lang

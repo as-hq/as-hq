@@ -31,7 +31,7 @@ import Control.DeepSeq.Generics (genericRnf)
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
-data ASExpression = Expression { expression :: String, language :: ASLanguage } deriving (Show, Read, Eq, Generic)
+data ASExpression = Expression { _expression :: String, _language :: ASLanguage } deriving (Show, Read, Eq, Generic)
 
 data ASCell = Cell { cellLocation :: ASIndex
                    , cellExpression :: ASExpression
@@ -89,7 +89,7 @@ isBlank _ = False
 
 -- checks if a cell is actually "empty", in the sense that it has no props and no expression.
 isEmptyCell :: ASCell -> Bool
-isEmptyCell = liftA2 (&&) (isEmpty . cellProps) (null . expression . cellExpression)
+isEmptyCell = liftA2 (&&) (isEmpty . cellProps) (null . _expression . cellExpression) -- #expert
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)

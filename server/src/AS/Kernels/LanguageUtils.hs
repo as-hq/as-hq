@@ -21,6 +21,7 @@ import qualified AS.LanguageDefs as LD
 
 import Control.Exception (SomeException, catch)
 import Control.Applicative hiding ((<|>))
+import Control.Lens
 import System.IO.Strict as S
 import System.IO
 
@@ -221,18 +222,18 @@ lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValu
 -- #mustrefactor IO String should be EitherTExec string
 insertValues :: Connection -> ASSheetId -> EvalContext -> ASExpression -> IO String
 insertValues conn sheetid ctx xp = 
-  let lang = language xp
+  let lang = xp^.language
   in case lang of
     SQL -> do
       let exRefs = getExcelReferences xp
           matchRefs = map (exRefToASRef sheetid) exRefs
       context <- mapM (lookUpRef conn SQL ctx) matchRefs
       let st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-          newExp = expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
+          newExp = view expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
           contextStmt = "setGlobals("++(show context) ++")\n"
           evalStmt = "result = serialize(db(\'" ++ newExp ++ "\'))"
       return $ contextStmt ++ evalStmt
-    _ -> expression <$> replaceRefsIO exRefToStringEval xp
+    _ -> view expression <$> replaceRefsIO exRefToStringEval xp
       where exRefToStringEval = (lookUpRef conn lang ctx) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
 
 -----------------------------------------------------------------------------------------------------------------------
