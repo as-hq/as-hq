@@ -30,11 +30,15 @@ import Control.Monad (when)
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
 
-shouldLogAction :: ServerAction -> Bool
-shouldLogAction Acknowledge      = False
-shouldLogAction (UpdateWindow _) = False
-shouldLogAction (Open _)         = False
-shouldLogAction  _               = True
+shouldLogMessage :: ServerMessage -> Bool
+shouldLogMessage (ServerMessage Acknowledge)      = False
+shouldLogMessage (ServerMessage (UpdateWindow _)) = False
+shouldLogMessage (ServerMessage (Open _))         = False
+shouldLogMessage _                                = True
+
+shouldPrintMessage :: ServerMessage -> Bool
+shouldPrintMessage (ServerMessage Acknowledge) = False
+shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
   conn = userConn
@@ -49,10 +53,10 @@ instance Client ASUserClient where
   handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    when (shouldLogAction $ serverAction message) $ do 
-      logServerMessage (show message) (userCommitSource user)
+    when (shouldLogMessage message) $ logServerMessage (show message) (userCommitSource user)
+    when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
-    printObj "Message" (show message)
+      printObj "Message" (show message)
     redisConn <- dbConn <$> readMVar state
     storeLastMessage redisConn message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
@@ -66,7 +70,7 @@ instance Client ASUserClient where
       UpdateWindow win            -> handleUpdateWindow (sessionId user) state win
       -- Import                -> handleImport user state payload
       Export sid                  -> handleExport user state sid
-      Evaluate xp loc             -> handleEval user state xp loc
+      Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
       -- EvaluateRepl          -> handleEvalRepl user payload
       EvaluateHeader xp           -> handleEvalHeader user state xp
       Get locs                    -> handleGet user state locs
@@ -85,6 +89,7 @@ instance Client ASUserClient where
       Drag selRng dragRng         -> handleDrag user state selRng dragRng
       Decouple                    -> handleDecouple user state
       UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules user state cfru
+      GetBar bInd                 -> handleGetBar user state bInd
       SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
       -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
@@ -104,14 +109,16 @@ instance Client ASDaemonClient where
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
   handleServerMessage daemon state message = case (serverAction message) of
-    Evaluate xp loc -> handleEval' daemon state xp loc
+    Evaluate xpsAndIndices -> handleEval' daemon state xpsAndIndices
     where 
-      handleEval' :: ASDaemonClient -> MVar ServerState -> ASExpression -> ASIndex -> IO ()
-      handleEval' dm state xp ind  = do
+      handleEval' :: ASDaemonClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+      handleEval' dm state evalInstructions  = do
+        let xps  = map evalXp evalInstructions
+            inds = map evalLoc evalInstructions 
         conn <- dbConn <$> readMVar state
-        oldProps <- getPropsAt conn ind
-        let cell = Cell ind xp NoValue oldProps
-        errOrUpdate <- runDispatchCycle state [cell] DescendantsWithParent (daemonCommitSource dm) id
+        oldProps <- mapM (getPropsAt conn) inds
+        let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props) $ zip3 xps inds oldProps
+        errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id
         either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
       -- difference between this and handleEval being that it can't take back a failure message. 
       -- yes, code replication, whatever. 

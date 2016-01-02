@@ -215,6 +215,13 @@ handleUpdateCondFormatRules uc state u@(Update updatedRules deleteRuleIds) = do
   either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
   broadcastErrOrUpdate state uc $ fmap sheetUpdateFromCommit errOrCommit
 
+handleGetBar :: ASUserClient -> MVar ServerState -> BarIndex -> IO ()
+handleGetBar uc state bInd = do 
+  conn <- dbConn <$> readMVar state
+  mBar <-  DB.getBar conn bInd
+  let msg = maybe (ClientMessage . PassBarToTest $ Bar bInd BP.emptyProps) (ClientMessage . PassBarToTest) mBar
+  sendToOriginal uc msg
+
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> BarIndex -> BarProp -> IO ()
 handleSetBarProp uc state bInd prop = do 

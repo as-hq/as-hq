@@ -48,6 +48,7 @@ data ClientAction =
   | MakeSelection Selection
   | LoadImportedCells [ASCell] -- cells to add to sheet
   | ShowHeaderResult CompositeValue
+  | PassBarToTest Bar
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -59,9 +60,10 @@ data ServerAction =
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | Export ASSheetId
-  | Evaluate { evalXp :: ASExpression, evalLoc :: ASIndex }
+  | Evaluate [EvalInstruction]
   | EvaluateHeader ASExpression
   | Get [ASIndex]
+  | GetBar BarIndex
   | Delete ASRange
   | ClearSheetServer ASSheetId
   | Undo 
@@ -86,6 +88,9 @@ data ServerAction =
 --   Workbooks |
 --   WorkbookSheets
 --   deriving (Show, Read, Eq, Generic)
+
+-- Indicates where to eval and what to eval
+data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } deriving (Show, Read, Eq, Generic)
 
 data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
@@ -113,6 +118,9 @@ instance FromJSON ClientAction
 instance ToJSON ServerAction
 instance FromJSON ServerAction
 
+instance ToJSON EvalInstruction
+instance FromJSON EvalInstruction
+
 instance ToJSON MutateType
 instance FromJSON MutateType
 
@@ -120,6 +128,7 @@ instance Serialize ClientMessage
 instance Serialize ServerMessage
 instance Serialize ClientAction
 instance Serialize ServerAction
+instance Serialize EvalInstruction
 instance Serialize MutateType
 -- are legit.
 --------------------------------------------------------------------------------------------------------------
