@@ -340,16 +340,20 @@ setSheet conn sheet = do
             sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
+-- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
+-- (at least not consistently.)
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> getRangeKeysInSheet conn sid
       pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
-      pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
+      pluralKeys = (evalHeaderKeys ++ ) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do
     pluralKeys <- liftIO pluralKeys
+    rangeKeys <- liftIO rangeKeys 
     del $ sheetRangesKey : pluralKeys
+    del rangeKeys
     liftIO $ deleteLocsInSheet conn sid
 
 ----------------------------------------------------------------------------------------------------------------------

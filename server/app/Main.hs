@@ -99,9 +99,8 @@ application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending -- initialize connection
   msg <- WS.receiveData conn -- waits until it receives data
-  if (isDebug && shouldPreprocess) 
-    then preprocess conn state
-    else handleFirstMessage state conn msg
+  when (isDebug && shouldPreprocess) $ preprocess conn state
+  handleFirstMessage state conn msg
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
