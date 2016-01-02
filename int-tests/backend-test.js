@@ -410,8 +410,7 @@ describe('backend', () => {
             ]);
           });
 
-          // ::ALEX::
-          xit ('should be decoupled when referencing a list that got deleted', (done) => {
+          it ('should be decoupled when referencing a list that got deleted', (done) => {
             _do([
               python('A1', 'range(5)'),
               python('B2', '@A1'),
@@ -2093,8 +2092,7 @@ describe('backend', () => {
           ]);
         });
 
-        // ::ALEX::
-        xit ('pointer to decoupled cells from cut gives error', (done) => {
+        it ('pointer to decoupled cells from cut gives error', (done) => {
           _do([
             python('A1', 'range(10)'),
             python('C1', '@A1'),
@@ -2116,8 +2114,7 @@ describe('backend', () => {
           ]);
         });
 
-        // ::ALEX:: eeeeee-urp
-        fit ('should cut/paste entire ranges', (done) => {
+        it ('should cut/paste entire ranges', (done) => {
           _do([
             python('A1', 'range(10)'),
             cut('A1:A10', 'B1:B10'),
@@ -2143,6 +2140,8 @@ describe('backend', () => {
       });
 
       // Currently not supporting (Alex 12/29)
+      // note -- there is a known backend bug that causes these to sometimes not pass. clearSheet doesn't properly
+      // delete the keys in the database that store repeat information. 
       xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
@@ -2963,8 +2962,7 @@ describe('backend', () => {
     });
 
     describe('dependencies on expanding cells', () => {
-      // ::ALEX::
-      xit ('throws error on incorrect pointer ref', (done) => {
+      it ('throws error on incorrect pointer ref', (done) => {
         _do([
           python('A1', 'range(10)'),
           python('B1', '@A1'),
