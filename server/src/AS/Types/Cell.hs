@@ -57,7 +57,7 @@ instance HasKey ASCell where
   type KeyType ASCell = ASReference
   key = IndexRef . cellLocation
 
-asToFromJSON ''ASExpression
+asLensedToFromJSON ''ASExpression
 asToFromJSON ''ASLanguage
 
 -- -- Every time cells get updated, frontend gets passed a list of range descriptors, which it uses to 
