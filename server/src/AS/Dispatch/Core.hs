@@ -322,7 +322,7 @@ contextInsert conn c@(Cell idx xp _ ps rk) (Formatted cv f) ctx = do  -- #lens
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- Get the new cells created by eval, with formatting as well, and add them into the context
   let newCellsFromEval = case maybeFatCell of
-                          Nothing -> [formatCell f $ Cell idx xp v ps rk]
+                          Nothing -> [formatCell f $ Cell idx xp v ps Nothing]
                             where 
                               CellValue v = cv
                           Just (FatCell cs _) -> map (formatCell f) cs
