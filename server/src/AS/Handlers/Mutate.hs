@@ -108,27 +108,91 @@ indexMutate mt (Index sid (c, r)) = do
     r' <- colMutate mt r
     return $ Index sid (c', r')
 
-refMutate :: MutateType -> (ExRef -> ExRef)
-refMutate mt ExOutOfBounds = ExOutOfBounds
-refMutate mutateType exLocRef@(ExLocRef (ExIndex indexRefType _ _) sheetName workbookName) = exLocRef'
-  where -- feels kinda ugly...
-    IndexRef ind = exRefToASRef (T.pack "") exLocRef
-    exLocRef' = case (indexMutate mutateType ind) of
-      Nothing -> ExOutOfBounds
-      Just newRefLoc -> ExLocRef exIndex' sheetName workbookName
-        where
-          ExLocRef exIndex _ _ = asRefToExRef $ IndexRef newRefLoc
-          exIndex' = exIndex { refType = indexRefType }
+rowStrToInt :: String -> Int
+rowStrToInt r = read r :: Int
 
--- TODO: timchu, 12/29/15. Problem if ExLocRef is ExOutOfBounds errors. Currently using rangeMutate instead?
-refMutate mutateType er@(ExRangeRef (ExRange tl br) sheetName workbookName) = ExRangeRef (ExRange tl' br') sheetName workbookName
-  where
-    ExLocRef tl' _ _ = refMutate mutateType (ExLocRef tl sheetName workbookName)
-    ExLocRef br' _ _ = refMutate mutateType (ExLocRef br sheetName workbookName)
--- TODO: timchu, 12/29/15. Problem if colMutate returns a nothing. Use colRangeMutate instead?
-refMutate mutateType er@(ExPointerRef exLoc sheetName workbookName) = ExPointerRef exLoc' sheetName workbookName
-  where
-    ExLocRef exLoc' _ _ = refMutate mutateType (ExLocRef exLoc sheetName workbookName)
+intToRowStr :: Int -> String
+intToRowStr i = show i
+
+exIndexMutate :: MutateType -> ExLoc -> Maybe ExLoc
+exIndexMutate mt (ExIndex indexRefType cStr rStr) = do
+  cStr' <- intToColStr <$> (colMutate mt $ colStrToInt cStr)
+  rStr' <- intToRowStr <$> (rowMutate mt $ rowStrToInt rStr)
+  return $ ExIndex indexRefType cStr' rStr'
+
+-- TODO: timchu, 1/1/15. Some small amount of code duplication.
+exColMutate :: MutateType -> ExCol -> Maybe ExCol
+exColMutate mt (ExCol singleRefType cStr) = do
+  cStr' <- intToColStr <$> (colMutate mt $ colStrToInt cStr)
+  return $ ExCol singleRefType cStr'
+
+-- | timchu, 1/1/16. Many of the below are helper functions used for range mutation, in the case where
+-- the br is deleted but the tl is not.
+
+-- TODO: timchu, 1/1/16.This is terrible typing.
+shiftColStrLeft :: String -> String
+shiftColStrLeft col = intToColStr $ (colStrToInt col) - 1
+
+shiftRowStrUp :: String -> String
+shiftRowStrUp row = intToRowStr $ (rowStrToInt row) - 1
+
+shiftExIndexUp :: ExLoc -> ExLoc
+shiftExIndexUp (ExIndex refType col row) = ExIndex refType col (shiftRowStrUp row)
+
+shiftExIndexLeft :: ExLoc -> ExLoc
+shiftExIndexLeft (ExIndex refType col row) = ExIndex refType (shiftColStrLeft col) row
+
+-- TODO: timchu, 1/1/2016. This only works if t <= b, l <= r.
+exRangeMutate :: MutateType -> ExRange -> Maybe ExRange
+exRangeMutate mt (ExRange tl br) =
+  let [maybeTl, maybeBr] = map (exIndexMutate mt) [tl, br]
+  in
+  -- cases on whether Tl or Br, or both, are deleted.
+  case (maybeTl, maybeBr) of
+    (Nothing, Nothing) -> Nothing
+    (Nothing, Just br') -> Just $ ExRange tl br'
+    (Just tl', Nothing) -> case mt of -- in this case, tl' should just equal tl
+                              (DeleteRow _) -> Just $ ExRange tl' $ shiftExIndexUp br
+                              (DeleteCol _) -> Just $ ExRange tl' $ shiftExIndexLeft br
+                              otherwise -> Nothing
+    (Just tl', Just br') -> Just $ ExRange tl' br'
+
+-- timchu, 1/1/2016. Only works if l <= r
+-- Note; this will cause problems since this operation does not preserve l <= r
+exColRangeMutate :: MutateType -> ExColRange -> Maybe ExColRange
+exColRangeMutate mt (ExColRange tl r) =
+  let maybeTl = exIndexMutate mt tl
+      maybeR = exColMutate mt r
+      -- shiftColLeft is used to handle the case when r is deleted by tl isn't.
+      shiftColLeft :: ExCol -> ExCol
+      shiftColLeft (ExCol srType colStr) = ExCol srType (shiftColStrLeft colStr)
+  in
+  -- cases on whether Tl, or r, or both, are deleted.
+  case (maybeTl, maybeR) of
+    (Nothing, Nothing) -> Nothing
+    (Nothing, Just r') -> Just $ ExColRange tl r'
+    (Just tl', Nothing) -> Just $ ExColRange tl' (shiftColLeft r) -- in this case, tl' should equal tl
+    (Just tl', Just r') -> Just $ ExColRange tl' r
+
+-- returns Nothing if any of the mutations give out of bounds.
+refMutate' :: MutateType -> (ExRef -> Maybe ExRef)
+refMutate' mt ExOutOfBounds = Nothing
+refMutate' mt (ExLocRef exLoc sheetName workbookName) = do
+  exLoc' <- exIndexMutate mt exLoc
+  return $ ExLocRef exLoc' sheetName workbookName
+refMutate' mt (ExRangeRef exRange sheetName workbookName) = do
+  exRange' <- exRangeMutate mt exRange
+  return $ ExRangeRef exRange' sheetName workbookName
+refMutate' mt (ExColRangeRef exColRange sheetName workbookName) = do
+  exColRange' <- exColRangeMutate mt exColRange
+  return $ ExColRangeRef exColRange' sheetName workbookName
+  -- TODO: timchu, 1/1/16. This is a hack!  I'm not sure that it works.
+refMutate' mt er@(ExPointerRef exLoc sheetName workbookName) = do
+  exLoc' <- exIndexMutate mt exLoc
+  return $ ExPointerRef exLoc' sheetName workbookName
+
+refMutate :: MutateType -> ExRef -> ExRef
+refMutate mt exRef  = fromMaybe ExOutOfBounds $ refMutate' mt exRef
 
 expressionMutate :: MutateType -> (ASExpression -> ASExpression)
 expressionMutate mt = replaceRefs (show . (refMutate mt))
