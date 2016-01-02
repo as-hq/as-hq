@@ -9,5 +9,5 @@ if __name__ == '__main__':
   # while True:
   #     kernel.handle_incoming()
   shell = ASShell()
-  print shell.run_cell('print 10; 1+1', 'sheetid').display
-  # print shell.run_cell('print "FUCK YOU"; print 10; 1+a', 'sheetid').display
+  # print shell.run_cell('a=1;1+a', 'sheetid').display
+  print shell.run_cell('1+1', 'sheetid').result

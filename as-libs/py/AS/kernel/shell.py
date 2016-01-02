@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import ast
 import copy
@@ -8,9 +10,12 @@ from IPython.core.interactiveshell import InteractiveShell, softspace
 from IPython.core.prompts import PromptManager
 from IPython.utils.py3compat import builtin_mod
 from IPython.core.error import InputRejected, UsageError
-import IPython.core.displayhook as dh
+from IPython.core.display_trap import DisplayTrap
 
 from traitlets import Instance, Type
+
+from .compiler import ASCompiler
+from .displayhook import ASDisplayHook
 
 class ASExecutionResult(object):
     """The result of a call to :meth:`ASShell.run_block`
@@ -35,21 +40,14 @@ class ASExecutionResult(object):
             raise self.error_in_exec
 
 
-class ASDisplayHook(dh.DisplayHook):
-    """A custom displayhook to replace sys.displayhook.
-
-    This class does many things, but the basic idea is that it is a callable
-    that gets called anytime user code returns a value.
-    """
-    exec_result = Instance('AS.kernel.shell.ASExecutionResult',
-                           allow_none=True)
-
 class ASShell(InteractiveShell):
 
   displayhook_class = Type(ASDisplayHook)
+
 #-----------------------------------------------------------------------------
-#  Single initialization
+#  Startup initialization
 #-----------------------------------------------------------------------------
+
   def init_io(self):
         # Provide an alternate stdout for evaluation calls.
         # this enables print statement capturing.
@@ -89,11 +87,30 @@ class ASShell(InteractiveShell):
     self.prompt_manager = PromptManager(shell=self, parent=self)
     self.configurables.append(self.prompt_manager)
 
+  def init_displayhook(self):
+    # Initialize displayhook, set in/out prompts and printing system
+    self.displayhook = self.displayhook_class(
+        parent=self,
+        shell=self,
+        cache_size=self.cache_size,
+        silent=True
+    )
+    self.configurables.append(self.displayhook)
+    # This is a context manager that installs/revmoes the displayhook at
+    # the appropriate time.
+    self.display_trap = DisplayTrap(hook=self.displayhook)
+
+  def init_instance_attrs(self):
+    super(ASShell, self).init_instance_attrs()
+    # use our custom compiler
+    self.compile = ASCompiler()
+
   def init_events(self):
     super(ASShell, self).init_events()
     # register an event to capture all stdout during eval, then change it back
     self.events.register('pre_execute', self._init_eval_stdout)
     self.events.register('post_execute', self._close_eval_stdout)
+
 #-----------------------------------------------------------------------------
 #  Run-time initialization
 #-----------------------------------------------------------------------------
@@ -417,7 +434,7 @@ class ASShell(InteractiveShell):
     return outflag
 
 #-----------------------------------------------------------------------------
-#  Stdout, stderr, etc.
+#  IO handling
 #-----------------------------------------------------------------------------
 
   def get_formatted_traceback(self, exc_tuple=None, filename=None, tb_offset=None,
@@ -475,3 +492,31 @@ class ASShell(InteractiveShell):
   def _close_eval_stdout(self):
     sys.stdout.flush()
     sys.stdout = sys.__stdout__
+
+  def auto_rewrite_input(self, cmd):
+    """Print to the screen the rewritten form of the user's command.
+
+    This shows visual feedback by rewriting input lines that cause
+    automatic calling to kick in, like::
+
+      /f x
+
+    into::
+
+      ------> f(x)
+
+    after the user's input prompt.  This helps the user understand that the
+    input line was transformed automatically by IPython.
+    """
+    if not self.show_rewritten_input:
+        return
+    
+    rw = self.prompt_manager.render('rewrite') + cmd
+
+    try:
+        # plain ascii works better w/ pyreadline, on some machines, so
+        # we use it and only print uncolored rewrite if we have unicode
+        rw = str(rw)
+        print(rw)
+    except UnicodeEncodeError:
+        print("------> " + cmd)
