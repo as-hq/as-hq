@@ -66,9 +66,9 @@ referenceToCompositeValue conn ctx (ColRangeRef cr) = return . Expanding . VList
     -- The only case where the index is not in the virtualCellsMap is when the
     -- current dispatch created new cells in the bottom of a column whose
     -- colRange is being evaluated.
-    indToVal ind = case (M.member ind $ virtualCellsMap ctx) of
-                        True -> view cellValue $ (virtualCellsMap ctx) M.! ind
-                        False -> NoValue
+    indToVal ind = case (trace' "IS IND A MEMBER OF VIRTUAL CELLS MAP: " (M.member (trace' "CURRENT INDEX: " ind) $ virtualCellsMap ctx)) of
+                        True -> (trace' "TRUE AND THE VALUE IS : " $ view cellValue $ (virtualCellsMap ctx) M.! ind)
+                        False -> (trace' "FALSE AND THE VALUE IS : " NoValue)
     vals    = map (map indToVal) indices
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
