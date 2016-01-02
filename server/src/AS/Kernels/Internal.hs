@@ -1,4 +1,4 @@
-module AS.Kernels.Common where
+module AS.Kernels.Internal where
 
 import AS.Types.Cell
 

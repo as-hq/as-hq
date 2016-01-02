@@ -73,7 +73,7 @@ execGraphQuery :: BL.ByteString -> IO [B.ByteString]
 execGraphQuery msg = runZMQ $ do
   reqSocket <- socket Req
   connect reqSocket S.graphDbHost
-  send' reqSocket [] msg   -- using lazy bytestring send function
+  send' reqSocket [] msg  -- using lazy bytestring send function
   liftIO $ printObj "sent message to graph db" msg
   receiveMulti reqSocket
 

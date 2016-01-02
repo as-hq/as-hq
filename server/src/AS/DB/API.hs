@@ -75,9 +75,6 @@ import Control.Monad.Trans.Either
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
-clear :: Connection -> IO ()
-clear conn = runRedis conn $ flushall >> return ()
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
 -- all of these functions are order-preserving unless noted otherwise.
@@ -331,18 +328,6 @@ setSheet conn sheet = do
             set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
             sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
-
-clearSheet :: Connection -> ASSheetId -> IO ()
-clearSheet conn sid = 
-  let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
-      evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
-      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
-      pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
-      pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
-  in runRedis conn $ do
-    pluralKeys <- liftIO pluralKeys
-    del $ sheetRangesKey : pluralKeys
-    liftIO $ deleteLocsInSheet conn sid
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods

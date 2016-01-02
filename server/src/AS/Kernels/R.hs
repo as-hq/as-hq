@@ -13,7 +13,7 @@ import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
-import AS.Kernels.Common
+import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 
 import AS.Config.Settings
@@ -51,7 +51,6 @@ import Control.Exception (catch, SomeException)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
-type EvalCode = String
 type ASFilePath = String
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

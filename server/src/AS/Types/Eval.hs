@@ -36,6 +36,8 @@ emptyContext = EvalContext M.empty (SheetUpdate emptyUpdate emptyUpdate emptyUpd
 data DescendantsSetting = ProperDescendants | DescendantsWithParent deriving (Show, Read, Eq)
 data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 
+type EvalCode = String
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 

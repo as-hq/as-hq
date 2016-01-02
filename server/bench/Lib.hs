@@ -12,7 +12,10 @@ import AS.Types.CellProps
 import AS.Types.Eval
 import AS.Types.Messages
 import AS.Types.DB
-import AS.Types.RowColProps
+import AS.Types.Updates
+import AS.Types.Bar
+import AS.Types.BarProps
+import AS.Types.CondFormat
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
@@ -65,28 +68,19 @@ instance NFData ASAction where rnf = genericRnf
 instance NFData ASCommit where rnf = genericRnf
 instance NFData VAlignType where rnf = genericRnf
 instance NFData Dimensions where rnf = genericRnf
-instance NFData RowColProp where rnf = genericRnf
 instance NFData Stream where rnf = genericRnf
 instance NFData ASUserEntity where rnf = genericRnf
-instance NFData CellDiff where rnf = genericRnf
 instance NFData RangeDescriptor where rnf = genericRnf
 instance NFData ASUserGroup where rnf = genericRnf
 instance NFData StreamSource where rnf = genericRnf
 instance NFData ASTime where rnf = genericRnf
 instance NFData HAlignType where rnf = genericRnf
-instance NFData RowColType where rnf = genericRnf
-instance NFData Bloomberg where rnf = genericRnf
-instance NFData RowCol where rnf = genericRnf
 instance NFData FormatType where rnf = genericRnf
 instance NFData JSONField where rnf = genericRnf
-instance NFData DescriptorDiff where rnf = genericRnf
 instance NFData JSONValue where rnf = genericRnf
 instance NFData QueryList where rnf = genericRnf
-instance NFData ASRowColProps where rnf = genericRnf
 instance NFData MutateType where rnf = genericRnf
-instance NFData RowColPropType where rnf = genericRnf
 instance NFData Direction where rnf = genericRnf
-instance NFData CondFormatRule where rnf = genericRnf
 instance NFData ASReplValue where rnf = genericRnf
 instance NFData ASInitDaemonConnection where rnf = genericRnf
 instance NFData ASInitConnection where rnf = genericRnf
@@ -94,11 +88,27 @@ instance NFData ASUserClient where rnf = genericRnf
 instance NFData ASDaemonClient where rnf = genericRnf
 instance NFData ServerState where rnf = genericRnf
 instance NFData ASExecError where rnf = genericRnf
+instance NFData CommitSource where rnf = genericRnf
+instance NFData Bloomberg where rnf = genericRnf
+instance (NFData a) => NFData (Diff a) where rnf = genericRnf
+instance NFData Bar where rnf = genericRnf
+instance NFData BarIndex where rnf = genericRnf
+instance NFData BarType where rnf = genericRnf
+instance NFData ASBarProps where rnf = genericRnf
+instance NFData BarProp where rnf = genericRnf
+instance NFData SheetUpdate where rnf = genericRnf
+instance NFData BarPropType where rnf = genericRnf
+instance (NFData a, NFData b) => NFData (Update a b) where rnf = genericRnf
+instance NFData CondFormatRule where rnf = genericRnf
+instance NFData CondFormatCondition where rnf = genericRnf
+instance NFData TwoExpressionsType where rnf = genericRnf
+instance NFData OneExpressionType where rnf = genericRnf
+instance NFData NoExpressionsType where rnf = genericRnf
 
--- I don't really give a shit about deep evaluating these types...
+-- don't really care about deep evaluating these types
 instance NFData WS.Connection where rnf conn = seq conn ()
 instance NFData R.Connection where rnf conn = seq conn ()
-instance NFData (MVar a) where rnf x = seq x ()
+instance (NFData a) => NFData (MVar a) where rnf x = seq x ()
 
 --instance (NFData k, NFData v) => NFData (HI.IOHashTable HI.HashTable k v) where
 --  rnf h = seq h ()
@@ -125,7 +135,7 @@ setupEnv :: IO ASEnv
 setupEnv = do
   conn <- R.connect DI.cInfo
   state <- newMVar $ State [] [] conn (0 :: Port)
-  let src = (T.pack "sheetid", T.pack "userid")
+  let src = CommitSource { srcSheetId = "sheetid", srcUserId = "userid" }
   return $ ASEnv conn state src
 
 setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)

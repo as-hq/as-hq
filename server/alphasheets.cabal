@@ -25,9 +25,9 @@ library
                        AS.DB.Transaction
                        AS.DB.Internal
                        AS.DB.Graph
+                       AS.DB.Clear
                        AS.Dispatch.Core
                        AS.Dispatch.EvalHeader
-                       AS.Dispatch.Repl
                        AS.Dispatch.Expanding
                        AS.Clients
                        AS.Config.Paths
@@ -54,7 +54,7 @@ library
                        AS.Kernels.Excel.Util
                        AS.Kernels.LanguageUtils
                        AS.Kernels.OCaml
-                       AS.Kernels.Common
+                       AS.Kernels.Internal
                        AS.Kernels.R
                        AS.Logging
                        AS.Parsing.Common

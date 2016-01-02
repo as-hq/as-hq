@@ -8,7 +8,7 @@ import AS.Types.Commits
 import AS.Types.Eval
 
 import AS.Dispatch.Core
-import AS.Dispatch.Repl
+--import AS.Dispatch.Repl
 import AS.Dispatch.EvalHeader
 
 import AS.DB.API

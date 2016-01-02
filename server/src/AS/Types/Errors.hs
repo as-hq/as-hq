@@ -116,6 +116,7 @@ data ASExecError =
   | APIError
   | TooFarForwards
   | TooFarBack
+  | KernelError
   deriving (Show, Read, Eq, Generic)
 
 type EitherTExec = EitherT ASExecError IO

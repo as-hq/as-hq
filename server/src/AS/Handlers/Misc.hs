@@ -34,6 +34,7 @@ import qualified AS.InferenceUtils        as IU
 import AS.DB.Eval
 import qualified AS.DB.Transaction        as DT
 import qualified AS.DB.API                as DB
+import qualified AS.DB.Clear              as DC
 import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 
@@ -145,7 +146,7 @@ handleGet uc state locs = do
 handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
 handleClear client state sid = do
   conn <- dbConn <$> readMVar state
-  DB.clearSheet conn sid
+  DC.clearSheet conn sid
   G.recompute conn
   broadcastTo state [sid] $ ClientMessage $ ClearSheet sid
 
