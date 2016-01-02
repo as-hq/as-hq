@@ -582,6 +582,41 @@ export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) =>
     });
   });
 }
+function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
+  return promise((fulfill, reject) => {
+    API.test(() => {
+      API.getIsCoupled(asIndex(loc)); 
+    }, {
+      fulfill: (result: ?ClientMessage) => {
+        if (! result) {
+          console.log("Null message received from server in shouldBeCoupled");
+          reject();
+          return;
+        }
+
+        let {clientAction} = result;
+        if (clientAction.tag !== 'PassIsCoupledToTest') {
+          console.log("Message action was not PassBarToTest. This is what it was: ", clientAction);
+          reject();
+          return;
+        }
+
+        expect(clientAction.contents).toBe(isCoupled); 
+        fulfill();
+      },
+      reject: reject
+    });
+  });
+}
+
+export function shouldBeCoupled(loc: string): Prf { 
+  return _determineIfCoupled(loc, true); 
+}
+
+export function shouldBeDecoupled(loc: string): Prf { 
+  return _determineIfCoupled(loc, false); 
+}
+
 
 export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf {
   return promise((fulfill, reject) => {
@@ -718,14 +753,6 @@ export function shouldBeNothing(loc: string): Prf {
 
 export function shouldBeSerialized(loc: string): Prf {
   return valueShouldSatisfy(loc, ({ tag }) => (tag === 'ValueSerialized'));
-}
-
-export function shouldBeDecoupled(loc: string): Prf {
-  return expressionShouldSatisfy(loc, (xp) => (!xp.hasOwnProperty('rangeKey')));
-}
-
-export function shouldBeCoupled(loc: string): Prf {
-  return expressionShouldSatisfy(loc, (xp) => (xp.hasOwnProperty('rangeKey')));
 }
 
 // [String] -> [ASValue] -> (() -> Promise ())

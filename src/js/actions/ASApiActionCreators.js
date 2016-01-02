@@ -449,6 +449,14 @@ const API = {
     API.sendMessageWithAction(msg); 
   },
 
+  getIsCoupled(ind: ASIndex) { 
+    let msg = {
+      tag: "GetIsCoupled",
+      contents: ind
+    };
+    API.sendMessageWithAction(msg); 
+  },
+
   setColumnWidth(col: number, width: number) {
     let sid = SheetStateStore.getCurrentSheet().sheetId,
         msg = {

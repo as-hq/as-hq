@@ -300,6 +300,7 @@ export type ServerAction =
   | EvaluateHeader
   | Get
   | GetBar
+  | GetIsCoupled
   | Delete
   | ClearSheetServer
   | Undo
@@ -366,8 +367,13 @@ export type Get = {
 };
 
 export type GetBar = {
-  tag: "Get";
+  tag: "GetBar";
   contents: BarIndex;
+};
+
+export type GetIsCoupled = {
+  tag: "GetIsCoupled";
+  contents: ASIndex;
 };
 
 export type Delete = {
