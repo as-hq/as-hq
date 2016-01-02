@@ -138,12 +138,10 @@ getCellsByKeyPattern conn pattern = do
 -- this function is order-preserving
 getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
 getBlankedCellsAt conn locs = 
-  let blank xp = case xp of 
-            Expression _ lang -> Expression "" lang
-            Coupled _ lang _ _ -> Expression "" lang
+  let blank xp = Expression "" (language xp)
   in do 
     cells <- getPossiblyBlankCells conn locs
-    return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
+    return $ map (\(Cell l xp v ts rk) -> Cell l (blank xp) NoValue ts Nothing) cells -- #lens
 
 -- this function is order-preserving
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]

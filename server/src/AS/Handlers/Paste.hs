@@ -104,11 +104,10 @@ replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
 replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
 
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
-shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = Just c
-shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = case ind' of 
+shiftRangeKey offset c@(Cell { cellRangeKey = Nothing }) = Just c
+shiftRangeKey offset c@(Cell { cellRangeKey = Just (RangeKey ind dims) }) = case shiftInd offset ind of -- #lens
   Nothing -> Nothing
-  Just i  -> Just $ Cell l (Coupled xp lang typ (RangeKey i dims)) v ts
-  where ind' = shiftInd offset ind
+  Just i  -> Just c { cellRangeKey = Just $ RangeKey i dims } 
 
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 

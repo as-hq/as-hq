@@ -27,7 +27,7 @@ handleToggleProp uc state p rng = do
   -- otherwise set the prop in all the cells. 
   if (null cellsWithoutProp)
     then do 
-      let cells' = map (\(Cell l e v ps) -> Cell l e v (removeProp pt ps)) cellsWithProp
+      let cells' = map (\(Cell l e v ps rk) -> Cell l e v (removeProp pt ps) rk) cellsWithProp
           (emptyCells, nonEmptyCells) = partition isEmptyCell cells'
       conn <- dbConn <$> readMVar state
       setCells conn nonEmptyCells
@@ -35,7 +35,7 @@ handleToggleProp uc state p rng = do
       mapM_ (removePropEndware state p) nonEmptyCells
       sendSheetUpdate uc $ sheetUpdateFromCells cells'
     else do
-      let cells' = map (\(Cell l e v ps) -> Cell l e v (setProp p ps)) cellsWithoutProp
+      let cells' = map (\(Cell l e v ps rk) -> Cell l e v (setProp p ps) rk) cellsWithoutProp -- #lens
       conn <- dbConn <$> readMVar state
       setCells conn cells'
       mapM_ (setPropEndware state p) cells'
@@ -57,6 +57,6 @@ handleSetProp uc state prop rng = do
   curState <- readMVar state
   let locs = rangeToIndices rng
   cells <- getPossiblyBlankCells (dbConn curState) locs
-  let cells' = map (\(Cell l e v oldProps) -> Cell l e v (setProp prop oldProps)) cells
+  let cells' = map (\(Cell l e v oldProps rk) -> Cell l e v (setProp prop oldProps) rk) cells -- #lens
   setCells (dbConn curState) cells'
   sendSheetUpdate uc $ sheetUpdateFromCells cells'

@@ -43,7 +43,7 @@ conditionallyFormatCells conn origSid cells rules ctx = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
 ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps) = do
+ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps rk) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
     Nothing -> return c
@@ -55,7 +55,7 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition 
           shiftAndEvaluateExpression = eval . shiftXp
       mc <- checker condFormatCondition v shiftAndEvaluateExpression
       if mc
-         then return $ Cell l e v (setCondFormatProp format ps)
+         then return $ Cell l e v (setCondFormatProp format ps) rk -- #lens
          else return c
 
 evaluateExpression :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue

@@ -17,6 +17,7 @@ import AS.Types.Updates
 
 import qualified Data.List as L
 import qualified Data.Map as M
+import Data.Maybe (isJust)
 
 
 -- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
@@ -69,20 +70,11 @@ rangeRect (RangeKey idx dims) = (tl, br)
 rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = locSheetId . keyIndex
 
-cellToRangeKey :: ASCell -> Maybe RangeKey
-cellToRangeKey (Cell _ xp _ _ ) = case xp of 
-  Coupled _ _ _ key -> Just key
-  _ -> Nothing
-
 isFatCellHead :: ASCell -> Bool 
-isFatCellHead cell = case (cellToRangeKey cell) of 
-  Just (RangeKey idx _) -> cellLocation cell == idx
-  Nothing -> False
+isFatCellHead c = maybe False ((== cellLocation c) . keyIndex) (cellRangeKey c)
 
 isCoupled :: ASCell -> Bool
-isCoupled c = case (cellExpression c) of 
-  Coupled _ _ _ _ -> True
-  _ -> False
+isCoupled = isJust . cellRangeKey 
 
 isEvaluable :: ASCell -> Bool
 isEvaluable c = isFatCellHead c || (not $ isCoupled c)

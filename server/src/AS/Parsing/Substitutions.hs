@@ -70,16 +70,14 @@ parseUnquotedMatchesWithContext a = do
   return (inter,matches)
 
 getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
-getUnquotedMatchesWithContext xp p = 
+getUnquotedMatchesWithContext (Expression { language = language, expression = expression }) p = 
   if (isExcelLiteral)
-    then ([str], [])
-    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ str)
+    then ([expression], [])
+    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expression)
   where
-    lang = xpLanguage xp
-    str = xpString xp
     fromRight (Right x) = x
-    isExcelLiteral = (lang == Excel) && parsedCorrectly
-    parsedCorrectly = case (parse formula "" str) of 
+    isExcelLiteral = (language == Excel) && parsedCorrectly
+    parsedCorrectly = case (parse formula "" expression) of 
       Right _ -> False 
       Left  _ -> True
 
@@ -91,23 +89,19 @@ blend [] y = concat y
 blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp = xp'
+replaceRefs f xp@(Expression { language = lang }) = xp'
   where 
     (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
     exRefs'         = map f exRefs 
     expression'     = blend inter exRefs'
-    xp' = case xp of
-      Expression _ lang -> Expression expression' lang
-      Coupled _ l t r   -> Coupled expression' l t r
+    xp' = Expression expression' lang
 
 replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
 replaceRefsIO f xp = do 
   let (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
   exRefs' <- mapM f exRefs 
   let expression' = blend inter exRefs'
-  case xp of
-    Expression _ lang -> return $ Expression expression' lang
-    Coupled _ l t r   -> return $ Coupled expression' l t r
+  return $ xp { expression = expression' } 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -132,10 +126,10 @@ shiftExpression offset xp = replaceRefs (show . (shiftExRef offset)) xp
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
-shiftCell offset (Cell loc xp v ts) = cell'
+shiftCell offset (Cell loc xp v ts rk) = cell'
   where
     loc'  = shiftInd offset loc
     xp'   = shiftExpression offset xp
     cell' = case loc' of 
               Nothing -> Nothing
-              Just l ->Just $ Cell l xp' v ts
+              Just l ->Just $ Cell l xp' v ts rk

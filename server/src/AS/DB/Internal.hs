@@ -96,15 +96,18 @@ getRangeKeysInSheet conn sid = runRedis conn $ do
       unpackKey (RedisRangeKey k) = k
 
 toDecoupled :: ASCell -> ASCell
-toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
-  where e' = case v of 
-               NoValue   -> Expression "" lang
-               otherwise -> Expression (showPrimitive lang v) lang
+toDecoupled c@(Cell { cellRangeKey = Just _ }) = c { cellExpression = e', cellRangeKey = Nothing } 
+  where 
+    lang = language $ cellExpression c
+    v = cellValue c
+    e' = case v of 
+             NoValue   -> Expression "" lang
+             otherwise -> Expression (showPrimitive lang v) lang
 toDecoupled c = c
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
-toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
+toUncoupled c@(Cell { cellRangeKey = Just _ }) = c { cellRangeKey = Nothing } 
 
 ----------------------------------------------------------------------------------------------------------------------
 -- DB conversions

@@ -152,9 +152,9 @@ expressionMap :: MutateType -> (ASExpression -> ASExpression)
 expressionMap mt = replaceRefs (show . (refMap mt))
 
 cellMap :: MutateType -> (ASCell -> Maybe ASCell)
-cellMap mt c@(Cell loc xp v ps) = case ((indexMap mt) loc) of 
+cellMap mt c@(Cell loc xp v ps rk) = case (indexMap mt) loc of  -- #lens
   Nothing -> Nothing 
-  Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps 
+  Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMap mt) xp) v ps rk
 
 -- | If the cell passed in is uncoupled, leave it as is. Otherwise: 
 -- * if its range would get decoupled by the mutation, decouple it. 
@@ -162,13 +162,13 @@ cellMap mt c@(Cell loc xp v ps) = case ((indexMap mt) loc) of
 -- * if it is not a fat cell head, delete it. 
 -- whether the fatcell it was a part of would get split up by the type of mutation.  
 sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> ASCell
-sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
+sanitizeMutateCell _ _ c@(Cell { cellRangeKey = Nothing }) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where 
-    Just rk = cellToRangeKey c
+    Just rk = cellRangeKey c
     cell' = if fatCellGotMutated mt rk
       then DI.toDecoupled c
-      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ indexMap mt (keyIndex rk) } } } 
+      else c { cellRangeKey = Just rk { keyIndex = fromJust $ indexMap mt (keyIndex rk) } }  -- #lens
 
 between :: Int -> Int -> Int -> Bool
 between lower upper x = (x >= lower) && (x <= upper)

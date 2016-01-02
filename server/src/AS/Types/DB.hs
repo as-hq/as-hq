@@ -100,7 +100,7 @@ instance (Show2 ASIndex) where
   show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
 
 instance (Show2 ASPointer) where
-  show2 (Pointer sid a) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+  show2 (Pointer (Index sid a)) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
 
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
@@ -133,7 +133,7 @@ instance (Read2 ASReference) where
               _ -> error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
-              "P" -> PointerRef $ Pointer (T.pack sid) (read locstr :: Coord)
+              "P" -> PointerRef $ Pointer (Index (T.pack sid) (read locstr :: Coord))
               "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
 
 instance (Read2 ASIndex) where 

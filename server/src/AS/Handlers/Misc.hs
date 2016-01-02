@@ -142,6 +142,14 @@ handleGet uc state locs = do
 -- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 -- handleClose _ _ _ = return ()
 
+handleIsCoupled :: ASUserClient -> MVar ServerState -> ASIndex -> IO ()
+handleIsCoupled uc state loc = do 
+  conn <- dbConn <$> readMVar state
+  mCell <- DB.getCell conn loc
+  let isCoupled = maybe False (isJust . cellRangeKey) mCell
+  sendToOriginal uc $ ClientMessage $ PassIsCoupledToTest isCoupled
+
+
 handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
 handleClear client state sid = do
   conn <- dbConn <$> readMVar state

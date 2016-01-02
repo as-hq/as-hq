@@ -218,9 +218,10 @@ lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValu
   
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
+-- #mustrefactor IO String should be EitherTExec string
 insertValues :: Connection -> ASSheetId -> EvalContext -> ASExpression -> IO String
 insertValues conn sheetid ctx xp = 
-  let lang = xpLanguage xp
+  let lang = language xp
   in case lang of
     SQL -> do
       let exRefs = getExcelReferences xp

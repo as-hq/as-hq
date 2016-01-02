@@ -35,15 +35,16 @@ getCellsWithContext conn (EvalContext { virtualCellsMap = mp }) locs = map repla
 -- Reference conversions/lookups
 
 -- used by lookUpRef
+-- #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
 referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . cellValue $ mp M.! i 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
-  let idx = pointerToIndex p
+  let idx = pointerIndex p
   let mp = virtualCellsMap ctx
   let cell = mp M.! idx
-  case (cellExpression cell) of
-    Expression _ _ -> error "Pointer to normal expression!" 
-    Coupled _ _ expType rKey -> do 
+  case cellRangeKey cell of 
+    Nothing -> error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
+    Just rKey -> do 
       mDescriptor <- DB.getRangeDescriptorUsingContext conn ctx rKey
       case mDescriptor of
         Nothing -> error "Couldn't find range descriptor of coupled expression!"
@@ -63,13 +64,15 @@ refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]
 refToIndices conn (IndexRef i) = return [i]
 refToIndices conn (RangeRef r) = return $ rangeToIndices r
 refToIndices conn (PointerRef p) = do
-  let index = pointerToIndex p 
+  let index = pointerIndex p 
   cell <- lift $ DB.getCell conn index 
   case cell of
     Nothing -> left IndexOfPointerNonExistant
-    Just cell' -> case (cellToRangeKey cell') of
+    Just cell' -> case (cellRangeKey cell') of
         Nothing -> left PointerToNormalCell
         Just rKey -> return $ rangeKeyToIndices rKey
+
+-- #needsrefactor DRY this up
 
 -- converts ref to indices using the evalContext, then the DB, in that order.
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
@@ -78,15 +81,15 @@ refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference ->
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
-  let index = pointerToIndex p
+  let index = pointerIndex p
   case (M.lookup index mp) of 
-    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
-    Just (Cell _ (Expression _ _) _ _) -> left $ PointerToNormalCell
+    Just Cell { cellRangeKey = Just rKey } -> return $ rangeKeyToIndices rKey
+    Just Cell { cellRangeKey = Nothing } -> left PointerToNormalCell
     Nothing -> do
       cell <- lift $ DB.getCell conn index 
       case cell of
         Nothing -> left IndexOfPointerNonExistant
-        Just cell' -> case (cellToRangeKey cell') of
+        Just cell' -> case (cellRangeKey cell') of
             Nothing -> left PointerToNormalCell
             Just rKey -> return $ rangeKeyToIndices rKey
 
@@ -97,15 +100,15 @@ refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference ->
 refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextBeforeEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
-  let index = pointerToIndex p
+  let index = pointerIndex p
   case (M.lookup index mp) of 
-    Just (Cell _ (Coupled _ _ _ rKey) _ _) -> return $ rangeKeyToIndices rKey
-    Just (Cell _ (Expression _ _) _ _) -> return []
+    Just Cell { cellRangeKey = Just rKey } -> return $ rangeKeyToIndices rKey
+    Just Cell { cellRangeKey = Nothing } -> return []
     Nothing -> do
       cell <- DB.getCell conn index 
       case cell of
         Nothing -> return []
-        Just cell' -> case (cellToRangeKey cell') of
+        Just cell' -> case (cellRangeKey cell') of
             Nothing -> return []
             Just rKey -> return $ rangeKeyToIndices rKey
 

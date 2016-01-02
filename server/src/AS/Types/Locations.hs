@@ -33,9 +33,9 @@ row = snd
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-data ASIndex = Index {locSheetId :: ASSheetId, index :: Coord} 
+data ASIndex = Index { locSheetId :: ASSheetId, index :: Coord } 
   deriving (Show, Read, Eq, Generic, Ord)
-data ASPointer = Pointer {pointerSheetId :: ASSheetId, pointerIndex :: Coord} 
+data ASPointer = Pointer { pointerIndex :: ASIndex } 
   deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} -- ALWAYS (Col, Row)
   deriving (Show, Read, Eq, Generic, Ord)
@@ -45,7 +45,7 @@ data ASReference = IndexRef ASIndex | RangeRef ASRange | PointerRef ASPointer | 
 refSheetId :: ASReference -> ASSheetId
 refSheetId (IndexRef   i) = locSheetId     i
 refSheetId (RangeRef   r) = rangeSheetId   r
-refSheetId (PointerRef p) = pointerSheetId p
+refSheetId (PointerRef p) = locSheetId . pointerIndex $ p
 
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
@@ -62,16 +62,16 @@ instance FromJSON ASIndex where
 instance Serialize ASIndex
 
 instance ToJSON ASPointer where
-  toJSON (Pointer sid (c,r)) = object ["tag"     .= ("index" :: String),
-                                     "sheetId" .= sid,
-                                     "index"   .= object ["row" .= r, 
-                                                          "col" .= c]]
+  toJSON (Pointer (Index sid (c,r))) = object ["tag"     .= ("index" :: String),
+                                       "sheetId" .= sid,
+                                       "index"   .= object ["row" .= r, 
+                                                            "col" .= c]]
 instance FromJSON ASPointer where
   parseJSON (Object v) = do
     loc <- v .: "index"
     sid <- v .: "sheetId"
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
-    return $ Pointer sid idx
+    return $ Pointer (Index sid idx)
   parseJSON _          = fail "client message JSON attributes missing"
 instance Serialize ASPointer
 
@@ -179,7 +179,7 @@ rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x
 rangeContainsRef :: ASRange -> ASReference -> Bool
 rangeContainsRef r ref = case ref of 
   IndexRef i  -> rangeContainsIndex r i
-  PointerRef p -> rangeContainsIndex r (pointerToIndex p)
+  PointerRef p -> rangeContainsIndex r (pointerIndex p)
   RangeRef r' -> rangeContainsRange r r'
   OutOfBounds -> False 
 
@@ -207,7 +207,7 @@ rangeToIndicesRowMajor2D (Range sheet (ul, lr)) = map (\y -> [Index sheet (x,y) 
 
 shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc o (IndexRef (Index sh (x,y))) = IndexRef $ Index sh (x+(dX o), y+(dY o))
-shiftLoc o (PointerRef (Pointer sh (x,y))) = PointerRef $ Pointer sh (x+(dX o), y+(dY o))
+shiftLoc o (PointerRef (Pointer (Index sh (x,y)))) = PointerRef $ Pointer $ Index sh (x + (dX o), y + (dY o))
 shiftLoc o (RangeRef (Range sh ((x,y),(x2,y2)))) = RangeRef $ Range sh ((x+(dX o), y+(dY o)), (x2+(dX o), y2+(dY o)))
 
 shiftInd :: Offset -> ASIndex -> Maybe ASIndex
@@ -230,8 +230,5 @@ getRangeOffset r1 r2 = getIndicesOffset (getTopLeft r1) (getTopLeft r2)
 getIndicesOffset :: ASIndex -> ASIndex -> Offset
 getIndicesOffset (Index _ (x, y)) (Index _ (x', y')) = Offset { dX = x'-x, dY = y'-y }
 
-pointerToIndex :: ASPointer -> ASIndex
-pointerToIndex (Pointer s c) = Index s c
-
-indexToPointer :: ASIndex -> ASPointer
-indexToPointer (Index s c) = Pointer s c
+pointerAtIndex :: ASIndex -> ASPointer
+pointerAtIndex = Pointer

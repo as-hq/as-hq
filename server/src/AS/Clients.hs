@@ -74,6 +74,7 @@ instance Client ASUserClient where
       -- EvaluateRepl          -> handleEvalRepl user payload
       EvaluateHeader xp           -> handleEvalHeader user state xp
       Get locs                    -> handleGet user state locs
+      GetIsCoupled loc            -> handleIsCoupled user state loc
       Delete sel                  -> handleDelete user state sel
       ClearSheetServer sid        -> handleClear user state sid
       Undo                        -> handleUndo user state
@@ -117,7 +118,7 @@ instance Client ASDaemonClient where
             inds = map evalLoc evalInstructions 
         conn <- dbConn <$> readMVar state
         oldProps <- mapM (getPropsAt conn) inds
-        let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props) $ zip3 xps inds oldProps
+        let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing) $ zip3 xps inds oldProps
         errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id
         either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
       -- difference between this and handleEval being that it can't take back a failure message. 

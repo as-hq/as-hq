@@ -210,13 +210,13 @@ evalChain conn cells ctx = evalChain' conn cells'' ctx
 
 evalChain' :: Connection -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
-evalChain' conn (c@(Cell loc xp val ps):cs) ctx = do
+evalChain' conn (c@(Cell loc xp val ps rk):cs) ctx = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
   let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
-  cvf <- case xp of 
-    Expression _ _         ->  getEvalResult xp
-    Coupled str lang _ key -> if (isFatCellHead c)
-      then getEvalResult $ Expression str lang
+  cvf <- case rk of 
+    Nothing         ->  getEvalResult xp
+    Just key -> if (isFatCellHead c)
+      then getEvalResult xp 
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert conn c cvf ctx
   evalChain conn cs newContext
@@ -266,9 +266,9 @@ addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = 
 -- Essentially, this transform exists because you should delete an object before overwriting 
 -- Returns the new context and the blanked out indices, if any
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
-delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of 
-  Expression _ _         ->  return (ctx, Nothing)
-  Coupled _ _ _ key -> if (isFatCellHead c)
+delPrevFatCellFromContext conn c@(Cell idx xp _ _ rk) ctx = case rk of 
+  Nothing  ->  return (ctx, Nothing)
+  Just key -> if isFatCellHead c
     then do 
       let indices = rangeKeyToIndices key
           blankCells = map blankCellAt indices
@@ -316,13 +316,13 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- after all side effects due to insertion have been handled)
   -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
 contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalTransform
-contextInsert conn c@(Cell idx xp _ ps) (Formatted cv f) ctx = do 
+contextInsert conn c@(Cell idx xp _ ps rk) (Formatted cv f) ctx = do  -- #lens
   printWithTimeT $ "running context insert with old cell " ++ (show c)
   printWithTimeT $ "the context insert has value " ++ (show cv)
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- Get the new cells created by eval, with formatting as well, and add them into the context
   let newCellsFromEval = case maybeFatCell of
-                          Nothing -> [formatCell f $ Cell idx xp v ps]
+                          Nothing -> [formatCell f $ Cell idx xp v ps rk]
                             where 
                               CellValue v = cv
                           Just (FatCell cs _) -> map (formatCell f) cs
