@@ -24,7 +24,7 @@ import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
 
 truncateLength :: Int
-truncateLength = 1000
+truncateLength = 2000
 
 truncated :: String -> String
 truncated str

@@ -57,6 +57,16 @@ instance HasKey ASCell where
 asToFromJSON ''ASExpression
 asToFromJSON ''ASLanguage
 
+-- -- Every time cells get updated, frontend gets passed a list of range descriptors, which it uses to 
+-- -- determine whether the newly updated cells belong to a range or not; cellRangeKey doesn't need to get
+-- -- exposed to frontend. 
+-- instance ToJSON ASCell where
+--   toJSON (Cell l e v ps _) = object ["cellLocation" .= l,
+--                                      "cellExpression" .= e, 
+--                                      "cellValue" .= v, 
+--                                      "cellProps" .= ps]
+-- instance Serialize ASCell
+
 asToJSON ''ASCell
 asToJSON ''CellDiff
 asToJSON ''CellUpdate

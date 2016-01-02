@@ -49,6 +49,7 @@ data ClientAction =
   | ShowHeaderResult CompositeValue
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
+  | PassCellsToTest [ASCell]
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =

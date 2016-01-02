@@ -85,16 +85,6 @@ getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack patt
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
-getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
-getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
-  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
-  return $ map (unpackKey . fromRedis) ks
-    where
-      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
-      unpackKey :: RedisKey RangeType -> RangeKey
-      unpackKey (RedisRangeKey k) = k
-
 toDecoupled :: ASCell -> ASCell
 toDecoupled c@(Cell { cellRangeKey = Just _ }) = c { cellExpression = e', cellRangeKey = Nothing } 
   where 

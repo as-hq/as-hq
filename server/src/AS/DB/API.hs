@@ -170,11 +170,21 @@ locationExists conn loc = head <$> locationsExist conn [loc]
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DI.getRangeKeysInSheet conn sid
+  rangeKeys <- getRangeKeysInSheet conn sid
   let rects = map rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
+
+getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet conn sid = runRedis conn $ do
+  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
+  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
+  return $ map (unpackKey . fromRedis) ks
+    where
+      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
+      unpackKey :: RedisKey RangeType -> RangeKey
+      unpackKey (RedisRangeKey k) = k
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
@@ -183,12 +193,12 @@ getRangeDescriptor conn key = runRedis conn $ do
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
-  keys <- DI.getRangeKeysInSheet conn sid
+  keys <- getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
-  dbKeys <- DI.getRangeKeysInSheet conn sid
+  dbKeys <- getRangeKeysInSheet conn sid
   let dbKeys' = dbKeys \\ (oldRangeKeysInContext ctx)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
   return $ (newRangeDescriptorsInContext ctx) ++ dbDescriptors
@@ -334,7 +344,7 @@ clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
-      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
+      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> getRangeKeysInSheet conn sid
       pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
       pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do
