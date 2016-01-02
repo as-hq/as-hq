@@ -29,6 +29,7 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
 import Control.Concurrent
 import Control.Applicative
+import Control.Lens hiding (set)
 
 data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, didDecouple :: Bool } deriving (Show)
 
@@ -59,7 +60,7 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp (SheetUpdate cu bu 
   -- Doing this manually here instead of using updateToDiff, because we need mOldCells for didDecouple
   let deletedLocs = refsToIndices (oldKeys cu)
       newCells    = L.union (newVals cu) (blankCellsAt deletedLocs)
-  mOldCells <- DB.getCells conn $ map cellLocation newCells
+  mOldCells <- DB.getCells conn $ mapCellLocation newCells
   let cdiff = Diff { beforeVals = catMaybes mOldCells, afterVals = newCells }
       commit = Commit cdiff bdiff ddiff cfdiff time
       didDecouple = any isDecouplePair $ zip mOldCells newCells
@@ -141,7 +142,7 @@ applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du 
       allUpdatedCells = L.unionBy isColocated (newVals cu) (blankCellsAt . refsToIndices $ oldKeys cu)
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs' conn $ (map cellLocation emptyCells)
+  deleteLocs' conn $ (mapCellLocation emptyCells)
   setCells' conn nonEmptyCells
   mapM_ (deleteBarAt conn)      (oldKeys bu)
   mapM_ (setBar conn)           (newVals bu)

@@ -1,10 +1,6 @@
 -- TODO: split this up to, and separate types into core types and Excel types? 
 
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 
 module AS.Types.Excel where
 
@@ -15,7 +11,6 @@ import AS.Types.Errors
 import AS.Types.Sheets
 
 import Prelude
-import GHC.Generics
 import Data.List
 
 import Text.Read
@@ -421,7 +416,7 @@ exRefToASRef sid exRef = case exRef of
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
-  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer sid' (colStrToInt c, read r :: Int)
+  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of

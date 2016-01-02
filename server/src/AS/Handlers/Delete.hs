@@ -20,6 +20,7 @@ import Data.List
 
 import Control.Concurrent
 import Control.Applicative
+import Control.Lens
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleDelete uc state rng = do
@@ -35,7 +36,7 @@ badFormats :: [CellProp]
 badFormats = [ValueFormat Date]
 
 removeFormat :: CellProp -> ASCell -> ASCell
-removeFormat p c = if (hasProp p (cellProps c)) then removeCellProp (propType p) c else c
+removeFormat p c = if cellHasProp p c then removeCellProp (propType p) c else c
 
 removeFormats :: [CellProp] -> ASCell -> ASCell
 removeFormats ps = foldl' (.) id (map removeFormat ps)
@@ -50,7 +51,7 @@ modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate
   where 
     rngs  = [rng] 
     locs' = (map RangeRef rngs) ++ locs
-    cellContainedInRange r = rangeContainsIndex r . cellLocation 
+    cellContainedInRange r = rangeContainsIndex r . view cellLocation 
     cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
     cs'   = filter (not . liftA2 (&&) isEmptyCell cellContainedInRngs) cs
 -- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells

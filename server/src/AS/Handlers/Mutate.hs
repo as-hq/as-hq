@@ -22,6 +22,7 @@ import AS.Dispatch.Core
 import AS.Logging
 
 import Control.Concurrent
+import Control.Lens
 import Data.Maybe
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
@@ -33,7 +34,7 @@ handleMutateSheet uc state mutateType = do
 --   printObj "OLD CELLS: " oldCells
   let newCells = map (cellMutate mutateType) oldCells
       (oldCells', newCells') = keepUnequal $ zip oldCells newCells
-      blankedCells = blankCellsAt $ map cellLocation oldCells'
+      blankedCells = blankCellsAt $ mapCellLocation oldCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
 --  printObj "NEW CELLS: " newCells
   -- update barProps
@@ -202,9 +203,9 @@ expressionMutate :: MutateType -> (ASExpression -> ASExpression)
 expressionMutate mt = replaceRefs (show . (refMutate mt))
 
 cellMutate :: MutateType -> (ASCell -> Maybe ASCell)
-cellMutate mt c@(Cell loc xp v ps) = case ((indexMutate mt) loc) of
-  Nothing -> Nothing
-  Just loc' -> Just $ sanitizeMutateCell mt loc $ Cell loc' ((expressionMutate mt) xp) v ps
+cellMutate mt c = case indexMutate mt $ c^.cellLocation of
+   Nothing -> Nothing
+   Just loc' -> Just $ sanitizeMutateCell mt loc' $ c & cellExpression %~ expressionMutate mt & cellLocation .~loc'
 
 -- | If the cell passed in is uncoupled, leave it as is. Otherwise:
 -- * if its range would get decoupled by the mutation, decouple it.
@@ -212,13 +213,13 @@ cellMutate mt c@(Cell loc xp v ps) = case ((indexMutate mt) loc) of
 -- * if it is not a fat cell head, delete it.
 -- whether the fatcell it was a part of would get split up by the type of mutation.
 sanitizeMutateCell :: MutateType -> ASIndex -> ASCell -> ASCell
-sanitizeMutateCell _ _ c@(Cell _ (Expression _ _) _ _) = c
+sanitizeMutateCell _ _ c@(Cell { _cellRangeKey = Nothing }) = c
 sanitizeMutateCell mt oldLoc c = cell'
   where
-    Just rk = cellToRangeKey c
+    Just rk = c^.cellRangeKey
     cell' = if fatCellGotMutated mt rk
       then DI.toDecoupled c
-      else c { cellExpression = (cellExpression c) { cRangeKey = rk { keyIndex = fromJust $ indexMutate mt (keyIndex rk) } } }
+      else c & cellRangeKey .~ Just rk { keyIndex = fromJust $ indexMutate mt (keyIndex rk) }  -- #lens
 
 between :: Int -> Int -> Int -> Bool
 between lower upper x = (x >= lower) && (x <= upper)

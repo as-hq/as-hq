@@ -1,15 +1,15 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.RangeDescriptor where 
+
+import AS.ASJSON
 
 import AS.Types.Locations
 import AS.Types.Updates
 import AS.Types.Values
 
 import GHC.Generics
-import Data.Aeson hiding (Array)
-import Data.Serialize (Serialize)
+
 import qualified Data.Map as M
 
 -- turning a spreadsheet range into dataframe etc...
@@ -42,31 +42,10 @@ type JSONKey = String
 data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
 data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
 
-instance FromJSON RangeDescriptor
-instance ToJSON RangeDescriptor
-
-instance FromJSON ExpandingType
-instance ToJSON ExpandingType
-
-instance ToJSON RangeKey
-instance FromJSON RangeKey
-
-instance FromJSON DescriptorDiff
-instance ToJSON DescriptorDiff
-
-instance FromJSON DescriptorUpdate
-instance ToJSON DescriptorUpdate
-
-instance FromJSON JSONField
-instance ToJSON JSONField
-
-instance FromJSON JSONValue
-instance ToJSON JSONValue
-
-instance Serialize RangeDescriptor
-instance Serialize ExpandingType
-instance Serialize RangeKey
-instance Serialize DescriptorDiff
-instance Serialize DescriptorUpdate
-instance Serialize JSONField 
-instance Serialize JSONValue
+asToJSON ''RangeDescriptor
+asToJSON ''ExpandingType
+asToJSON ''RangeKey
+asToJSON ''DescriptorDiff
+asToJSON ''DescriptorUpdate
+asToJSON ''JSONField
+asToJSON ''JSONValue

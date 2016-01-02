@@ -37,7 +37,7 @@ handleCSVImport uc state ind lang fileName = do
       -- Create cells, taking offset, lang, and parsing into account
       let indices = imap2D (\dx dy -> DM.fromJust $ shiftInd (Offset dx dy) ind) csv
           values = map2D (csvValue lang) csv
-          vCells = zipWith3In2D (\ind str val -> Cell ind (Expression str lang) val emptyProps) indices csv values
+          vCells = zipWith3In2D (\ind str val -> Cell ind (Expression str lang) val emptyProps Nothing) indices csv values
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells

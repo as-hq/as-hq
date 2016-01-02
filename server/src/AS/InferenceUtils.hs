@@ -22,6 +22,8 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 
+import Control.Lens hiding (index)
+
 import Database.Redis (Connection)
 
 type Position = (Col,Row)
@@ -29,7 +31,7 @@ type PatternGroup = [ASCell]
 type Pattern = ([ASCell],(Int -> ASValue))
 
 pos :: ASCell -> Position
-pos = index . cellLocation
+pos = index . view cellLocation
 
 ------------------------------------------------------------------------------------------------------------------
 -- Deal with offsets and positions
@@ -86,22 +88,22 @@ filterMaybeNumCells mCells = map (map (\(Just c) -> c)) cells
 isFormulaCell :: ASCell -> Bool
 isFormulaCell cell = not valExpEqual
   where
-    lang = language $ cellExpression cell
-    xp = expression $ cellExpression cell
+    lang = cell^.cellExpression.language
+    xp = cell^.cellExpression.expression
     valExpEqual = case lang of
       Excel -> case maybeVal of
         Nothing  -> False
-        Just val -> orig val == cellValue cell
+        Just val -> orig val == cell^.cellValue
         where
           formula = parse literal "" xp
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
-      otherwise -> (parseValue lang xp) == (Right (CellValue (cellValue cell)))
+      otherwise -> parseValue lang xp == Right (CellValue $ cell^.cellValue)
 
 -- Given the 2D list of cells in the sel range, extract all formula cells
 extractFormulaCells :: [[ASCell]] -> [ASCell]
-extractFormulaCells cells = concat $ map (filter isFormulaCell) cells
+extractFormulaCells cells = concatMap (filter isFormulaCell) cells
 
 -- Given the sel range, drag range, and 2D list of sel range cells, return all cells corresponding to formula cells
 -- (for each formula cell, do a copy-like operation to fill the drag range)
@@ -120,10 +122,10 @@ getMappedFormulaCells r1 r2 cells = catMaybes $ concatMap translateCell formulaC
 
 -- By splitting between formula cells, extract all pattern groups
 extractPatternGroups :: [[ASCell]] -> [PatternGroup]
-extractPatternGroups cells = concat $ map (LS.splitWhen isFormulaCell) cells
+extractPatternGroups cells = concatMap (LS.splitWhen isFormulaCell) cells
 
 getMappedPatternGroups :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
-getMappedPatternGroups r1 r2 cells = concat $ map (translatePatternGroupCells r1 r2) patternGroups
+getMappedPatternGroups r1 r2 cells = concatMap (translatePatternGroupCells r1 r2) patternGroups
   where
     patternGroups = extractPatternGroups cells
 
@@ -132,7 +134,7 @@ translatePatternGroupCells :: ASRange -> ASRange -> PatternGroup -> [ASCell]
 translatePatternGroupCells r1 r2 pg = cells
   where
     patterns = decomposePatternGroup pg
-    cells = concat $ map (translatePatternCells r1 r2) patterns
+    cells = concatMap (translatePatternCells r1 r2) patterns
 
 -- Decompose a pattern group into patterns
 -- A pattern has a bunch of cells, and a function from term number -> ASValue
@@ -156,7 +158,7 @@ decomposePatternGroup pg = patterns
 
 -- Get the cells corresponding to a pattern using position offsets (expression = value)
 translatePatternCells :: ASRange -> ASRange -> Pattern -> [ASCell]
-translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCells
+translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
   where
     len = length (fst pattern)
     indexCells = zip (fst pattern) [0..(len-1)]
@@ -165,11 +167,11 @@ translatePatternCells r1 r2 pattern = concat $ map translatePatternCell indexCel
         newPositions = getAbsoluteDragPositions r1 r2 (pos cell)
         num = length newPositions
         seriesIndices = [ind,(ind+len)..(ind+(num-1)*len)]
-        lang = language $ cellExpression cell
+        lang = cell^.cellExpression.language
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals
-        newCells = map (\(l,e,v) -> Cell l e v (cellProps cell)) $ zip3 newLocs newExpressions newVals
+        newCells = map (\(l,e,v) -> Cell l e v (cell^.cellProps) Nothing) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------
 -- deal with the actual pattern matching (quite literally)
@@ -192,7 +194,7 @@ patternMatchers :: [PatternMatcher]
 patternMatchers = [sequenceMatcher,arithMatcher,trivialMatcher]
 
 trivialMatcher :: PatternMatcher
-trivialMatcher [c] = Just $ ([c],\n -> cellValue c)
+trivialMatcher [c] = Just $ ([c],\n -> c^.cellValue)
 trivialMatcher _ = Nothing
 
 -- Solely for convenience in using the arithmetic operations in arithMatcher. If we end up 
@@ -229,7 +231,7 @@ isArithmSeq (x:y:z:xs) = (eqDouble (x - y) (y - z)) && isArithmSeq (y:z:xs)
 arithMatcher :: PatternMatcher
 arithMatcher cells = result 
   where
-    vals = map cellValue cells
+    vals = map (view cellValue) cells
     mDoubles = map toDouble vals
     result = if (any isNothing mDoubles)
       then Nothing
@@ -250,7 +252,7 @@ sequenceMatcher :: PatternMatcher
 sequenceMatcher [] = Nothing -- don't match an empty pattern as a subsequence
 sequenceMatcher cells = result
   where
-    vals' = map cellValue cells
+    vals' = map (view cellValue) cells
     vals = map lowercase vals' -- match lowercase
     seqMatches = filter (\seq -> L.isInfixOf vals seq) sequences -- match infix (consecutive subsequence)
     result = if (length seqMatches == 0)

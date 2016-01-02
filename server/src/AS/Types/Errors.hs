@@ -1,14 +1,14 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 -- #needsrefactor -- should be renamed to ExcelErrors
 
 module AS.Types.Errors where
 
+import AS.ASJSON
+
 import AS.Types.Locations
 
 import GHC.Generics
-import Data.Aeson
-
 -- memory
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
@@ -120,11 +120,8 @@ data ASExecError =
 
 type EitherTExec = EitherT ASExecError IO
 
-instance ToJSON ASExecError
-instance FromJSON ASExecError
-
-instance FromJSON EError
-instance ToJSON EError
+asToFromJSON ''ASExecError
+asToFromJSON ''EError
 
 -- memory region exposure instances for R value unboxing
 instance NFData EError              where rnf = genericRnf

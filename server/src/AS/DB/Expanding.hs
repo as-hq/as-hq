@@ -59,7 +59,7 @@ getCellsBeforeDecoupling conn key = catMaybes <$> DB.getCells conn (rangeKeyToIn
 getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 getFatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DI.getRangeKeysInSheet conn sid
+  rangeKeys <- DB.getRangeKeysInSheet conn sid
   let rects = map rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects

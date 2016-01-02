@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.Sheets
   ( module AS.Types.Sheets
@@ -7,8 +7,9 @@ module AS.Types.Sheets
 
 import AS.Types.User
 
+import AS.ASJSON
+
 import GHC.Generics
-import Data.Aeson
 import Data.Text
 
 type WorkbookName = String
@@ -22,11 +23,6 @@ data ASWorkbook = Workbook {workbookName :: WorkbookName, workbookSheets :: [ASS
 -- same way that ASWorkbook is supposed to be used. (Alex 11/3) 
 data WorkbookSheet = WorkbookSheet {wsName :: WorkbookName, wsSheets :: [ASSheet]} deriving (Show, Read, Eq, Generic)
 
-instance ToJSON ASSheet
-instance FromJSON ASSheet
-
-instance FromJSON ASWorkbook
-instance ToJSON ASWorkbook
-
-instance FromJSON WorkbookSheet
-instance ToJSON WorkbookSheet
+asToFromJSON ''ASSheet
+asToFromJSON ''ASWorkbook
+asToFromJSON ''WorkbookSheet

@@ -21,6 +21,7 @@ import Database.Redis (Connection)
 import Control.Monad (forM_, forever, (>=>))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (left)
+import Control.Lens
 import Data.Maybe
 
 import AS.Logging
@@ -35,7 +36,7 @@ import AS.Logging
 -- timchu, 12/17/15.
 conditionallyFormatCells :: Connection -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EitherTExec [ASCell]
 conditionallyFormatCells conn origSid cells rules ctx = do
-  let cells' = map (\c -> c { cellProps = clearCondFormatProps (cellProps c) }) cells
+  let cells' = map (cellProps %~ clearCondFormatProps) cells
       transforms = map (ruleToCellTransform conn origSid ctx) rules
       transformsComposed = foldr (>=>) return transforms
   mapM transformsComposed cells'
@@ -43,7 +44,7 @@ conditionallyFormatCells conn origSid cells rules ctx = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
 ruleToCellTransform :: Connection -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps) = do
+ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps rk) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
     Nothing -> return c
@@ -55,7 +56,7 @@ ruleToCellTransform conn sid ctx cfr@(CondFormatRule _ rngs condFormatCondition 
           shiftAndEvaluateExpression = eval . shiftXp
       mc <- checker condFormatCondition v shiftAndEvaluateExpression
       if mc
-         then return $ Cell l e v (setCondFormatProp format ps)
+         then return $ Cell l e v (setCondFormatProp format ps) rk -- #lens
          else return c
 
 evaluateExpression :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue

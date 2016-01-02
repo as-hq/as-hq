@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, DefaultSignatures, TemplateHaskell #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell
@@ -8,6 +6,8 @@ module AS.Types.Cell
   , module AS.Types.CellProps
   , module AS.Types.Values
   ) where
+
+import AS.ASJSON
 
 import AS.Types.Locations
 import AS.Types.RangeDescriptor
@@ -25,29 +25,29 @@ import qualified Data.Map as M
 import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
+import Control.Lens hiding ((.=))
 import Control.Applicative (liftA2)
 import Control.DeepSeq.Generics (genericRnf)
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
 
-data ASExpression =
-    Expression { expression :: String, language :: ASLanguage }
-  | Coupled { cExpression :: String, cLanguage :: ASLanguage, cType :: ExpandingType, cRangeKey :: RangeKey }
-  deriving (Read, Show, Eq, Generic)
+data ASExpression = Expression { _expression :: String, _language :: ASLanguage } deriving (Show, Read, Eq, Generic)
 
-xpString :: ASExpression -> String
-xpString (Expression xp _) = xp
-xpString (Coupled xp _ _ _) = xp
-
-xpLanguage :: ASExpression -> ASLanguage
-xpLanguage (Expression _ lang) = lang
-xpLanguage (Coupled _ lang _ _) = lang
-
-data ASCell = Cell { cellLocation :: ASIndex
-                   , cellExpression :: ASExpression
-                   , cellValue :: ASValue
-                   , cellProps :: ASCellProps } 
+data ASCell = Cell { _cellLocation :: ASIndex
+                   , _cellExpression :: ASExpression
+                   , _cellValue :: ASValue
+                   , _cellProps :: ASCellProps
+                   , _cellRangeKey :: Maybe RangeKey } 
                    deriving (Read, Show, Eq, Generic)
+                   -- If the cell is not part of a range, cellRangeKey is Nothing; otherwise, it's the key to that range. 
+                   -- In principle, cellRangeKey can be determined from the collection of all RangeKeys -- we can just find
+                   -- the unique RangeKey that contains the location of the cell. However, this is relatively difficult to
+                   -- implement efficiently (would probably involve storing the RangeKeys in a nontrivial structure in the 
+                   -- database) and would be O(log # RangeKeys) rather than O(1), so we're just going to duplicate 
+                   -- this information 
+
+makeLenses ''ASExpression
+makeLenses ''ASCell
 
 -- NORM: never expand this type; always modify it using the records. (So we don't confuse 
 -- before and after accidentally.)
@@ -56,42 +56,24 @@ type CellUpdate = Update ASCell ASReference
 
 instance HasKey ASCell where
   type KeyType ASCell = ASReference
-  key = IndexRef . cellLocation
+  key = IndexRef . view cellLocation
 
-instance ToJSON ASExpression where
-  toJSON (Expression xp lang) = object ["expression" .= xp,
-                                        "language" .= (show lang)]
-  toJSON (Coupled xp lang dtype key) = object ["expression" .= xp,
-                                               "language" .= (show lang),
-                                               "expandingType" .= (show dtype),
-                                               "rangeKey" .= key]
-instance FromJSON ASExpression where
-  parseJSON (Object v) = do
-    dType <- (v .:? "expandingType") :: Parser (Maybe ExpandingType)
-    case dType of 
-      Just _ -> Coupled <$> v .: "expression"
-                           <*> v .: "language"
-                           <*> v .: "expandingType"
-                           <*> v .: "rangeKey"
-      Nothing -> Expression <$> v .: "expression" <*> v .: "language"
+asLensedToFromJSON ''ASExpression
+asToFromJSON ''ASLanguage
 
-instance ToJSON ASCell
-instance FromJSON ASCell
+-- -- Every time cells get updated, frontend gets passed a list of range descriptors, which it uses to 
+-- -- determine whether the newly updated cells belong to a range or not; cellRangeKey doesn't need to get
+-- -- exposed to frontend. 
+-- instance ToJSON ASCell where
+--   toJSON (Cell l e v ps _) = object ["cellLocation" .= l,
+--                                      "cellExpression" .= e, 
+--                                      "cellValue" .= v, 
+--                                      "cellProps" .= ps]
+-- instance Serialize ASCell
 
-instance FromJSON CellDiff
-instance ToJSON CellDiff
-
-instance FromJSON CellUpdate
-instance ToJSON CellUpdate
-
-instance ToJSON ASLanguage
-instance FromJSON ASLanguage
-
-instance Serialize ASCell
-instance Serialize CellDiff
-instance Serialize CellUpdate
-instance Serialize ASExpression
-instance Serialize ASLanguage
+asLensedToJSON ''ASCell
+asToJSON ''CellDiff
+asToJSON ''CellUpdate
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -99,51 +81,54 @@ instance Serialize ASLanguage
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
 isColocated :: ASCell -> ASCell -> Bool
-isColocated c1 c2 = (cellLocation c1) == (cellLocation c2)
+isColocated c1 c2 = c1^.cellLocation == c2^.cellLocation
 
 -- checks if a cell is "blank", in the sense that it has NoValue
 isBlank :: ASCell -> Bool
-isBlank (Cell _ _ NoValue _) = True
-isBlank _ = False
+isBlank = (== NoValue) . view cellValue
 
 -- checks if a cell is actually "empty", in the sense that it has no props and no expression.
 isEmptyCell :: ASCell -> Bool
-isEmptyCell = liftA2 (&&) (isEmpty . cellProps) (null . xpString . cellExpression)
+isEmptyCell = liftA2 (&&) (isEmpty . view cellProps) (null . view (cellExpression.expression))
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
   where 
     toMap :: [ASCell] -> M.Map ASIndex ASCell
-    toMap cs = M.fromList $ zip (map cellLocation cs) cs
+    toMap cs = M.fromList $ zip (mapCellLocation cs) cs
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
 blankCellAt :: ASIndex -> ASCell
-blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps
+blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps Nothing
 
 blankCellsAt :: [ASIndex] -> [ASCell]
 blankCellsAt = map blankCellAt
 
 isMemberOfSpecifiedRange :: RangeKey -> ASCell -> Bool
-isMemberOfSpecifiedRange key cell = case (cellExpression cell) of 
-  Coupled _ _ _ key' -> key == key'
-  _ -> False
+isMemberOfSpecifiedRange key cell = (Just key == cell^.cellRangeKey)
 
 ---- partitions a set of cells into (cells belonging to one of the specified ranges, other cells)
 partitionByRangeKey :: [ASCell] -> [RangeKey] -> ([ASCell], [ASCell])
 partitionByRangeKey cells [] = ([], cells)
 partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
   where go cs k = partition (isMemberOfSpecifiedRange k) cs
-        liftListTuple t = (concat $ map fst t, concat $ map snd t)
+        liftListTuple t = (concatMap fst t, concatMap snd t)
 
 getCellFormatType :: ASCell -> Maybe FormatType
-getCellFormatType (Cell _ _ _ props) = maybe Nothing (Just . formatType) $ getProp ValueFormatProp props
+getCellFormatType = maybe Nothing (Just . formatType) . getProp ValueFormatProp . view cellProps
 
 execErrorToValueError :: ASExecError -> ASValue
 execErrorToValueError e = ValueError (show e) "Exec error"
 
+cellHasProp :: CellProp -> ASCell -> Bool
+cellHasProp p = hasProp p .  view cellProps 
+
 removeCellProp :: CellPropType -> ASCell -> ASCell
-removeCellProp pt (Cell l e v ps) = Cell l e v (removeProp pt ps)
+removeCellProp pt = cellProps %~ (removeProp pt)
 
 setCellProp :: CellProp -> ASCell -> ASCell 
-setCellProp cp (Cell l e v ps) = Cell l e v (setProp cp ps)
+setCellProp cp  = cellProps %~ setProp cp
+
+mapCellLocation :: [ASCell] -> [ASIndex]
+mapCellLocation = map (view cellLocation)

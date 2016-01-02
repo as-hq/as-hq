@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module AS.Types.Network
   ( module AS.Types.Network
   , module AS.Types.Sheets
@@ -12,7 +10,6 @@ import AS.Types.Messages
 
 import AS.Window
 
-import GHC.Generics
 import Data.Aeson
 import Data.Text
 import Data.Time.Clock (getCurrentTime)
