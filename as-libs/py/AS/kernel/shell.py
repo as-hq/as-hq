@@ -2,15 +2,58 @@ import sys
 import ast
 import copy
 
-from IPython.core.interactiveshell import InteractiveShell, ExecutionResult, softspace
+from cStringIO import StringIO
+
+from IPython.core.interactiveshell import InteractiveShell, softspace
 from IPython.core.prompts import PromptManager
 from IPython.utils.py3compat import builtin_mod
+from IPython.core.error import InputRejected, UsageError
+import IPython.core.displayhook as dh
+
+from traitlets import Instance, Type
+
+class ASExecutionResult(object):
+    """The result of a call to :meth:`ASShell.run_block`
+
+    Stores information about what took place.
+    """
+    execution_count = None
+    error_before_exec = None
+    error_in_exec = None
+    result = None
+    display = []
+
+    @property
+    def success(self):
+        return (self.error_before_exec is None) and (self.error_in_exec is None)
+
+    def raise_error(self):
+        """Reraises error if `success` is `False`, otherwise does nothing"""
+        if self.error_before_exec is not None:
+            raise self.error_before_exec
+        if self.error_in_exec is not None:
+            raise self.error_in_exec
+
+
+class ASDisplayHook(dh.DisplayHook):
+    """A custom displayhook to replace sys.displayhook.
+
+    This class does many things, but the basic idea is that it is a callable
+    that gets called anytime user code returns a value.
+    """
+    exec_result = Instance('AS.kernel.shell.ASExecutionResult',
+                           allow_none=True)
 
 class ASShell(InteractiveShell):
 
+  displayhook_class = Type(ASDisplayHook)
 #-----------------------------------------------------------------------------
 #  Single initialization
 #-----------------------------------------------------------------------------
+  def init_io(self):
+        # Provide an alternate stdout for evaluation calls.
+        # this enables print statement capturing.
+        self.user_stdout = StringIO() 
 
   def init_create_namespaces(self, user_module=None, user_ns=None):
 
@@ -46,6 +89,11 @@ class ASShell(InteractiveShell):
     self.prompt_manager = PromptManager(shell=self, parent=self)
     self.configurables.append(self.prompt_manager)
 
+  def init_events(self):
+    super(ASShell, self).init_events()
+    # register an event to capture all stdout during eval, then change it back
+    self.events.register('pre_execute', self._init_eval_stdout)
+    self.events.register('post_execute', self._close_eval_stdout)
 #-----------------------------------------------------------------------------
 #  Run-time initialization
 #-----------------------------------------------------------------------------
@@ -91,9 +139,9 @@ class ASShell(InteractiveShell):
 
     Returns
     -------
-    result : :class:`ExecutionResult`
+    result : :class:`ASExecutionResult`
     """
-    result = ExecutionResult()
+    result = ASExecutionResult()
 
     # initialize the sheet if it doesn't exist
     # needsrefactor this should be called eagerly (e.g. on sheet open) instead of lazily (on eval)
@@ -149,7 +197,6 @@ class ASShell(InteractiveShell):
 
     # Display the exception if input processing failed.
     if preprocessing_exc_tuple is not None:
-        print "GOT HERE"
         self.showtraceback(preprocessing_exc_tuple)
         if store_history:
             self.execution_count += 1
@@ -201,6 +248,9 @@ class ASShell(InteractiveShell):
                                 compiler=compiler, 
                                 result=result,
                                 isolated=isolated)
+
+            # capture all stdout during eval
+            result.display.insert(0, sys.stdout.getvalue())
 
             # Reset this so later displayed values do not modify the
             # ExecutionResult
@@ -302,10 +352,9 @@ class ASShell(InteractiveShell):
         # We do only one try/except outside the loop to minimize the impact
         # on runtime, and also because if any node in the node list is
         # broken, we should stop execution completely.
-        print "GOT HERE"
         if result:
             result.error_before_exec = sys.exc_info()[1]
-        self.showtraceback()
+            result.display.append(self.get_formatted_traceback())
         return True
 
     return False
@@ -321,9 +370,9 @@ class ASShell(InteractiveShell):
     code_obj : code object
       A compiled code object, to be executed
     source_ns : dict
-      the source namespace to run exec() against
+      The source namespace to run exec() against
     target_ns : dict
-      the target namespace to inject newly created variables into
+      The target namespace to inject newly created variables into
     result : ExecutionResult, optional
       An object to store exceptions that occur during execution.
 
@@ -350,66 +399,79 @@ class ASShell(InteractiveShell):
     except SystemExit as e:
         if result is not None:
             result.error_in_exec = e
+        # if someone quit our kernel, we're going to _show_ the traceback, not return it.
         self.showtraceback(exception_only=True)
         warn("To exit: use 'exit', 'quit', or Ctrl-D.", level=1)
+    # this case is basically useless
     except self.custom_exceptions:
         etype, value, tb = sys.exc_info()
         if result is not None:
             result.error_in_exec = value
         self.CustomTB(etype, value, tb)
     except:
-        print "GOT HERE"
         if result is not None:
             result.error_in_exec = sys.exc_info()[1]
-        self.showtraceback()
+            result.display.append(self.get_formatted_traceback())
     else:
         outflag = 0
     return outflag
 
-def get_formatted_traceback(self, exc_tuple=None, filename=None, tb_offset=None,
-                exception_only=False):
-  """Display the exception that just occurred.
+#-----------------------------------------------------------------------------
+#  Stdout, stderr, etc.
+#-----------------------------------------------------------------------------
 
-  If nothing is known about the exception, this is the method which
-  should be used throughout the code for presenting user tracebacks,
-  rather than directly invoking the InteractiveTB object.
+  def get_formatted_traceback(self, exc_tuple=None, filename=None, tb_offset=None,
+                  exception_only=False):
+    """Return a formatted string of the exception that just occurred.
 
-  A specific showsyntaxerror() also exists, but this method can take
-  care of calling it if needed, so unless you are explicitly catching a
-  SyntaxError exception, don't try to analyze the stack manually and
-  simply call this method."""
+    If nothing is known about the exception, this is the method which
+    should be used throughout the code for presenting user tracebacks,
+    rather than directly invoking the InteractiveTB object.
 
-  try:
-      stb = None
-      # catch exceptions while trying to get the exception
-      try:
-          etype, value, tb = self._get_exc_info(exc_tuple)
-      except ValueError:
-          return 'No traceback available to show.'
-      
-      if issubclass(etype, SyntaxError):
-          # Though this won't be called by syntax errors in the input
-          # line, there may be SyntaxError cases with imported code.
-          stb = self.SyntaxTB.structured_traceback(etype, value, [])
-      elif etype is UsageError:
-          self.show_usage_error(value)
-      else:
-          if exception_only:
-              stb = ['An exception has occurred, use %tb to see '
-                     'the full traceback.\n']
-              stb.extend(self.InteractiveTB.get_exception_only(etype,
-                                                               value))
-          else:
-              try:
-                  # Exception classes can customise their traceback - we
-                  # use this in IPython.parallel for exceptions occurring
-                  # in the engines. This should return a list of strings.
-                  stb = value._render_traceback_()
-              except Exception:
-                  stb = self.InteractiveTB.structured_traceback(etype,
-                                      value, tb, tb_offset=tb_offset)
+    A specific showsyntaxerror() also exists, but this method can take
+    care of calling it if needed, so unless you are explicitly catching a
+    SyntaxError exception, don't try to analyze the stack manually and
+    simply call this method."""
 
-          return self.InteractiveTB.stb2text(stb)
+    try:
+        stb = None
+        # catch exceptions while trying to get the exception
+        try:
+            etype, value, tb = self._get_exc_info(exc_tuple)
+        except ValueError:
+            return 'No traceback available to show.'
+        
+        if issubclass(etype, SyntaxError):
+            # Though this won't be called by syntax errors in the input
+            # line, there may be SyntaxError cases with imported code.
+            stb = self.SyntaxTB.structured_traceback(etype, value, [])
+        elif etype is UsageError:
+            self.show_usage_error(value)
+        else:
+            if exception_only:
+                stb = ['An exception has occurred, use %tb to see '
+                       'the full traceback.\n']
+                stb.extend(self.InteractiveTB.get_exception_only(etype,
+                                                                 value))
+            else:
+                try:
+                    # Exception classes can customise their traceback - we
+                    # use this in IPython.parallel for exceptions occurring
+                    # in the engines. This should return a list of strings.
+                    stb = value._render_traceback_()
+                except Exception:
+                    stb = self.InteractiveTB.structured_traceback(etype,
+                                        value, tb, tb_offset=tb_offset)
 
-  except KeyboardInterrupt:
-      self.write_err('\n' + self.get_exception_only())
+        return self.InteractiveTB.stb2text(stb)
+
+    except KeyboardInterrupt:
+        # in the case of user interrupt, just show the exception.
+        self.write_err('\n' + self.get_exception_only())
+
+  def _init_eval_stdout(self):
+    sys.stdout = self.user_stdout
+
+  def _close_eval_stdout(self):
+    sys.stdout.flush()
+    sys.stdout = sys.__stdout__

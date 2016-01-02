@@ -30,6 +30,7 @@ class ASKernel(object):
   def handle_incoming(self):
     recvMsg = json.loads(self.socket.recv())
     replyMsg = self.process_message(recvMsg)
+    print "sending reply:", replyMsg
     self.socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
@@ -50,13 +51,15 @@ class ASKernel(object):
       raise NotImplementedError
 
   def exec_result_to_msg(self, result, recvMsg):
-    # TODO make reply/request classes
     reply = {}
     reply['type'] = recvMsg['type']
-    result_dict = result.__dict__
-    if 'result' in result_dict:
-      reply['value'] = serialize(result_dict['result'])
-    if 'error_in_exec' in result_dict:
-      reply['error'] = repr(result_dict['error_in_exec'])
+    if result.result is not None:
+      reply['value'] = serialize(result.result)
+    if result.error_before_exec is not None:
+      reply['error'] = repr(result.error_before_exec)
+    if result.error_in_exec is not None:
+      reply['error'] = repr(result.error_in_exec)
+    if len(result.display) > 0:
+      reply['display'] = "\n".join(result.display)
     return reply
 
