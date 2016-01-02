@@ -66,8 +66,9 @@ main = R.withEmbeddedR R.defaultConfig $ do
 
 initApp :: IO (R.Connection, [Port], [MVar ServerState])
 initApp = do
-  runEitherT $ KP.evaluate "" "\'test!\'" -- force load C python sources so that first eval isn't slow
-
+  conn <- R.connect DI.cInfo
+  -- init python kernel
+  KP.initialize conn
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
@@ -75,7 +76,6 @@ initApp = do
     [r|library("ggplot2")|]
     return ()
   -- init state
-  conn <- R.connect DI.cInfo
   args <- getArgs
   let intArgs = map (\a -> read a :: Int) args
   let ports = case intArgs of 

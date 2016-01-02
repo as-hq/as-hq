@@ -16,6 +16,9 @@ import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
 
+import qualified AS.DB.API as DB
+import qualified AS.DB.Eval as DE
+
 import Data.Maybe (fromJust)
 import Data.Aeson 
 import Data.Aeson.Types (Parser)
@@ -28,8 +31,17 @@ import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+import Database.Redis (Connection)
+
 ---------------------------------------------------------------------------------
 -- Exposed functions
+
+initialize :: Connection -> IO ()
+initialize conn = do
+  -- run all the headers in db to initialize the sheet namespaces
+  sids <- map sheetId <$> DB.getAllSheets conn
+  headers <- mapM (\sid -> DE.getEvalHeader conn sid Python) sids
+  mapM_ (\(sid, code) -> runEitherT $ evaluateHeader sid code) $ zip sids headers
 
 evaluate = evaluateWithScope Cell
 evaluateHeader = evaluateWithScope Header
@@ -67,6 +79,7 @@ data KernelResponse =
     EvaluateReply { value :: Maybe String, eval_error :: Maybe String, display :: Maybe String } 
   | GetStatusReply -- TODO
   | AutocompleteReply -- TODO
+  | ClearReply Bool
   deriving (Generic)
 
 instance ToJSON EvalScope
@@ -92,6 +105,7 @@ instance FromJSON KernelResponse where
       "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
+      "clear" -> ClearReply <$> v .: "success"
 
 evaluateWithScope :: EvalScope -> ASSheetId -> String -> EitherTExec CompositeValue
 evaluateWithScope _ _ "" = return $ CellValue NoValue

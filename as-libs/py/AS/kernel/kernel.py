@@ -31,8 +31,7 @@ class ASKernel(object):
     recvMsg = json.loads(self.socket.recv())
     replyMsg = self.process_message(recvMsg)
     # print "sending reply:", replyMsg
-    if replyMsg is not None:
-      self.socket.send(json.dumps(replyMsg))
+    self.socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
     print 'processing', msg['type']
@@ -54,13 +53,13 @@ class ASKernel(object):
 
     elif msg['type'] == 'clear':
       self.shell.init_sheet_ns(msg['sheet_id'])
-      return result
+      return {'type': 'clear', 'success': True}
 
   def exec_result_to_msg(self, result, recvMsg):
     reply = {}
     reply['type'] = recvMsg['type']
     if result.result is not None:
-      reply['value'] = serialize(result.result)
+      reply['value'] = serialize(result.result, self.shell.last_cell_ns)
     if result.error_before_exec is not None:
       reply['error'] = repr(result.error_before_exec)
     if result.error_in_exec is not None:
@@ -68,4 +67,3 @@ class ASKernel(object):
     if len(result.display) > 0:
       reply['display'] = "\n".join(result.display)
     return reply
-
