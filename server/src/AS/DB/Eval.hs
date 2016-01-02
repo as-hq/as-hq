@@ -60,10 +60,10 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 -- TODO: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
-referenceToCompositeValue conn ctx (ColRangeRef cr) = 
-  printObjT "IN REFERNCE TO COMPOSITE VALUE: " 0
+referenceToCompositeValue conn ctx (ColRangeRef cr) = do
+  printObj "IN REFERNCE TO COMPOSITE VALUE: " 0
   let x =  Expanding . VList . M $ vals
-  printObjT "IN REFERNCE TO COMPOSITE VALUE: 1 AND " x
+  printObj "IN REFERNCE TO COMPOSITE VALUE: 1 AND " x
   return x
   where
     indices = colRangeWithContextToIndicesRowMajor2D conn ctx cr
