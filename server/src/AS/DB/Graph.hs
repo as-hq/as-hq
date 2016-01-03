@@ -24,6 +24,8 @@ import AS.DB.Internal
 import AS.Logging
 import AS.Parsing.Substitutions (getDependencies)
 
+import Data.Maybe
+import Control.Lens
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
@@ -41,14 +43,14 @@ setCellsAncestors cells = do
   printObjT "Set cell ancestors" relations
   where
     depSets = map getAncestorsForCell cells
-    relations = (zip (map cellLocation cells) depSets) :: [ASRelation]
+    relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
 
 -- If a cell is a fat cell head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
 -- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
-getAncestorsForCell c@(Cell l xp _ _) = if (not $ isEvaluable c)
-  then [IndexRef . keyIndex . cRangeKey $ xp]
-  else getDependencies (locSheetId l) xp
+getAncestorsForCell c = if not $ isEvaluable c
+  then [IndexRef . keyIndex . fromJust $ c^.cellRangeKey]
+  else getDependencies (locSheetId $ c^.cellLocation) (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 
@@ -147,8 +149,8 @@ execGraphWriteQuery q = runZMQ $ do
   return ()
 
 shouldSetRelationsOfCellWhenRecomputing :: ASCell -> Bool 
-shouldSetRelationsOfCellWhenRecomputing cell = case (cellToRangeKey cell) of 
-  Just (RangeKey idx _) -> cellLocation cell == idx -- should be a fat cell head
+shouldSetRelationsOfCellWhenRecomputing cell = case cell^.cellRangeKey of 
+  Just (RangeKey idx _) -> cell^.cellLocation == idx -- should be a fat cell head
   Nothing -> True -- keep normal cells
 
 recompute :: R.Connection -> IO ()

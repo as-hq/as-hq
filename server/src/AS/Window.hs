@@ -11,6 +11,7 @@ import AS.Types.Cell
 
 import GHC.Generics
 import Data.Aeson
+import Control.Lens hiding ((.=))
 import Data.Serialize (Serialize)
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
@@ -52,7 +53,7 @@ inViewingWindow (Window wSheetId (tlc, tlr) (brc, brr)) (Index cSheetId (col,row
   inRange row tlr (brr-tlr)]
 
 intersectViewingWindow :: [ASCell] -> ASWindow -> [ASCell]
-intersectViewingWindow cells vw = filter ((inViewingWindow vw) . cellLocation) cells
+intersectViewingWindow cells vw = filter ((inViewingWindow vw) . view cellLocation) cells
 
 -- | Computes set difference of window 2 minus window 1. Represented as a union of ASRange's. 
 getScrolledLocs :: ASWindow -> ASWindow -> [ASRange]

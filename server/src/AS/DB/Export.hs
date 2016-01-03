@@ -9,6 +9,8 @@ import AS.DB.Clear as DC
 import AS.DB.Expanding as DE
 import AS.DB.Graph as G (recompute)
 
+import Control.Lens
+
 import Database.Redis
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -22,7 +24,7 @@ exportData conn sid = do
 
 importData :: Connection -> ExportData -> IO ()
 importData conn (ExportData cs descriptors) = do
-  DC.clearSheet conn $ locSheetId . cellLocation . head $ cs -- assumes all cells are in the same sheet.
+  DC.clearSheet conn $ locSheetId . view cellLocation . head $ cs -- assumes all cells are in the same sheet.
   DB.setCells conn cs
   G.recompute conn
   mapM_ (DE.setDescriptor conn) descriptors

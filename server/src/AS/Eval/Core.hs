@@ -38,6 +38,7 @@ import Database.Redis (Connection)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 
@@ -63,7 +64,6 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
         return <$> execEvalInLang sid header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
-evaluateLanguage _ _ _ (Coupled _ _ _ _) = left WillNotEvaluate
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
 -- DEPRECATED for now
@@ -120,8 +120,8 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   ve@(ValueError _ _)     -> handleErrorInLang lang ve
   otherwise               -> Nothing 
   where
-    lang           = xpLanguage xp
-    values         = map (cellValue . ((virtualCellsMap ctx) M.!)) depInds
+    lang           = xp^.language
+    values         = map (view cellValue . ((virtualCellsMap ctx) M.!)) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

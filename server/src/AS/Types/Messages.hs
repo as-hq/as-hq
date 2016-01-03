@@ -48,6 +48,8 @@ data ClientAction =
   | LoadImportedCells [ASCell] -- cells to add to sheet
   | ShowHeaderResult CompositeValue
   | PassBarToTest Bar
+  | PassIsCoupledToTest Bool
+  | PassCellsToTest [ASCell]
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -63,6 +65,7 @@ data ServerAction =
   | EvaluateHeader ASExpression
   | Get [ASIndex]
   | GetBar BarIndex
+  | GetIsCoupled ASIndex
   | Delete ASRange
   | ClearSheetServer ASSheetId
   | Undo 

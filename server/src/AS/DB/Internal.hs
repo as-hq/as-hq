@@ -38,6 +38,7 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
+import Control.Lens
 
 import Foreign
 import Foreign.C.Types
@@ -85,26 +86,19 @@ getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack patt
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
-getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
-getRangeKeysInSheet conn sid = runRedis conn $ do
-  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
-  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
-  return $ map (unpackKey . fromRedis) ks
-    where
-      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
-      unpackKey :: RedisKey RangeType -> RangeKey
-      unpackKey (RedisRangeKey k) = k
-
 toDecoupled :: ASCell -> ASCell
-toDecoupled (Cell l (Coupled _ lang _ _) v ts) = Cell l e' v ts
-  where e' = case v of 
-               NoValue   -> Expression "" lang
-               otherwise -> Expression (showPrimitive lang v) lang
+toDecoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellExpression .~ e' & cellRangeKey .~ Nothing  -- #expert
+  where 
+    lang = c^.cellExpression.language
+    v = c^.cellValue
+    e' = case v of 
+             NoValue   -> Expression "" lang
+             otherwise -> Expression (showPrimitive lang v) lang
 toDecoupled c = c
 
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
-toUncoupled c@(Cell _ (Coupled xp lang _ _) _ _) = c { cellExpression = Expression xp lang }
+toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 -- DB conversions

@@ -333,8 +333,8 @@ scalarizeRef _ _ x = snd x
 getUnexpectedRefs :: ASSheetId -> Formula -> [ERef]
 getUnexpectedRefs _ (Basic (Var s)) = []
 getUnexpectedRefs _ (Basic (Ref e)) = []
-getUnexpectedRefs s (ArrayConst b) = concat $ map (getUnexpectedRefs s) $ map Basic (concat b)
-getUnexpectedRefs s (Basic (Fun f fs)) = concat $ map (getRangeRefs s fDes) enum
+getUnexpectedRefs s (ArrayConst b) = concatMap (getUnexpectedRefs s) $ map Basic (concat b)
+getUnexpectedRefs s (Basic (Fun f fs)) = concatMap (getRangeRefs s fDes) enum
   where
     (Right fDes) = getFunc f
     enum = zip [1..argNumLimit] fs
@@ -407,7 +407,7 @@ arrConstToResult c [[]] = Left $ ArrayConstantDim
 arrConstToResult c es = do
   if (aligned es)
     then do
-      vals <- compressErrors $ concat $ map (map (toValueAC c)) es
+      vals <- compressErrors $ concatMap (map (toValueAC c)) es
       return $ EMatrix (length (head es)) (length es) (V.fromList vals)
     else Left $ ArrayConstantDim
 
@@ -1415,7 +1415,7 @@ genericRank f rankGroup c e = do
                  then sort lst
                  else reverse $ sort lst
   -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
-  let ranks = concat $ map rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..argNumLimit]
+  let ranks = concatMap rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..argNumLimit]
   case (lookup x ranks) of
     Nothing -> Left $ VAL $ "Couldn't find given element for " ++ f
     Just r -> valToResult r

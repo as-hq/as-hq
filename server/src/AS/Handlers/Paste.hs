@@ -24,6 +24,7 @@ import Control.Concurrent
 
 import Database.Redis (Connection)
 import Control.Monad ((>=>))
+import Control.Lens
 
 handleCopy :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
 handleCopy uc state from to = do
@@ -68,7 +69,7 @@ getCopyCells conn from to = do
       translateCell o c = shiftRangeKey o =<< shiftCell o c -- remember to shift the range key of a coupled expression as well
       toCells       = catMaybes $ concatMap (\o -> map (translateCell o) sanitizedFromCells) offsets
       updateSheetId = \l -> l { locSheetId = rangeSheetId to }
-      toCells'      = map (replaceCellLocs updateSheetId) toCells
+      toCells'      = map (cellLocation %~ updateSheetId) toCells
   return toCells'
 
 -- Same as sanitizeCutCells, except if everything is a list head, leave it as is. 
@@ -92,23 +93,12 @@ shiftExpressionForCut from offset xp = xp'
     shiftFunc   = \ref -> if (shouldShift ref) then (shiftExRefForced offset ref) else ref
     xp'         = replaceRefs (show . shiftFunc) xp
 
-replaceCellLocs :: (ASIndex -> ASIndex) -> ASCell -> ASCell
-replaceCellLocs f c = c { cellLocation = f $ cellLocation c }
-
-replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
-replaceCellLocsMaybe f c = case f $ cellLocation c of 
-  Nothing -> Nothing 
-  Just l -> Just $ c { cellLocation = l }
-
-replaceCellExpressions :: (ASExpression -> ASExpression) -> ASCell -> ASCell
-replaceCellExpressions f c = c { cellExpression = f $ cellExpression c }
-
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
-shiftRangeKey offset c@(Cell _ (Expression _ _) _ _) = Just c
-shiftRangeKey offset (Cell l (Coupled xp lang typ (RangeKey ind dims)) v ts) = case ind' of 
-  Nothing -> Nothing
-  Just i  -> Just $ Cell l (Coupled xp lang typ (RangeKey i dims)) v ts
-  where ind' = shiftInd offset ind
+shiftRangeKey offset c = case c^.cellRangeKey of -- #lens
+  Nothing -> Just c
+  Just (RangeKey ind dims) -> case shiftInd offset ind of 
+    Nothing -> Nothing
+    Just i  -> Just $ c & cellRangeKey .~ (Just $ RangeKey i dims)
 
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
@@ -119,6 +109,12 @@ getCutCells conn from to = do
   -- precedence: toCells > updated descendant cells > blank cells
   return $ mergeCells toCells (mergeCells newDescCells blankedCells)
 
+-- #expert
+replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
+replaceCellLocsMaybe f c = case f $ c^.cellLocation of 
+  Nothing -> Nothing 
+  Just l -> Just $ c & cellLocation .~ l
+
 -- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
@@ -126,7 +122,7 @@ getCutToCells conn from offset = do
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
   let shiftLoc    = shiftInd offset
       changeExpr  = shiftExpressionForCut from offset
-      modifyCell  = (shiftRangeKey offset) >=> (replaceCellLocsMaybe shiftLoc) . (replaceCellExpressions changeExpr)
+      modifyCell  = (shiftRangeKey offset) >=> (replaceCellLocsMaybe shiftLoc) . (cellExpression %~ changeExpr)
   return $ catMaybes $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
@@ -136,7 +132,7 @@ getCutNewDescCells conn from offset = do
   let immDescLocs' = filter (not . (rangeContainsIndex from)) immDescLocs
       changeExpr   = shiftExpressionForCut from offset
   descs <- catMaybes <$> getCells conn immDescLocs'
-  return $ map (replaceCellExpressions changeExpr) descs
+  return $ map (cellExpression %~ changeExpr) descs
 
 -- | Decouples cells appropriately for re-eval on cut/paste, as follows:
 --   * if a cell is not a part of a list, leave it as is. 

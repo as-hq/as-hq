@@ -34,6 +34,7 @@ import Foreign.C
 import Control.Applicative
 import Control.Concurrent
 import Control.Monad
+import Control.Lens hiding (set)
 import Control.Monad.Trans
 import Data.Time
 import Database.Redis hiding (decode)
@@ -87,7 +88,7 @@ getCells conn locs = runRedis conn $ do
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
-setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode . cellLocation $ c) (S.encode c)) cs
+setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode $ c^.cellLocation) (S.encode c)) cs
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
@@ -135,12 +136,10 @@ getCellsByKeyPattern conn pattern = do
 -- this function is order-preserving
 getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
 getBlankedCellsAt conn locs = 
-  let blank xp = case xp of 
-            Expression _ lang -> Expression "" lang
-            Coupled _ lang _ _ -> Expression "" lang
+  let blankExpr = expression .~ "" -- replaces the expression in ASExpression with an empty string
   in do 
     cells <- getPossiblyBlankCells conn locs
-    return $ map (\(Cell l xp v ts) -> Cell l (blank xp) NoValue ts) cells
+    return $ map (\(Cell l xp v ts rk) -> Cell l (blankExpr xp) NoValue ts Nothing) cells -- #lens
 
 -- this function is order-preserving
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]
@@ -151,7 +150,7 @@ getPossiblyBlankCells conn locs = do
     Nothing -> blankCellAt l) (zip locs cells)
 
 getPropsAt :: Connection -> ASIndex -> IO ASCellProps
-getPropsAt conn ind = cellProps <$> getPossiblyBlankCell conn ind
+getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Locations
@@ -169,11 +168,21 @@ locationExists conn loc = head <$> locationsExist conn [loc]
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
 fatCellsInRange conn rng = do
   let sid = rangeSheetId rng
-  rangeKeys <- DI.getRangeKeysInSheet conn sid
+  rangeKeys <- getRangeKeysInSheet conn sid
   let rects = map rangeRect rangeKeys
       zipRects = zip rangeKeys rects
       zipRectsContained = filter (\(_,rect) -> rangeContainsRect rng rect) zipRects
   return $ map fst zipRectsContained
+
+getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet conn sid = runRedis conn $ do
+  Right ks <- smembers . toRedisFormat $ SheetRangesKey sid
+  liftIO $ printObj "GOT RANGEKEYS IN SHEET: " ks
+  return $ map (unpackKey . fromRedis) ks
+    where
+      fromRedis k = read2 (BC.unpack k) :: RedisKey RangeType
+      unpackKey :: RedisKey RangeType -> RangeKey
+      unpackKey (RedisRangeKey k) = k
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
@@ -182,12 +191,12 @@ getRangeDescriptor conn key = runRedis conn $ do
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
-  keys <- DI.getRangeKeysInSheet conn sid
+  keys <- getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
 getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
-  dbKeys <- DI.getRangeKeysInSheet conn sid
+  dbKeys <- getRangeKeysInSheet conn sid
   let dbKeys' = dbKeys \\ (oldRangeKeysInContext ctx)
   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
   return $ (newRangeDescriptorsInContext ctx) ++ dbDescriptors
@@ -342,13 +351,13 @@ getVolatileLocs conn = runRedis conn $ do
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
 setChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
+  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells
   sadd (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
-  let vLocs = map cellLocation $ filter ((hasPropType VolatileProp) . cellProps) cells
+  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells -- #lens
   srem (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
@@ -371,7 +380,7 @@ canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True
 -- (ServerMessage _ payload) = case payload of 
---   PayloadCL cells -> canAccessAll conn uid (map cellLocation cells)
+--   PayloadCL cells -> canAccessAll conn uid (mapCellLocation cells)
 --   PayloadLL locs -> canAccessAll conn uid locs
 --   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
 --   PayloadW window -> canAccessSheet conn uid (windowSheetId window)

@@ -51,6 +51,7 @@ import qualified Network.WebSockets as WS
 import Control.Concurrent
 import Control.Exception
 import Control.Applicative
+import Control.Lens
 import Control.Monad.Trans.Either
 
 -- Used solely for acknowledging keepalive messages sent from the frontend. 
@@ -87,8 +88,9 @@ handleOpen uc state sid = do
   let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
   -- get column props
   bars <- DB.getBarsInSheet conn sid
-
-  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) emptyUpdate (Update condFormatRules []) -- #exposed
+  -- get rangekeys
+  rangeKeys <- DB.getRangeDescriptorsInSheet conn sid
+  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) (Update rangeKeys []) (Update condFormatRules []) -- #exposed
   sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate xps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
@@ -104,7 +106,7 @@ handleUpdateWindow cid state w = do
   let oldWindow = userWindow user'
   (flip catch) (badCellsHandler (dbConn curState) user') (do
     let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells (dbConn curState) $ concat $ map rangeToIndices newLocs
+    mcells <- DB.getCells (dbConn curState) $ concatMap rangeToIndices newLocs
     sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
     US.modifyUser (updateWindow w) user' state)
 
@@ -122,7 +124,7 @@ handleGet :: ASUserClient -> MVar ServerState -> [ASIndex] -> IO ()
 handleGet uc state locs = do
   curState <- readMVar state
   mcells <- DB.getCells (dbConn curState) locs
-  sendSheetUpdate uc $ sheetUpdateFromCells $ catMaybes mcells
+  sendToOriginal uc $ ClientMessage $ PassCellsToTest $ catMaybes mcells
 -- handleGet uc state (PayloadList Sheets) = do
 --   curState <- readMVar state
 --   ss <- DB.getAllSheets (dbConn curState)
@@ -142,6 +144,14 @@ handleGet uc state locs = do
 -- (Alex 11/3)
 -- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 -- handleClose _ _ _ = return ()
+
+handleIsCoupled :: ASUserClient -> MVar ServerState -> ASIndex -> IO ()
+handleIsCoupled uc state loc = do 
+  conn <- dbConn <$> readMVar state
+  mCell <- DB.getCell conn loc
+  let isCoupled = maybe False (isJust . view cellRangeKey) mCell
+  sendToOriginal uc $ ClientMessage $ PassIsCoupledToTest isCoupled
+
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
 handleClear client state sid = do

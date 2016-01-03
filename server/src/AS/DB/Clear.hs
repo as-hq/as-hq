@@ -41,6 +41,8 @@ import Control.Monad.Trans.Either
 clear :: Connection -> IO ()
 clear conn = runRedis conn $ flushall >> return ()
 
+-- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
+-- (at least not consistently.)
 clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid

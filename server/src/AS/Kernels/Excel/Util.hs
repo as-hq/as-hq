@@ -15,6 +15,8 @@ import Data.Maybe
 import Data.List
 import qualified Data.Vector as V
 
+import Control.Lens
+
 import System.IO.Unsafe
 import Database.Redis (Connection)
 -------------------------------------------------------------------------------------------------------------
@@ -99,7 +101,7 @@ toEValue v = Nothing
 cellToFormattedVal :: Maybe ASCell -> Formatted ASValue
 cellToFormattedVal (Just c) = Formatted cv ft 
   where 
-    cv = cellValue c
+    cv = c^.cellValue
     ft = getCellFormatType c
 cellToFormattedVal Nothing = return NoValue
 
