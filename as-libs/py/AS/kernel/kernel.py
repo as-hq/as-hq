@@ -14,6 +14,8 @@ class ASKernel(object):
   def init_shell(self):
     init_ns = self.get_initial_ns()
     self.shell = ASShell(user_ns=init_ns)
+    self.shell.serializer = serialize
+    self.shell.serialize_post_execute = True
 
   def init_zmq(self, host, port):
     context = zmq.Context()
@@ -59,7 +61,7 @@ class ASKernel(object):
     reply = {}
     reply['type'] = recvMsg['type']
     if result.result is not None:
-      reply['value'] = serialize(result.result, self.shell.last_cell_ns)
+      reply['value'] = result.result # already serialized by the shell
     if result.error_before_exec is not None:
       reply['error'] = repr(result.error_before_exec)
     if result.error_in_exec is not None:

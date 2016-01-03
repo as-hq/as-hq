@@ -16,6 +16,7 @@ import AS.Types.Updates
 import AS.Types.Bar
 import AS.Types.BarProps
 import AS.Types.CondFormat
+import AS.Types.Selection
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
@@ -48,9 +49,8 @@ deriving instance Generic ServerState
 deriving instance Generic ASUserClient
 deriving instance Generic ASDaemonClient
 
-instance NFData ASServerMessage where rnf = genericRnf
-instance NFData ASPayload where rnf = genericRnf
-instance NFData ASResult where rnf = genericRnf
+instance NFData ServerMessage where rnf = genericRnf
+instance NFData ServerAction where rnf = genericRnf
 instance NFData ASCell where rnf = genericRnf
 instance NFData ASCellProps where rnf = genericRnf
 instance NFData ASExpression where rnf = genericRnf
@@ -64,7 +64,6 @@ instance NFData CellProp where rnf = genericRnf
 instance NFData RangeKey where rnf = genericRnf
 instance NFData ASSheet where rnf = genericRnf
 instance NFData ASPermissions where rnf = genericRnf
-instance NFData ASAction where rnf = genericRnf
 instance NFData ASCommit where rnf = genericRnf
 instance NFData VAlignType where rnf = genericRnf
 instance NFData Dimensions where rnf = genericRnf
@@ -78,12 +77,7 @@ instance NFData HAlignType where rnf = genericRnf
 instance NFData FormatType where rnf = genericRnf
 instance NFData JSONField where rnf = genericRnf
 instance NFData JSONValue where rnf = genericRnf
-instance NFData QueryList where rnf = genericRnf
 instance NFData MutateType where rnf = genericRnf
-instance NFData Direction where rnf = genericRnf
-instance NFData ASReplValue where rnf = genericRnf
-instance NFData ASInitDaemonConnection where rnf = genericRnf
-instance NFData ASInitConnection where rnf = genericRnf
 instance NFData ASUserClient where rnf = genericRnf
 instance NFData ASDaemonClient where rnf = genericRnf
 instance NFData ServerState where rnf = genericRnf
@@ -101,9 +95,19 @@ instance NFData BarPropType where rnf = genericRnf
 instance (NFData a, NFData b) => NFData (Update a b) where rnf = genericRnf
 instance NFData CondFormatRule where rnf = genericRnf
 instance NFData CondFormatCondition where rnf = genericRnf
-instance NFData TwoExpressionsType where rnf = genericRnf
-instance NFData OneExpressionType where rnf = genericRnf
-instance NFData NoExpressionsType where rnf = genericRnf
+instance NFData NotEqualsCondition where rnf = genericRnf
+instance NFData LessThanCondition where rnf = genericRnf
+instance NFData Selection where rnf = genericRnf
+instance NFData LeqCondition where rnf = genericRnf
+instance NFData EvalInstruction where rnf = genericRnf
+instance NFData IsNotEmptyCondition where rnf = genericRnf
+instance NFData IsNotBetweenCondition where rnf = genericRnf
+instance NFData IsEmptyCondition where rnf = genericRnf
+instance NFData IsBetweenCondition where rnf = genericRnf
+instance NFData GreaterThanCondition where rnf = genericRnf
+instance NFData GeqCondition where rnf = genericRnf
+instance NFData EqualsCondition where rnf = genericRnf
+instance NFData CustomCondition where rnf = genericRnf
 
 -- don't really care about deep evaluating these types
 instance NFData WS.Connection where rnf conn = seq conn ()

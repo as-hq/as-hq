@@ -35,6 +35,7 @@ AS/instruments/ORD.py
 AS/instruments/Stock.py
 AS/instruments/__init__.py
 AS/kernel/__init__.py
+AS/kernel/ast_transformers.py
 AS/kernel/compiler.py
 AS/kernel/displayhook.py
 AS/kernel/kernel.py

@@ -107,14 +107,14 @@ instance FromJSON KernelResponse where
       "autocomplete" -> return AutocompleteReply -- TODO
       "clear" -> ClearReply <$> v .: "success"
 
-evaluateWithScope :: EvalScope -> ASSheetId -> String -> EitherTExec CompositeValue
+evaluateWithScope :: EvalScope -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
 evaluateWithScope _ _ "" = return $ CellValue NoValue
 evaluateWithScope scope sid code = do
   (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
   case v of 
     Nothing -> case err of 
       Just e -> return . CellValue $ ValueError e ""
-      Nothing -> printWithTimeT "ERROR: received neither value nor error from kernel." >> left KernelError
+      Nothing -> return . CellValue $ ValueError "Last line of expression is empty, comment, or otherwise not evaluable." ""
     Just v -> hoistEither $ R.parseValue Python v
 
 sendMessage :: KernelMessage -> EitherTExec KernelResponse

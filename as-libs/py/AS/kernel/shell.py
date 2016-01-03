@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import ast
 import copy
+import inspect
 
 from cStringIO import StringIO
 
@@ -16,6 +17,7 @@ from traitlets import Instance, Type
 
 from .compiler import ASCompiler
 from .displayhook import ASDisplayHook
+from .ast_transformers import wrap_serialize
 
 class ASExecutionResult(object):
     """The result of a call to :meth:`ASShell.run_block`
@@ -38,6 +40,11 @@ class ASExecutionResult(object):
             raise self.error_before_exec
         if self.error_in_exec is not None:
             raise self.error_in_exec
+
+    def __repr__(self):
+        return "result: \n" + repr(self.result) + "\n\n" + \
+                "error: \n" + repr(self.error_in_exec) + "\n\n" + \
+                "display: \n" + "\n".join(self.display)
 
 
 class ASShell(InteractiveShell):
@@ -104,6 +111,9 @@ class ASShell(InteractiveShell):
     super(ASShell, self).init_instance_attrs()
     # use our custom compiler
     self.compile = ASCompiler()
+    # init serializer
+    self.serialize_post_execute = False
+    self.serializer = None
 
   def init_events(self):
     super(ASShell, self).init_events()
@@ -166,6 +176,7 @@ class ASShell(InteractiveShell):
       self.init_sheet_ns(sheet_id)
 
     if (not raw_cell) or raw_cell.isspace():
+        result.result = None
         return result
     
     if silent or isolated:
@@ -176,6 +187,7 @@ class ASShell(InteractiveShell):
 
     def error_before_exec(value):
         result.error_before_exec = value
+        result.display.append(self.get_formatted_traceback())
         return result
 
     self.events.trigger('pre_execute')
@@ -329,32 +341,49 @@ class ASShell(InteractiveShell):
     if interactivity == 'none':
         to_run_exec, to_run_interactive = nodelist, []
     elif interactivity == 'last':
-        to_run_exec, to_run_interactive = nodelist[:-1], nodelist[-1:]
+        to_run_exec, to_run_interactive = nodelist[:-1], [wrap_serialize(nodelist[-1])]
     elif interactivity == 'all':
         to_run_exec, to_run_interactive = [], nodelist
     else:
         raise ValueError("Interactivity was %r" % interactivity)
 
     try:
-      # the target namespace builds up for every line of cell code, 
-      # and is initially empty if run_cell is specified as running in isolated mode.
+        # the target namespace builds up for every line of cell code, 
+        # and is initially empty if run_cell is specified as running in isolated mode.
         sheet_ns = self.sheet_nss[sheet_id]
         target_ns = {} if isolated else sheet_ns
         source_ns = sheet_ns
+
+
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])
             code = compiler(mod, cell_name, "exec")
             if self.run_code(code, source_ns, target_ns, result):
                 return True
 
+        # FIXME: currently, you cannot pickle classes defined interactively.
+        # however, we can apply the following workaround to enable pickling
+        # during serialization of the last line, at the very least. 
+
+        # we update the user module to the built-up (target) namespace
+        # in order for pickle and shelve to correctly lookup 
+        # interactively defined variables from sys.modules['__main__']
+        # NOTE: this only works for out stdlib's use of cPickle in the 
+        # serialize() method; user calls to cPickle as part of the expression
+        # will still not work.
+        new_classes = {k:v for (k,v) in target_ns.iteritems() if inspect.isclass(v)}
+        self.user_module.__dict__.update(new_classes)
+
         for i, node in enumerate(to_run_interactive):
             mod = ast.Interactive([node])
             code = compiler(mod, cell_name, "single")
             if self.run_code(code, source_ns, target_ns, result):
                 return True
+
+        # add the newly created variables back into the sheet namespace
         if not isolated:
-          # add the newly created variables back into the sheet namespace
           self.sheet_nss[sheet_id] = target_ns
+
         # Flush softspace
         if softspace(sys.stdout, 0):
             print()
