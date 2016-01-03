@@ -47,7 +47,7 @@ clearSheet :: Connection -> ASSheetId -> IO ()
 clearSheet conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
-      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DI.getRangeKeysInSheet conn sid
+      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DB.getRangeKeysInSheet conn sid
       pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
       pluralKeys = (evalHeaderKeys ++) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
   in runRedis conn $ do

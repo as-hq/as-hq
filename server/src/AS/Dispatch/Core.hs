@@ -267,9 +267,9 @@ addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = 
 -- Essentially, this transform exists because you should delete an object before overwriting 
 -- Returns the new context and the blanked out indices, if any
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
-delPrevFatCellFromContext conn c@(Cell idx xp _ _) ctx = case xp of 
-  Expression _ _    ->  return (ctx, Nothing)
-  Coupled _ _ _ key -> if (isFatCellHead c)
+delPrevFatCellFromContext conn c@(Cell idx xp _ _ rk) ctx = case rk of 
+  Nothing  ->  return (ctx, Nothing)
+  Just key -> if (isFatCellHead c)
     then do 
       let indices = rangeKeyToIndices key
           blankCells = map blankCellAt indices

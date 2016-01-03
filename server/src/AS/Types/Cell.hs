@@ -96,7 +96,7 @@ mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
   
 -- needed for benchmarks as well
 toMap :: [ASCell] -> M.Map ASIndex ASCell
-toMap cs = M.fromList $ zip (map cellLocation cs) cs
+toMap cs = M.fromList $ zip (map (view cellLocation) cs) cs
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
