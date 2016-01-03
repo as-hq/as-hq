@@ -12,7 +12,7 @@ imagesStaticPath = "static/images/"
 -- For debugging purposes, the app behaves differently at various points in the code.
 -- if you see (if isDebug), behavior forks.
 isDebug = True
-isBenchmark = True
+isBenchmark = False
 
 largeSearchBound :: Int
 largeSearchBound = 1000
