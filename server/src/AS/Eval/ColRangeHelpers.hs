@@ -20,10 +20,15 @@ import Control.Monad
 import Control.Lens hiding (set)
 import Control.Monad.Trans.Class
 
--- | Helper methods for colRangeWithContextToIndices
+-- | Helper methods for colRangeWithContextToIndices. Used in colRange list interpolation.
 -- gets all the indices in the DB corresponding to a particular column number.
--- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells
--- and then filter!
+-- The implementation of this is REALLY STUPID. Gets all cells
+-- and then filter! timchu, 1/4/15.
+
+-- COLRANGE LIST INTERPOLATION NOTE: GUARANTEES ON THE EVALCONTEXT.
+-- colRange list interpolation doesn't guarantee that the evalContext in evalchain' 
+-- has all the cells in the column, but it does guarantee that
+-- it has all the non-empty cells in that column.
 
 -- #lenses.
 getCellCol :: ASCell -> Col
