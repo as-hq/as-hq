@@ -61,6 +61,7 @@ const FileImportDialog = {
       fileSelector.setAttribute('multiple', 'multiple');
     }
     fileSelector.addEventListener("change", (evt) => {
+      debugger;
       evt.preventDefault();
       let files = evt.target.files;
       let req = request.post(FileImportDialog.getStaticUrl());
