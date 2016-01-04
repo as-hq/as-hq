@@ -95,7 +95,7 @@ export default React.createClass({
       });                                                                                                                                                      
     }
     // When sidebar about to be visible (content size is currently full), change the content size to what it previously was
-    if (nextProps.sidebarVisible && this.state.leftWidth === '100%') {
+    if (nextProps.sidebarVisible) {
       this.setState({
         contentSize: this.state.lastContentSize
       });
