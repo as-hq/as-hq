@@ -1,25 +1,73 @@
+/* @flow */
+
 import {logDebug} from '../AS/Logger';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles} from 'material-ui';
+// $FlowFixMe
 import $ from 'jquery';
 
-const config = {
+type ResizablePanelConfigType = { 
+  separatorSize: number; 
+  minSize: number; 
+  maxSize: number; 
+  defaultSize: string; 
+};
+
+const config: ResizablePanelConfigType = {
   separatorSize: 6,
   minSize: 45,
   maxSize: 80,
   defaultSize: '70%'
 };
 
+type ResizablePanelDefaultProps = {
+  sidebarVisible: boolean; 
+  side: string; 
+};
 
-export default React.createClass({
+type ResizablePanelProps = { 
+  content: React.Element; 
+  sidebar: React.Element; 
+  sidebarVisible: boolean; 
+  side: string; 
+};
+
+type ResizablePanelState = {
+  dragging: boolean; 
+  contentSize: string; 
+  lastContentSize: string; 
+};
+
+// REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
+export default class ResizablePanel
+  extends React.Component<ResizablePanelDefaultProps, ResizablePanelProps, ResizablePanelState>
+{
 
   /**********************************************************************************************************************************/
   // Props and state methods
 
-  getInitialState() {
-    return {
+  rootPosition: { 
+    top: number; 
+    left: number; 
+    width: number; 
+    height: number; 
+  };
+
+  constructor(props: ResizablePanelDefaultProps) {
+    super(props);
+
+    // Position and size info about the entire resizable pane. Top from window, left from window, and width/height, which can be
+    // determined after the initial render
+    this.rootPosition = {
+      top:    0,
+      left:   0,
+      width:  0,
+      height: 0
+    };
+
+    this.state = {
       dragging: false,
       // The relevant dimension of the content. For example, if side = 'right', this would be the width of the content. 
       // If the side was 'top', it would be the height of the content, which would be below the sidebar. 
@@ -28,34 +76,7 @@ export default React.createClass({
       // Keeps track of the content size during closes of the sidebar, so that it "remembers" its last size upon reopening
       lastContentSize: config.defaultSize
     };
-  },
-
-  propTypes: {
-    // component with the actual content; not the sidebar
-    content: React.PropTypes.node.isRequired,
-    // sidebar content to render 
-    sidebar: React.PropTypes.node.isRequired,
-    // boolean if sidebar is visible 
-    sidebarVisible: React.PropTypes.bool,
-    // which side the sidebar pops open from
-    side: React.PropTypes.string
-  },
-
-  getDefaultProps() {
-    return {
-      sidebarVisible: false,
-      side: 'right'
-    };
-  },
-
-  // Position and size info about the entire resizable pane. Top from window, left from window, and width/height, which can be
-  // determined after the initial render
-  rootPosition: {
-    top:    0,
-    left:   0,
-    width:  0,
-    height: 0
-  },
+  }
 
   /**********************************************************************************************************************************/
   // Component lifecycle methods
@@ -64,7 +85,9 @@ export default React.createClass({
   // This is for being able to track dragging motions
   // Also initialize the rootPosition, which won't change unless the parent itself rerenders
   componentDidMount() {
+    // $FlowFixMe what's going on here? 
     document.addEventListener('mousemove', this._onMouseMove);
+    // $FlowFixMe what's going on here? 
     document.addEventListener('mouseup', this._onMouseUp);
     let root = ReactDOM.findDOMNode(this.refs.root);
     this.rootPosition = {
@@ -74,14 +97,14 @@ export default React.createClass({
       height: $(root).height()
     }
     console.log($(root).width(), $(root).offset().left, $(window).width());
-  },
+  }
 
   componentWillUnmount() {
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('mouseup', this._onMouseUp);
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: ResizablePanelDefaultProps) {
     // If the sidebar visibility prop hasn't changed, don't do anything here 
     if (this.props.sidebarVisible === nextProps.sidebarVisible) {
       return;
@@ -100,30 +123,30 @@ export default React.createClass({
         contentSize: this.state.lastContentSize
       });
     }
-  },
+  }
 
   /**********************************************************************************************************************************/
   // Mouse events
 
-  stopEvent(e) {
+  stopEvent(e: SyntheticMouseEvent) {
     e.stopPropagation();
     e.preventDefault();
-  },
+  }
 
-  _onMouseDown(e) {
+  _onMouseDown(e: SyntheticMouseEvent) {
     // Do not enable dragging if the sidebar is tucked away (not visible). Else, set dragging = true
     if (this.props.sidebarVisible) {
       this.setState({dragging: true});
     }
     this.stopEvent(e);
-  },
+  }
 
-  _onMouseUp(e) {
+  _onMouseUp(e: SyntheticMouseEvent) {
     this.setState({dragging: false});
     this.stopEvent(e);
-  },
+  }
 
-  _onMouseMove(e) {
+  _onMouseMove(e: SyntheticMouseEvent) {
     if (this.state.dragging) {
       let contentSize = 0;
       if (this.props.side === 'right') {
@@ -140,20 +163,20 @@ export default React.createClass({
       }
     }
     this.stopEvent(e);
-  },
+  }
 
   /**********************************************************************************************************************************/
   // Styling and rendering
 
-  horizontal() {
+  isHorizontal(): boolean {
     return this.props.side === 'left' || this.props.side === 'right';
-  },
+  }
 
-  getStyles() {
+  getStyles(): any {
     // The sidebar's size is the whole pane's size (percent) minus the content size (percent) minus the separator size (pixels)
     let sidebarSize = `calc(${100 - parseFloat(this.state.contentSize)}% - ${config.separatorSize}px)`;
 
-    let separatorStyle = this.horizontal() ? {
+    let separatorStyle = this.isHorizontal() ? {
       display: 'inline-block',
       verticalAlign: 'top',
       backgroundColor: 'black',
@@ -165,9 +188,9 @@ export default React.createClass({
       height: config.separatorSize,
       width: '100%',
       cursor: 'row-resize'
-    };
+    }
 
-    let contentStyle = this.horizontal() ? {
+    let contentStyle = this.isHorizontal() ? {
       display: 'inline-block',
       verticalAlign: 'top',
       width: this.state.contentSize,
@@ -179,9 +202,9 @@ export default React.createClass({
       width: '100%',
       overflow: 'hidden',
       cursor: this.state.dragging ? 'row-resize' : 'auto' 
-    };
+    }
 
-    let sidebarStyle = this.horizontal() ? {
+    let sidebarStyle = this.isHorizontal() ? {
       display: 'inline-block',
       verticalAlign: 'top',
       width: sidebarSize,
@@ -195,7 +218,7 @@ export default React.createClass({
       overflow: 'hidden', // don't show parts of the sidebar that are "outside the bounds" specified by the content
       backgroundColor: Styles.Colors.grey700,
       cursor: this.state.dragging ? 'row-resize' : 'auto' 
-    };
+    }
 
     return {
       root: {
@@ -207,9 +230,9 @@ export default React.createClass({
       content: contentStyle,
       sidebar: sidebarStyle
     };
-  },
+  }
 
-  render() {
+  render(): React.Element {
     let styles = this.getStyles();
     let content = 
       <div ref="content" style={styles.content}>
@@ -231,4 +254,20 @@ export default React.createClass({
       </div>
     );
   }
-});
+}
+
+ResizablePanel.propTypes = {
+  // component with the actual content; not the sidebar
+  content: React.PropTypes.node.isRequired,
+  // sidebar content to render 
+  sidebar: React.PropTypes.node.isRequired,
+  // boolean if sidebar is visible 
+  sidebarVisible: React.PropTypes.bool,
+  // which side the sidebar pops open from
+  side: React.PropTypes.string
+};
+
+ResizablePanel.defaultProps = {
+  sidebarVisible: false,
+  side: 'right'
+}
