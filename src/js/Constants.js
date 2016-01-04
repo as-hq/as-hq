@@ -2,12 +2,6 @@
 
 import Environment from './Environment';
 
-export const HOST_BASE_URL = 'localhost';
-export const HOST_WS_PORT = 5000;
-export const HOST_IP = '18.102.225.27';
-export const FRONTEND_PORT = '8080'; //maybe rename
-export const STATIC_PORT = '8000'; //maybe rename
-
 function keyMirror<T>(obj: T): T {
   let ret: any = {};
   var key;
@@ -23,30 +17,18 @@ function keyMirror<T>(obj: T): T {
 }
 
 var Constants = Object.assign({
-  getHostUrl(): string {
-    // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
-    // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
-    // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
-    return Constants.isRemote
-      ? ('ws://' + HOST_IP + ':' + HOST_WS_PORT)
-      : Constants.HOST_WS_URL;
+  // network parameters
+  getBackendUrl(protocol: string, port: string): string {
+    // note: "procotol" is "ws", "http", etc.
+    return protocol + '://' + (Constants.isRemote ? '18.102.225.27' : 'localhost') + ':' + port;
   },
-
-  // this file needs a refactor
-  getHostStaticUrl(): string {
-    // let baseUrl = process.env.NODE_ENV ? HOST_IP : 'localhost';
-    // logDebug("GOT ENV ARG: ", process.env.NODE_ENV);
-    // return 'ws://' + baseUrl + ':' + HOST_WS_PORT;
-    return Constants.isRemote
-      ? ('http://' + HOST_IP + ':' + STATIC_PORT)
-      : 'http://localhost:' + STATIC_PORT;
-  },
-
-  HOST_WS_URL: 'ws://' + HOST_BASE_URL + ':' + HOST_WS_PORT,
-
-  isDebug: false,
+  BACKEND_WS_PORT: '5000',
+  BACKEND_STATIC_PORT: '8000',
+  BACKEND_IMPORT_PORT: '9000',
+  FRONTEND_PORT: '8080', // maybe rename
 
   // server config parameters
+  isDebug: false,
   isProduction: true,
   isRemote: true,
   promptUser: false,

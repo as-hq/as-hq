@@ -37,7 +37,7 @@ import type {
   SetProp,
   Delete,
   ToggleProp,
-  Evaluate, 
+  Evaluate,
   EvalInstruction
 } from '../types/Messages';
 
@@ -72,7 +72,8 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import ws from '../AS/PersistentWebSocket';
 
 let ActionTypes = Constants.ActionTypes;
-let wss: ws = new ws(Constants.getHostUrl());
+console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+let wss: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 
 let currentCbs: ?ASAPICallbackPair = undefined;
 let uiTestMode: boolean = false;
@@ -235,7 +236,7 @@ wss.onopen = (evt) => {
 
 const API = {
   sendMessageWithAction(action: any) {
-    let msg = {serverAction: action}; 
+    let msg = {serverAction: action};
     logDebug(`Queueing ${msg.serverAction} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.serverAction} message`);
@@ -264,7 +265,7 @@ const API = {
   },
 
   ackMessage(innerClient: WebSocket) {
-    let msg = { serverAction: { tag: "Acknowledge", contents: [] } }; 
+    let msg = { serverAction: { tag: "Acknowledge", contents: [] } };
     innerClient.send(JSON.stringify(msg));
   },
 
@@ -330,9 +331,9 @@ const API = {
     let asIndex = U.Conversion.simpleToASIndex(origin),
         msg: Evaluate = {
           tag: "Evaluate",
-          contents: [{ 
-            tag: "EvalInstruction", 
-            evalXp: xp, 
+          contents: [{
+            tag: "EvalInstruction",
+            evalXp: xp,
             evalLoc: U.Conversion.simpleToASIndex(origin)
           }]
         };
@@ -445,20 +446,20 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getBar(bInd: BarIndex) { 
+  getBar(bInd: BarIndex) {
     let msg = {
       tag: "GetBar",
       contents: bInd
     };
-    API.sendMessageWithAction(msg); 
+    API.sendMessageWithAction(msg);
   },
 
-  getIsCoupled(ind: ASIndex) { 
+  getIsCoupled(ind: ASIndex) {
     let msg = {
       tag: "GetIsCoupled",
       contents: ind
     };
-    API.sendMessageWithAction(msg); 
+    API.sendMessageWithAction(msg);
   },
 
   setColumnWidth(col: number, width: number) {
