@@ -28,7 +28,7 @@ import Data.Maybe
 handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
 handleMutateSheet uc state mutateType = do
   let sid = userSheetId uc
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   -- update cells 
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
   let newCells = map (cellMap mutateType) oldCells

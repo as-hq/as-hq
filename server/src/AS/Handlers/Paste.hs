@@ -30,25 +30,25 @@ import Control.Lens
 handleCopy :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
 handleCopy uc state from to = do
   putStrLn $ "IN HANDLE COPY"
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
   errOrUpdate <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate state uc errOrUpdate
 
 handleCut :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
-handleCut uc state from to = do
-  conn <- dbConn <$> readMVar state
-  newCells <- getCutCells conn from to
-  errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate state uc errOrUpdate
+handleCut uc mstate from to = do
+  state <- readMVar mstate
+  newCells <- getCutCells (state^.appSettings.graphDbAddress) (state^.dbConn) from to
+  errOrUpdate <- runDispatchCycle mstate newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate mstate uc errOrUpdate
 
 -- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
 -- could restructure this in such a way that encapsulation is not broken. 
 performCopy :: MVar ServerState -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
-performCopy state from to cs = do 
-  conn <- dbConn <$> readMVar state
+performCopy mstate from to cs = do 
+  conn <- view dbConn <$> readMVar mstate
   toCells <- getCopyCells conn from to
-  runDispatchCycle state toCells DescendantsWithParent cs id
+  runDispatchCycle mstate toCells DescendantsWithParent cs id
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers
@@ -106,11 +106,11 @@ shiftRangeKey offset c = case c^.cellRangeKey of -- #lens
   Nothing -> Just c
   Just (RangeKey ind dims) -> maybe Nothing (Just . (c &) . set cellRangeKey . Just . flip RangeKey dims) $ shiftInd offset ind
 
-getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
-getCutCells conn from to = do 
+getCutCells :: GraphAddress -> Connection -> ASRange -> ASRange -> IO [ASCell]
+getCutCells addr conn from to = do 
   let offset = getRangeOffset from to
   toCells      <- getCutToCells conn from offset
-  newDescCells <- getCutNewDescCells conn from offset
+  newDescCells <- getCutNewDescCells addr conn from offset
   let blankedCells = blankCellsAt (rangeToIndices from) -- want to forget about tags
   -- precedence: toCells > updated descendant cells > blank cells
   return $ mergeCells toCells (mergeCells newDescCells blankedCells)
@@ -130,9 +130,9 @@ getCutToCells conn from offset = do
   return $ catMaybes $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
-getCutNewDescCells :: Connection -> ASRange -> Offset -> IO [ASCell]
-getCutNewDescCells conn from offset = do 
-  immDescLocs <- getImmediateDescendantsForced (rangeToIndices from)
+getCutNewDescCells :: GraphAddress -> Connection -> ASRange -> Offset -> IO [ASCell]
+getCutNewDescCells addr conn from offset = do 
+  immDescLocs <- getImmediateDescendantsForced addr (rangeToIndices from)
   let immDescLocs' = filter (not . (rangeContainsIndex from)) immDescLocs
       changeExpr   = shiftExpressionForCut from offset
   descs <- catMaybes <$> getCells conn immDescLocs'

@@ -6,6 +6,7 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Commits
 import AS.Types.Eval
+import AS.Types.Network
 
 import AS.Dispatch.Core
 --import AS.Dispatch.Repl
@@ -18,6 +19,7 @@ import AS.DB.Transaction
 import AS.Reply
 
 import Control.Concurrent
+import Control.Lens hiding ((.=))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
@@ -26,7 +28,7 @@ handleEval :: ASUserClient -> MVar ServerState -> [EvalInstruction] -> IO ()
 handleEval uc state evalInstructions  = do
   let xps  = map evalXp evalInstructions
       inds = map evalLoc evalInstructions
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   oldProps <- mapM (getPropsAt conn) inds
   let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing) $ zip3 xps inds oldProps
   errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (userCommitSource uc) id
@@ -39,24 +41,24 @@ handleEval uc state evalInstructions  = do
 --   msg' <- runReplDispatch sid xp
 --   sendToOriginal uc msg'
 
-handleEvalHeader :: ASUserClient -> MVar ServerState -> ASExpression -> IO ()
+handleEvalHeader :: ASUserClient -> ServerState -> ASExpression -> IO ()
 handleEvalHeader uc state xp@(Expression str lang) = do
   let sid = userSheetId uc
-  conn <- dbConn <$> readMVar state
-  setEvalHeader conn sid lang str
-  msg' <- runEvalHeader sid xp
+  setEvalHeader (state^.dbConn) sid lang str
+  msg' <- runEvalHeader (state^.appSettings) sid xp
   sendToOriginal uc msg'
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB
 handleDecouple :: ASUserClient -> MVar ServerState -> IO ()
-handleDecouple uc state = do 
-  conn <- dbConn <$> readMVar state
-  let src = userCommitSource uc
+handleDecouple uc mstate = do 
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      src = userCommitSource uc
   mCommit <- getTempCommit conn src
   case mCommit of
     Nothing -> return ()
     Just c -> do
-      updateDBWithCommit conn src c
-      broadcastSheetUpdate state $ sheetUpdateFromCommit c
+      updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
+      broadcastSheetUpdate mstate $ sheetUpdateFromCommit c
 

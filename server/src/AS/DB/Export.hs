@@ -11,7 +11,7 @@ import AS.DB.Clear as DC
 import AS.DB.Expanding as DE
 import AS.DB.Graph as G (recompute)
 
-import Control.Lens
+import Control.Lens hiding ((.=))
 
 import Database.Redis
 

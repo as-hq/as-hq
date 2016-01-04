@@ -76,7 +76,7 @@ handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 handleOpen :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
 handleOpen uc state sid = do 
   -- update state
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
       startWindow = Window sid (-1,-1) (-1,-1)
   US.modifyUser makeNewWindow uc state
@@ -100,30 +100,31 @@ handleOpen uc state sid = do
 -- 
 -- Also, might want to eventually send back things besides cells as well. 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASWindow -> IO ()
-handleUpdateWindow cid state w = do
-  curState <- readMVar state
-  let (Just user') = US.getUserByClientId cid curState -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
+handleUpdateWindow cid mstate w = do
+  state <- readMVar mstate
+  let conn = state^.dbConn
+  let (Just user') = US.getUserByClientId cid state -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
   let oldWindow = userWindow user'
-  (flip catch) (badCellsHandler (dbConn curState) user') (do
+  (flip catch) (badCellsHandler state user') (do
     let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells (dbConn curState) $ concatMap rangeToIndices newLocs
+    mcells <- DB.getCells conn $ concatMap rangeToIndices newLocs
     sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
-    US.modifyUser (updateWindow w) user' state)
+    US.modifyUser (updateWindow w) user' mstate)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
 -- from getting lost and doesn't require us to manually reset the server.
-badCellsHandler :: R.Connection -> ASUserClient -> SomeException -> IO ()
-badCellsHandler conn uc e = do
+badCellsHandler :: ServerState -> ASUserClient -> SomeException -> IO ()
+badCellsHandler state uc e = do
   logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
   printWithTime "Undoing last commit"
-  DT.undo conn (userCommitSource uc)
+  DT.undo (state^.appSettings.graphDbAddress) (state^.dbConn) (userCommitSource uc)
   return ()
 
 handleGet :: ASUserClient -> MVar ServerState -> [ASIndex] -> IO ()
 handleGet uc state locs = do
-  curState <- readMVar state
-  mcells <- DB.getCells (dbConn curState) locs
+  conn <- view dbConn <$> readMVar state
+  mcells <- DB.getCells conn locs
   sendToOriginal uc $ ClientMessage $ PassCellsToTest $ catMaybes mcells
 -- handleGet uc state (PayloadList Sheets) = do
 --   curState <- readMVar state
@@ -147,38 +148,44 @@ handleGet uc state locs = do
 
 handleIsCoupled :: ASUserClient -> MVar ServerState -> ASIndex -> IO ()
 handleIsCoupled uc state loc = do 
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   mCell <- DB.getCell conn loc
   let isCoupled = maybe False (isJust . view cellRangeKey) mCell
   sendToOriginal uc $ ClientMessage $ PassIsCoupledToTest isCoupled
 
 
 handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
-handleClear client state sid = do
-  conn <- dbConn <$> readMVar state
-  DC.clearSheet conn sid
-  G.recompute conn
-  broadcastTo state [sid] $ ClientMessage $ ClearSheet sid
+handleClear client mstate sid = do
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
+  DC.clearSheet graphAddress conn sid
+  G.recompute graphAddress conn
+  broadcastTo mstate [sid] $ ClientMessage $ ClearSheet sid
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
-handleUndo uc state = do
-  conn <- dbConn <$> readMVar state
+handleUndo uc mstate = do
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
   printWithTime "right before commit"
-  commit <- DT.undo conn (userCommitSource uc)
+  commit <- DT.undo graphAddress conn (userCommitSource uc)
   let errOrUpdate = maybe (Left TooFarBack) (Right . sheetUpdateFromCommit . flipCommit) commit
-  broadcastErrOrUpdate state uc errOrUpdate
+  broadcastErrOrUpdate mstate uc errOrUpdate
 
 handleRedo :: ASUserClient -> MVar ServerState -> IO ()
-handleRedo uc state = do
-  conn <- dbConn <$> readMVar state
-  commit <- DT.redo conn (userCommitSource uc)
+handleRedo uc mstate = do
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
+  commit <- DT.redo graphAddress conn (userCommitSource uc)
   let errOrUpdate = maybe (Left TooFarForwards) (Right . sheetUpdateFromCommit) commit
-  broadcastErrOrUpdate state uc errOrUpdate
+  broadcastErrOrUpdate mstate uc errOrUpdate
 
 -- Drag/autofill
 handleDrag :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
 handleDrag uc state selRng dragRng = do
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   nCells <- IU.getCellsRect conn selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
   errOrUpdate <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
@@ -211,32 +218,36 @@ handleBugReport uc report = do
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 handleUpdateCondFormatRules :: ASUserClient -> MVar ServerState -> CondFormatRuleUpdate -> IO ()
-handleUpdateCondFormatRules uc state u@(Update updatedRules deleteRuleIds) = do
-  conn <- dbConn <$> readMVar state
-  let src = userCommitSource uc 
+handleUpdateCondFormatRules uc mstate u@(Update updatedRules deleteRuleIds) = do
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
+      src = userCommitSource uc 
       sid = srcSheetId src
   rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
   oldRules <- DB.getCondFormattingRulesInSheet conn sid
   let allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
-  errOrCells <- runEitherT $ conditionallyFormatCells conn sid cells allRulesUpdated emptyContext
+  errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
-  either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
-  broadcastErrOrUpdate state uc $ fmap sheetUpdateFromCommit errOrCommit
+  either (const $ return ()) (DT.updateDBWithCommit graphAddress conn src) errOrCommit
+  broadcastErrOrUpdate mstate uc $ fmap sheetUpdateFromCommit errOrCommit
 
 handleGetBar :: ASUserClient -> MVar ServerState -> BarIndex -> IO ()
 handleGetBar uc state bInd = do 
-  conn <- dbConn <$> readMVar state
-  mBar <-  DB.getBar conn bInd
+  conn <- view dbConn <$> readMVar state
+  mBar <- DB.getBar conn bInd
   let msg = maybe (ClientMessage . PassBarToTest $ Bar bInd BP.emptyProps) (ClientMessage . PassBarToTest) mBar
   sendToOriginal uc msg
 
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: ASUserClient -> MVar ServerState -> BarIndex -> BarProp -> IO ()
-handleSetBarProp uc state bInd prop = do 
-  conn <- dbConn <$> readMVar state
+handleSetBarProp uc mstate bInd prop = do 
+  state <- readMVar mstate
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
   oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
   let newProps = BP.setProp prop oldProps
       newBar   = Bar bInd newProps
@@ -246,7 +257,7 @@ handleSetBarProp uc state bInd prop = do
   time <- getASTime
   let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
       commit = (emptyCommitWithTime time) { barDiff = bd }
-  DT.updateDBWithCommit conn (userCommitSource uc) commit
+  DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
   sendToOriginal uc $ ClientMessage NoAction
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
@@ -254,19 +265,19 @@ handleSetBarProp uc state bInd prop = do
 -- so we just send alphasheets files as binary data over websockets and immediately load
 -- into the current sheet.
 handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
-handleImportBinary c state bin = do
-  redisConn <- dbConn <$> readMVar state
+handleImportBinary c mstate bin = do
+  state <- readMVar mstate
   case (S.decodeLazy bin :: Either String ExportData) of
     Left s ->
       let msg = failureMessage $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (conn c)
     Right exported -> do
-      DX.importData redisConn exported
+      DX.importData (state^.appSettings.graphDbAddress) (state^.dbConn) exported
       let msg = ClientMessage $ LoadImportedCells $ exportCells exported
       U.sendMessage msg (conn c)
 
 handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
-handleExport uc state sid  = do
-  conn  <- dbConn <$> readMVar state
+handleExport uc state sid = do
+  conn  <- view dbConn <$> readMVar state
   exported <- DX.exportData conn sid
   WS.sendBinaryData (userConn uc) (S.encodeLazy exported)

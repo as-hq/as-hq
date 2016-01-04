@@ -21,7 +21,6 @@ import qualified AS.Kernels.Python.Eval as KP
 
 import Prelude
 import System.Environment (getArgs)
-import System.ZMQ4.Monadic
 
 import Control.Exception
 import Control.Monad (forever, when)
@@ -33,7 +32,6 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
-import qualified Data.Map as M
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
@@ -45,6 +43,8 @@ import qualified Database.Redis as R
 import Language.R.Instance as R
 import Language.R.QQ
 
+import Control.Lens hiding ((.=))
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
@@ -53,25 +53,28 @@ main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
   state <- initApp
+  curState <- readMVar state
+  let settings = curState^.appSettings
 
   if isDebug -- set in Settings.hs
-    then initDebug conn state
+    then initDebug state
     else return ()
 
-  G.recompute conn
+  G.recompute (settings^.graphDbAddress) (curState^.dbConn)
   putStrLn "RECOMPUTED DAG"
-  putStrLn $ "server started on port " ++ (show ports)
-  mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
+
+  putStrLn $ "server started on port " ++ (show $ settings^.backendWsPort)
+  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
   putStrLn $ "DONE WITH MAIN"
 
-initApp :: IO MVar ServerState
+initApp :: IO (MVar ServerState)
 initApp = do
   -- init state
   conn <- R.connect DI.cInfo
   settings <- getSettings 
   state <- newMVar $ State [] [] conn settings 
   -- init python kernel
-  KP.initialize conn
+  KP.initialize (settings^.pyKernelAddress) conn
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
@@ -87,15 +90,15 @@ initApp = do
 
 getSettings :: IO AppSettings
 getSettings = return $ AppSettings
-                        { backendWsAddress = "0.0.0.0"
-                        , backendWsPort = 5000
-                        , graphDbHost = "tcp://localhost:5555"
-                        , pyKernelHost = "tcp://localhost:20000"
+                        { _backendWsAddress = "0.0.0.0"
+                        , _backendWsPort = 5000
+                        , _graphDbAddress = "tcp://localhost:5555"
+                        , _pyKernelAddress = "tcp://localhost:20000"
                         }
 
 -- |  for debugging. Only called if isDebug is true.
-initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug _ _ = do
+initDebug :: MVar ServerState -> IO ()
+initDebug _ = do
   putStrLn "\n\n Evaluating debug statements..."
   return ()
 
@@ -174,9 +177,9 @@ handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
   logError logMsg (userCommitSource user)
-  port <- appPort <$> readMVar state
+  settings <- view appSettings <$> readMVar state
   purgeZombies state
-  WS.runServer S.wsAddress port $ application state
+  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
 
 -- | Sometimes, onDisconnect gets interrupted. (Not sure exactly what.) At any rate, 
 -- when this happens, a client that's disconnected is still stored in the state. 
@@ -184,7 +187,7 @@ handleRuntimeException user state e = do
 -- a robust solution. 
 purgeZombies :: MVar ServerState -> IO ()
 purgeZombies state = do 
-  ucs <- userClients <$> readMVar state
+  ucs <- view userClients <$> readMVar state
   (flip mapM_) ucs (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
                                  (onDisconnect' uc state))
 
@@ -197,7 +200,7 @@ onDisconnect' user state _ = do
 
 processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processMessage client state message = do
-  dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
+  dbConnection <- view dbConn <$> readMVar state -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if (isPermissible || isDebug)
     then handleServerMessage client state message

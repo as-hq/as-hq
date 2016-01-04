@@ -26,15 +26,13 @@ import Control.Lens hiding ((.=))
 evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 evalEndware mstate (CommitSource sid uid) ctx = do 
   state <- lift $ readMVar mstate
-  let conn = state^.dbConn
-      kernelAddress = state^.appSettings.pyKernelAddress
-      cells0 = newCellsInContext ctx
+  let cells0 = newCellsInContext ctx
       cells1 = changeExcelExpressions cells0
       blankedCells = blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
   mapM_ (lift . DM.possiblyCreateDaemon mstate uid) cells0
-  oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
+  oldRules <- lift $ DB.getCondFormattingRulesInSheet (state^.dbConn) sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
-  cells2 <- conditionallyFormatCells kernelAddress conn sid (cells1 ++ blankedCells) updatedRules ctx
+  cells2 <- conditionallyFormatCells state sid (cells1 ++ blankedCells) updatedRules ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------

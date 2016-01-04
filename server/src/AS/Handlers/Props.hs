@@ -23,7 +23,7 @@ handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> I
 handleToggleProp uc state p rng = do
   let locs = rangeToIndices rng
       pt   =  propType p
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   cells <- getPossiblyBlankCells conn locs
   let (cellsWithProp, cellsWithoutProp) = partition (hasPropType pt . view cellProps) cells
   -- if there's a single prop present in the range, remove this prop from all the cells; 
@@ -32,14 +32,12 @@ handleToggleProp uc state p rng = do
     then do 
       let cells' = map (cellProps %~ removeProp pt) cellsWithProp
           (emptyCells, nonEmptyCells) = partition isEmptyCell cells'
-      conn <- dbConn <$> readMVar state
       setCells conn nonEmptyCells
       deleteLocs conn $ mapCellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
       sendSheetUpdate uc $ sheetUpdateFromCells cells'
     else do
       let cells' = map (cellProps %~ setProp p) cellsWithoutProp
-      conn <- dbConn <$> readMVar state
       setCells conn cells'
       mapM_ (setPropEndware state p) cells'
       sendSheetUpdate uc $ sheetUpdateFromCells cells'

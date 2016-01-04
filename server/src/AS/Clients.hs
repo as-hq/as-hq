@@ -26,6 +26,7 @@ import qualified Data.Text as T
 
 import Control.Concurrent
 import Control.Monad (when)
+import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
@@ -57,8 +58,8 @@ instance Client ASUserClient where
     when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
       printObj "Message" (show message)
-    redisConn <- dbConn <$> readMVar state
-    storeLastMessage redisConn message (userCommitSource user)
+    curState <- readMVar state
+    storeLastMessage (curState^.dbConn) message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
     case (serverAction message) of
@@ -72,7 +73,7 @@ instance Client ASUserClient where
       Export sid                  -> handleExport user state sid
       Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
       -- EvaluateRepl          -> handleEvalRepl user payload
-      EvaluateHeader xp           -> handleEvalHeader user state xp
+      EvaluateHeader xp           -> handleEvalHeader user curState xp -- mvar not necessary; we should refactor more handlers like this. #anand 1/4/16
       Get locs                    -> handleGet user state locs
       GetIsCoupled loc            -> handleIsCoupled user state loc
       Delete sel                  -> handleDelete user state sel
@@ -82,7 +83,7 @@ instance Client ASUserClient where
       Copy from to                -> handleCopy user state from to
       Cut from to                 -> handleCut user state from to
       ToggleProp prop rng         -> handleToggleProp user state prop rng
-      SetProp prop rng            -> handleSetProp user state prop rng
+      SetProp prop rng            -> handleSetProp (curState^.dbConn) user prop rng
       Repeat sel                  -> handleRepeat user state sel
       BugReport report            -> handleBugReport user report
       -- JumpSelect            -> handleJumpSelect user state payload
@@ -116,7 +117,7 @@ instance Client ASDaemonClient where
       handleEval' dm state evalInstructions  = do
         let xps  = map evalXp evalInstructions
             inds = map evalLoc evalInstructions 
-        conn <- dbConn <$> readMVar state
+        conn <- view dbConn <$> readMVar state
         oldProps <- mapM (getPropsAt conn) inds
         let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing) $ zip3 xps inds oldProps
         errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id

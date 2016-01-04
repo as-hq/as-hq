@@ -85,10 +85,12 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
-runDispatchCycle state cs descSetting src updateTransform = do
+runDispatchCycle mstate cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
-  conn <- dbConn <$> readMVar state
+  state <- readMVar mstate
   time <- getASTime 
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
   rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
@@ -97,38 +99,40 @@ runDispatchCycle state cs descSetting src updateTransform = do
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
-    ctxAfterDispatch <- dispatch conn roots initialContext descSetting
+    ctxAfterDispatch <- dispatch state roots initialContext descSetting
     printWithTimeT "finished dispatch"
     let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
-    finalCells <- EE.evalEndware state src transformedCtx
+    finalCells <- EE.evalEndware mstate src transformedCtx
     let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
-    DT.updateDBWithContext conn src ctx
-  either (const $ G.recompute conn) (const $ return ()) errOrCommit 
+    DT.updateDBWithContext state src ctx
+  either (const $ G.recompute graphAddress conn) (const $ return ()) errOrCommit 
   return . fmap sheetUpdateFromCommit $ errOrCommit
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
-dispatch :: Connection -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
-dispatch conn [] context _ = printWithTimeT "empty dispatch" >> return context
-dispatch conn roots oldContext descSetting = do
+dispatch :: ServerState -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
+dispatch state [] context _ = printWithTimeT "empty dispatch" >> return context
+dispatch state roots oldContext descSetting = do
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings^.graphDbAddress
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
-  G.setCellsAncestors roots
-  descLocs       <- getEvalLocs conn roots descSetting
+  G.setCellsAncestors graphAddress roots
+  descLocs       <- getEvalLocs state roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
   cellsToEval    <- getCellsToEval conn oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
-  ancLocs        <- G.getImmediateAncestors $ indicesToGraphReadInput descLocs
+  ancLocs        <- G.getImmediateAncestors graphAddress $ indicesToGraphReadInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
   printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
-  evalChainWithException conn cellsToEval modifiedContext -- start with current cells, then go through descendants
+  evalChainWithException state cellsToEval modifiedContext -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -140,13 +144,14 @@ dispatch conn roots oldContext descSetting = do
 -- dependencies are evaluated first.)
 -- TODO: throw exceptions for permissions/locking
 -- Currently, the graph returns only indices as descendants
-getEvalLocs :: Connection -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
-getEvalLocs conn origCells descSetting = do
+getEvalLocs :: ServerState -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
+getEvalLocs state origCells descSetting = do
   let locs = mapCellLocation origCells
-  vLocs <- lift $ DB.getVolatileLocs conn -- Accounts for volatile cells being reevaluated each time
+  vLocs <- lift $ DB.getVolatileLocs (state^.dbConn) -- Accounts for volatile cells being reevaluated each time
+  let graphAddress = state^.appSettings.graphDbAddress
   case descSetting of 
-    ProperDescendants -> G.getProperDescendantsIndices $ (locs ++ vLocs)
-    DescendantsWithParent -> G.getDescendantsIndices $ (locs ++ vLocs)
+    ProperDescendants -> G.getProperDescendantsIndices graphAddress $ (locs ++ vLocs)
+    DescendantsWithParent -> G.getDescendantsIndices graphAddress $ (locs ++ vLocs)
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 
@@ -218,7 +223,7 @@ evalChain' state (c@(Cell loc xp val ps rk):cs) ctx = do
     Just key -> if (isFatCellHead c)
       then getEvalResult xp 
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
-  newContext <- contextInsert conn c cvf ctx
+  newContext <- contextInsert state c cvf ctx
   evalChain state cs newContext
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -315,8 +320,9 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
   -- after all side effects due to insertion have been handled)
   -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
-contextInsert :: Connection -> ASCell -> Formatted CompositeValue -> EvalTransform
-contextInsert conn c@(Cell idx xp _ ps rk) (Formatted cv f) ctx = do  -- #lens
+contextInsert :: ServerState -> ASCell -> Formatted CompositeValue -> EvalTransform
+contextInsert state c@(Cell idx xp _ ps rk) (Formatted cv f) ctx = do  -- #lens
+  let conn = state^.dbConn
   printWithTimeT $ "running context insert with old cell " ++ (show c)
   printWithTimeT $ "the context insert has value " ++ (show cv)
   let maybeFatCell = DE.decomposeCompositeValue c cv
@@ -335,14 +341,14 @@ contextInsert conn c@(Cell idx xp _ ps rk) (Formatted cv f) ctx = do  -- #lens
   case maybeFatCell of
     Nothing -> do 
       printWithTimeT "\nrunning decouple transform"
-      dispatch conn decoupledCells ctxWithEvalCells ProperDescendants
+      dispatch state decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map ((M.!) (virtualCellsMap ctxWithEvalCells)) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
-      dispatch conn dispatchCells ctxWithEvalCells ProperDescendants
+      dispatch state dispatchCells ctxWithEvalCells ProperDescendants
       -- ^ propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
       -- Only the head of the list has an ancestor at this point.
