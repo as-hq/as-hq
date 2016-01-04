@@ -250,6 +250,7 @@ addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx)
     ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
 
+-- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
 addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
