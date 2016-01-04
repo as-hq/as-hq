@@ -7,7 +7,7 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 
-import AS.Clients
+import AS.Clients()
 import AS.Logging
 import AS.Window
 import AS.Util (sendMessage)
@@ -39,8 +39,6 @@ import qualified Data.List as L
 
 import qualified Network.WebSockets as WS
 import qualified Database.Redis as R
-
-import Control.Monad.Trans.Either
 
 import Language.R.Instance as R
 import Language.R.QQ
@@ -91,7 +89,7 @@ initApp = do
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug conn state = do
+initDebug _ _ = do
   putStrLn "\n\n Evaluating debug statements..."
   return ()
 

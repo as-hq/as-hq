@@ -201,12 +201,12 @@ getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
 
 -- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn ctx rKey = if (isJust inRemoved) -- #lens
+getRangeDescriptorUsingContext conn ctx rKey = if isJust inRemoved -- #lens
   then return Nothing 
   else maybe (getRangeDescriptor conn rKey) (return . Just) inAdded
   where
-    inRemoved = find (\d -> d == rKey) (oldRangeKeysInContext ctx)
-    inAdded = find (\d -> descriptorKey d == rKey) (newRangeDescriptorsInContext ctx)
+    inRemoved = find (== rKey) $ oldRangeKeysInContext ctx
+    inAdded = find ((== rKey) . descriptorKey) $ newRangeDescriptorsInContext ctx
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
