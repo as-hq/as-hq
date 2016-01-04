@@ -52,7 +52,7 @@ updateDBWithContext conn src ctx = do
 -- the one for generating the commit, but by batching them together we get to make one fewer call to 
 -- the DB. (Alex 12/24)
 evalContextToCommitWithDecoupleInfo :: Connection -> ASSheetId -> EvalContext -> IO CommitWithDecoupleInfo
-evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp (SheetUpdate cu bu du cfru)) = do
+evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu bu du cfru)) = do
   bdiff  <- updateToDiff bu $ fmap catMaybes . mapM (DB.getBar conn)
   ddiff  <- updateToDiff du $ fmap catMaybes . mapM (DB.getRangeDescriptor conn)
   cfdiff <- updateToDiff cfru $ DB.getCondFormattingRules conn sid

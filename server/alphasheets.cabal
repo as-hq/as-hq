@@ -127,6 +127,7 @@ library
                      , hashmap
                      , hashable
                      , unordered-containers
+                     , safe
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

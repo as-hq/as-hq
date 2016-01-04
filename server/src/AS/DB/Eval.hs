@@ -44,8 +44,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
   case cell^.cellRangeKey of 
     Nothing -> error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
     Just rKey -> do 
-      mDescriptor <- DB.getRangeDescriptorUsingContext conn ctx rKey
-      case mDescriptor of
+      case virtualRangeDescriptorAt ctx rKey of
         Nothing -> error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = rangeKeyToIndices rKey
