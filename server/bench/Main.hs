@@ -13,6 +13,7 @@ import AS.Types.CellProps
 import AS.Types.Eval
 import AS.Types.Messages
 import AS.Types.DB
+import AS.Handlers.Paste (performCopy)
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
@@ -36,8 +37,13 @@ import Control.Monad.Trans.Either
 import Control.Lens hiding (has)
 import Criterion.Main (defaultMain)
 
+setTestCellsInDB :: [Int] -> IO ()
+setTestCellsInDB = (R.connect DI.cInfo >>=) . flip DB.setCells . testCells
+
 main :: IO ()
 main = do
+  setTestCellsInDB [1]
+
   defaultMain [
     xdescribe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
@@ -61,13 +67,13 @@ main = do
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
         xdescribe "misc cell datastructures"
           [ it "creates 10000-cell map" $
-              run (\cs -> M.fromList $ zip (map (view cellLocation) cs) cs) cells
+              run (\cs -> M.fromList $ zip (mapCellLocation cs) cs) cells
 
           , it "creates 10000-cell hashmap" $
-              run (\cs -> H.fromList $ zip (map (view cellLocation) cs) cs) cells
+              run (\cs -> H.fromList $ zip (mapCellLocation cs) cs) cells
 
           , it "inserts 10000 cells into a map" $ 
-              run (\cs -> insertMultiple (M.empty) (map (view cellLocation) cs) cs) cells
+              run (\cs -> insertMultiple (M.empty) (mapCellLocation cs) cs) cells
 
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
@@ -98,4 +104,10 @@ main = do
       , it "evaluates range(10000)" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "range(10000)"
       ]
+
+    , has () $ \ ~(myEnv, _) -> 
+        describe "copy/paste" 
+          [ it "copies 20x20 grid" $
+              runIO $ performCopy (envState myEnv) (Range "BENCH_ID" ((1,1),(1,1))) (Range "BENCH_ID" ((1,1), (20,20))) (CommitSource "BENCH_ID" "")
+          ]
     ]

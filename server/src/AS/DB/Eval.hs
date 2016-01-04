@@ -28,9 +28,7 @@ import Control.Monad.Trans.Either
 getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
 getCellsWithContext conn (EvalContext { virtualCellsMap = mp }) locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
   where
-    replaceWithContext (l, c) = case (M.lookup l mp) of 
-      Just foundCell -> Just foundCell
-      Nothing -> c
+    replaceWithContext (l, c) = maybe c Just $ M.lookup l mp
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Reference conversions/lookups
@@ -46,8 +44,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
   case cell^.cellRangeKey of 
     Nothing -> error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
     Just rKey -> do 
-      mDescriptor <- DB.getRangeDescriptorUsingContext conn ctx rKey
-      case mDescriptor of
+      case virtualRangeDescriptorAt ctx rKey of
         Nothing -> error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = rangeKeyToIndices rKey

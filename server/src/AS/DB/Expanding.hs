@@ -55,37 +55,13 @@ getCellsBeforeDecoupling conn key = catMaybes <$> DB.getCells conn (rangeKeyToIn
 -------------------------------------------------------------------------------------------------------------------------
 -- Range keys
 
+-- Seems obsolete now. (--Alex 1/3/16)
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
-getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
-getFatCellsInRange conn rng = do
-  let sid = rangeSheetId rng
-  rangeKeys <- DB.getRangeKeysInSheet conn sid
-  let rects = map rangeRect rangeKeys
-      zipRects = zip rangeKeys rects
-      zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
-  return $ map fst zipRectsContained
-
-getFatCellIntersections :: Connection -> EvalContext -> Either [ASIndex] [RangeKey] -> IO [RangeDescriptor]
-getFatCellIntersections conn ctx (Left locs) = (filter descriptorIntersects) . concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
-  where
-    sheetIds = L.nub $ map locSheetId locs
-    descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)
-    anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
-    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
-
-getFatCellIntersections conn ctx (Right keys) = do
-  descriptors <- concat <$> mapM (getRangeDescriptorsInSheetWithContext conn ctx) sheetIds
-  printObj "Checking intersections against keys in sheet" descriptors
-  return $ descriptorsIntersectingKeys descriptors keys
-    where 
-      sheetIds = L.nub $ map (locSheetId . keyIndex) keys
-      -- given a list of keys and a descriptor, return True iff the descriptor intersects any of the keys
-      descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
-      descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
-      keysIntersect k1 k2    = rectsIntersect (rangeRect k1) (rangeRect k2)
-      rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
-        | y2 < y' = False 
-        | y > y2' = False
-        | x2 < x' = False 
-        | x > x2' = False
-        | otherwise = True 
+-- getFatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
+-- getFatCellsInRange conn rng = do
+--   let sid = rangeSheetId rng
+--   rangeKeys <- DB.getRangeKeysInSheet conn sid
+--   let rects = map rangeRect rangeKeys
+--       zipRects = zip rangeKeys rects
+--       zipRectsContained = filter (\(_, rect) -> rangeContainsRect rng rect) zipRects
+--   return $ map fst zipRectsContained

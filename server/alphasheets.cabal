@@ -128,6 +128,7 @@ library
                      , hashable
                      , unordered-containers
                      , safecopy
+                     , safe
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -185,6 +186,7 @@ benchmark alphasheets-bench
                     , containers
                     , hashmap
                     , hashable
+                    , lens
                     , hashtables
                     , lens
   PkgConfig-Depends:  python

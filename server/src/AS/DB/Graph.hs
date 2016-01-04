@@ -149,9 +149,7 @@ execGraphWriteQuery q = runZMQ $ do
   return ()
 
 shouldSetRelationsOfCellWhenRecomputing :: ASCell -> Bool 
-shouldSetRelationsOfCellWhenRecomputing cell = case cell^.cellRangeKey of 
-  Just (RangeKey idx _) -> cell^.cellLocation == idx -- should be a fat cell head
-  Nothing -> True -- keep normal cells
+shouldSetRelationsOfCellWhenRecomputing cell =  maybe True ((== cell^.cellLocation) . keyIndex) $ cell^.cellRangeKey
 
 recompute :: R.Connection -> IO ()
 recompute conn = do

@@ -77,9 +77,7 @@ lexer = P.makeTokenParser Lang.haskellDef
 cellJsonValue :: ASLanguage -> Parser ASValue
 cellJsonValue lang = f =<< (try $ json lang)
   where 
-    f js = case (extractCellValue js) of 
-      Just v -> return v
-      Nothing -> complain
+    f js = maybe complain return $ extractCellValue js
 
 -----------------------------------------------------------------------------------------------------------------------
 -- composite parsers
@@ -99,9 +97,7 @@ parseComposite lang =
       f =<< try (json lang) 
   <|> complain
   where f js = case (js .$> "tag") of 
-            Just tag -> case (extractCompositeValue tag js) of 
-              Just val -> return val
-              Nothing -> complain
+            Just tag -> maybe complain return $ extractCompositeValue tag js
             Nothing -> fail "expecting field \"tag\" in complex value"
 
 extractCompositeValue :: JSONKey -> JSON -> Maybe CompositeValue

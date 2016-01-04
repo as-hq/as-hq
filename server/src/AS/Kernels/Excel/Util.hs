@@ -36,9 +36,7 @@ matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
 
 -- | Cast ASValue (from CellMap) to an Excel entity. 
 asValueToEntity :: Formatted ASValue -> Maybe EEntity
-asValueToEntity v = case (toEValue v) of
-  Nothing -> Nothing
-  Just v -> Just $  EntityVal v
+asValueToEntity v = maybe Nothing (Just . EntityVal) $ toEValue v
 
 -- | Returns the dimensions of a matrix in col,row format
 matrixDim :: EMatrix -> (Int,Int)

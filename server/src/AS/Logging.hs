@@ -43,15 +43,13 @@ appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 
 printWithTime :: String -> IO ()
-printWithTime str = if isBenchmark 
-  then return ()
-  else do
+printWithTime str = if shouldWritetoConsole 
+  then do
     time <- getTime
     date <- getDate
     let disp = "[" ++ time ++ "] " ++ str
     putStrLn ((truncated disp) ++ "\n")
-    logDir <- getServerLogDir
-    appendFile' (logDir ++ "console_log" ++ date) ('\n':'\n':disp)
+  else return ()
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime

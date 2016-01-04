@@ -1,4 +1,4 @@
-module AS.Handlers.Paste (handleCopy, handleCut) where
+module AS.Handlers.Paste (handleCopy, handleCut, performCopy) where
 
 import AS.Types.Cell
 import AS.Types.Network
@@ -6,6 +6,7 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
+import AS.Types.Commits
 
 import AS.Parsing.Substitutions
 import AS.Parsing.Excel
@@ -41,6 +42,13 @@ handleCut uc state from to = do
   errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate state uc errOrUpdate
 
+-- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
+-- could restructure this in such a way that encapsulation is not broken. 
+performCopy :: MVar ServerState -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
+performCopy state from to cs = do 
+  conn <- dbConn <$> readMVar state
+  toCells <- getCopyCells conn from to
+  runDispatchCycle state toCells DescendantsWithParent cs id
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers
@@ -96,9 +104,7 @@ shiftExpressionForCut from offset xp = xp'
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
 shiftRangeKey offset c = case c^.cellRangeKey of -- #lens
   Nothing -> Just c
-  Just (RangeKey ind dims) -> case shiftInd offset ind of 
-    Nothing -> Nothing
-    Just i  -> Just $ c & cellRangeKey .~ (Just $ RangeKey i dims)
+  Just (RangeKey ind dims) -> maybe Nothing (Just . (c &) . set cellRangeKey . Just . flip RangeKey dims) $ shiftInd offset ind
 
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
@@ -111,9 +117,7 @@ getCutCells conn from to = do
 
 -- #expert
 replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
-replaceCellLocsMaybe f c = case f $ c^.cellLocation of 
-  Nothing -> Nothing 
-  Just l -> Just $ c & cellLocation .~ l
+replaceCellLocsMaybe f c = maybe Nothing (Just . flip (set cellLocation) c) (f $ c^.cellLocation)
 
 -- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]

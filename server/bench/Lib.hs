@@ -40,6 +40,7 @@ import Control.Monad.Trans.Either
 import Control.Applicative
 import Control.Concurrent (newMVar, MVar)
 import Control.DeepSeq
+import Control.Lens
 import Control.DeepSeq.Generics (genericRnf)
 import Debug.Trace
 import GHC.Generics
@@ -146,5 +147,8 @@ setupEnv = do
 setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
 setupEnvWith x = (,) <$> setupEnv <*> return x
 
+testCells :: [Int] -> [ASCell]
 testCells = map (\i -> testCell & cellLocation .~ Index "BENCH_ID" (1,i))
+
+testMap :: [Int] -> M.Map ASIndex ASCell
 testMap = toMap . testCells

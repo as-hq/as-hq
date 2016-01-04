@@ -124,14 +124,10 @@ getDependencies sheetId = map (exRefToASRef sheetId) . getExcelReferences
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
 
 shiftExpression :: Offset -> ASExpression -> ASExpression
-shiftExpression offset xp = replaceRefs (show . (shiftExRef offset)) xp
+shiftExpression offset = replaceRefs (show . shiftExRef offset)
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
-shiftCell offset (Cell loc xp v ts rk) = cell'
+shiftCell offset c = maybe Nothing (Just . (c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) mLoc
   where
-    loc'  = shiftInd offset loc
-    xp'   = shiftExpression offset xp
-    cell' = case loc' of 
-              Nothing -> Nothing
-              Just l ->Just $ Cell l xp' v ts rk
+    mLoc  = shiftInd offset $ c^.cellLocation

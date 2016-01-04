@@ -55,7 +55,7 @@ import Data.ByteString.Lazy.Char8 (unpack, pack)
 import Data.IORef (IORef, newIORef, writeIORef, readIORef)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as Map
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.List (elemIndex)
 import Control.Exception (Exception, throw)
 import Data.Typeable
@@ -180,9 +180,7 @@ toPyObject x = do
 fromPyObject :: (FromJSON a) => PyObject b -> IO a
 fromPyObject (PyObject fr) = do
     r2 <- withForeignPtr fr $ \r -> peekCString =<< pyString_AsString r
-    return $ case mydecode r2 of
-               Just x -> x
-               Nothing -> throw $ DecodeException
+    return $ fromMaybe (throw DecodeException) $ mydecode r2
 
 getFunc :: String -> String -> IO RawPyObject
 getFunc s argTypes = do
