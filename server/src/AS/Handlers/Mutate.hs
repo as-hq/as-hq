@@ -61,7 +61,7 @@ keepUnequal x = (ls1, ls2)
 
 -- Functions from colMutate and rowMutate are helper functions for barIndexMutate,
 -- indexMutate, exIndexMutate, exRangeMutate.
--- TODO: timchu 1/1/15, could have better typing on rows and columns so that
+-- TODO: timchu 1/1/16, could have better typing on rows and columns so that
 -- compiler can catch accidental mistakes when switching col and row.
 colMutate :: MutateType -> Col -> Maybe Col
 colMutate (InsertCol c') c = Just $ if c >= c' then (c+1) else c
