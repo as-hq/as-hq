@@ -19,6 +19,7 @@ import AS.Types.Network
 import AS.Types.Commits
 import AS.Types.Eval
 import AS.Types.DB
+import AS.Logging
 import AS.Types.Updates
 
 import AS.Dispatch.Expanding        as DE
@@ -90,7 +91,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
   conn <- dbConn <$> readMVar state
   time <- getASTime 
   rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
-  errOrCommit <- runEitherT $ do
+  errOrUpdate <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (mapCellLocation cs) cs
         initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
@@ -103,8 +104,9 @@ runDispatchCycle state cs descSetting src updateTransform = do
     finalCells <- EE.evalEndware state src transformedCtx
     let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
     DT.updateDBWithContext conn src ctx
-  either (const $ G.recompute conn) (const $ return ()) errOrCommit 
-  return . fmap sheetUpdateFromCommit $ errOrCommit
+    return $ updateAfterEval ctx
+  either (const $ G.recompute conn) (const $ return ()) errOrUpdate -- graph db may have changed during dispatch; if not committed, reset it
+  return errOrUpdate
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
@@ -249,6 +251,7 @@ addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx)
     ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
 
+-- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
 addCellsToContext :: [ASCell] -> PureEvalTransform
 addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens

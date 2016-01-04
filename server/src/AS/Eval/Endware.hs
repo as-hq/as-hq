@@ -26,13 +26,14 @@ evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [A
 evalEndware state (CommitSource sid uid) ctx = do 
   conn <- lift $ dbConn <$> readMVar state
   let cells0 = newCellsInContext ctx
-      cells1 = changeExcelExpressions cells0
-      blankedCells = blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
+      cells1 = cells0 ++ blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
+      -- ^ represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
+      cells2 = changeExcelExpressions cells1
   mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
   oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
-  cells2 <- conditionallyFormatCells conn sid (cells1 ++ blankedCells) updatedRules ctx
-  return cells2
+  cells3 <- conditionallyFormatCells conn sid cells2 updatedRules ctx
+  return $ filter (not . isEmptyCell) cells2 -- we added blank cells at the deleted locations -- we don't want the actual Update to remember these. 
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Endwares

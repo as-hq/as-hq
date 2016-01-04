@@ -128,6 +128,6 @@ shiftExpression offset = replaceRefs (show . shiftExRef offset)
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
-shiftCell offset c = maybe Nothing (Just . (c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) mLoc
+shiftCell offset c = ((c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) <$> mLoc
   where
     mLoc  = shiftInd offset $ c^.cellLocation
