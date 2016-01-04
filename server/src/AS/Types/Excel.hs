@@ -31,6 +31,7 @@ import Database.Redis (Connection)
 
 -- reference locking
 data SingleRefType = ABS | REL deriving (Eq)
+-- TODO: only SingleRefType should exist. Timchu, 1/3/15.
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
 data ExLoc   = ExIndex {refType :: RefType, col :: String, row :: String} 

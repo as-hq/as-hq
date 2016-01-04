@@ -48,7 +48,7 @@ lookUpDBCellsByCol conn sid column =  do
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
 evalContextCellsByCol (EvalContext virtualCellsMap _) sid column =
-  filter (\c -> (getCellCol c == column && locSheetId c^.cellLocation == sid)) $ cellsInCtx where
+  filter (\c -> (getCellCol c == column && locSheetId (c^.cellLocation) == sid)) $ cellsInCtx where
     cellsInCtx = M.elems virtualCellsMap
 
 compareCellByRow:: ASCell -> ASCell -> Ordering
@@ -94,7 +94,7 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
       cellsInCol column = do
         let ctxCells = evalContextCellsByCol ctx sid column
         dbCells <- lookUpDBCellsByCol conn sid column
-        return $ unionBy isColocated ctxCells dbCells
+        return $ mergeCells ctxCells dbCells
       startCol = min l r
       endCol = max l r
   cellsByCol <- mapM cellsInCol [startCol..endCol] -- :: [[ASIndex]]

@@ -216,7 +216,7 @@ addCompileCmd OCaml cmd = do
 
 
 lookUpRef :: Connection -> ASLanguage -> EvalContext -> ASReference -> IO String
-lookUpRef conn lang context ref = return $ showValue lang <$> DV.referenceToCompositeValue conn context ref
+lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValue conn context ref
 
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess

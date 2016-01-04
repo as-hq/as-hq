@@ -146,16 +146,64 @@ shiftExIndexUp (ExIndex refType col row) = ExIndex refType col (shiftRowStrUp ro
 shiftExIndexLeft :: ExLoc -> ExLoc
 shiftExIndexLeft (ExIndex refType col row) = ExIndex refType (shiftColStrLeft col) row
 
--- TODO: timchu, 1/1/2016. This only works if t <= b, l <= r.
+-- Helper methods in rectifyExRange
+-- TODO: timchu, 1/3/15. clean this up. These methods shouldn't be here.
+splitRefType :: RefType -> (SingleRefType,  SingleRefType)
+splitRefType rType =
+  case rType of
+       REL_REL -> (REL, REL)
+       REL_ABS -> (REL, ABS)
+       ABS_REL -> (ABS, REL)
+       ABS_ABS -> (ABS, ABS)
+combineSingleRefs :: (SingleRefType,  SingleRefType) -> RefType
+combineSingleRefs srTypes =
+  case srTypes of
+      (REL, REL) -> REL_REL 
+      (REL, ABS) -> REL_ABS 
+      (ABS, REL) -> ABS_REL 
+      (ABS, ABS) -> ABS_ABS 
+-- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
+-- #lenses
+-- Lots of code duplication betwen rectifyExRange and rectifyExColRange
+rectifyExRange :: ExRange -> ExRange
+rectifyExRange e@(ExRange (ExIndex firstRefType firstCol firstRow) (ExIndex secondRefType secondCol secondRow)) =
+  let (firstColRefType, firstRowRefType) = splitRefType firstRefType
+      (secondColRefType, secondRowRefType) = splitRefType secondRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      (t, tRefType, b, bRefType) = if firstRow <= secondRow
+                  then (firstRow, firstRowRefType, secondRow, secondRowRefType)
+                  else (secondRow, secondRowRefType, firstRow, firstRowRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+      brRefType = combineSingleRefs (rRefType, bRefType)
+  in 
+  -- l t and r bsince Col comes before Row in ExIndex
+  ExRange (ExIndex tlRefType l t) (ExIndex brRefType r b)
+
+-- outputs an exColRange equivalent to the input of the first ExColRange, with the first coord <= second coord
+rectifyExColRange :: ExColRange -> ExColRange
+rectifyExColRange e@(ExColRange (ExIndex firstRefType firstCol firstRow) (ExCol secondColRefType secondCol)) =
+  let t = firstRow
+      (firstColRefType, tRefType) = splitRefType firstRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+  in 
+  ExColRange (ExIndex tlRefType l t) (ExCol rRefType r)
+
 exRangeMutate :: MutateType -> ExRange -> Maybe ExRange
-exRangeMutate mt (ExRange tl br) =
-  let [maybeTl, maybeBr] = map (exIndexMutate mt) [tl, br]
+exRangeMutate mt exRange =
+  -- force t <= b. l <= r.
+  let ExRange tl br = rectifyExRange exRange
+      [maybeTl, maybeBr] = map (exIndexMutate mt) [tl, br]
   in
   -- cases on whether Tl or Br, or both, are deleted.
   case (maybeTl, maybeBr) of
     (Nothing, Nothing) -> Nothing
     (Nothing, Just br') -> Just $ ExRange tl br'
-    (Just tl', Nothing) -> case mt of -- in this case, tl' should just equal tl
+    (Just tl', Nothing) -> case mt of -- in this case, tl' should be equal to tl
                              (DeleteRow _) -> Just $ ExRange tl' $ shiftExIndexUp br
                              (DeleteCol _) -> Just $ ExRange tl' $ shiftExIndexLeft br
                              otherwise -> Nothing
@@ -165,8 +213,9 @@ exRangeMutate mt (ExRange tl br) =
 -- Note: this will cause problems since this operation does not preserve l <= r
 -- r the name for the rightmost column.
 exColRangeMutate :: MutateType -> ExColRange -> Maybe ExColRange
-exColRangeMutate mt (ExColRange tl r) =
-  let maybeTl = exIndexMutate mt tl
+exColRangeMutate mt exColRange =
+  let ExColRange tl r = rectifyExColRange exColRange
+      maybeTl = exIndexMutate mt tl
       maybeR = exColMutate mt r
       -- shiftColLeft is used to handle the case when r is deleted by tl isn't.
       shiftColLeft :: ExCol -> ExCol
