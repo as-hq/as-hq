@@ -124,7 +124,6 @@ exIndexMutate mt (ExIndex indexRefType cStr rStr) = do
   rStr' <- intToRowStr <$> (rowMutate mt $ rowStrToInt rStr)
   return $ ExIndex indexRefType cStr' rStr'
 
--- TODO: timchu, 1/1/15. Some small amount of code duplication.
 exColMutate :: MutateType -> ExCol -> Maybe ExCol
 exColMutate mt (ExCol singleRefType cStr) = do
   cStr' <- intToColStr <$> (colMutate mt $ colStrToInt cStr)
@@ -147,7 +146,8 @@ shiftExIndexLeft :: ExLoc -> ExLoc
 shiftExIndexLeft (ExIndex refType col row) = ExIndex refType (shiftColStrLeft col) row
 
 -- Helper methods in rectifyExRange
--- TODO: timchu, 1/3/15. clean this up. These methods shouldn't be here.
+-- TODO: timchu, 1/3/15. Relocate functions. This should be extraneous once RefType
+-- becomes a pair of singleRefTypes.
 splitRefType :: RefType -> (SingleRefType,  SingleRefType)
 splitRefType rType =
   case rType of
@@ -240,7 +240,7 @@ refMutate' mt (ExRangeRef exRange sheetName workbookName) = do
 refMutate' mt (ExColRangeRef exColRange sheetName workbookName) = do
   exColRange' <- exColRangeMutate mt exColRange
   return $ ExColRangeRef exColRange' sheetName workbookName
-  -- TODO: timchu, 1/1/16. This is a hack!  I'm not sure that it works.
+  -- TODO: timchu, 1/1/16.  I don't know if this code works for pointers.
 refMutate' mt er@(ExPointerRef exLoc sheetName workbookName) = do
   exLoc' <- exIndexMutate mt exLoc
   return $ ExPointerRef exLoc' sheetName workbookName
@@ -321,7 +321,6 @@ rangeMutate' mt (Range sid (c1, c2)) = [orientRange $ Range sid (c1', c2')]
     Just (Index _ c2') = indexMutate mt (Index sid c2)
 
 
---TODO: timchu, mutateColRange.
 -- #lens
 condFormattingRulesMutate :: MutateType -> CondFormatRule -> Maybe CondFormatRule
 condFormattingRulesMutate mt cfr = cfr'

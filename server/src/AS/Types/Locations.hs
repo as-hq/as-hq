@@ -115,6 +115,7 @@ instance ToJSON ASColRange where
                                                               "col" .= c],
                                               "r"  .= object ["col" .= c2]]]
 instance Serialize ASColRange 
+
 -- TODO: timchu, check that this actually works.
 instance FromJSON ASColRange where
   parseJSON (Object v) = do

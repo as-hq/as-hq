@@ -113,7 +113,6 @@ onRefToIndicesFailure PointerToNormalCell = ValueError "Pointer to normal cell" 
 onRefToIndicesFailure IndexOfPointerNonExistant = ValueError "Index of pointer doesn't exist" "EvalError"
 onRefToIndicesFailure _ = ValueError "Some eval error" "EvalError"
 
--- TODO; timchu, 12/26/15. Why did this work for pointers, when EvalContext wasn't always complete? My workaround with defaultCells is really hacky.
 onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASValue
 onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
   NoValue                 -> handleNoValueInLang lang i

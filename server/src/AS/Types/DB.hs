@@ -43,7 +43,6 @@ data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
 
 -- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
 -- of a range = descendants of decomposed indices in ranges
--- TODO: timchu, I don't think I need this. This is only needed for fat cell expansions, not getAncestors?
 data GraphReadInput  = IndexInput ASIndex | RangeInput ASRange
 
 -- The output of a graph descendant can only be an index (currently)

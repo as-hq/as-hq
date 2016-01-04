@@ -25,7 +25,7 @@ import Control.Monad.Trans.Class
 -- TODO: timchu, the implementation of this is REALLY STUPID. Gets all cells
 -- and then filter!
 
--- TODO: timchu, 12/23/15. Use lenses.
+-- #lenses.
 getCellCol :: ASCell -> Col
 getCellCol (Cell (Index _ (column, _)) _ _ _ _) = column
 
