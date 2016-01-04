@@ -203,7 +203,7 @@ export default class ToolbarButton
       </span>
     : <FlatButton 
         style={buttonStyle}
-        onClick={this._onClick}
+        onClick={this._onClick.bind(this)}
         onMouseLeave={this._onMouseLeave.bind(this)}
         onMouseEnter={this._onMouseEnter.bind(this)}>
         {iconElement}
