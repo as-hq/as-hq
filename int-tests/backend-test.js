@@ -646,6 +646,17 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
+            it ('should update when an ancestor updates', (done) => {
+              _do([
+                python('A1', '1'),
+                python('A2', '2'),
+                python('B1', 'A1:A2'),
+                python('A2', '3'),
+                shouldBe('B2', valueI(3)),
+                exec(done)
+              ]);
+            });
           });
 
           describe('2D ranges', () => {
@@ -689,6 +700,26 @@ describe('backend', () => {
                 python('B1', '"Pretty"'),
                 python('B2', '"Boy"'),
                 python('C1', '[len(x[1]) for x in A1:B2]'),
+                shouldBe('C2', valueI(3)),
+                exec(done)
+              ]);
+            });
+            it ('should update A1:B2 when an ancestor updates', (done) => {
+              _do([
+                python('A1', '1'),
+                python('B2', '2'),
+                python('C1', 'A1:B2'),
+                python('A2', '3'),
+                shouldBe('C2', valueI(3)),
+                exec(done)
+              ]);
+            });
+            it ('should update B1:A2 when an ancestor updates', (done) => {
+              _do([
+                python('A1', '1'),
+                python('B2', '2'),
+                python('C1', 'B1:A2'),
+                python('A2', '3'),
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
@@ -1464,19 +1495,18 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        // B:A doesn't work properly.
-        xit ('should expand B:A when a the column size of A or B increases.', (done) => {
+        it ('should expand B:A when a the column size of A or B increases.', (done) => {
           _do([
             python('A1', '1'),
             python('B1', '1'),
             python('C1', 'B:A'),
             python('A3', '3'),
             shouldBe('C3', valueI(3)),
-            shouldBe('D3', noValue),
-            shouldNothing('C5', noValue),
-            shouldNothing('D5', valueI(5)),
+            shouldBe('D3', noValue()),
+            shouldBeNothing('C5'),
+            shouldBeNothing('D5'),
             python('B5', '5'),
-            shouldBe('C5', noValue),
+            shouldBe('C5', noValue()),
             shouldBe('D5', valueI(5)),
             exec(done)
           ]);
