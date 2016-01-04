@@ -52,7 +52,6 @@ import Database.Redis (Connection)
 evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  printObjT "eval language with cells in context: " (virtualCellsMap ctx)
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
@@ -114,7 +113,6 @@ onRefToIndicesFailure PointerToNormalCell = ValueError "Pointer to normal cell" 
 onRefToIndicesFailure IndexOfPointerNonExistant = ValueError "Index of pointer doesn't exist" "EvalError"
 onRefToIndicesFailure _ = ValueError "Some eval error" "EvalError"
 
--- TODO; timchu, 12/26/15. Why did this work for pointers, when EvalContext wasn't always complete? My workaround with defaultCells is really hacky.
 onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASValue
 onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
   NoValue                 -> handleNoValueInLang lang i
@@ -122,7 +120,7 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   otherwise               -> Nothing
   where
     lang           = xp^.language
-    values         = map (view cellValue . ((virtualCellsMap ctx) M.!)) depInds
+    values         = map (maybe NoValue (view cellValue) . (`M.lookup` (virtualCellsMap ctx))) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

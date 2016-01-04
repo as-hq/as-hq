@@ -193,7 +193,7 @@ shiftExRef o exRef = case exRef of
       where ExLocRef l' _ _ = shiftExRef o (ExLocRef l sh wb)
 
 -- shifts absolute references too
--- TODO: timchu, 12/29/15. Massive code duplication????
+-- TODO: timchu, 12/29/15. Massive code duplication.
 shiftExRefForced :: Offset -> ExRef -> ExRef
 shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
