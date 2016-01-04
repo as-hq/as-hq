@@ -13,6 +13,7 @@ import AS.Types.CellProps
 import AS.Types.Eval
 import AS.Types.Messages
 import AS.Types.DB
+import AS.Handlers.Paste (performCopy)
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
@@ -35,8 +36,13 @@ import qualified Data.HashTable.IO as HI
 import Control.Monad.Trans.Either
 import Criterion.Main (defaultMain)
 
+setTestCellsInDB :: [Int] -> IO ()
+setTestCellsInDB = (R.connect DI.cInfo >>=) . flip DB.setCells . testCells
+
 main :: IO ()
 main = do
+  setTestCellsInDB [1]
+
   defaultMain [
 
     xdescribe "dispatch"
@@ -91,11 +97,17 @@ main = do
               runIO $ DB.deleteLocsInSheet (envConn myEnv) "BENCH_ID"
           ]
 
-    , describe "python kernel"
+    , xdescribe "python kernel"
       [ it "evaluates a simple expression using the new kernel" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "1+1"
 
       , it "evaluates range(10000)" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "range(10000)"
       ]
+
+    , has () $ \ ~(myEnv, _) -> 
+      describe "copy/paste" 
+        [ it "copies 20x20 grid" $
+            runIO $ performCopy (envState myEnv) (Range "BENCH_ID" ((1,1),(1,1))) (Range "BENCH_ID" ((1,1), (20,20))) (CommitSource "BENCH_ID" "")
+        ]
     ]

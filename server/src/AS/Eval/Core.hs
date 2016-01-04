@@ -50,7 +50,6 @@ import Database.Redis (Connection)
 evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
 evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
-  printObjT "eval language with cells in context: " (virtualCellsMap ctx)
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error

@@ -50,8 +50,6 @@ printWithTime str = if isBenchmark
     date <- getDate
     let disp = "[" ++ time ++ "] " ++ str
     putStrLn ((truncated disp) ++ "\n")
-    logDir <- getServerLogDir
-    appendFile' (logDir ++ "console_log" ++ date) ('\n':'\n':disp)
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
