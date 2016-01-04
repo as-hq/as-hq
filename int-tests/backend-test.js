@@ -269,6 +269,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        // TODO: timchu. This won't work until rangekeys are added to expressions like A1:A2.
         xit ('should display A1:A2 when a range in A1:A2 is decoupled', (done) => {
           _do([
               python('A1', 'range(2)'),
@@ -1228,6 +1229,8 @@ describe('backend', () => {
       });
 
       describe('A:A parsing tests', () => {
+        // TODO: missing tests on row and column mutation.
+        // Known ref error bug when B1=A:A, A1=1, delete A1. Thing is still a range (maybe because default range is []?).
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
           // TODO: activate the commented out F:J1 = F1:J, J:F = F:J, J:$F tests.
