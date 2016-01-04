@@ -33,7 +33,7 @@ evalEndware state (CommitSource sid uid) ctx = do
   oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
   cells3 <- conditionallyFormatCells conn sid cells2 updatedRules ctx
-  return $ filter (not . isEmptyCell) cells2 -- we added blank cells at the deleted locations -- we don't want the actual Update to remember these. 
+  return cells3 -- we added blank cells at the deleted locations -- we don't want the actual Update to remember these. 
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Endwares
