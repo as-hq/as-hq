@@ -254,7 +254,7 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
 topLeftForMatrix _ r = r
 
 evalBasicFormula :: Context -> BasicFormula -> EResult
-evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
+evalBasicFormula c (Ref exIndex) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exIndex
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
@@ -271,7 +271,7 @@ evalFormula c (ArrayConst b) = do
   fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
 
 evalArrayFormula :: Context -> Formula -> EResult
-evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
+evalArrayFormula c (Basic (Ref exIndex)) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exIndex
 evalArrayFormula c (Basic (Var val)) = valToResult val
 evalArrayFormula c f@(ArrayConst b) = evalFormula c f
 evalArrayFormula c f@(Basic (Fun name fs)) = do
@@ -342,9 +342,9 @@ getUnexpectedRefs s (Basic (Fun f fs)) = concatMap (getRangeRefs s fDes) enum
 
 -- | Helper: Given an argument, return the (possible) underlying range refs
 getRangeRefs :: ASSheetId -> FuncDescriptor -> Arg Formula -> [ERef]
-getRangeRefs s fDes (numArg,(Basic (Ref exLoc)))
-  | (elem numArg (mapArgsIfArrayFormula fDes)) = if (isRange (exRefToASRef s exLoc))
-    then [ERef (exRefToASRef s exLoc)]
+getRangeRefs s fDes (numArg,(Basic (Ref exIndex)))
+  | (elem numArg (mapArgsIfArrayFormula fDes)) = if (isRange (exRefToASRef s exIndex))
+    then [ERef (exRefToASRef s exIndex)]
     else []
   | otherwise = []
 getRangeRefs s _ (_,f) = getUnexpectedRefs s f

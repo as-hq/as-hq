@@ -121,7 +121,7 @@ rowStrToInt r = read r :: Int
 intToRowStr :: Int -> String
 intToRowStr i = show i
 
-exIndexMutate :: MutateType -> ExLoc -> Maybe ExLoc
+exIndexMutate :: MutateType -> ExIndex -> Maybe ExIndex
 exIndexMutate mt (ExIndex indexRefType cStr rStr) = do
   cStr' <- intToColStr <$> (colMutate mt $ colStrToInt cStr)
   rStr' <- intToRowStr <$> (rowMutate mt $ rowStrToInt rStr)
@@ -143,10 +143,10 @@ shiftColStrLeft col = intToColStr $ (colStrToInt col) - 1
 shiftRowStrUp :: String -> String
 shiftRowStrUp row = intToRowStr $ (rowStrToInt row) - 1
 
-shiftExIndexUp :: ExLoc -> ExLoc
+shiftExIndexUp :: ExIndex -> ExIndex
 shiftExIndexUp (ExIndex refType col row) = ExIndex refType col (shiftRowStrUp row)
 
-shiftExIndexLeft :: ExLoc -> ExLoc
+shiftExIndexLeft :: ExIndex -> ExIndex
 shiftExIndexLeft (ExIndex refType col row) = ExIndex refType (shiftColStrLeft col) row
 
 exRangeMutate :: MutateType -> ExRange -> Maybe ExRange
@@ -186,9 +186,9 @@ exColRangeMutate mt exColRange =
 -- returns Nothing if any of the mutations give out of bounds.
 refMutate' :: MutateType -> (ExRef -> Maybe ExRef)
 refMutate' mt ExOutOfBounds = Nothing
-refMutate' mt (ExLocRef exLoc sheetName workbookName) = do
-  exLoc' <- exIndexMutate mt exLoc
-  return $ ExLocRef exLoc' sheetName workbookName
+refMutate' mt (ExIndexRef exIndex sheetName workbookName) = do
+  exIndex' <- exIndexMutate mt exIndex
+  return $ ExIndexRef exIndex' sheetName workbookName
 refMutate' mt (ExRangeRef exRange sheetName workbookName) = do
   exRange' <- exRangeMutate mt exRange
   return $ ExRangeRef exRange' sheetName workbookName
@@ -196,9 +196,9 @@ refMutate' mt (ExColRangeRef exColRange sheetName workbookName) = do
   exColRange' <- exColRangeMutate mt exColRange
   return $ ExColRangeRef exColRange' sheetName workbookName
   -- TODO: timchu, 1/1/16.  I don't know if this code works for pointers.
-refMutate' mt er@(ExPointerRef exLoc sheetName workbookName) = do
-  exLoc' <- exIndexMutate mt exLoc
-  return $ ExPointerRef exLoc' sheetName workbookName
+refMutate' mt er@(ExPointerRef exIndex sheetName workbookName) = do
+  exIndex' <- exIndexMutate mt exIndex
+  return $ ExPointerRef exIndex' sheetName workbookName
 
 refMutate :: MutateType -> ExRef -> ExRef
 refMutate mt exRef  = fromMaybe ExOutOfBounds $ refMutate' mt exRef
