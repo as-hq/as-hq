@@ -12,6 +12,8 @@ import AS.Types.Excel
 import AS.Types.Eval
 import AS.Types.Errors
 
+import AS.Logging
+
 import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions
@@ -216,7 +218,6 @@ addCompileCmd OCaml cmd = do
 lookUpRef :: Connection -> ASLanguage -> EvalContext -> ASReference -> IO String
 lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValue conn context ref
 
-  
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
 -- #mustrefactor IO String should be EitherTExec string

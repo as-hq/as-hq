@@ -15,8 +15,9 @@ import AS.Types.CondFormat
 import AS.Types.Updates
 
 import qualified AS.Config.Settings as Settings
-import AS.Util as U
 import qualified AS.DB.Internal as DI
+import qualified AS.Serialize as S
+import AS.Util as U
 import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
@@ -42,7 +43,6 @@ import Database.Redis hiding (decode)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
-import qualified Data.Serialize as S
 import Data.List as L
 import Data.Aeson hiding (Success)
 import Data.ByteString.Unsafe as BU
@@ -84,7 +84,7 @@ getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
   sCells <- map fromRight <$> mapM (get . S.encode) locs
-  return $ map (maybeDecode =<<) sCells
+  return $ map (S.maybeDecode =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
@@ -116,7 +116,7 @@ deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
 deleteLocsInSheet conn sid = runRedis conn $ do
   Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
   let locKeys = catMaybes $ map readLocKey ks
-      readLocKey k = case (maybeDecode k) of 
+      readLocKey k = case (S.maybeDecode k) of 
         Just (Index _ _) -> Just k
         _ -> Nothing
   del locKeys
@@ -126,7 +126,7 @@ getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
   let locs = catMaybes $ map readLoc ks
-      readLoc k = case (maybeDecode k) of 
+      readLoc k = case (S.maybeDecode k) of 
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
@@ -185,7 +185,7 @@ getRangeKeysInSheet conn sid = runRedis conn $ do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get . toRedisFormat $ RedisRangeKey key
-  return $ maybeDecode =<< desc
+  return $ S.maybeDecode =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
@@ -323,7 +323,7 @@ setSheet conn sheet = do
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- (map S.maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
   if any isNothing vl 
     then error "Error decoding volatile locs!!!"
     else return $ map fromJust vl
@@ -390,14 +390,14 @@ getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [C
 getCondFormattingRules conn sid cfids = do 
   let keys = map (toRedisFormat . CFRuleKey sid) cfids
   eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
 
 -- some replication with the above...
 getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
 getCondFormattingRulesInSheet conn sid = do 
   keys <- DI.getKeysInSheetByType conn sid CFRuleType
   eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
 
 deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
 deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
@@ -418,7 +418,7 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 getBar :: Connection -> BarIndex -> IO (Maybe Bar)
 getBar conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
-  return $ maybeDecode =<< msg
+  return $ S.maybeDecode =<< msg
 
 setBar :: Connection -> Bar -> IO ()
 setBar conn bar = do

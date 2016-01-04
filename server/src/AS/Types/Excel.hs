@@ -30,13 +30,21 @@ import Database.Redis (Connection)
 -- | Excel Location Parsing
 
 -- reference locking
+data SingleRefType = ABS | REL deriving (Eq)
+-- TODO: only SingleRefType should exist. Timchu, 1/3/15.
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
 data ExLoc   = ExIndex {refType :: RefType, col :: String, row :: String} 
   deriving (Eq)
-data ExRange = ExRange {first :: ExLoc, second :: ExLoc} deriving (Eq)
+data ExCol = ExCol { singleRefType :: SingleRefType, col2 :: String}
+  deriving (Eq)
+data ExColRange = ExColRange {firstCoord :: ExLoc, secondCol :: ExCol}
+  deriving (Eq)
+data ExRange = ExRange {first :: ExLoc, second :: ExLoc}
+   deriving (Eq)
 data ExRef   = 
     ExLocRef {exLoc :: ExLoc, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
+  | ExColRangeRef {exColRange :: ExColRange, colRangeSheet :: Maybe SheetName, colRangeWorkbook :: Maybe WorkbookName}
   | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
   | ExPointerRef {pointerLoc :: ExLoc, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
   | ExOutOfBounds 
@@ -51,11 +59,13 @@ instance Ref ExRef where
   sheetRef a = case a of 
     ExLocRef _ _ _ -> locSheet a
     ExRangeRef _ _ _ -> rangeSheet a
+    ExColRangeRef _ _ _ -> colRangeSheet a
     ExPointerRef _ _ _ -> pointerSheet a
     ExOutOfBounds -> Nothing
   workbookRef a = case a of 
     ExLocRef _ _ _ -> locWorkbook a
     ExRangeRef _ _ _ -> rangeWorkbook a
+    ExColRangeRef _ _ _ -> colRangeWorkbook a
     ExPointerRef _ _ _ -> pointerWorkbook a
     ExOutOfBounds -> Nothing
 
@@ -65,8 +75,16 @@ instance Show ExRef where
     in case a of 
       ExOutOfBounds                -> "#REF!"
       ExLocRef l _ _               -> prefix ++ (show l)
-      ExRangeRef (ExRange f s) _ _ -> prefix ++ (show f) ++ ":" ++ (show s)
+      ExColRangeRef (ExColRange tl r) _ _ -> prefix ++ (show tl) ++ ":" ++ (show r)
+      ExRangeRef (ExRange tl br) _ _ -> prefix ++ (show tl) ++ ":" ++ (show br)
       ExPointerRef l _ _           -> '@':prefix ++ (show l)
+
+instance Show ExCol where
+  show (ExCol t c) = d1 ++ c
+    where
+      d1 = case t of
+        ABS -> "$"
+        REL -> ""
 
 instance Show ExLoc where
   show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r
@@ -387,6 +405,10 @@ exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
   ExLocRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
+  ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, colStrToInt c2)
+    where
+      sid' = maybe sid id (sheetIdFromContext sn wn)
+      IndexRef (Index  _ tl) = exRefToASRef sid' $ ExLocRef f sn Nothing
   ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
@@ -394,20 +416,6 @@ exRefToASRef sid exRef = case exRef of
       IndexRef (Index _ br) = exRefToASRef sid' $ ExLocRef s sn Nothing
   ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' (colStrToInt c, read r :: Int)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
-
-asRefToExRef :: ASReference -> ExRef
-asRefToExRef OutOfBounds = ExOutOfBounds
-asRefToExRef (IndexRef (Index sid (a,b))) = ExLocRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (PointerRef (Pointer (Index sid (a,b)))) = ExPointerRef idx sname Nothing
-  where idx = ExIndex REL_REL (intToColStr a) (show b)
-        sname = sheetIdToSheetName sid
-asRefToExRef (RangeRef (Range s (i1, i2))) = ExRangeRef rng Nothing Nothing
-  where
-    ExLocRef i1' _ _ = asRefToExRef . IndexRef $ Index s i1
-    ExLocRef i2' _ _ = asRefToExRef . IndexRef $ Index s i2
-    rng = ExRange i1' i2'
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
 -- equating sheet names and sheet id's with the dialog box, 

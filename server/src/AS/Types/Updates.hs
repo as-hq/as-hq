@@ -1,10 +1,11 @@
-{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving, TemplateHaskell #-}
 
 module AS.Types.Updates where
 
 import GHC.Generics
 import Control.Applicative (liftA2)
 import Data.List as L
+import Data.SafeCopy
 
 class HasKey a where 
   type KeyType a :: * -- #expert how to ensure this is an Eq
@@ -51,3 +52,9 @@ updateToDiff (Update nvs oks) dbGetter = do
   oldValues <- dbGetter oks
   overWrittenValues <- dbGetter $ map key nvs
   return $ Diff { afterVals = nvs, beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }
+
+--------------------------------------------------------------------------------------------------------------
+-- Instances
+
+deriveSafeCopy 1 'base ''Update
+deriveSafeCopy 1 'base ''Diff

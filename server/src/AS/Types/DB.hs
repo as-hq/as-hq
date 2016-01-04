@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
@@ -24,7 +24,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
-import qualified Data.Serialize as S
+import Data.SafeCopy
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
@@ -86,7 +86,7 @@ splitBy delimiter = foldr f [[]]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- instances
 
-instance S.Serialize ExportData
+deriveSafeCopy 1 'base ''ExportData
 
 -- compressed show
 
@@ -105,6 +105,9 @@ instance (Show2 ASPointer) where
 instance (Show2 ASRange) where 
   show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
 
+instance (Show2 ASColRange) where 
+  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+
 instance (Show2 GraphReadInput) where
   show2 (IndexInput i) = show2 i
   show2 (RangeInput r) = show2 r
@@ -115,6 +118,7 @@ instance (Show2 GraphDescendant) where
 instance (Show2 ASReference) where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
+  show2 (ColRangeRef cr) = show2 cr
   show2 (PointerRef p) = show2 p
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 
@@ -135,6 +139,7 @@ instance (Read2 ASReference) where
               "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read locstr :: Coord))
               "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
+              "C" -> ColRangeRef $ ColRange (T.pack sid) (read locstr :: (Coord, Int))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
@@ -143,6 +148,10 @@ instance (Read2 ASIndex) where
 instance (Read2 ASRange) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     RangeRef r -> r
+
+instance (Read2 ASColRange) where 
+  read2 str = case ((read2 :: String -> ASReference) str) of 
+    ColRangeRef r -> r
 
 instance (Read2 ASPointer) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 

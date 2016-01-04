@@ -18,7 +18,6 @@ import Data.Aeson
 import Debug.Trace 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as B
-import qualified Data.Serialize as S
 
 -------------------------------------------------------------------------------------------------------------------------
 -- For debugging purposes only 
@@ -52,9 +51,6 @@ filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
 
 fromRight :: Either a b -> b
 fromRight (Right a) = a
-
-maybeDecode :: (S.Serialize a) => B.ByteString -> Maybe a
-maybeDecode b = either (const Nothing) Just (S.decode b)
 
 nub' :: (Eq a, Ord a) => [a] -> [a]
 nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())

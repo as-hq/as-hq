@@ -22,18 +22,19 @@ import qualified AS.DB.Internal as DI
 import AS.Window
 import AS.Util
 import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Serialize as S
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
-import qualified Data.Serialize as S
 import qualified Data.Map as M
 import qualified Data.HashMap as H
 import qualified Data.HashTable.IO as HI
 
 import Control.Monad.Trans.Either
+import Control.Lens hiding (has)
 import Criterion.Main (defaultMain)
 
 setTestCellsInDB :: [Int] -> IO ()
@@ -44,7 +45,6 @@ main = do
   setTestCellsInDB [1]
 
   defaultMain [
-
     xdescribe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
           it "dispatches 1000 cells" $ 
@@ -106,8 +106,8 @@ main = do
       ]
 
     , has () $ \ ~(myEnv, _) -> 
-      describe "copy/paste" 
-        [ it "copies 20x20 grid" $
-            runIO $ performCopy (envState myEnv) (Range "BENCH_ID" ((1,1),(1,1))) (Range "BENCH_ID" ((1,1), (20,20))) (CommitSource "BENCH_ID" "")
-        ]
+        describe "copy/paste" 
+          [ it "copies 20x20 grid" $
+              runIO $ performCopy (envState myEnv) (Range "BENCH_ID" ((1,1),(1,1))) (Range "BENCH_ID" ((1,1), (20,20))) (CommitSource "BENCH_ID" "")
+          ]
     ]

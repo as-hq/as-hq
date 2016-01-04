@@ -21,6 +21,7 @@ import AS.Types.Updates
 
 import GHC.Generics
 import Data.Aeson.Types (defaultOptions)
+import Data.SafeCopy
 import qualified Data.Text as T
 
 
@@ -111,11 +112,15 @@ asToFromJSON ''ServerAction
 asToFromJSON ''MutateType
 asToFromJSON ''EvalInstruction
 
+-- are legit.
 asToJSON ''ClientMessage
 asToJSON ''ClientAction
 
+deriveSafeCopy 1 'base ''ServerMessage
+deriveSafeCopy 1 'base ''ServerAction
+deriveSafeCopy 1 'base ''MutateType
+deriveSafeCopy 1 'base ''EvalInstruction
 
--- are legit.
 --------------------------------------------------------------------------------------------------------------
 -- Helpers
 

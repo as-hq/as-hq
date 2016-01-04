@@ -112,6 +112,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
+-- NOTE: WHEN I INSERT SOMETHING TWO BELOW, I FAIL AT UDPATING THE EVAL CONTEXT CORRECTLY.
 dispatch :: Connection -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
 dispatch conn [] context _ = printWithTimeT "empty dispatch" >> return context
 dispatch conn roots oldContext descSetting = do

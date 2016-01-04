@@ -1,11 +1,12 @@
 #include "zmq.h"
-#include "graph.cpp"
+#include "graph.h"
+#include "location.h"
 
 #include <string>
 #include <iostream>
 #include <unistd.h>
 #include <vector>
-#include <time.h>       
+#include <time.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>

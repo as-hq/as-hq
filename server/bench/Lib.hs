@@ -35,6 +35,7 @@ import qualified Data.Map as M
 import qualified Data.HashMap as H
 import qualified Data.HashTable.IO as HI
 import Data.Hashable
+import Control.Lens
 import Control.Monad.Trans.Either
 import Control.Applicative
 import Control.Concurrent (newMVar, MVar)

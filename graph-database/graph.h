@@ -1,4 +1,4 @@
-#ifndef GRAPH_H             
+#ifndef GRAPH_H
 #define GRAPH_H
 
 #include <string>
@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
-#include "location.cpp"
+#include "location.h"
 
 using namespace std;
 
@@ -15,6 +15,8 @@ public:
   typedef Location Vertex;
   typedef unordered_set<Vertex> VertexSet;
   typedef unordered_map<Vertex,VertexSet> AdjacencyList;
+  // Column -> [Int -> [Vertex]].
+  typedef unordered_map<Column, unordered_map<int, unordered_set<Vertex>>> ColNeighbors;
 
   /* The last element of the response back to Haskell, success/failure */
   enum DAGStatus {
@@ -23,7 +25,7 @@ public:
     ERROR,
     UNKNOWN_REQUEST_TYPE
   };
-  
+
   /* A response is a vector of locations (descendants, etc) and a status */
   struct DAGResponse {
     vector<Location> locs;
@@ -42,14 +44,20 @@ public:
   int recomputeDAG();
   bool operator==(const DAG& rhs);
 
-private:
   AdjacencyList toFromAdjList;
   AdjacencyList fromToAdjList;
   AdjacencyList prevCache;
+  ColNeighbors fromColumnTo;
 
+  /* Fills the locs vector with the immediate descendants loc.
+   * Immediate descendants of loc are a mix of descendants referenced as part of a
+   * range, pointer, or index expression (in the fromToAdjList), and the colRange
+   * descendants (in the fromColTo map). */
+  VertexSet getImmediateDesc(const Vertex& loc);
+  VertexSet findColDescendants(const Vertex& loc);
   void depthFirstSearch(const Vertex& loc, unordered_map<Vertex,bool>& visited, vector<Vertex>& order);
   bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
-  
+private:
 };
 
-#endif /* GRAPH_H */ 
+#endif /* GRAPH_H */
