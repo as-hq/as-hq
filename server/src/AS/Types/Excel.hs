@@ -426,3 +426,53 @@ sheetIdToSheetName = Just . T.unpack
 sheetIdFromContext :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
 sheetIdFromContext (Just sn) _ = Just $ T.pack sn
 sheetIdFromContext _ _ = Nothing
+
+-- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
+-- #lenses
+-- TODO: Introduce PossiblyInfiniteRange as a type: is just correct, makes colRange functions  consequence of functions on ranges.
+-- Note: could create a helper operating on the underlying rect (tl, br).
+-- Note: Code duplication between this and orientRange.
+-- TODO: Refactor refTypes so that these are unnecessary.
+splitRefType :: RefType -> (SingleRefType,  SingleRefType)
+splitRefType rType =
+  case rType of
+       REL_REL -> (REL, REL)
+       REL_ABS -> (REL, ABS)
+       ABS_REL -> (ABS, REL)
+       ABS_ABS -> (ABS, ABS)
+combineSingleRefs :: (SingleRefType,  SingleRefType) -> RefType
+combineSingleRefs srTypes =
+  case srTypes of
+      (REL, REL) -> REL_REL
+      (REL, ABS) -> REL_ABS
+      (ABS, REL) -> ABS_REL
+      (ABS, ABS) -> ABS_ABS
+
+orientExRange :: ExRange -> ExRange
+orientExRange e@(ExRange (ExIndex firstRefType firstCol firstRow) (ExIndex secondRefType secondCol secondRow)) =
+  let (firstColRefType, firstRowRefType) = splitRefType firstRefType
+      (secondColRefType, secondRowRefType) = splitRefType secondRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      (t, tRefType, b, bRefType) = if firstRow <= secondRow
+                  then (firstRow, firstRowRefType, secondRow, secondRowRefType)
+                  else (secondRow, secondRowRefType, firstRow, firstRowRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+      brRefType = combineSingleRefs (rRefType, bRefType)
+  in 
+  -- l t and r bsince Col comes before Row in ExIndex
+  ExRange (ExIndex tlRefType l t) (ExIndex brRefType r b)
+
+-- Helper method in exColRangeMutate
+-- outputs an exColRange equivalent to the input of the first ExColRange, with the first coord <= second coord
+orientExColRange :: ExColRange -> ExColRange
+orientExColRange e@(ExColRange (ExIndex firstRefType firstCol firstRow) (ExCol secondColRefType secondCol)) =
+  let t = firstRow
+      (firstColRefType, tRefType) = splitRefType firstRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+  in 
+  ExColRange (ExIndex tlRefType l t) (ExCol rRefType r)

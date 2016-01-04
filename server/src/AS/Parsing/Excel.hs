@@ -80,7 +80,7 @@ colMatch = do
   rcol <- many1 letter
   return $ ExCol (readSingleRef dol) rcol
 
--- | Cases for colRange matching
+-- | Three cases for colRange matching
 
 -- Matches A1:A type things.
 colRangeA1ToAMatch :: Parser ExColRange
@@ -128,6 +128,9 @@ rangeMatch = do
   br <- indexMatch
   return $ ExRange tl br
 
+instance Show ExRange where
+  show (ExRange (ExIndex _ tl br) (ExIndex _ tl' br')) = tl ++ br ++ ":" ++ tl' ++ br'
+
 refMatch :: Parser ExRef
 refMatch = do
   point <- optionMaybe $ try pointer
@@ -143,9 +146,12 @@ refMatch = do
         Just ofb' -> return ExOutOfBounds
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
-      Just rng' -> return $ ExRangeRef rng' sh wb
+      -- Force ranges to have tl <= br.
+      Just rng' -> return $ ExRangeRef (orientExRange rng') sh wb
+      -- Force colRanges to have l <= r.
+      -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
       Nothing -> case colrng of
-        Just colrng' -> return $ ExColRangeRef colrng' sh wb
+        Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
         Nothing -> case idx of 
           Just idx' -> return $ ExLocRef idx' sh wb
           Nothing -> case ofb of  
