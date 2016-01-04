@@ -67,7 +67,6 @@ export default class VAlignPicker
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
   _getMenuValueFromCell(cell: ASCell): string {
-    console.log("\n\n\nVAlign picker cell ", cell)
     return 'bottom'; // TODO: eventually cell.cellProps.valign
   }
 

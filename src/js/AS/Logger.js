@@ -15,9 +15,10 @@ function colorize(str) {
 export function logDebug() {
   if (logLevel <= 0) {
     Function.prototype.apply.apply(console.log, [console, arguments]);
-    if (typeof(_LTracker) != "undefined") {
-      _LTracker.push(arguments);
-    }
+    // disabling log.ly for now because it's polluting the console and not yet adding value. (Alex 1/4)
+    // if (typeof(_LTracker) != "undefined") {
+    //   _LTracker.push(arguments);
+    // }
   }
 }
 

@@ -68,7 +68,6 @@ export default class HAlignPicker
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
   _getMenuValueFromCell(cell: ASCell): string {
-    console.log("\n\n\nHAlign picker cell ", cell)
     return 'left'; // TODO: eventually cell.cellProps.halign
   }
 
