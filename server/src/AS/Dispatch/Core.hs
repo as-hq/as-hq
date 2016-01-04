@@ -39,6 +39,7 @@ import AS.Parsing.Read
 
 import Control.Monad
 import Control.Lens
+import Control.Applicative (liftA2)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
@@ -178,9 +179,7 @@ retrieveValue c = case c of
   Nothing -> CellValue NoValue
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
-formatCell mf c = case mf of 
-  Nothing -> c
-  Just f -> c & cellProps %~ setProp (ValueFormat f)
+formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
@@ -201,13 +200,12 @@ evalChainWithException conn cells ctx =
 -- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
 -- be evalled even if it were in the queue as a normal cell. 
 evalChain :: Connection -> [ASCell] -> EvalTransform
-evalChain conn cells ctx = evalChain' conn cells'' ctx
+evalChain conn cells ctx = evalChain' conn cells' ctx
   where 
     hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
-    cells' = filter isEvaluable cells
-    cells'' = filter (not . hasCoupledCounterpartInMap) cells'
+    cells' = filter (liftA2 (&&) isEvaluable (not . hasCoupledCounterpartInMap)) cells
 
 evalChain' :: Connection -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx

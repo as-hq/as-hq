@@ -96,9 +96,7 @@ shiftExpressionForCut from offset xp = xp'
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
 shiftRangeKey offset c = case c^.cellRangeKey of -- #lens
   Nothing -> Just c
-  Just (RangeKey ind dims) -> case shiftInd offset ind of 
-    Nothing -> Nothing
-    Just i  -> Just $ c & cellRangeKey .~ (Just $ RangeKey i dims)
+  Just (RangeKey ind dims) -> maybe Nothing (Just . (c &) . set cellRangeKey . Just . flip RangeKey dims) $ shiftInd offset ind
 
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
@@ -111,9 +109,7 @@ getCutCells conn from to = do
 
 -- #expert
 replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
-replaceCellLocsMaybe f c = case f $ c^.cellLocation of 
-  Nothing -> Nothing 
-  Just l -> Just $ c & cellLocation .~ l
+replaceCellLocsMaybe f c = maybe Nothing (Just . flip (set cellLocation) c) (f $ c^.cellLocation)
 
 -- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]

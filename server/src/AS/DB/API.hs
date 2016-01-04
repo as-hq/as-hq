@@ -145,9 +145,7 @@ getBlankedCellsAt conn locs =
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells conn locs = do 
   cells <- getCells conn locs
-  return $ map (\(l,c) -> case c of 
-    Just c' -> c'
-    Nothing -> blankCellAt l) (zip locs cells)
+  return $ map (\(l,c) -> fromMaybe (blankCellAt l) c) (zip locs cells)
 
 getPropsAt :: Connection -> ASIndex -> IO ASCellProps
 getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
@@ -205,9 +203,7 @@ getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
 getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptorUsingContext conn ctx rKey = if (isJust inRemoved) -- #lens
   then return Nothing 
-  else case inAdded of
-    Nothing -> getRangeDescriptor conn rKey
-    Just d -> return $ Just d
+  else maybe (getRangeDescriptor conn rKey) (return . Just) inAdded
   where
     inRemoved = find (\d -> d == rKey) (oldRangeKeysInContext ctx)
     inAdded = find (\d -> descriptorKey d == rKey) (newRangeDescriptorsInContext ctx)
@@ -366,10 +362,8 @@ deleteChunkVolatileCells cells = do
 
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
-  sheet <- getSheet conn sheetId
-  case sheet of
-    Nothing -> return False
-    Just someSheet -> return $ hasPermissions uid (sheetPermissions someSheet)
+  mSheet <- getSheet conn sheetId
+  maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
 
 canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
