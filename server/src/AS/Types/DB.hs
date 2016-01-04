@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
@@ -24,7 +24,7 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
-import qualified Data.Serialize as S
+import Data.SafeCopy
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
@@ -86,7 +86,7 @@ splitBy delimiter = foldr f [[]]
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- instances
 
-instance S.Serialize ExportData
+deriveSafeCopy 1 'base ''ExportData
 
 -- compressed show
 

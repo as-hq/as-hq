@@ -25,13 +25,12 @@ module AS.Types.CellProps
   ) where
 
 import AS.Types.User
-import AS.Types.Common
 import AS.ASJSON
 
 import GHC.Generics
 import Data.Aeson
+import Data.SafeCopy
 
-import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Data.Maybe
 import qualified Data.Map as M
@@ -160,13 +159,26 @@ data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Gener
 data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
 -- A stream just needs a source and a frequency
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
+deriveSafeCopy 1 'base ''CellPropType
+deriveSafeCopy 1 'base ''CellProp
+deriveSafeCopy 1 'base ''VAlignType
+deriveSafeCopy 1 'base ''Stream
+deriveSafeCopy 1 'base ''StreamSource
+deriveSafeCopy 1 'base ''HAlignType
+deriveSafeCopy 1 'base ''Bloomberg
+deriveSafeCopy 1 'base ''FormatType
+deriveSafeCopy 1 'base ''ASCellProps
+
+
 -- Frontend should actually *really* pass CellProps to backend. It currently does because frontend sends backend
 -- a cell to do eval, which has an ASCellProps field. It is always blank though and always should be blank. Currently
 -- defining this as a hack just to get it to compile -- the correcdt solution is to make this an error and have 
 -- frontend stop sending ASCell's. 
 instance ToJSON ASCellProps where
   toJSON (ASCellProps m cm) = toJSON $ M.elems $ M.union cm m
-instance Serialize ASCellProps
 
 
 asToFromJSON ''CellProp

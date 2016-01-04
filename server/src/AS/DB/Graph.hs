@@ -75,7 +75,7 @@ execGraphQuery :: BL.ByteString -> IO [B.ByteString]
 execGraphQuery msg = runZMQ $ do
   reqSocket <- socket Req
   connect reqSocket S.graphDbHost
-  send' reqSocket [] msg   -- using lazy bytestring send function
+  send' reqSocket [] msg  -- using lazy bytestring send function
   liftIO $ printObj "sent message to graph db" msg
   receiveMulti reqSocket
 
@@ -149,9 +149,7 @@ execGraphWriteQuery q = runZMQ $ do
   return ()
 
 shouldSetRelationsOfCellWhenRecomputing :: ASCell -> Bool 
-shouldSetRelationsOfCellWhenRecomputing cell = case cell^.cellRangeKey of 
-  Just (RangeKey idx _) -> cell^.cellLocation == idx -- should be a fat cell head
-  Nothing -> True -- keep normal cells
+shouldSetRelationsOfCellWhenRecomputing cell =  maybe True ((== cell^.cellLocation) . keyIndex) $ cell^.cellRangeKey
 
 recompute :: R.Connection -> IO ()
 recompute conn = do

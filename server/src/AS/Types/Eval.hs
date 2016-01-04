@@ -15,7 +15,10 @@ import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Updates
 
+import Safe (headMay)
+
 import Control.Lens
+import Control.Applicative ((<$>), (<*>))
 
 import qualified Data.List as L
 import qualified Data.Map as M
@@ -30,14 +33,17 @@ type CellMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
 data EvalContext = EvalContext { virtualCellsMap :: CellMap
+                               , rangeDescriptorsInSheet :: [RangeDescriptor] -- so we only have to get it once (pulling from DB is relatively expensive)
                                , updateAfterEval :: SheetUpdate }
                                deriving (Show, Read, Eq)
 
 emptyContext :: EvalContext
-emptyContext = EvalContext M.empty (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate)
+emptyContext = EvalContext M.empty [] (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate)
 
 data DescendantsSetting = ProperDescendants | DescendantsWithParent deriving (Show, Read, Eq)
 data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
+
+type EvalCode = String
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
@@ -45,6 +51,12 @@ data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 --getListType :: ListKey -> String
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
+
+virtualRangeDescriptors :: EvalContext -> [RangeDescriptor]
+virtualRangeDescriptors = applyUpdate <$> (descriptorUpdates . updateAfterEval) <*> rangeDescriptorsInSheet
+
+virtualRangeDescriptorAt :: EvalContext -> RangeKey -> Maybe RangeDescriptor
+virtualRangeDescriptorAt ctx rk = headMay $ filter ((== rk) . descriptorKey) $ virtualRangeDescriptors ctx
 
 newCellsInContext :: EvalContext -> [ASCell]
 newCellsInContext = newVals . cellUpdates . updateAfterEval
@@ -80,3 +92,28 @@ isCoupled = isJust . view cellRangeKey
 
 isEvaluable :: ASCell -> Bool
 isEvaluable c = isFatCellHead c || (not $ isCoupled c)
+
+-- assumes all the indices are in the same sheet
+getFatCellIntersections :: EvalContext -> Either [ASIndex] [RangeKey] -> [RangeDescriptor]
+getFatCellIntersections ctx (Left locs) = filter descriptorIntersects $ virtualRangeDescriptors ctx
+  where
+    indexInRect :: Rect -> ASIndex -> Bool
+    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+    anyLocsContainedInRect :: [ASIndex] -> Rect -> Bool
+    anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
+    descriptorIntersects :: RangeDescriptor -> Bool
+    descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)
+
+-- given a list of keys and a descriptor, return True iff the descriptor intersects any of the keys
+getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descriptors keys
+  where 
+    descriptors = virtualRangeDescriptors ctx
+    descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
+    descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
+    keysIntersect k1 k2    = rectsIntersect (rangeRect k1) (rangeRect k2)
+    rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+      | y2 < y' = False 
+      | y > y2' = False
+      | x2 < x' = False 
+      | x > x2' = False
+      | otherwise = True 

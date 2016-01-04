@@ -30,15 +30,16 @@ import qualified AS.Util                  as U
 import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
+import qualified AS.Serialize             as S
 
 import AS.DB.Eval
 import qualified AS.DB.Transaction        as DT
 import qualified AS.DB.API                as DB
+import qualified AS.DB.Clear              as DC
 import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Serialize as DS
 import qualified Data.Text as T
 import qualified Data.Map as M
 import Data.List
@@ -155,7 +156,7 @@ handleIsCoupled uc state loc = do
 handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
 handleClear client state sid = do
   conn <- dbConn <$> readMVar state
-  DB.clearSheet conn sid
+  DC.clearSheet conn sid
   G.recompute conn
   broadcastTo state [sid] $ ClientMessage $ ClearSheet sid
 
@@ -255,7 +256,7 @@ handleSetBarProp uc state bInd prop = do
 handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
 handleImportBinary c state bin = do
   redisConn <- dbConn <$> readMVar state
-  case (DS.decodeLazy bin :: Either String ExportData) of
+  case (S.decodeLazy bin :: Either String ExportData) of
     Left s ->
       let msg = failureMessage $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (conn c)
@@ -268,4 +269,4 @@ handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
 handleExport uc state sid  = do
   conn  <- dbConn <$> readMVar state
   exported <- DX.exportData conn sid
-  WS.sendBinaryData (userConn uc) (DS.encodeLazy exported)
+  WS.sendBinaryData (userConn uc) (S.encodeLazy exported)

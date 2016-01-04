@@ -15,8 +15,9 @@ import AS.Types.CondFormat
 import AS.Types.Updates
 
 import qualified AS.Config.Settings as Settings
-import AS.Util as U
 import qualified AS.DB.Internal as DI
+import qualified AS.Serialize as S
+import AS.Util as U
 import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
@@ -42,7 +43,6 @@ import Database.Redis hiding (decode)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
-import qualified Data.Serialize as S
 import Data.List as L
 import Data.Aeson hiding (Success)
 import Data.ByteString.Unsafe as BU
@@ -76,9 +76,6 @@ import Control.Monad.Trans.Either
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
-clear :: Connection -> IO ()
-clear conn = runRedis conn $ flushall >> return ()
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
 -- all of these functions are order-preserving unless noted otherwise.
@@ -87,7 +84,7 @@ getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
   sCells <- map fromRight <$> mapM (get . S.encode) locs
-  return $ map (maybeDecode =<<) sCells
+  return $ map (S.maybeDecode =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
@@ -119,7 +116,7 @@ deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
 deleteLocsInSheet conn sid = runRedis conn $ do
   Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
   let locKeys = catMaybes $ map readLocKey ks
-      readLocKey k = case (maybeDecode k) of 
+      readLocKey k = case (S.maybeDecode k) of 
         Just (Index _ _) -> Just k
         _ -> Nothing
   del locKeys
@@ -129,7 +126,7 @@ getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
   let locs = catMaybes $ map readLoc ks
-      readLoc k = case (maybeDecode k) of 
+      readLoc k = case (S.maybeDecode k) of 
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
@@ -148,9 +145,7 @@ getBlankedCellsAt conn locs =
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]
 getPossiblyBlankCells conn locs = do 
   cells <- getCells conn locs
-  return $ map (\(l,c) -> case c of 
-    Just c' -> c'
-    Nothing -> blankCellAt l) (zip locs cells)
+  return $ map (\(l,c) -> fromMaybe (blankCellAt l) c) (zip locs cells)
 
 getPropsAt :: Connection -> ASIndex -> IO ASCellProps
 getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
@@ -190,30 +185,12 @@ getRangeKeysInSheet conn sid = runRedis conn $ do
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
 getRangeDescriptor conn key = runRedis conn $ do 
   Right desc <- get . toRedisFormat $ RedisRangeKey key
-  return $ maybeDecode =<< desc
+  return $ S.maybeDecode =<< desc
 
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
   keys <- getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
-
-getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
-getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
-  dbKeys <- getRangeKeysInSheet conn sid
-  let dbKeys' = dbKeys \\ (oldRangeKeysInContext ctx)
-  dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
-  return $ (newRangeDescriptorsInContext ctx) ++ dbDescriptors
-
--- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
-getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptorUsingContext conn ctx rKey = if (isJust inRemoved) -- #lens
-  then return Nothing 
-  else case inAdded of
-    Nothing -> getRangeDescriptor conn rKey
-    Just d -> return $ Just d
-  where
-    inRemoved = find (\d -> d == rKey) (oldRangeKeysInContext ctx)
-    inAdded = find (\d -> descriptorKey d == rKey) (newRangeDescriptorsInContext ctx)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -341,28 +318,12 @@ setSheet conn sheet = do
             sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
         return ()
 
--- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
--- (at least not consistently.)
-clearSheet :: Connection -> ASSheetId -> IO ()
-clearSheet conn sid = 
-  let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
-      evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
-      rangeKeys = map (toRedisFormat . RedisRangeKey) <$> getRangeKeysInSheet conn sid
-      pluralKeyTypes = [BarType2, PushCommitType, PopCommitType, TempCommitType, LastMessageType, CFRuleType]
-      pluralKeys = (evalHeaderKeys ++ ) . concat <$> mapM (DI.getKeysInSheetByType conn sid) pluralKeyTypes
-  in runRedis conn $ do
-    pluralKeys <- liftIO pluralKeys
-    rangeKeys <- liftIO rangeKeys 
-    del $ sheetRangesKey : pluralKeys
-    del rangeKeys
-    liftIO $ deleteLocsInSheet conn sid
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- (map S.maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
   if any isNothing vl 
     then error "Error decoding volatile locs!!!"
     else return $ map fromJust vl
@@ -385,10 +346,8 @@ deleteChunkVolatileCells cells = do
 
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
-  sheet <- getSheet conn sheetId
-  case sheet of
-    Nothing -> return False
-    Just someSheet -> return $ hasPermissions uid (sheetPermissions someSheet)
+  mSheet <- getSheet conn sheetId
+  maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
 
 canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
@@ -431,14 +390,14 @@ getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [C
 getCondFormattingRules conn sid cfids = do 
   let keys = map (toRedisFormat . CFRuleKey sid) cfids
   eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
 
 -- some replication with the above...
 getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
 getCondFormattingRulesInSheet conn sid = do 
   keys <- DI.getKeysInSheetByType conn sid CFRuleType
   eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe maybeDecode . catMaybes) eitherMsg
+  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
 
 deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
 deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
@@ -459,7 +418,7 @@ setCondFormattingRules conn sid rules = runRedis conn $ do
 getBar :: Connection -> BarIndex -> IO (Maybe Bar)
 getBar conn bInd  = runRedis conn $ do 
   Right msg <- get . toRedisFormat $ BarKey bInd
-  return $ maybeDecode =<< msg
+  return $ S.maybeDecode =<< msg
 
 setBar :: Connection -> Bar -> IO ()
 setBar conn bar = do

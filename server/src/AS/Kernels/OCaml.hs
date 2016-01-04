@@ -4,7 +4,7 @@ import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
 
-import AS.Kernels.Common
+import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 
 import AS.Parsing.Read

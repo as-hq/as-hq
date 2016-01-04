@@ -9,6 +9,7 @@ import AS.Types.Updates
 import AS.Types.Values
 
 import GHC.Generics
+import Data.SafeCopy
 
 import qualified Data.Map as M
 
@@ -30,10 +31,6 @@ data RangeKey = RangeKey { keyIndex :: ASIndex
 type DescriptorDiff = Diff RangeDescriptor
 type DescriptorUpdate = Update RangeDescriptor RangeKey
 
-instance HasKey RangeDescriptor where 
-  type KeyType RangeDescriptor = RangeKey
-  key = descriptorKey
-
 -- The JSON type stores metadata about the object. (For example, in time series,JS what the indices are)
 -- #needsrefactor JSON should in principle be a typeclass; JSONValue's shouldn't only be allowed to be
 -- ListValues or SimpleValues. 
@@ -42,6 +39,13 @@ type JSONKey = String
 data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
 data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
 
+-------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
+instance HasKey RangeDescriptor where 
+  type KeyType RangeDescriptor = RangeKey
+  key = descriptorKey
+
 asToJSON ''RangeDescriptor
 asToJSON ''ExpandingType
 asToJSON ''RangeKey
@@ -49,3 +53,9 @@ asToJSON ''DescriptorDiff
 asToJSON ''DescriptorUpdate
 asToJSON ''JSONField
 asToJSON ''JSONValue
+
+deriveSafeCopy 1 'base ''RangeDescriptor
+deriveSafeCopy 1 'base ''ExpandingType
+deriveSafeCopy 1 'base ''RangeKey
+deriveSafeCopy 1 'base ''JSONField
+deriveSafeCopy 1 'base ''JSONValue

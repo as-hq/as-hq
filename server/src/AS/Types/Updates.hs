@@ -1,14 +1,15 @@
-{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving, TemplateHaskell #-}
 
 module AS.Types.Updates where
 
 import GHC.Generics
 import Control.Applicative (liftA2)
 import Data.List as L
+import Data.SafeCopy
 
 class HasKey a where 
   type KeyType a :: * -- #expert how to ensure this is an Eq
-  key :: a -> KeyType a
+  key :: a -> KeyType a 
 
 data Diff a = Diff { afterVals :: [a], beforeVals :: [a] } deriving (Show, Read, Eq, Generic)
 
@@ -17,6 +18,9 @@ flipDiff (Diff x y) = Diff y x
 
 -- #expert would like to somehow ensure that a is an instance of HasKey and b is KeyType a. 
 data Update a b = Update { newVals :: [a], oldKeys :: [b] } deriving (Show, Read, Eq, Generic)
+-- #anand you could write a constructor yourself (not sure if compiles)
+--mkUpdate :: (HasKey a, Eq (KeyType b)) => [a] -> [KeyType b] -> Update a (KeyType b)
+--mkUpdate as bs = Update {newVals = as, oldKeys = bs}
 
 diffToUpdate :: (HasKey a, Eq (KeyType a)) => Diff a -> Update a (KeyType a)
 diffToUpdate (Diff after before) = Update after ((map key before) \\ (map key after))
@@ -48,3 +52,9 @@ updateToDiff (Update nvs oks) dbGetter = do
   oldValues <- dbGetter oks
   overWrittenValues <- dbGetter $ map key nvs
   return $ Diff { afterVals = nvs, beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }
+
+--------------------------------------------------------------------------------------------------------------
+-- Instances
+
+deriveSafeCopy 1 'base ''Update
+deriveSafeCopy 1 'base ''Diff

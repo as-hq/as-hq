@@ -13,6 +13,7 @@ import AS.Types.Updates
 import GHC.Generics
 import Data.Aeson.Types (Parser)
 import Data.Maybe
+import Data.SafeCopy
 import Control.Applicative
 import Control.Monad (liftM, ap)
 
@@ -34,6 +35,10 @@ instance HasKey Bar where
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
+
+deriveSafeCopy 1 'base ''Bar
+deriveSafeCopy 1 'base ''BarIndex
+deriveSafeCopy 1 'base ''BarType
 
 asToFromJSON ''BarType
 asToFromJSON ''BarIndex

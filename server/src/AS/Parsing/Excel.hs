@@ -25,12 +25,8 @@ readSingleRef d1 = case d1 of
 
 readRefType :: Maybe Char -> Maybe Char -> RefType 
 readRefType d1 d2 = case d1 of
-  Nothing -> case d2 of 
-    Nothing -> REL_REL
-    Just _ -> REL_ABS
-  Just _ -> case d2 of 
-    Nothing -> ABS_REL
-    Just _ -> ABS_ABS
+  Nothing -> maybe REL_REL (const REL_ABS) d2
+  Just _ -> maybe  ABS_REL (const ABS_ABS) d2
 
 dollar :: Parser Char
 dollar = char  '$' -- returns $ or ""; $ is not required for index

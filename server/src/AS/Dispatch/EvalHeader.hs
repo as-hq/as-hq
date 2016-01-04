@@ -22,7 +22,7 @@ import Control.Lens
 runEvalHeader :: ASSheetId -> ASExpression -> IO ClientMessage
 runEvalHeader sid xp = do
     let lang = xp^.language
-    val <- runEitherT $ R.evaluateHeader xp
+    val <- runEitherT $ R.evaluateHeader sid xp
     return $ case val of 
         Left e -> failureMessage $ generateErrorMessage e
         Right v -> ClientMessage $ ShowHeaderResult v

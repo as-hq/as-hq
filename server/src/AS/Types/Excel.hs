@@ -216,9 +216,8 @@ instance Ord EValue where
   (<=) _ _ = error "Invalid comparison" 
 
 strToEValueNum :: String -> EValue
-strToEValueNum str = case (readMaybe str :: Maybe Double) of 
-  Just d -> EValueNum $ return $ EValueD d
-  Nothing -> error "Failed to convert string to number"
+strToEValueNum str = maybe err (EValueNum . return . EValueD) (readMaybe str :: Maybe Double)
+  where err = error "Failed to convert string to number"
 
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Eq)
@@ -255,9 +254,7 @@ class EType a where
   getRequired' :: String -> ExtractArg a
   getRequired' typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
-    | otherwise = case (extractType entity) of
-        Nothing -> Left $ ArgType f i typeName (getType entity)
-        Just x  -> Right x
+    | otherwise = maybe (Left $ ArgType f i typeName $ getType entity) Right $ extractType entity
         where
           entity = entities!!(i-1)
   -- | Same as above, but allow for a default value (optional argument)

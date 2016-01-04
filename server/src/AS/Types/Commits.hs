@@ -11,10 +11,10 @@ import AS.Types.Bar
 import AS.Types.RangeDescriptor
 
 import GHC.Generics
-import Data.Serialize (Serialize)
 
 import Data.List
 import qualified Data.Text as T
+import Data.SafeCopy
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ data ASCommit = Commit { cellDiff :: CellDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
-data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId }
+data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId } deriving (Generic)
 
 type UpdateTransform = SheetUpdate -> SheetUpdate
 
@@ -60,10 +60,6 @@ sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
 sheetUpdateFromCells :: [ASCell] -> SheetUpdate
 sheetUpdateFromCells cs = SheetUpdate (Update cs []) emptyUpdate emptyUpdate emptyUpdate
 
-asToJSON ''ASTime
-asToJSON ''SheetUpdate
-instance Serialize ASCommit
-
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
@@ -91,3 +87,11 @@ generateCommitFromCells cells = do
   let cdiff = Diff { beforeVals = [], afterVals = cells }
   return $ Commit cdiff emptyDiff emptyDiff emptyDiff time
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
+asToJSON ''ASTime
+asToJSON ''SheetUpdate
+
+deriveSafeCopy 1 'base ''ASCommit
+deriveSafeCopy 1 'base ''ASTime

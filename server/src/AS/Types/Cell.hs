@@ -13,16 +13,15 @@ import AS.Types.Locations
 import AS.Types.RangeDescriptor
 import AS.Types.CellProps
 import AS.Types.Errors
-import AS.Types.Common
 import AS.Types.Updates
 import AS.Types.Values
 
 import GHC.Generics
 import Data.Aeson
 import Data.List
+import Data.SafeCopy
 import qualified Data.Map as M 
 
-import Data.Serialize (Serialize)
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
 import Control.Lens hiding ((.=))
@@ -54,6 +53,9 @@ makeLenses ''ASCell
 type CellDiff = Diff ASCell 
 type CellUpdate = Update ASCell ASReference
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
 instance HasKey ASCell where
   type KeyType ASCell = ASReference
   key = IndexRef . view cellLocation
@@ -69,12 +71,14 @@ asToFromJSON ''ASLanguage
 --                                      "cellExpression" .= e, 
 --                                      "cellValue" .= v, 
 --                                      "cellProps" .= ps]
--- instance Serialize ASCell
 
 asLensedToJSON ''ASCell
 asToJSON ''CellDiff
 asToJSON ''CellUpdate
 
+deriveSafeCopy 1 'base ''ASExpression
+deriveSafeCopy 1 'base ''ASLanguage
+deriveSafeCopy 1 'base ''ASCell
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -93,9 +97,10 @@ isEmptyCell = liftA2 (&&) (isEmpty . view cellProps) (null . view (cellExpressio
 
 mergeCells :: [ASCell] -> [ASCell] -> [ASCell]
 mergeCells c1 c2 = map snd $ M.toList $ M.union (toMap c1) (toMap c2)
-  where 
-    toMap :: [ASCell] -> M.Map ASIndex ASCell
-    toMap cs = M.fromList $ zip (mapCellLocation cs) cs
+  
+-- needed for benchmarks as well
+toMap :: [ASCell] -> M.Map ASIndex ASCell
+toMap cs = M.fromList $ zip (map (view cellLocation) cs) cs
 
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 

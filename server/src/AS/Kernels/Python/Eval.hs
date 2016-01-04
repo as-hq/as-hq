@@ -1,80 +1,54 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
 module AS.Kernels.Python.Eval where
 
-import AS.Kernels.Common
+import GHC.Generics
+
+import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Pyfi
 
-import AS.Parsing.Read
+import AS.Logging
+import AS.Config.Settings
+import qualified AS.Parsing.Read as R
 
-import AS.Types.Cell
+import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
-import AS.Util
-import AS.Config.Settings
+
+import qualified AS.DB.API as DB
+import qualified AS.DB.Eval as DE
+
+import Data.Maybe (fromJust)
+import Data.Aeson 
+import Data.Aeson.Types (Parser)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Text as T
 
 import Control.Exception (catch, SomeException)
+import System.ZMQ4.Monadic
 
--- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
-----------------------------------------------------------------------------------------------------------------------------------------------
--- | Exposed functions
 
--- | Helper for evaluateRepl
-onParseSuccess :: String -> CompositeValue -> IO ()
-onParseSuccess previousRecord (CellValue (ValueError _ _)) = writeReplRecord Python previousRecord
-onParseSuccess _ v = return ()
+import Database.Redis (Connection)
 
-onParseFailure :: String -> ASExecError -> IO ()
-onParseFailure previousRecord x = writeReplRecord Python previousRecord
+---------------------------------------------------------------------------------
+-- Exposed functions
 
--- | python
-evaluate :: String -> String -> EitherTExec CompositeValue
-evaluate header "" = return $ CellValue NoValue
-evaluate header str = do
-    validCode <- formatCode header Python str
-    if isDebug
-        then lift $ writeExecFile Python validCode
-        else return ()
-    execWrappedCode validCode
+initialize :: Connection -> IO ()
+initialize conn = do
+  -- run all the headers in db to initialize the sheet namespaces
+  sids <- map sheetId <$> DB.getAllSheets conn
+  headers <- mapM (\sid -> DE.getEvalHeader conn sid Python) sids
+  mapM_ (\(sid, code) -> runEitherT $ evaluateHeader sid code) $ zip sids headers
 
-evaluateRepl :: String -> String -> EitherTExec CompositeValue
-evaluateRepl header "" = return $ CellValue NoValue
-evaluateRepl header str = do
-    -- preprocess expression
-    (recordCode, evalCode) <- lift $ formatCodeRepl header Python str
-    if isDebug
-        then lift $ writeReplFile Python evalCode
-        else return ()
-    -- write record
-    replRecord <- lift $ getReplRecord Python
-    lift $ writeReplRecord Python (replRecord ++ "\n" ++ recordCode)
-    -- perform eval, if there's something we actually need to return
-    if (evalCode /= "")
-        then do 
-            let parsed = execWrappedCode evalCode
-            -- rollback to previous repl state if eval failed
-            lift $ eitherT (onParseFailure replRecord) (onParseSuccess replRecord) parsed
-            parsed
-        else return $ CellValue NoValue
+evaluate = evaluateWithScope Cell
+evaluateHeader = evaluateWithScope Header
+clear = sendMessage_ . ClearRequest
 
-evaluateHeader :: String -> EitherTExec CompositeValue
-evaluateHeader str = do
-    -- appropriating repl code for this. technically more correct to leave this blank, 
-    -- since isPrintable from the REPL code is a screwed up function, but it works well enough
-    -- for now when we don't have a better way to give the user the direct output of the header
-    -- eval. 
-    (_, evalCode) <- lift $ formatCodeRepl "" Python str
-    -- ^ "" is passed in for header because the str is just the header here
-    lift $ writeHeaderRecord Python evalCode
-    -- perform eval, if there's something we actually need to return
-    if (evalCode /= "" && str /= "")
-        then execWrappedCode evalCode
-        else return $ CellValue NoValue
-
--- | SQL
+-- SQL has not been updated to use the new kernel yet, because it doesn't seem super urgent rn.
+-- #anand 1/1/16
 evaluateSql :: String -> String -> EitherTExec CompositeValue
 evaluateSql _ "" = return $ CellValue NoValue
 evaluateSql header str = do
@@ -84,18 +58,93 @@ evaluateSql header str = do
         else return ()
     execWrappedCode validCode
 
-evaluateSqlRepl :: String -> String -> EitherTExec CompositeValue
-evaluateSqlRepl _ "" = return $ CellValue NoValue
-evaluateSqlRepl header str = evaluateSql header str
+testCell :: ASSheetId -> EvalCode -> IO ()
+testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
 
+testHeader :: ASSheetId -> EvalCode -> IO ()
+testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
+
+---------------------------------------------------------------------------------
+-- Helpers
+
+data EvalScope = Header | Cell deriving (Generic)
+data KernelMessage = 
+    EvaluateRequest { scope :: EvalScope, envSheetId :: ASSheetId, code :: String } 
+  | GetStatusRequest ASSheetId
+  | AutocompleteRequest { envSheetId' :: ASSheetId, completeString :: String }
+  | ClearRequest ASSheetId
+  deriving (Generic)
+
+data KernelResponse = 
+    EvaluateReply { value :: Maybe String, eval_error :: Maybe String, display :: Maybe String } 
+  | GetStatusReply -- TODO
+  | AutocompleteReply -- TODO
+  | ClearReply Bool
+  deriving (Generic)
+
+instance ToJSON EvalScope
+
+instance ToJSON KernelMessage where
+  toJSON msg = case msg of 
+    EvaluateRequest scope sid code -> object  [ "type" .= ("evaluate" :: String)
+                                              , "scope" .= scope
+                                              , "sheet_id" .= sid
+                                              , "code" .= code]
+    GetStatusRequest sid -> object  [ "type" .= ("get_status" :: String)
+                                    , "sheet_id" .= sid]
+    AutocompleteRequest sid str -> object [ "type" .= ("autocomplete" :: String)
+                                          , "sheet_id" .= sid
+                                          , "complete_str" .= str]
+    ClearRequest sid -> object [ "type" .= ("clear" :: String)
+                               , "sheet_id" .= sid]
+
+instance FromJSON KernelResponse where
+  parseJSON (Object v) = do
+    val <- v .: "type" :: (Parser String)
+    case val of 
+      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
+      "get_status" -> return GetStatusReply -- TODO
+      "autocomplete" -> return AutocompleteReply -- TODO
+      "clear" -> ClearReply <$> v .: "success"
+
+evaluateWithScope :: EvalScope -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluateWithScope _ _ "" = return $ CellValue NoValue
+evaluateWithScope scope sid code = do
+  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
+  case v of 
+    Nothing -> case err of 
+      Just e -> return . CellValue $ ValueError e ""
+      Nothing -> return . CellValue $ ValueError "Last line of expression is empty, comment, or otherwise not evaluable." ""
+    Just v -> hoistEither $ R.parseValue Python v
+
+sendMessage :: KernelMessage -> EitherTExec KernelResponse
+sendMessage msg = do
+  resp <- liftIO $ runZMQ $ do
+    reqSocket <- connectToKernel
+    send' reqSocket [] $ encode msg
+    eitherDecodeStrict <$> receive reqSocket
+  case resp of 
+    Left e -> left $ EvaluationError e
+    Right r -> return r
+
+sendMessage_ :: KernelMessage -> IO ()
+sendMessage_ msg = runZMQ $ do
+  reqSocket <- connectToKernel
+  send' reqSocket [] $ encode msg
+  return ()
+
+connectToKernel = do
+  reqSocket <- socket Req 
+  connect reqSocket pykernelHost
+  return reqSocket
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- | helpers
+-- Old code that should go away when SQL is updated/overhauled/rewritten
 
 execWrappedCode :: String -> EitherTExec CompositeValue
 execWrappedCode evalCode = do
     result <- lift $ pyfiString evalCode
     case result of 
-      Right result' -> hoistEither $ parseValue Python result'
+      Right result' -> hoistEither $ R.parseValue Python result'
       Left e -> return e
 
 pyfiString :: String -> IO (Either CompositeValue String)

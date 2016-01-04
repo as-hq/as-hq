@@ -8,8 +8,9 @@ import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Updates
 
-import AS.DB.API as DB
 import qualified AS.DB.Graph as G
+import qualified AS.Serialize as S
+import AS.DB.API as DB
 import AS.DB.Expanding
 import AS.DB.Internal as DI
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
@@ -20,7 +21,6 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import qualified Data.List as L
-import qualified Data.Serialize as S
 import Data.Maybe 
 
 import Database.Redis hiding (time)
@@ -52,7 +52,7 @@ updateDBWithContext conn src ctx = do
 -- the one for generating the commit, but by batching them together we get to make one fewer call to 
 -- the DB. (Alex 12/24)
 evalContextToCommitWithDecoupleInfo :: Connection -> ASSheetId -> EvalContext -> IO CommitWithDecoupleInfo
-evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp (SheetUpdate cu bu du cfru)) = do
+evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu bu du cfru)) = do
   bdiff  <- updateToDiff bu $ fmap catMaybes . mapM (DB.getBar conn)
   ddiff  <- updateToDiff du $ fmap catMaybes . mapM (DB.getRangeDescriptor conn)
   cfdiff <- updateToDiff cfru $ DB.getCondFormattingRules conn sid
@@ -112,7 +112,7 @@ undo conn src = do
       sid = srcSheetId src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
-    return $ maybeDecode =<< commit
+    return $ S.maybeDecode =<< commit
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
@@ -125,7 +125,7 @@ redo conn src = do
     case result of
       Just commit -> do
         rpush pushKey [commit]
-        return $ maybeDecode commit
+        return $ S.maybeDecode commit
       _ -> return Nothing
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
 applyUpdateToDB :: Connection -> ASSheetId -> SheetUpdate -> IO ()
@@ -178,7 +178,7 @@ updateDBWithCommit conn src c = do
 getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
 getTempCommit conn src = do 
   maybeBStr <- runRedis conn $ fromRight <$> get (toRedisFormat . TempCommitKey $ src)
-  return $ maybeDecode =<< maybeBStr
+  return $ S.maybeDecode =<< maybeBStr
   
 setTempCommit :: Connection  -> CommitSource -> ASCommit -> IO ()
 setTempCommit conn src c = do 

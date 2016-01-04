@@ -39,6 +39,7 @@ import AS.Parsing.Read
 
 import Control.Monad
 import Control.Lens
+import Control.Applicative (liftA2)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
@@ -88,10 +89,11 @@ runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   conn <- dbConn <$> readMVar state
   time <- getASTime 
+  rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
   errOrCommit <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (mapCellLocation cs) cs
-        initialContext = EvalContext initialEvalMap (sheetUpdateFromCommit $ emptyCommitWithTime time) 
+        initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
@@ -179,9 +181,7 @@ retrieveValue c = case c of
   Nothing -> CellValue NoValue
 
 formatCell :: Maybe FormatType -> ASCell -> ASCell
-formatCell mf c = case mf of 
-  Nothing -> c
-  Just f -> c & cellProps %~ setProp (ValueFormat f)
+formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
@@ -202,13 +202,12 @@ evalChainWithException conn cells ctx =
 -- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
 -- be evalled even if it were in the queue as a normal cell. 
 evalChain :: Connection -> [ASCell] -> EvalTransform
-evalChain conn cells ctx = evalChain' conn cells'' ctx
+evalChain conn cells ctx = evalChain' conn cells' ctx
   where 
     hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
-    cells' = filter isEvaluable cells
-    cells'' = filter (not . hasCoupledCounterpartInMap) cells'
+    cells' = filter (liftA2 (&&) isEvaluable (not . hasCoupledCounterpartInMap)) cells
 
 evalChain' :: Connection -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
@@ -270,17 +269,17 @@ addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = 
 delPrevFatCellFromContext :: Connection -> ASCell -> EvalTransformWithInfo (Maybe [ASIndex])
 delPrevFatCellFromContext conn c@(Cell idx xp _ _ rk) ctx = case rk of 
   Nothing  ->  return (ctx, Nothing)
-  Just key -> if isFatCellHead c
+  Just key -> if (isFatCellHead c)
     then do 
       let indices = rangeKeyToIndices key
           blankCells = map blankCellAt indices
-      descriptor <- lift $ DB.getRangeDescriptorUsingContext conn ctx key
+          descriptor = virtualRangeDescriptorAt ctx key
       printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
       printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)          
       -- Remove the descriptor from context, and then add the blank cells to the list of added cells. This must be done
       -- so that the blanked out cells make it into the commit (ie so that the context is correct up to now). If anything
       -- replaces these blanked out cells, they will be merged in by a future contextInsert.
-      let ctx' =  addCellsToContext blankCells $ removeMaybeDescriptorFromContext descriptor ctx
+      let ctx' = addCellsToContext blankCells $ removeMaybeDescriptorFromContext descriptor ctx
       return (ctx', Just indices)
     else left WillNotEvaluate
 
@@ -297,9 +296,9 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- The newly created cell(s) may have caused decouplings, which we're going to deal with. 
   -- First, we get a possible fatcell created, from which we get the newly removed descriptors, if any
   -- We need to remove the ones that intersect our newly produced cell/fatcell (they're decoupled now)
-  newlybeforeVals <- lift $ case maybeFatCell of
-    Nothing -> DX.getFatCellIntersections conn ctx (Left [idx])
-    Just (FatCell _ descriptor) -> DX.getFatCellIntersections conn ctx (Right [descriptorKey descriptor])
+  let newlybeforeVals = case maybeFatCell of
+                          Nothing -> getFatCellIntersections ctx (Left [idx])
+                          Just (FatCell _ descriptor) -> getFatCellIntersections ctx (Right [descriptorKey descriptor])
   printObjT "GOT DECOUPLED DESCRIPTORS" newlybeforeVals
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
