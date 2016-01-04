@@ -184,6 +184,7 @@ benchmark alphasheets-bench
                     , containers
                     , hashmap
                     , hashable
+                    , lens
                     , hashtables
   PkgConfig-Depends:  python
   c-sources:          src/AS/Kernels/Python/cdefs.c

@@ -61,13 +61,13 @@ main = do
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
         xdescribe "misc cell datastructures"
           [ it "creates 10000-cell map" $
-              run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
+              run (\cs -> M.fromList $ zip (mapCellLocation cs) cs) cells
 
           , it "creates 10000-cell hashmap" $
-              run (\cs -> H.fromList $ zip (map cellLocation cs) cs) cells
+              run (\cs -> H.fromList $ zip (mapCellLocation cs) cs) cells
 
           , it "inserts 10000 cells into a map" $ 
-              run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
+              run (\cs -> insertMultiple (M.empty) (mapCellLocation cs) cs) cells
 
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
