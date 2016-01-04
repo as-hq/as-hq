@@ -4,7 +4,6 @@ module AS.Types.User where
 
 import AS.ASJSON
 
-import AS.Types.Common
 
 import GHC.Generics
 import Data.Text hiding (any)

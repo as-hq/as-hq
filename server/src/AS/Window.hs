@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Window
   ( ASWindow(..)
@@ -11,8 +11,8 @@ import AS.Types.Cell
 
 import GHC.Generics
 import Data.Aeson
+import Data.SafeCopy
 import Control.Lens hiding ((.=))
-import Data.Serialize (Serialize)
 
 data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
 
@@ -37,7 +37,7 @@ instance FromJSON ASWindow where
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
 
-instance Serialize ASWindow
+deriveSafeCopy 1 'base ''ASWindow
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

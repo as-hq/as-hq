@@ -18,6 +18,7 @@ library
   exposed-modules:     AS.ASJSON
                        AS.Daemon
                        AS.LanguageDefs
+                       AS.Serialize
                        AS.DB.API
                        AS.DB.Eval
                        AS.DB.Expanding
@@ -63,7 +64,6 @@ library
                        AS.Parsing.Excel
                        AS.Parsing.Substitutions
                        AS.Reply
-                       AS.Types.Common
                        AS.Types.Bar
                        AS.Types.BarProps
                        AS.Types.Cell
@@ -127,6 +127,7 @@ library
                      , hashmap
                      , hashable
                      , unordered-containers
+                     , safecopy
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
@@ -185,6 +186,7 @@ benchmark alphasheets-bench
                     , hashmap
                     , hashable
                     , hashtables
+                    , lens
   PkgConfig-Depends:  python
   c-sources:          src/AS/Kernels/Python/cdefs.c
   default-language:   Haskell2010

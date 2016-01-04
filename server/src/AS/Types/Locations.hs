@@ -6,16 +6,15 @@ module AS.Types.Locations
   ) where
 
 import AS.Types.Sheets
-import AS.Types.Common
 
 import GHC.Generics
 import Data.Aeson
 import Data.Hashable
+import Data.SafeCopy
 
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
-import Data.Serialize (Serialize)
 
 type Col = Int
 type Row = Int
@@ -47,6 +46,9 @@ refSheetId (IndexRef   i) = locSheetId     i
 refSheetId (RangeRef   r) = rangeSheetId   r
 refSheetId (PointerRef p) = locSheetId . pointerIndex $ p
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Instances
+
 instance ToJSON ASIndex where
   toJSON (Index sid (c,r)) = object ["tag"     .= ("index" :: String),
                                      "sheetId" .= sid,
@@ -59,7 +61,6 @@ instance FromJSON ASIndex where
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
     return $ Index sid idx
   parseJSON _          = fail "client message JSON attributes missing"
-instance Serialize ASIndex
 
 instance ToJSON ASPointer where
   toJSON (Pointer (Index sid (c,r))) = object ["tag"     .= ("index" :: String),
@@ -73,7 +74,6 @@ instance FromJSON ASPointer where
     idx <- (,) <$> loc .: "col" <*> loc .: "row"
     return $ Pointer (Index sid idx)
   parseJSON _          = fail "client message JSON attributes missing"
-instance Serialize ASPointer
 
 instance ToJSON ASRange where
   toJSON (Range sid ((c,r),(c2,r2))) = object ["tag" .= ("range" :: String),
@@ -92,18 +92,15 @@ instance FromJSON ASRange where
     sid <- v .: "sheetId"
     return $ Range sid (tl', br')
   parseJSON _          = fail "client message JSON attributes missing"
-instance Serialize ASRange 
 
 instance ToJSON ASReference where
   toJSON (IndexRef idx) = toJSON idx
   toJSON (PointerRef p) = toJSON p
   toJSON (RangeRef rng) = toJSON rng
 instance FromJSON ASReference
-instance Serialize ASReference
 
 instance ToJSON Dimensions
 instance FromJSON Dimensions
-instance Serialize Dimensions
 
 -- deep strict eval instances for R 
 instance NFData ASIndex             where rnf = genericRnf
@@ -112,6 +109,10 @@ instance NFData ASRange             where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
 instance Hashable ASIndex
+
+deriveSafeCopy 1 'base ''ASRange
+deriveSafeCopy 1 'base ''ASIndex
+deriveSafeCopy 1 'base ''Dimensions
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

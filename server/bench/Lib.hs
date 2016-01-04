@@ -35,6 +35,7 @@ import qualified Data.Map as M
 import qualified Data.HashMap as H
 import qualified Data.HashTable.IO as HI
 import Data.Hashable
+import Control.Lens
 import Control.Monad.Trans.Either
 import Control.Applicative
 import Control.Concurrent (newMVar, MVar)
@@ -145,5 +146,5 @@ setupEnv = do
 setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
 setupEnvWith x = (,) <$> setupEnv <*> return x
 
-testCells = map (\i -> testCell { cellLocation = Index "BENCH_ID" (1,i) })
+testCells = map (\i -> testCell & cellLocation .~ Index "BENCH_ID" (1,i))
 testMap = toMap . testCells

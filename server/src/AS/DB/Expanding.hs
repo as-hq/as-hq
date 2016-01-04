@@ -8,13 +8,13 @@ import AS.Types.DB
 import AS.DB.API as DB
 import AS.DB.Internal as DI
 import AS.Logging
+import qualified AS.Serialize as S
 
 import Data.List (nub)
 import Data.Maybe (catMaybes, fromJust)
 import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.ByteString.Char8 as B
-import qualified Data.Serialize as S
 
 import Database.Redis hiding (time)
 import Control.Monad.IO.Class (liftIO)

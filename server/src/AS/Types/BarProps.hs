@@ -6,10 +6,11 @@ import AS.ASJSON
 
 import GHC.Generics
 import Data.Aeson
-import Data.Serialize (Serialize)
 import qualified Data.Map as M
 
 import qualified AS.Types.CellProps as CP
+
+import Data.SafeCopy
 
 data BarProp = 
     Dimension Int -- width for columns, height for rows
@@ -33,6 +34,13 @@ propType (FromCell cp) = FromCellProp $ CP.propType cp
 emptyProps :: ASBarProps
 emptyProps = ASBarProps M.empty
 
+----------------------------------------------------------------------------------------------------------------------
+-- Instances
+
+deriveSafeCopy 1 'base ''ASBarProps
+deriveSafeCopy 1 'base ''BarPropType
+deriveSafeCopy 1 'base ''BarProp
+
 -- Will need these eventually for eval. (e.g., bolding entire columns, and checking if a cell
 -- is in a column with defualt properties.) Note that BarProps, unlike CellProps, don't care about
 -- conditional formatting, since those are stored on a cell-by-cell basis. 
@@ -54,4 +62,3 @@ asToFromJSON ''BarPropType
 
 instance ToJSON ASBarProps where
   toJSON (ASBarProps m) = toJSON $ M.elems m
-instance Serialize ASBarProps

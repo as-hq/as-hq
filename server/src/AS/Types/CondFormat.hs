@@ -14,6 +14,7 @@ import AS.Types.Updates
 
 import GHC.Generics
 import Data.Aeson.Types
+import Data.SafeCopy
 import qualified Data.Text as T
 
 type CondFormatRuleId = T.Text
@@ -75,6 +76,9 @@ data EqualsCondition = Equals ASExpression  deriving (Show, Read, Generic, Eq)
 data NotEqualsCondition = NotEquals ASExpression  deriving (Show, Read, Generic, Eq)
 data IsBetweenCondition = IsBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
 data IsNotBetweenCondition = IsNotBetween ASExpression ASExpression deriving (Show, Read, Generic, Eq)
+
+-------------------------------------------------------------------------------------------------------------------------
+-- Instances
 
 -- | TODO: timchu, 12/21/15. There is a fair amount of reptition in the code in 
 -- the Inequality Conditions, the Between Conditions, etc...
@@ -246,3 +250,17 @@ asToFromJSON ''IsEmptyCondition
 asToFromJSON ''IsNotEmptyCondition
 asToFromJSON ''IsBetweenCondition
 asToFromJSON ''IsNotBetweenCondition
+
+deriveSafeCopy 1 'base ''CondFormatRule
+deriveSafeCopy 1 'base ''CondFormatCondition
+deriveSafeCopy 1 'base ''CustomCondition
+deriveSafeCopy 1 'base ''GreaterThanCondition
+deriveSafeCopy 1 'base ''LessThanCondition
+deriveSafeCopy 1 'base ''GeqCondition
+deriveSafeCopy 1 'base ''LeqCondition
+deriveSafeCopy 1 'base ''EqualsCondition
+deriveSafeCopy 1 'base ''NotEqualsCondition
+deriveSafeCopy 1 'base ''IsEmptyCondition
+deriveSafeCopy 1 'base ''IsNotEmptyCondition
+deriveSafeCopy 1 'base ''IsBetweenCondition
+deriveSafeCopy 1 'base ''IsNotBetweenCondition

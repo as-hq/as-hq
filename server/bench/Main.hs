@@ -21,24 +21,24 @@ import qualified AS.DB.Internal as DI
 import AS.Window
 import AS.Util
 import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Serialize as S
 
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
-import qualified Data.Serialize as S
 import qualified Data.Map as M
 import qualified Data.HashMap as H
 import qualified Data.HashTable.IO as HI
 
 import Control.Monad.Trans.Either
+import Control.Lens hiding (has)
 import Criterion.Main (defaultMain)
 
 main :: IO ()
 main = do
   defaultMain [
-
     xdescribe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
           it "dispatches 1000 cells" $ 
@@ -61,13 +61,13 @@ main = do
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
         xdescribe "misc cell datastructures"
           [ it "creates 10000-cell map" $
-              run (\cs -> M.fromList $ zip (map cellLocation cs) cs) cells
+              run (\cs -> M.fromList $ zip (map (view cellLocation) cs) cs) cells
 
           , it "creates 10000-cell hashmap" $
-              run (\cs -> H.fromList $ zip (map cellLocation cs) cs) cells
+              run (\cs -> H.fromList $ zip (map (view cellLocation) cs) cs) cells
 
           , it "inserts 10000 cells into a map" $ 
-              run (\cs -> insertMultiple (M.empty) (map cellLocation cs) cs) cells
+              run (\cs -> insertMultiple (M.empty) (map (view cellLocation) cs) cs) cells
 
           , has (reverse cells) $ \ ~(_, rcells) -> 
               describe "merging cells" 
@@ -91,7 +91,7 @@ main = do
               runIO $ DB.deleteLocsInSheet (envConn myEnv) "BENCH_ID"
           ]
 
-    , describe "python kernel"
+    , xdescribe "python kernel"
       [ it "evaluates a simple expression using the new kernel" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "1+1"
 
