@@ -61,8 +61,10 @@ keepUnequal x = (ls1, ls2)
 
 -- Functions from colMutate and rowMutate are helper functions for barIndexMutate,
 -- indexMutate, exIndexMutate, exRangeMutate.
--- TODO: timchu 1/1/16, could have better typing on rows and columns so that
--- compiler can catch accidental mistakes when switching col and row.
+-- TODO: timchu 1/1/16. Refactor MutateType so that Inserts take two arguments: barType and bar number.
+-- This is to reduce code duplication, and because conceptually insert, drag, delete
+-- are the same thing: operations on a one dimensional list. Once this is updated,
+-- colMutate and rowMutate should change. This code as is is a temporary hack.
 colMutate :: MutateType -> Col -> Maybe Col
 colMutate (InsertCol c') c = Just $ if c >= c' then (c+1) else c
 colMutate (DeleteCol c') c
@@ -112,6 +114,7 @@ indexMutate mt (Index sid (c, r)) = do
     r' <- rowMutate mt r
     return $ Index sid (c', r')
 
+-- move these to same file.
 rowStrToInt :: String -> Int
 rowStrToInt r = read r :: Int
 
@@ -132,7 +135,8 @@ exColMutate mt (ExCol singleRefType cStr) = do
 -- | timchu, 1/1/16. Many of the below are helper functions used for range mutation, in the case where
 -- the br is deleted but the tl is not.
 
--- TODO: timchu, 1/1/16. The type safety on these methods is not great.
+-- TODO: timchu, 1/1/16. The type safety on these methods is terrible. 
+-- TODO: Refactor Row and Col to be separate types to avoid this kind of rap.
 shiftColStrLeft :: String -> String
 shiftColStrLeft col = intToColStr $ (colStrToInt col) - 1
 
@@ -158,13 +162,17 @@ splitRefType rType =
 combineSingleRefs :: (SingleRefType,  SingleRefType) -> RefType
 combineSingleRefs srTypes =
   case srTypes of
-      (REL, REL) -> REL_REL 
-      (REL, ABS) -> REL_ABS 
-      (ABS, REL) -> ABS_REL 
-      (ABS, ABS) -> ABS_ABS 
+      (REL, REL) -> REL_REL
+      (REL, ABS) -> REL_ABS
+      (ABS, REL) -> ABS_REL
+      (ABS, ABS) -> ABS_ABS
+
+-- Helper method in exRangeMutate.
 -- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
 -- #lenses
--- Lots of code duplication betwen rectifyExRange and rectifyExColRange
+-- Lots of code duplication betwen rectifyExRange and rectifyExColRange. Technically they're the same 
+-- things, since ColRange is a Range with an infinite b. TODO: Introduce PossiblyInfiniteRange as a type?
+-- Note; could create a helper operating on the underlying rect (tl, br).
 rectifyExRange :: ExRange -> ExRange
 rectifyExRange e@(ExRange (ExIndex firstRefType firstCol firstRow) (ExIndex secondRefType secondCol secondRow)) =
   let (firstColRefType, firstRowRefType) = splitRefType firstRefType
@@ -181,6 +189,7 @@ rectifyExRange e@(ExRange (ExIndex firstRefType firstCol firstRow) (ExIndex seco
   -- l t and r bsince Col comes before Row in ExIndex
   ExRange (ExIndex tlRefType l t) (ExIndex brRefType r b)
 
+-- Helper method in exColRangeMutate
 -- outputs an exColRange equivalent to the input of the first ExColRange, with the first coord <= second coord
 rectifyExColRange :: ExColRange -> ExColRange
 rectifyExColRange e@(ExColRange (ExIndex firstRefType firstCol firstRow) (ExCol secondColRefType secondCol)) =
@@ -209,11 +218,10 @@ exRangeMutate mt exRange =
                              otherwise -> Nothing
     (Just tl', Just br') -> Just $ ExRange tl' br'
 
--- timchu, 1/1/2016. Only works if l <= r.
--- Note: this will cause problems since this operation does not preserve l <= r
--- r the name for the rightmost column.
+-- This is secretly the same as exRangeMutate with an infinite bottom row.
 exColRangeMutate :: MutateType -> ExColRange -> Maybe ExColRange
 exColRangeMutate mt exColRange =
+  -- force l <= r.
   let ExColRange tl r = rectifyExColRange exColRange
       maybeTl = exIndexMutate mt tl
       maybeR = exColMutate mt r
@@ -221,7 +229,7 @@ exColRangeMutate mt exColRange =
       shiftColLeft :: ExCol -> ExCol
       shiftColLeft (ExCol srType colStr) = ExCol srType (shiftColStrLeft colStr)
   in
-  -- cases on whether Tl, or r, or both, are deleted.
+  -- cases on whether tl, or r, or both, are deleted.
   case (maybeTl, maybeR) of
     (Nothing, Nothing) -> Nothing
     (Nothing, Just r') -> Just $ ExColRange tl r'
