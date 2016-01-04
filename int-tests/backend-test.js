@@ -269,6 +269,19 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        xit ('should display A1:A2 when a range in A1:A2 is decoupled', (done) => {
+          _do([
+              python('A1', 'range(2)'),
+              python('B1', 'A1:A2'),
+              python('A1', '1'),
+              decouple(),
+              shouldBe('A1', valueI(1)),
+              shouldBe('A2', valueI(1)),
+              shouldBe('B1', valueI(1)),
+              shouldBe('B2', valueI(1)),
+              exec(done)
+          ]);
+        });
 
       });
 
@@ -1214,7 +1227,7 @@ describe('backend', () => {
 
       });
 
-      fdescribe('A:A parsing tests', () => {
+      describe('A:A parsing tests', () => {
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
           // TODO: activate the commented out F:J1 = F1:J, J:F = F:J, J:$F tests.
@@ -1467,11 +1480,11 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        // TODO: timchu, this test might be stupid.
-        it ('should display A:A when a range in A is decoupled', (done) => {
+        // TODO: timchu, this test is NOT stupid! rangekeys are also not created on A:A
+        xit ('should display A:A when a range in A is decoupled', (done) => {
           _do([
               python('A1', 'range(10)'),
-              python('B1', 'A1:A'),
+              python('B1', 'A:A'),
               python('A1', '-100'),
               decouple(),
               python('A12', '100'),
@@ -1771,6 +1784,29 @@ describe('backend', () => {
             ]);
           });
 
+          it ('should give a ref error if a critical ancestor of a cell is in a removed row', (done) => {
+            _do([
+              python('A1', '1'),
+              python('B1', '2'),
+              python('A2', 'A1:B1'),
+              deleteRow(1),
+              shouldBeError('A1'),
+              exec(done)
+            ]);
+          });
+          it ('should update properly if an ancestor of a cell is in a deleted row', (done) => {
+            _do([
+              python('A1', '1'),
+              python('A2', '2'),
+              python('B2', 'A1:A2'),
+              deleteRow(1),
+              shouldBe('A1', valueI(2)),
+              shouldBe('B1', valueI(2)),
+              shouldBeNothing('B2'),
+              exec(done)
+            ]);
+          });
+
           it ('should shift range references appropriately', (done) => {
             _do([
               python('A2', '[range(10)]'),
@@ -1967,7 +2003,28 @@ describe('backend', () => {
               exec(done)
             ]);
           });
-
+          it ('should give a ref error if a critical ancestor of a cell is in a removed column', (done) => {
+            _do([
+              python('A1', '1'),
+              python('A2', '2'),
+              python('B1', 'A1:A2'),
+              deleteCol(1),
+              shouldBeError('A1'),
+              exec(done)
+            ]);
+          });
+          it ('should update properly if an ancestor of a cell is in a deleted column', (done) => {
+            _do([
+              python('A1', '1'),
+              python('B1', '2'),
+              python('B2', 'A1:B1'),
+              deleteCol(1),
+              shouldBe('A1', valueI(2)),
+              shouldBe('A2', valueI(2)),
+              shouldBeNothing('B2'),
+              exec(done)
+            ]);
+          });
           it ('should shift range references appropriately', (done) => {
             _do([
               python('B1', 'range(10)'),

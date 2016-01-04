@@ -392,7 +392,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         delete newC.cellRangeKey; // no need for this attribute anymore
       } else { 
         let ds = DescriptorStore; 
-        throw "null range descriptor at the range descriptor key passed in to _addExpandingTypeToCell. (This means a cell has cellRangeKey, indicating it's coupled, while the range descriptors indicate it isn't.)";
+        throw "null range descriptor at the range descriptor key passed in to _addExpandingTypeToCell, with cell" + JSON.stringify(c) + ". (This means a cell has cellRangeKey, indicating it's coupled, while the range descriptors indicate it isn't.)";
       }
     } 
 
