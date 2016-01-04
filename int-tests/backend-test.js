@@ -1233,7 +1233,8 @@ describe('backend', () => {
         // Known ref error bug when B1=A:A, A1=1, delete A1. Thing is still a range (maybe because default range is []?).
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
-          // TODO: activate the commented out F:J1 = F1:J, J:F = F:J, J:$F tests.
+          // TODO: B:A doens't work on anything complicated. 
+          // TODO: Activate the expressions shouldBe in the F:J.
           it ('should display A:A properly', (done) => {
             _do([
               python('A1', 'range(10)'),
@@ -1447,6 +1448,39 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        it ('should expand A:B when a the column size of A or B increases.', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '1'),
+            python('C1', 'A:B'),
+            python('A3', '3'),
+            shouldBe('C3', valueI(3)),
+            shouldBe('D3', noValue()),
+            shouldBeNothing('C5'),
+            shouldBeNothing('D5'),
+            python('B5', '5'),
+            shouldBe('C5', noValue()),
+            shouldBe('D5', valueI(5)),
+            exec(done)
+          ]);
+        });
+        // B:A doesn't work properly.
+        xit ('should expand B:A when a the column size of A or B increases.', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '1'),
+            python('C1', 'B:A'),
+            python('A3', '3'),
+            shouldBe('C3', valueI(3)),
+            shouldBe('D3', noValue),
+            shouldNothing('C5', noValue),
+            shouldNothing('D5', valueI(5)),
+            python('B5', '5'),
+            shouldBe('C5', noValue),
+            shouldBe('D5', valueI(5)),
+            exec(done)
+          ]);
+        });
         it ('should contract A2:A when a the column size of A decreases.', (done) => {
           _do([
             python('A1', '1'),
@@ -1455,7 +1489,6 @@ describe('backend', () => {
             python ('B1', 'A1:A'),
             delete_('A5'),
             delete_('A1'),
-            // shouldBeNothing?
             shouldBe('B1', noValue()),
             shouldBe('B2', noValue()),
             shouldBe('B3', valueI(3)),
@@ -1657,13 +1690,13 @@ describe('backend', () => {
           });
           xit ('should undo decoupling of A1:A', (done) => {
             _do([
-                // TODO: timchu. Not sure about syntax here.
+                // TODO: timchu. Not sure about syntax here for checking coupled.
               exec(done)
             ]);
           });
           xit ('should redo decoupling of A1:A', (done) => {
             _do([
-                // TODO: timchu. Not sure about syntax here.
+                // TODO: timchu. Not sure about syntax here for checking coupled.
               exec(done)
             ]);
           });
@@ -3192,7 +3225,7 @@ describe('backend', () => {
 
     describe('vcs', () => {
       describe('undo', () => {
-        it ('should undo a simple request', (done) => {
+        it ('should undo a aimple request', (done) => {
           _do([
             python('A1', '10'),
             undo(),
