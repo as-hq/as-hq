@@ -192,22 +192,6 @@ getRangeDescriptorsInSheet conn sid = do
   keys <- getRangeKeysInSheet conn sid
   map fromJust <$> mapM (getRangeDescriptor conn) keys
 
--- getRangeDescriptorsInSheetWithContext :: Connection -> EvalContext -> ASSheetId -> IO [RangeDescriptor]
--- getRangeDescriptorsInSheetWithContext conn ctx sid = do -- #lens
---   dbKeys <- getRangeKeysInSheet conn sid
---   let dbKeys' = dbKeys \\ (oldRangeKeysInContext ctx)
---   dbDescriptors <- map fromJust <$> mapM (getRangeDescriptor conn) dbKeys' 
---   return $ (newRangeDescriptorsInContext ctx) ++ dbDescriptors
-
--- If the range descriptor associated with a range key is in the context, return it. Else, return Nothing. 
--- getRangeDescriptorUsingContext :: Connection -> EvalContext -> RangeKey -> IO (Maybe RangeDescriptor)
--- getRangeDescriptorUsingContext conn ctx rKey = if isJust inRemoved -- #lens
---   then return Nothing 
---   else maybe (getRangeDescriptor conn rKey) (return . Just) inAdded
---   where
---     inRemoved = find (== rKey) $ oldRangeKeysInContext ctx
---     inAdded = find ((== rKey) . descriptorKey) $ newRangeDescriptorsInContext ctx
-
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
 
