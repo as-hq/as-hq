@@ -17,6 +17,7 @@ import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
 import Control.Concurrent (MVar)
+import Control.Lens hiding ((.=))
 
 
 -- Deals with server and client stuff
@@ -24,7 +25,16 @@ import Control.Concurrent (MVar)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection, appPort :: Port}
+data ServerState = State  { userClients :: [ASUserClient]
+                          , daemonClients :: [ASDaemonClient]
+                          , dbConn :: R.Connection
+                          , appSettings :: AppSettings}
+
+data AppSettings = AppSettings  { backendWsAddress :: String
+                                , backendWsPort :: Port
+                                , graphDbHost :: String
+                                , pyKernelHost :: String}
+
 type Port = Int
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

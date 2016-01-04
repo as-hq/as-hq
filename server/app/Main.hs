@@ -21,6 +21,7 @@ import qualified AS.Kernels.Python.Eval as KP
 
 import Prelude
 import System.Environment (getArgs)
+import System.ZMQ4.Monadic
 
 import Control.Exception
 import Control.Monad (forever, when)
@@ -32,6 +33,7 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
+import qualified Data.Map as M
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
@@ -50,21 +52,24 @@ main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
-  (conn, ports, states) <- initApp
+  state <- initApp
 
   if isDebug -- set in Settings.hs
-    then initDebug conn (head states)
+    then initDebug conn state
     else return ()
 
   G.recompute conn
   putStrLn "RECOMPUTED DAG"
-  putStrLn $ "server started on ports " ++ (show ports)
+  putStrLn $ "server started on port " ++ (show ports)
   mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
   putStrLn $ "DONE WITH MAIN"
 
-initApp :: IO (R.Connection, [Port], [MVar ServerState])
+initApp :: IO MVar ServerState
 initApp = do
+  -- init state
   conn <- R.connect DI.cInfo
+  settings <- getSettings 
+  state <- newMVar $ State [] [] conn settings 
   -- init python kernel
   KP.initialize conn
   -- init R
@@ -73,19 +78,20 @@ initApp = do
     [r|library("rjson")|]
     [r|library("ggplot2")|]
     return ()
-  -- init state
-  args <- getArgs
-  let intArgs = map (\a -> read a :: Int) args
-  let ports = case intArgs of 
-        [] -> [S.wsDefaultPort]
-        _ -> intArgs
-  states <- mapM (\p -> newMVar $ State [] [] conn p) ports 
   -- init data
   let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
   DB.setSheet conn sheet
   DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
 
-  return (conn, ports, states)
+  return state
+
+getSettings :: IO AppSettings
+getSettings = return $ AppSettings
+                        { backendWsAddress = "0.0.0.0"
+                        , backendWsPort = 5000
+                        , graphDbHost = "tcp://localhost:5555"
+                        , pyKernelHost = "tcp://localhost:20000"
+                        }
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: R.Connection -> MVar ServerState -> IO ()
