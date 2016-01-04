@@ -47,7 +47,7 @@ lookUpDBCellsByCol conn sid column =  do
 
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
-evalContextCellsByCol (EvalContext virtualCellsMap _) sid column =
+evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column =
   filter (\c -> (getCellCol c == column && locSheetId (c^.cellLocation) == sid)) $ cellsInCtx where
     cellsInCtx = M.elems virtualCellsMap
 
