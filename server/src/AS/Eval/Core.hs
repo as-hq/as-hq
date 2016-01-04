@@ -122,7 +122,7 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   otherwise               -> Nothing
   where
     lang           = xp^.language
-    values         = map (view cellValue . ((virtualCellsMap ctx) M.!)) depInds
+    values         = map (maybe NoValue (view cellValue) . (`M.lookup` (virtualCellsMap ctx))) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

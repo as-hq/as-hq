@@ -213,19 +213,14 @@ evalChain conn cells ctx = evalChain' conn cells'' ctx
 evalChain' :: Connection -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
 evalChain' conn (c@(Cell loc xp val ps rk):cs) ctx = do
-  printDebug "EVALCHAIN: " 0
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-  printDebug "EVALCHAIN: " 1
   let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
-  printDebug "EVALCHAIN: " 2
   cvf <- case rk of 
     Nothing         ->  getEvalResult xp
     Just key -> if (isFatCellHead c)
       then getEvalResult xp 
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
-  printDebug "EVALCHAIN: " 3
   newContext <- contextInsert conn c cvf ctx
-  printDebug "EVALCHAIN: " 4
   evalChain conn cs newContext
 
   ----------------------------------------------------------------------------------------------------------------------------------------------

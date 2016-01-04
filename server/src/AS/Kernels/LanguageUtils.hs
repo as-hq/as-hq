@@ -216,14 +216,8 @@ addCompileCmd OCaml cmd = do
 
 
 lookUpRef :: Connection -> ASLanguage -> EvalContext -> ASReference -> IO String
-lookUpRef conn lang context ref = do
-  printObj "IN LOOKUP REF: " 0
-  let x = showValue lang <$> DV.referenceToCompositeValue conn context ref
-  y <- x
-  printObj "IN LOOKUP REF: 1" y
-  x
+lookUpRef conn lang context ref = return $ showValue lang <$> DV.referenceToCompositeValue conn context ref
 
-  
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
 -- #mustrefactor IO String should be EitherTExec string
