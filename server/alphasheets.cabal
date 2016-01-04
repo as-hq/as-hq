@@ -135,6 +135,7 @@ library
                        OverloadedStrings
                        TypeSynonymInstances
                        FlexibleInstances
+                       TemplateHaskell
   PkgConfig-Depends:   python
   other-extensions:    ForeignFunctionInterface
                        CPP

@@ -7,6 +7,7 @@ import AS.Types.DB
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Updates
+import AS.Types.Network
 
 import qualified AS.DB.Graph as G
 import qualified AS.Serialize as S
@@ -37,10 +38,10 @@ data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, d
 -- top-level functions
 
 -- commiTransform is a function to be applied to the commit produced by evalContextToCommitWithDecoupleInfo
-updateDBWithContext :: Connection -> CommitSource -> EvalContext -> EitherTExec ASCommit
-updateDBWithContext conn src ctx = do
+updateDBWithContext :: GraphAddress -> Connection -> CommitSource -> EvalContext -> EitherTExec ASCommit
+updateDBWithContext addr conn src ctx = do
   commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) ctx
-  lift $ pushCommitWithDecoupleInfo conn src commitWithDecoupleInfo
+  lift $ pushCommitWithDecoupleInfo addr conn src commitWithDecoupleInfo
   if (didDecouple commitWithDecoupleInfo)
     then left DecoupleAttempt
     else return $ baseCommit commitWithDecoupleInfo
@@ -85,19 +86,19 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
 
   -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> [ASCell] -> IO ()
-setCellsPropagated conn cells = 
+setCellsPropagated :: GraphAddress -> Connection -> [ASCell] -> IO ()
+setCellsPropagated addr conn cells = 
   let roots = filter isEvaluable cells
   in do
     setCells conn cells
-    G.setCellsAncestorsForce roots
+    G.setCellsAncestorsForce addr roots
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
-deleteLocsPropagated :: Connection -> [ASIndex] -> IO ()
-deleteLocsPropagated conn locs = do
+deleteLocsPropagated :: GraphAddress -> Connection -> [ASIndex] -> IO ()
+deleteLocsPropagated addr conn locs = do
   deleteLocs conn locs
-  G.removeAncestorsAtForced locs
+  G.removeAncestorsAtForced addr locs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
@@ -105,18 +106,18 @@ deleteLocsPropagated conn locs = do
 -- #incomplete need to deal with large commit sizes and max number of commits
 -- | Return a commit if possible (not possible if you undo past the beginning of time, etc)
 -- Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
-undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-undo conn src = do
+undo :: GraphAddress -> Connection -> CommitSource -> IO (Maybe ASCommit)
+undo addr conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
       sid = srcSheetId src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
     return $ S.maybeDecode =<< commit
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated addr conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
-redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
-redo conn src = do
+redo :: GraphAddress -> Connection -> CommitSource -> IO (Maybe ASCommit)
+redo addr conn src = do
   let pushKey = toRedisFormat . PushCommitKey $ src
       popKey = toRedisFormat . PopCommitKey $ src
       sid = srcSheetId src
@@ -127,18 +128,19 @@ redo conn src = do
         rpush pushKey [commit]
         return $ S.maybeDecode commit
       _ -> return Nothing
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
-applyUpdateToDB :: Connection -> ASSheetId -> SheetUpdate -> IO ()
+  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated addr conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
+
+applyUpdateToDB :: GraphAddress -> Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDB = applyUpdateToDBMaybePropagated False 
 
-applyUpdateToDBPropagated :: Connection -> ASSheetId -> SheetUpdate -> IO ()
+applyUpdateToDBPropagated :: GraphAddress -> Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 
 -- internal function 
 -- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of conditional formatting rules. 
-applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
-applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du cfru) = do 
-  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
+applyUpdateToDBMaybePropagated :: Bool -> GraphAddress -> Connection -> ASSheetId -> SheetUpdate -> IO ()
+applyUpdateToDBMaybePropagated shouldPropagate addr conn sid u@(SheetUpdate cu bu du cfru) = do 
+  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated addr, deleteLocsPropagated addr) else (setCells, deleteLocs)
       allUpdatedCells = L.unionBy isColocated (newVals cu) (blankCellsAt . refsToIndices $ oldKeys cu)
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
@@ -161,16 +163,16 @@ pushCommit conn src c = runRedis conn $ do
     del [popKey]
   return ()
 
-pushCommitWithDecoupleInfo :: Connection -> CommitSource -> CommitWithDecoupleInfo -> IO ()
-pushCommitWithDecoupleInfo conn src commitWithInfo =
+pushCommitWithDecoupleInfo :: GraphAddress -> Connection -> CommitSource -> CommitWithDecoupleInfo -> IO ()
+pushCommitWithDecoupleInfo addr conn src commitWithInfo =
   if didDecouple commitWithInfo
     then setTempCommit conn src (baseCommit commitWithInfo)
-    else updateDBWithCommit conn src (baseCommit commitWithInfo)
+    else updateDBWithCommit addr conn src (baseCommit commitWithInfo)
 
 -- Do the writes to the DB
-updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
-updateDBWithCommit conn src c = do 
-  applyUpdateToDB conn (srcSheetId src) (sheetUpdateFromCommit c)
+updateDBWithCommit :: GraphAddress -> Connection -> CommitSource -> ASCommit -> IO ()
+updateDBWithCommit addr conn src c = do 
+  applyUpdateToDB addr conn (srcSheetId src) (sheetUpdateFromCommit c)
   pushCommit conn src c
 
 -- Each commit source has a temp commit, used for decouple warnings

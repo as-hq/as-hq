@@ -28,7 +28,7 @@ import qualified AS.DB.Transaction as DT
 handleCSVImport :: ASUserClient -> MVar ServerState -> ASIndex -> ASLanguage -> String -> IO ()
 handleCSVImport uc state ind lang fileName = do 
   csvData <- BL.readFile $ "static/" ++ fileName
-  conn <- dbConn <$> readMVar state
+  state <- readMVar state
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
   case decoded of 
@@ -41,7 +41,7 @@ handleCSVImport uc state ind lang fileName = do
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
-      DT.updateDBWithCommit conn src commit
+      DT.updateDBWithCommit (state^.appSettings.graphDbAddress) (state^.dbConn) src commit
       -- send list of cells back to frontend
       broadcastSheetUpdate state $ sheetUpdateFromCells cells
 

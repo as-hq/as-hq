@@ -16,6 +16,7 @@ import qualified Data.Text as T
 import AS.Types.Eval
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Cell
+import AS.Types.Network
 
 import AS.Kernels.LanguageUtils
 import AS.Kernels.Python.Eval as KP
@@ -47,9 +48,10 @@ import Database.Redis (Connection)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: Connection -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
-evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
+evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
+evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
+  let conn = state^.dbConn
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
     Just e -> return . return . CellValue $ e -- short-circuited, return this error
@@ -61,7 +63,7 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
       otherwise -> do 
         header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
-        return <$> execEvalInLang sid header lang xpWithValuesSubstituted 
+        return <$> execEvalInLang (state^.appSettings) sid header lang xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
@@ -74,9 +76,9 @@ evaluateLanguage conn idx@(Index sid _) ctx xp@(Expression str lang) = catchEith
 --  OCaml   -> KO.evaluateRepl header str
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-evaluateHeader :: ASSheetId -> ASExpression -> EitherTExec CompositeValue
-evaluateHeader sid (Expression str lang) = case lang of 
-  Python -> KP.evaluateHeader sid str
+evaluateHeader :: AppSettings -> ASSheetId -> ASExpression -> EitherTExec CompositeValue
+evaluateHeader sett sid (Expression str lang) = case lang of 
+  Python -> KP.evaluateHeader (sett^.pyKernelAddress) sid str
   R      -> KR.evaluateHeader str
 
 -----------------------------------------------------------------------------------------------------------------------
@@ -136,9 +138,9 @@ handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-execEvalInLang :: ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec CompositeValue
-execEvalInLang sid header lang = case lang of
-  Python  -> KP.evaluate sid
+execEvalInLang :: AppSettings -> ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec CompositeValue
+execEvalInLang sett sid header lang = case lang of
+  Python  -> KP.evaluate (sett^.pyKernelAddress) sid
   R       -> KR.evaluate header 
   SQL     -> KP.evaluateSql header 
   OCaml   -> KO.evaluate header

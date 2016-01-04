@@ -16,6 +16,8 @@ import Data.List
 import Control.Concurrent
 import Control.Lens
 
+import Database.Redis (Connection)
+
 -- | Used only for flag props. 
 handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
 handleToggleProp uc state p rng = do
@@ -53,11 +55,10 @@ removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (c^.cellLocation) state
 removePropEndware _ _ _ = return ()
 
-handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
-handleSetProp uc state prop rng = do
-  curState <- readMVar state
+handleSetProp :: Connection -> ASUserClient -> CellProp -> ASRange -> IO ()
+handleSetProp conn uc prop rng = do
   let locs = rangeToIndices rng
-  cells <- getPossiblyBlankCells (dbConn curState) locs
+  cells <- getPossiblyBlankCells conn locs
   let cells' = map (cellProps %~ setProp prop) cells
-  setCells (dbConn curState) cells'
+  setCells conn cells'
   sendSheetUpdate uc $ sheetUpdateFromCells cells'

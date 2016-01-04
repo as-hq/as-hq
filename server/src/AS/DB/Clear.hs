@@ -13,6 +13,7 @@ import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CondFormat
 import AS.Types.Updates
+import AS.Types.Network
 
 import qualified AS.DB.API as DB
 import qualified AS.Config.Settings as Settings
@@ -43,8 +44,8 @@ clear conn = runRedis conn $ flushall >> return ()
 
 -- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
 -- (at least not consistently.)
-clearSheet :: Connection -> ASSheetId -> IO ()
-clearSheet conn sid = 
+clearSheet :: KernelAddress -> Connection -> ASSheetId -> IO ()
+clearSheet addr conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DB.getRangeKeysInSheet conn sid
@@ -56,4 +57,4 @@ clearSheet conn sid =
     del $ sheetRangesKey : pluralKeys ++ rangeKeys
     liftIO $ DB.deleteLocsInSheet conn sid
     -- clear sheet namespace in pyclearSheetthon kernel
-    liftIO $ KP.clear sid
+    liftIO $ KP.clear addr sid

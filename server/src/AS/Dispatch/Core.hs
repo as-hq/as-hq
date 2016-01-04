@@ -186,13 +186,13 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 -- EvalChain
 
 -- A wrapper around evalChain which catches errors
-evalChainWithException :: Connection  -> [ASCell] -> EvalTransform
-evalChainWithException conn cells ctx = 
+evalChainWithException :: ServerState -> [ASCell] -> EvalTransform
+evalChainWithException state cells ctx = 
   let whenCaught e = do
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain conn cells ctx) whenCaught
+    result <- liftIO $ catch (runEitherT $ evalChain state cells ctx) whenCaught
     hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
@@ -200,26 +200,26 @@ evalChainWithException conn cells ctx =
 -- fat cells overwrite power (this is a UX feature that we're adding, so it requires special casing).  Example: A1 = 1, A2 = A1, A1 = range(10) 
 -- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
 -- be evalled even if it were in the queue as a normal cell. 
-evalChain :: Connection -> [ASCell] -> EvalTransform
-evalChain conn cells ctx = evalChain' conn cells' ctx
+evalChain :: ServerState -> [ASCell] -> EvalTransform
+evalChain state cells ctx = evalChain' state cells' ctx
   where 
     hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (virtualCellsMap ctx) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter (liftA2 (&&) isEvaluable (not . hasCoupledCounterpartInMap)) cells
 
-evalChain' :: Connection -> [ASCell] -> EvalTransform
+evalChain' :: ServerState -> [ASCell] -> EvalTransform
 evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
-evalChain' conn (c@(Cell loc xp val ps rk):cs) ctx = do
+evalChain' state (c@(Cell loc xp val ps rk):cs) ctx = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-  let getEvalResult expression = EC.evaluateLanguage conn loc ctx expression 
+  let getEvalResult expression = EC.evaluateLanguage state loc ctx expression 
   cvf <- case rk of 
-    Nothing         ->  getEvalResult xp
+    Nothing  ->  getEvalResult xp
     Just key -> if (isFatCellHead c)
       then getEvalResult xp 
       else return $ Formatted (CellValue val) (formatType <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert conn c cvf ctx
-  evalChain conn cs newContext
+  evalChain state cs newContext
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification

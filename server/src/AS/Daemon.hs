@@ -26,6 +26,7 @@ import AS.Util as U
 import Data.List as L
 
 import Control.Monad
+import Control.Lens hiding ((.=))
 import Data.Default
 import Data.Maybe
 import System.Posix.Daemon
@@ -41,11 +42,11 @@ getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  (State users daemons _ _) <- readMVar state
-  let daemon = L.filter ((==) loc . daemonLoc) daemons
+  state <- readMVar state
+  let daemon = L.filter ((==) loc . daemonLoc) (state^.daemonClients)
   case daemon of 
     [] -> return Nothing
-    d -> return $ Just $ daemonConn $  L.head d 
+    d -> return $ Just $ daemonConn $ L.head d 
 
 -- | If it's something like TODAY() + DATE(), figure that out and automatically make the
 -- cell stream. 
@@ -80,8 +81,8 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
         let initMsg = ServerMessage $ InitializeDaemon daemonId loc
-        port <- appPort <$> readMVar state
-        WS.runClient S.wsAddress port "/" $ \conn -> do 
+        settings <- view appSettings <$> readMVar state
+        WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
           U.sendMessage initMsg conn
           regularlyReEval s loc msg conn -- is an eval message on the cell
       putStrLn $ "DONE WITH createDaemon"

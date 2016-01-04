@@ -25,17 +25,20 @@ import Control.Lens hiding ((.=))
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State  { userClients :: [ASUserClient]
-                          , daemonClients :: [ASDaemonClient]
-                          , dbConn :: R.Connection
-                          , appSettings :: AppSettings}
+data ServerState = State  { _userClients :: [ASUserClient]
+                          , _daemonClients :: [ASDaemonClient]
+                          , _dbConn :: R.Connection
+                          , _appSettings :: AppSettings}
 
-data AppSettings = AppSettings  { backendWsAddress :: String
-                                , backendWsPort :: Port
-                                , graphDbHost :: String
-                                , pyKernelHost :: String}
+data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
+                                , _backendWsPort :: Port
+                                , _graphDbAddress :: GraphAddress
+                                , _pyKernelAddress :: KernelAddress}
 
 type Port = Int
+type GraphAddress = String
+type KernelAddress = String
+type WsAddress = String
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -87,3 +90,7 @@ daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
 
 initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
 initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc
+
+
+makeLenses ''ServerState
+makeLenses ''AppSettings

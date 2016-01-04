@@ -11,22 +11,23 @@ import qualified Data.Text as T
 import qualified Network.WebSockets as WS
 import Data.Aeson hiding (Success)
 
+import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 
 
 -- | Checks 
 userIdExists :: ASUserId -> ServerState -> Bool
-userIdExists uid state = L.elem uid (L.map userId (userClients state))
+userIdExists uid state = L.elem uid (map userId (state^.userClients))
 
 getUserByClientId :: ClientId -> ServerState -> Maybe ASUserClient
-getUserByClientId cid (State allUsers _ _ _) = case (filter (\c -> (sessionId c == cid)) (allUsers)) of
+getUserByClientId cid state = case (filter (\c -> (sessionId c == cid)) (state^.userClients)) of
   [] -> Nothing
   l -> Just $ L.head l
 
 -- | Applies a (user -> user) function to a user in the server state
 modifyUser :: (ASUserClient -> ASUserClient) -> ASUserClient -> MVar ServerState -> IO ()
-modifyUser func user state = modifyMVar_ state $ \(State users daemons conn port) ->
+modifyUser func user state = modifyMVar_ state $ \state ->
   do 
-    let users' = flip map users (\u -> if (u == user) then (func u) else u)
-    return $ State users' daemons conn port
+    let users' = flip map (state^.userClients) (\u -> if (u == user) then (func u) else u)
+    return $ state & userClients .~ users'

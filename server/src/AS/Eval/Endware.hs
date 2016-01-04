@@ -19,19 +19,22 @@ import Control.Monad.Trans.Class (lift)
 import qualified Network.WebSockets as WS
 import Database.Redis as R
 import Control.Concurrent
+import Control.Lens hiding ((.=))
 
 
 -- | Here, we apply a stack of endwares for setting props post-eval, from e.g. streaming or conditional formatting
 evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
-evalEndware state (CommitSource sid uid) ctx = do 
-  conn <- lift $ dbConn <$> readMVar state
-  let cells0 = newCellsInContext ctx
+evalEndware mstate (CommitSource sid uid) ctx = do 
+  state <- lift $ readMVar mstate
+  let conn = state^.dbConn
+      kernelAddress = state^.appSettings.pyKernelAddress
+      cells0 = newCellsInContext ctx
       cells1 = changeExcelExpressions cells0
       blankedCells = blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
-  mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
+  mapM_ (lift . DM.possiblyCreateDaemon mstate uid) cells0
   oldRules <- lift $ DB.getCondFormattingRulesInSheet conn sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
-  cells2 <- conditionallyFormatCells conn sid (cells1 ++ blankedCells) updatedRules ctx
+  cells2 <- conditionallyFormatCells kernelAddress conn sid (cells1 ++ blankedCells) updatedRules ctx
   return cells2
    
 ----------------------------------------------------------------------------------------------------------------------------------------------
