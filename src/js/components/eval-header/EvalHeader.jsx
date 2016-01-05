@@ -80,12 +80,11 @@ export default class EvalHeader
         </Toolbar>
         <EvalHeaderEditor
           ref="editor" name="evalHeader"
-          saveAndEval={this.saveAndEval}
+          saveAndEval={this.saveAndEval.bind(this)}
           mode={Constants.AceMode[this.props.evalHeaderLanguage]}
           language={this.props.evalHeaderLanguage}
           value={this.props.evalHeaderValue}
-          height="100%"
-          />
+          height="100%" />
       </div>
     );
   }
