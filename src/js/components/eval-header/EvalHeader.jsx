@@ -21,6 +21,8 @@ require('brace/mode/python');
 require('brace/mode/r');
 // $FlowFixMe
 require('brace/mode/ocaml');
+// $FlowFixMe
+require('brace/theme/monokai');
 
 let languages = []; 
 
