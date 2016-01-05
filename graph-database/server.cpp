@@ -10,8 +10,14 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 
+#include <map>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 using namespace boost; 
 using namespace std; 
+using boost::property_tree::ptree;
+using boost::property_tree::read_json;
 
 /***********************************************************************************************************************/
 /* Communication with graph methods, involves show and read methods mainly */
@@ -144,10 +150,22 @@ vector<string> processRequest(DAG& dag, string& request) {
 
 int main () {
 
+    /* Reading settings from Environment.js */
+    string addr;
+    try {
+        ptree json;
+        read_json("../Environment.json", json);
+        addr = json.get("graphDbAddress", "tcp://*:5555"); // specifying default in case we don't find it
+        cout << "Found address in environment: " << addr << endl;
+    } catch (int e) {
+        cout << "exception reading Environment.json, falling back on defaults" << endl;
+        addr = "tcp://*:5555";
+    }
+
     /* Socket configuration */
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REP);
-    socket.bind ("tcp://*:5555");
+    socket.bind (addr);
 
     /* Variables to help detect start + end of multi-part messages */
     int rcvMore = 0;

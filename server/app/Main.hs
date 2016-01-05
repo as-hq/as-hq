@@ -89,12 +89,21 @@ initApp = do
   return state
 
 getSettings :: IO AppSettings
-getSettings = return $ AppSettings
-                        { _backendWsAddress = "0.0.0.0"
-                        , _backendWsPort = 5000
-                        , _graphDbAddress = "tcp://localhost:5555"
-                        , _pyKernelAddress = "tcp://localhost:20000"
-                        }
+getSettings = catch readEnvironment handleException 
+  where 
+    handleException :: SomeException -> IO AppSettings
+    handleException _ = putStrLn "decoding Environment failed, falling back on defaults" >> return defaultSettings
+    readEnvironment = do
+      env <- B.readFile =<< getEnvironmentPath
+      case (eitherDecode env) of 
+        Right settings -> return settings
+        Left err -> error $ "couldn't decode environment file, because: " ++ err
+
+defaultSettings :: AppSettings
+defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
+                                , _backendWsPort = 5000
+                                , _graphDbAddress = "tcp://localhost:5555"
+                                , _pyKernelAddress = "tcp://localhost:20000"}
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()

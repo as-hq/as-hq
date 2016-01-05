@@ -40,6 +40,15 @@ type GraphAddress = String
 type KernelAddress = String
 type WsAddress = String
 
+instance FromJSON AppSettings where
+  parseJSON (Object v) = do
+    wsAddr <- v .:? "backendWsAddress" .!= "0.0.0.0"
+    wsPort <- v .:? "backendWsPort" .!= 5000
+    graphAddr <- v .:? "graphDbAddress" .!= "tcp://localhost:5555"
+    pyAddr <- v .:? "pyKernelAddress" .!= "tcp://localhost:20000"
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr
+  parseJSON _ = error "expected environment to be an object"
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 

@@ -1,0 +1,6 @@
+{
+  "backendWsAddress": "0.0.0.0",
+  "backendWsPort": 5000,
+  "graphDbAddress": "tcp://*:5555",
+  "pyKernelAddress": "tcp://*:20000"
+}
