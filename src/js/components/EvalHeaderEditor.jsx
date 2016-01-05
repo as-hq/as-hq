@@ -74,8 +74,8 @@ export default class EvalHeaderEditor
     super(props);
   }
 
-  getRawEditor(): string {
-    return this.editor.getValue();
+  getRawEditor(): any {
+    return this.editor; 
   }
 
   componentDidMount() {
