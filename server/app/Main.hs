@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell #-}
 
 module Main where
  
@@ -10,7 +10,7 @@ import AS.Types.Network
 import AS.Clients()
 import AS.Logging
 import AS.Window
-import AS.Util (sendMessage)
+import AS.Util
 import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
@@ -52,6 +52,7 @@ main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
+  $err "fuck you"
   state <- initApp
   curState <- readMVar state
   let settings = curState^.appSettings
