@@ -17,6 +17,7 @@ import AS.DB.Graph as G
 import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
+import AS.Types.Locations
 import qualified AS.Kernels.Python.Eval as KP
 
 import Prelude
@@ -128,7 +129,7 @@ preprocess conn state = do
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
-    let win = Window (T.pack sid) (-1,-1) (-1,-1)
+    let win = Window (T.pack sid) (Coord (-1) (-1)) (Coord (-1) (-1))
         cid = T.pack uid
         mockUc = UserClient cid conn win (T.pack "")
     curState <- readMVar state

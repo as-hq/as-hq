@@ -21,21 +21,15 @@ import Control.Lens.TH
 
 type Col = Int
 type Row = Int 
--- need Ord on data types for maps to work.
+
+-- need Ord on data types for maps.
 data Coord = Coord { _coordCol :: Col, _coordRow :: Row } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''Coord
--- TODO: timchu, think about how to refactor ColRanges to be more Rangelike.
 data InfiniteRowCoord = InfiniteRowCoord { _infiniteRowCoordCol :: Int } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''InfiniteRowCoord
 data Dimensions = Dimensions {width :: Int, height :: Int} deriving (Show, Read, Eq, Ord, Generic)
 data Offset = Offset { dCol :: Int, dRow :: Int }
 type Rect = (Coord, Coord)
-
--- TODO: timchu, this fromToJSON crap is here to make stuff compile.
-instance FromJSON Coord
-instance ToJSON Coord
-instance FromJSON InfiniteRowCoord
-instance ToJSON InfiniteRowCoord
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
@@ -60,7 +54,16 @@ refSheetId (PointerRef    p) = locSheetId . pointerIndex $ p
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
 
--- TODO: fix this.
+-- TODOX: timchu, this fromToJSON crap is here to make stuff compile.
+instance ToJSON Coord where
+  toJSON coord = object ["row" .= (coord^.row), "col" .= (coord^.col)]
+
+instance FromJSON Coord where
+  fromJSON (Object v) = return $ Coord <$> v .: "col" <*> v .: "row"
+
+instance ToJSON InfiniteRowCoord
+instance FromJSON InfiniteRowCoord
+
 instance ToJSON ASIndex where
   toJSON (Index sid coord) = object ["tag"     .= ("index" :: String),
                                      "sheetId" .= sid,
@@ -75,7 +78,6 @@ instance FromJSON ASIndex where
     return $ Index sid idx
   parseJSON _          = fail "client message JSON attributes missing"
 
--- TODO: Fix this.
 instance ToJSON ASPointer where
   toJSON (Pointer (Index sid coord)) = object ["tag"     .= ("index" :: String),
                                                "sheetId" .= sid,
@@ -279,8 +281,7 @@ shiftCoord o coord =
      then Just $ shiftCoordIgnoreOutOfBounds o coord
      else Nothing
 
--- TODOX: timchu, change the name of this!
--- TODO: timchu, 1/3/15. shiftCoordIgnore should not be used outside this file!
+-- TODO: timchu, 1/3/15. shiftCoordIgnoreOutOfBounds should not be used outside this file!
 shiftCoordIgnoreOutOfBounds :: Offset -> Coord -> Coord
 shiftCoordIgnoreOutOfBounds o = (col %~ (+ (dCol o))) . (row %~ (+ (dRow o)))
 
