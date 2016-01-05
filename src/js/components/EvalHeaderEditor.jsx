@@ -116,8 +116,8 @@ export default class EvalHeaderEditor
     return (<div
         id={this.props.name}
         style={divStyle}
-        onKeyDown={this.handleKeyDown}
-        onKeyUp={this.handleKeyUp}>
+        onKeyDown={this.handleKeyDown.bind(this)}
+        onKeyUp={this.handleKeyUp.bind(this)}>
       </div>);
   }
 }
