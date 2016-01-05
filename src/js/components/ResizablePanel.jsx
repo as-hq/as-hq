@@ -86,9 +86,9 @@ export default class ResizablePanel
   // Also initialize the rootPosition, which won't change unless the parent itself rerenders
   componentDidMount() {
     // $FlowFixMe what's going on here? 
-    document.addEventListener('mousemove', this._onMouseMove);
+    document.addEventListener('mousemove', this._onMouseMove.bind(this));
     // $FlowFixMe what's going on here? 
-    document.addEventListener('mouseup', this._onMouseUp);
+    document.addEventListener('mouseup', this._onMouseUp.bind(this));
     let root = ReactDOM.findDOMNode(this.refs.root);
     this.rootPosition = {
       top:    $(root).offset().top,
@@ -100,8 +100,8 @@ export default class ResizablePanel
   }
 
   componentWillUnmount() {
-    document.removeEventListener('mousemove', this._onMouseMove);
-    document.removeEventListener('mouseup', this._onMouseUp);
+    document.removeEventListener('mousemove', this._onMouseMove.bind(this));
+    document.removeEventListener('mouseup', this._onMouseUp.bind(this));
   }
 
   componentWillReceiveProps(nextProps: ResizablePanelDefaultProps) {
