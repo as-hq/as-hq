@@ -445,6 +445,11 @@ export default {
       self.handleEvalRequest(xpObj, 1, 0);
     });
 
+    // eval header shortcuts -------------------------------------------------------------------------------
+    SU.add('evalHeader', 'save', 'Ctrl+S', (wildcard: string) => {
+      self.refs.evalHeader.saveAndEval();
+    });
+
     // top level shortcuts -------------------------------------------------------------------------------
     SU.add('toplevel', 'select_tab_right', 'Ctrl+PageDown', (wildcard) => {
       //TODO

@@ -35,10 +35,10 @@ import ExpStore from '../../stores/ASExpStore';
 let _S: {[key: ASShortcutTarget]: Array<ASKeyCombination>} = {
   grid: [],
   editor: [],
-  common: [],
+  textbox: [],
+  common: [], // refers to the union of grid, editor, and textbox
   toplevel: [],
-  repl: [],
-  textbox: []
+  evalHeader: []
 };
 
 // are all functions so that checks can be lazy evaluated
@@ -139,6 +139,10 @@ export default {
       return true;
     }
     return !KeyUtils.producesTextChange(e);
+  },
+
+  evalHeaderShouldDeferKey(e: SyntheticKeyboardEvent): boolean { 
+    return KeyUtils.isCtrlS(e);
   },
 
   compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {

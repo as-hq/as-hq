@@ -10,7 +10,7 @@ export type ASShortcutTarget =
   'editor' |
   'common' |
   'toplevel' |
-  'repl' |
+  'evalHeader' |
   'textbox';
 
 export type ASKey = number;

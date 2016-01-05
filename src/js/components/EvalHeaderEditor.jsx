@@ -1,3 +1,5 @@
+/* @flow */
+
 import {logDebug} from '../AS/Logger';
 
 import CellStore from '../stores/ASCellStore';
@@ -6,99 +8,106 @@ import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
 
+import type {
+  ASLanguage
+} from '../types/Eval';
+
+// $FlowFixMe
 var ace = require('brace');
 var React = require('react');
 
+const defaultEditorProps = { 
+  theme  : 'monokai',
+  fontSize   : 12,
+  showGutter : true,
+  readOnly   : false,
+  highlightActiveLine : true,
+  showPrintMargin     : true,
+};
+
 function onPropsSet(editor, props) {
   editor.getSession().setMode('ace/mode/'+props.mode);
-  editor.setTheme('ace/theme/'+props.theme);
-  editor.setFontSize(props.fontSize);
-  editor.renderer.setShowGutter(props.showGutter);
   editor.setOption('maxLines', props.maxLines);
-  editor.setOption('readOnly', props.readOnly);
-  editor.setOption('highlightActiveLine', props.highlightActiveLine);
-  editor.setShowPrintMargin(props.setShowPrintMargin);
+
+  editor.setTheme('ace/theme/'+defaultEditorProps.theme);
+  editor.setFontSize(defaultEditorProps.fontSize);
+  editor.renderer.setShowGutter(defaultEditorProps.showGutter);
+  
+  editor.setOption('readOnly', defaultEditorProps.readOnly);
+  editor.setOption('highlightActiveLine', defaultEditorProps.highlightActiveLine);
+  editor.setShowPrintMargin(defaultEditorProps.showPrintMargin);
 
   editor.getSession().setUseSoftTabs(false);
-
-  if (props.onLoad) {
-    props.onLoad(editor);
-  }
 }
 
-module.exports = React.createClass({
-  propTypes: {
-    mode  : React.PropTypes.string,
-    theme : React.PropTypes.string,
-    name : React.PropTypes.string,
-    height : React.PropTypes.string,
-    width : React.PropTypes.string,
-    fontSize : React.PropTypes.number,
-    showGutter : React.PropTypes.bool,
-    onChange: React.PropTypes.func,
-    value: React.PropTypes.string,
-    onLoad: React.PropTypes.func,
-    maxLines : React.PropTypes.number,
-    readOnly : React.PropTypes.bool,
-    highlightActiveLine : React.PropTypes.bool,
-    showPrintMargin : React.PropTypes.bool,
-    sendBackExpression : React.PropTypes.func
-  },
+type EvalHeaderEditorDefaultProps = {
+  mode: string; 
+  value: string; 
+  height: string; 
+  width: string; 
+  name: string; 
+  maxLines: ?number; 
+};
 
-  getDefaultProps() {
-    return {
-      name   : 'brace-editor',
-      mode   : 'python',
-      theme  : 'monokai',
-      height : '100px',
-      width  : '100%',
-      value  : '',
-      fontSize   : 12,
-      showGutter : true,
-      onChange   : null,
-      onLoad     : null,
-      maxLines   : null,
-      readOnly   : false,
-      highlightActiveLine : true,
-      showPrintMargin     : true,
-      sendBackExpression : null
-    };
-  },
+type EvalHeaderEditorProps = {
+  mode: string; 
+  value: string; 
+  height: string; 
+  width: string; 
+  name: string; 
+  maxLines: ?number; 
+  language: ASLanguage; 
+  saveAndEval: () => void; 
+};
 
-  getRawEditor() {
-    return this.editor;
-  },
+type EvalHeaderEditorState = {};
+
+export default class EvalHeaderEditor
+  extends React.Component<EvalHeaderEditorDefaultProps, EvalHeaderEditorProps, EvalHeaderEditorState>
+{
+  /***************************************************************************************************************************/
+  // React methods
+
+  editor: any; 
+
+  constructor(props: EvalHeaderEditorDefaultProps) {
+    super(props);
+  }
+
+  getRawEditor(): string {
+    return this.editor.getValue();
+  }
 
   componentDidMount() {
     this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this.props.value, 1);
     onPropsSet(this.editor, this.props);
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: EvalHeaderEditorProps) {
     if (this.editor.getValue() !== nextProps.value) {
       this.editor.setValue(nextProps.value, 1);
     }
     onPropsSet(this.editor, nextProps);
-  },
+  }
 
   handleKeyDown(e: SyntheticKeyboardEvent) {
     let lang = this.props.language,
         val = this.editor.getValue();
-    if (U.Key.isCtrlS(e)) {
+    if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
-      API.evaluateHeader(val, lang);
+      this.props.saveAndEval();
     }
-  },
+  }
 
   handleKeyUp(e: SyntheticKeyboardEvent) {
     let lang = this.props.language,
         val = this.editor.getValue();
     EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val);
-  },
+  }
 
-  render() {
+  render(): React.Element {
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
@@ -111,4 +120,22 @@ module.exports = React.createClass({
         onKeyUp={this.handleKeyUp}>
       </div>);
   }
-});
+}
+
+EvalHeaderEditor.propTypes = {
+  mode     : React.PropTypes.string,
+  value    : React.PropTypes.string,
+  height   : React.PropTypes.string,
+  width    : React.PropTypes.string, 
+  maxLines : React.PropTypes.number,
+  language : React.PropTypes.string
+};
+
+EvalHeaderEditor.defaultProps = { 
+  mode     : 'python',
+  value    : '',
+  height   : '100px',
+  width    : '100%',
+  name     : 'brace-editor',
+  maxLines : null
+};
