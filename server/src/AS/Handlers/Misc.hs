@@ -158,9 +158,10 @@ handleClear :: (Client c) => c  -> MVar ServerState -> ASSheetId -> IO ()
 handleClear client mstate sid = do
   state <- readMVar mstate
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
-  DC.clearSheet graphAddress conn sid
-  G.recompute graphAddress conn
+      settings = state^.appSettings
+      graphAddr = settings^.graphDbAddress
+  DC.clearSheet settings conn sid
+  G.recompute graphAddr conn
   broadcastTo mstate [sid] $ ClientMessage $ ClearSheet sid
 
 handleUndo :: ASUserClient -> MVar ServerState -> IO ()
@@ -272,7 +273,7 @@ handleImportBinary c mstate bin = do
       let msg = failureMessage $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (conn c)
     Right exported -> do
-      DX.importData (state^.appSettings.graphDbAddress) (state^.dbConn) exported
+      DX.importData (state^.appSettings) (state^.dbConn) exported
       let msg = ClientMessage $ LoadImportedCells $ exportCells exported
       U.sendMessage msg (conn c)
 

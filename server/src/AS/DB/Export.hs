@@ -24,9 +24,9 @@ exportData conn sid = do
   descs <- DB.getRangeDescriptorsInSheet conn sid
   return $ ExportData cells descs
 
-importData :: GraphAddress -> Connection -> ExportData -> IO ()
-importData addr conn (ExportData cs descriptors) = do
-  DC.clearSheet addr conn $ locSheetId . view cellLocation . head $ cs -- assumes all cells are in the same sheet.
+importData :: AppSettings -> Connection -> ExportData -> IO ()
+importData settings conn (ExportData cs descriptors) = do
+  DC.clearSheet settings conn $ locSheetId . view cellLocation . head $ cs -- assumes all cells are in the same sheet.
   DB.setCells conn cs
-  G.recompute addr conn
+  G.recompute (settings^.graphDbAddress) conn
   mapM_ (DE.setDescriptor conn) descriptors

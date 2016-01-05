@@ -5,9 +5,14 @@ from AS.kernel.shell import ASShell
 
 if __name__ == '__main__':
   print("\nPython kernel started.\n")
-  f = open('../Environment.json', 'r')
-  settings = json.loads(f.read())
-  f.close()
+  
+  settings = None
+  try:
+    f = open('../Environment.json', 'r')
+    settings = json.loads(f.read())
+    f.close()
+  except:
+    settings = {}
 
   kernel = None
   if 'pyKernelAddress_python' in settings:

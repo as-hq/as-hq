@@ -32,6 +32,7 @@ import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
+import Control.Lens hiding ((.=))
 import Database.Redis hiding (decode)
 
 -- EitherT
@@ -44,8 +45,8 @@ clear conn = runRedis conn $ flushall >> return ()
 
 -- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
 -- (at least not consistently.)
-clearSheet :: KernelAddress -> Connection -> ASSheetId -> IO ()
-clearSheet addr conn sid = 
+clearSheet :: AppSettings -> Connection -> ASSheetId -> IO ()
+clearSheet settings conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DB.getRangeKeysInSheet conn sid
@@ -56,5 +57,6 @@ clearSheet addr conn sid =
     rangeKeys <- liftIO rangeKeys
     del $ sheetRangesKey : pluralKeys ++ rangeKeys
     liftIO $ DB.deleteLocsInSheet conn sid
-    -- clear sheet namespace in pyclearSheetthon kernel
-    liftIO $ KP.clear addr sid
+
+    -- clear python kernel for sheet
+    liftIO $ KP.clear (settings^.pyKernelAddress) sid
