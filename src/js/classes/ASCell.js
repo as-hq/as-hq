@@ -4,12 +4,16 @@ import type {
   ASCellObject,
   ASCellProp,
   ASValue,
-  ASExpression
+  ASExpression,
+  ExpandingType,
+  RangeKey
 } from '../types/Eval';
 
 import type {
   ASClientExpression
 } from '../types/State';
+
+import DescriptorStore from '../stores/ASRangeDescriptorStore';
 
 import ASIndex from './ASIndex';
 
@@ -20,24 +24,15 @@ export default class ASCell {
   _expression: ASExpression; // TODO: create a class for this
   _value: ASValue;
   _props: Array<ASCellProp>;
+  _expandingType: ?ExpandingType;
+  _rangeKey: ?RangeKey;
 
-  static evalCell(asIndex: ASIndex, xpObj: ASClientExpression): ASCell {
-    return new ASCell({
-      cellLocation: asIndex.obj(),
-      cellExpression: {
-        tag: 'Expression',
-        expression: xpObj.expression,
-        language: xpObj.language
-      },
-      cellValue: {
-        tag: 'NoValue',
-        contents: []
-      },
-      cellProps: []
-    });
-  }
+  get location(): ASIndex { return this._location; }
+  get expression(): ASExpression { return this._expression; }
+  get value(): ASValue { return this._value; }
+  get props(): Array<ASCellProp> { return this._props; }
 
-  static emptyCell(asIndex?: ASIndex): ASCell {
+  static emptyCellAt(asIndex?: ASIndex): ASCell {
     let cl = asIndex ||
           new ASIndex({
             tag:"index",
@@ -55,18 +50,24 @@ export default class ASCell {
     });
   }
 
+  static makeCells(objs: Array<ASCellObject>): Array<ASCell> {
+    return objs.map((x) => new ASCell(x));
+  }
+
   constructor(obj: ASCellObject) {
     let {
       cellLocation,
       cellExpression,
       cellValue,
-      cellProps
+      cellProps,
+      cellRangeKey
     } = obj;
 
     this._location = new ASIndex(cellLocation);
     this._expression = cellExpression;
     this._value = cellValue;
     this._props = cellProps;
+    this._rangeKey = cellRangeKey;
   }
 
   obj(): ASCellObject {
@@ -77,6 +78,22 @@ export default class ASCell {
       cellValue: muh._value,
       cellProps: muh._props
     });
+  }
+
+  getExpandingType(): ?ExpandingType {
+    if (this._expandingType === undefined) {
+      if (this._rangeKey) {
+        const rd = DescriptorStore.getRangeDescriptor(this._rangeKey);
+        if (rd) {
+          this._expandingType = rd.expandingType;
+          delete this._rangeKey;
+        }
+      } else {
+        this._expandingType = null;
+      }
+    }
+
+    return this._expandingType;
   }
 
   isEmpty(): boolean {
@@ -97,7 +114,7 @@ export default class ASCell {
     }
   }
 
-  cellHasProp(prop: ASCellProp): boolean {
+  hasProp(prop: ASCellProp): boolean {
     let cellProps = this._props, {tag} = prop;
     let propInd = cellProps.map(({tag}) => tag).indexOf(tag);
     return (propInd >= 0 && _.isEqual(cellProps[propInd], prop));

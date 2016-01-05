@@ -1,5 +1,7 @@
 /* @flow */
 
+import type ASCell from '../classes/ASCell';
+
 import type {
   Dict
 } from './Base';
@@ -9,12 +11,11 @@ import type {
   NakedRange,
   ASIndexObject,
   ASRangeObject,
-  ASCellObject,
   ASLanguage,
 } from './Eval';
 
-import type { 
-  BarIndex, 
+import type {
+  BarIndex,
   Bar
 } from './Bar';
 
@@ -29,13 +30,13 @@ export type ASClientWindow = {
   sheetId: string;
 };
 
-// It is actually absurd that this type exists. cellDependencies should be removed from ASExpression. 
+// It is actually absurd that this type exists. cellDependencies should be removed from ASExpression.
 export type ASClientExpression = {
   expression: string;
   language: ASLanguage;
 };
 
-export type ASCellGrid = Dict<Array<Array<ASCellObject>>>;
+export type ASCellGrid = Dict<Array<Array<ASCell>>>;
 
 export type ASBarLines = { [key: BarIndex]: Bar }; // please help me think of a better name
 

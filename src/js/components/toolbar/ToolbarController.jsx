@@ -12,22 +12,24 @@ import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';
 import SelectionStore from '../../stores/ASSelectionStore';
 
+import ASCell from '../../classes/ASCell';
+
 /*
 This component is a higher-order-component built for
 easy communication between stores and controls that monitor cell state (props, lang, etc)
 */
 
 type ToolbarControllerProps = {
-  setControlStateFromCell: (activeCell: ?ASCellObject) => void; 
+  setControlStateFromCell: (activeCell: ?ASCell) => void;
   propagateControlStateChange: (nextState: any, activerange: NakedRange) => void;
-  control: React.Element; 
+  control: React.Element;
 };
 
 type ToolbarControllerDefaultProps = {
 };
 
 type ToolbarControllerState = {
-  activeCell: ?ASCellObject; 
+  activeCell: ?ASCell;
 };
 
 

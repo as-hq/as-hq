@@ -12,6 +12,8 @@ import type {
   RGBColor
 } from './types';
 
+import ASCell from '../../classes/ASCell';
+
 import Constants from '../../Constants';
 
 let {ChartTypes} = Constants;
@@ -30,25 +32,25 @@ const colors = [
 ];
 
 const ChartUtils = {
-  cellToChartVal(c: ?ASCellObject): number {
+  cellToChartVal(c: ?ASCell): number {
     if (c !== null && c !== undefined) {
-      switch (c.cellValue.tag) {
+      switch (c.value.tag) {
         case "ValueI":
         case "ValueD":
-          return c.cellValue.contents;
+          return c.value.contents;
         default:
           return 0;
       };
     } else return 0;
   },
 
-  cellToLabel(c: ?ASCellObject): string {
+  cellToLabel(c: ?ASCell): string {
     if (c !== null && c !== undefined) {
-      switch (c.cellValue.tag) {
+      switch (c.value.tag) {
         case "ValueI":
         case "ValueD":
         case "ValueS":
-          return c.cellValue.contents.toString();
+          return c.value.contents.toString();
         default:
           return "DefaultLabel";
       };

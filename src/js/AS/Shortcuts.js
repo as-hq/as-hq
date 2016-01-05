@@ -79,7 +79,7 @@ export default {
     });
 
     SU.add('evalPane', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
-      // Upon a shortcut, call toggle language, which will update the ExpStore's language and 
+      // Upon a shortcut, call toggle language, which will update the ExpStore's language and
       // inform the language dropdown in the toolbar of an update
       switch(wildcard) {
           case '1':
@@ -351,7 +351,7 @@ export default {
         let {tl} = sel.range,
             cell = CellStore.getCell({col: tl.col, row: tl.row-1});
         if (cell) {
-          let xp = cell.cellExpression.expression || '';
+          let xp = cell.expression.expression || '';
           ExpActionCreator.handleEditorChange(xp);
         } else self.setToast('No cell above.', 'Error');
       });
@@ -362,7 +362,7 @@ export default {
         let tl = sel.range.tl,
             cell = CellStore.getCell({col: tl.col, row: tl.row-1});
         if (cell) {
-          let xp = U.Render.showValue(cell.cellValue) || '';
+          let xp = U.Render.showValue(cell.value) || '';
           ExpActionCreator.handleEditorChange(xp);
           let xpObj = {
             expression: self._getRawEditor().getValue(),
@@ -448,7 +448,7 @@ export default {
       self.refs.evalHeader.saveAndEval();
     });
 
-    // #needsrefactor. Redundant with evalPane... but no easy way to DRY this up right now. 
+    // #needsrefactor. Redundant with evalPane... but no easy way to DRY this up right now.
     // ::ALEX::
     SU.add('evalHeader', 'toggle_header', 'Alt+H', (wildcard: string) => {
       self.toggleEvalHeader();

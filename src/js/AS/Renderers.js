@@ -254,14 +254,14 @@ const Renderers = {
 
     // tag-based cell styling
     if (cell != null) {
-      Util.Render.valueToRenderConfig(config, cell.cellValue);
+      Util.Render.valueToRenderConfig(config, cell.value);
       if (cell.expandingType != null) {
         Util.Render.expandingTypeToRenderConfig(config, cell.expandingType);
       }
 
       // props take highest precedence
-      if (cell.cellProps.length > 0) { // props take higher precedence
-        Util.Render.propsToRenderConfig(config, cell.cellProps);
+      if (cell.props.length > 0) { // props take higher precedence
+        Util.Render.propsToRenderConfig(config, cell.props);
       }
     } else {
       config.halign = 'center';

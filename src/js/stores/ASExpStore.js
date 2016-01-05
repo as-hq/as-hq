@@ -2,7 +2,6 @@
 
 import type {
   NakedRange,
-  ASCellObject,
   ASLanguage
 } from '../types/Eval';
 
@@ -19,6 +18,8 @@ import SelectionStore from './ASSelectionStore';
 import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 import Render from '../AS/Renderers';
+
+import ASCell from '../classes/ASCell';
 
 /*
 This store is for holding common data for three-way data flow between grid, textbox, and editor
@@ -273,7 +274,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     let percentProp = {tag: "ValueFormat", formatType: 'Percentage'},
         wasTyping = ASExpStore.getUserIsTyping(),
         cell = CellStore.getActiveCell();
-    return (!wasTyping && cell != undefined && Util.Cell.cellHasProp(percentProp, cell));
+    return (!wasTyping && cell != undefined && cell.hasProp(percentProp));
   },
 
   updateStoreNormalTyping(type, xpStr, cursorPos) {
@@ -306,7 +307,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     ASExpStore.emitChange();
   },
 
-  updateOnBackendChange(cell : ?ASCellObject) {
+  updateOnBackendChange(cell : ?ASCell) {
     // Only do these changes if the user isn't typing (has evalled)
     // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
     if (!ASExpStore.getUserIsTyping()) {

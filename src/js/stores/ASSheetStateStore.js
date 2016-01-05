@@ -139,6 +139,10 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     return _data.currentSheet;
   },
 
+  getCurrentSheetId(): string {
+    return ASSheetStateStore.getCurrentSheet().sheetId;
+  },
+
   setCurrentSheet(sht) {
     _data.currentSheet = sht;
   },

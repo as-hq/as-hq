@@ -111,7 +111,7 @@ export default class ASEvalPane
     };
   }
 
-  componentDidMount() { 
+  componentDidMount() {
     window.addEventListener('copy', this.handleCopyEvent.bind(this));
     window.addEventListener('paste', this.handlePasteEvent.bind(this));
     window.addEventListener('cut', this.handleCutEvent.bind(this));
@@ -212,7 +212,7 @@ export default class ASEvalPane
   _onCellsChange() {
     logDebug("Eval pane detected cells change from store");
     let updatedCellsOnSheet = CellStore.getLastUpdatedCells().filter((cell) => {
-      return cell.cellLocation.sheetId == SheetStateStore.getCurrentSheet().sheetId;
+      return cell.location.sheetId == SheetStateStore.getCurrentSheet().sheetId;
     });
 
     this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
@@ -478,14 +478,14 @@ export default class ASEvalPane
 
     let canInsertRef = editorCanInsertRef || gridCanInsertRef || textBoxCanInsertRef;
     // Enumerate changes in selection that don't result in insertion
-    let changeSelToExistingCell = cell && !userIsTyping && cell.cellExpression,
+    let changeSelToExistingCell = cell && !userIsTyping && cell.expression,
         changeSelToNewCell = !cell && !userIsTyping,
         changeSelWhileTypingNoInsert = userIsTyping && !canInsertRef;
 
     if (!! cell && changeSelToExistingCell) { // !! cell for flow.
       logDebug("Selected non-empty cell to move to");
-      let {language, expression} = cell.cellExpression,
-          val = cell.cellValue;
+      let {language, expression} = cell.expression,
+          val = cell.value;
       if (! language) {
         throw new Error('Language invalid!');
       }
@@ -579,7 +579,7 @@ export default class ASEvalPane
         API.evaluate(origin, xpObj);
       }
     } else {
-      let {expression, language} = curCell.cellExpression;
+      let {expression, language} = curCell.expression;
       if (expression != xpObj.expression || language != xpObj.language) {
         API.evaluate(origin, xpObj);
       }
@@ -722,8 +722,8 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   /* File management */
 
-  _onFileDrop(files: Array<File>) { 
-    API.import(files[0]); 
+  _onFileDrop(files: Array<File>) {
+    API.import(files[0]);
   }
 
   /**************************************************************************************************************************/

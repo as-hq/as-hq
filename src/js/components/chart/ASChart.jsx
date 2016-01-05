@@ -29,6 +29,8 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 import U from '../../AS/Util';
 import CU from './ChartUtils';
 
+import ASCell from '../../classes/ASCell';
+
 let {Location: {isContainedInLocs}} = U;
 
 let {ChartTypes} = Constants;
@@ -76,9 +78,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return this.refs.baseChart.getChart();
   }
 
-  _isListening(c: ASCellObject): boolean {
-    let {index, sheetId} = c.cellLocation;
-    return isContainedInLocs(index.col, index.row, [this.props.valueRange])
+  _isListening(c: ASCell): boolean {
+    let {row, col, sheetId} = c.location;
+    return isContainedInLocs(col, row, [this.props.valueRange])
         && sheetId == this.props.sheetId;
   }
 
@@ -93,10 +95,10 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return {col: idx.col - tl.col, row: idx.row - tl.row};
   }
 
-  _updateData(cs: Array<ASCellObject>) {
+  _updateData(cs: Array<ASCell>) {
     let newData = this.state.data;
     cs.forEach((c) => {
-      let {col, row} = this._getRelativeIndex(c.cellLocation.index);
+      let {col, row} = this._getRelativeIndex(c.location);
       let val = CU.cellToChartVal(c);
       // update the datastructure depending on the chart type
       if (CU.isCartesian(this.props.chartContext.chartType) && newData.datasets) {
