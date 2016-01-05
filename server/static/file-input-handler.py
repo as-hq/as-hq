@@ -3,8 +3,8 @@ import os
 import cgi
 
 # If connected to the server, address = ip address of server
-# localhost configs: change serverAddress to localhost
-frontendHost = 'localhost'
+# localhost configs: change host to localhost
+host = 'localhost'
 defaultFrontendPort = 8080
 defaultFileHandlingPort = 9000
 
@@ -39,18 +39,18 @@ if __name__ == '__main__':
   if 'fileInputHandlerPort' in settings:
     port = settings['fileInputHandlerPort']
     print("Attaching to port '" + port + "' from Environment.json\n")
-    server_address = (serverAddress, port)
+    server_address = (host, port)
   else:
     print("No environment specified, falling back on defaults\n")
-    server_address = (serverAddress, defaultFileHandlingPort)
+    server_address = (host, defaultFileHandlingPort)
 
   if 'frontendPort' in settings:
     port = settings['frontendPort']
     print("Using frontend port '" + port + "' from Environment.json\n")
-    FileInputHandler.frontendAddress = 'http://' + frontendHost + ':' + port
+    FileInputHandler.frontendAddress = 'http://' + host + ':' + str(port)
   else:
     print("No environment specified, falling back on defaults\n")
-    FileInputHandler.frontendAddress = 'http://' + frontendHost + ':' + defaultFrontendPort
+    FileInputHandler.frontendAddress = 'http://' + host + ':' + str(defaultFrontendPort)
 
   httpd = HTTPServer(server_address, FileInputHandler)
   print('http server is running...')
