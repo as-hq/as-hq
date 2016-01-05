@@ -4,7 +4,6 @@ import type {
   NakedIndex,
   NakedRange,
   ASRangeObject,
-  ASCellObject,
   ASIndexObject,
   ASSelectionObject
 } from '../types/Eval';
@@ -46,6 +45,8 @@ let {
   Key: KeyUtils,
   Shortcut: ShortcutUtils
 } = U;
+
+import ASCell from '../classes/ASCell';
 
 import Constants from '../Constants';
 import Render from '../AS/Renderers';
@@ -365,15 +366,15 @@ export default class ASSpreadsheet
   // Hypergrid update display
 
   /* Called by eval pane's onChange method, when eval pane receives a change evt from the store */
-  updateCellValues(clientCells: Array<ASCellObject>) {
+  updateCellValues(clientCells: Array<ASCell>) {
     let model = this._getBehavior(),
         self = this;
     // Update the hypergrid values
     clientCells.forEach((c) => {
-      let cellSheetId = c.cellLocation.sheetId,
-          gridCol = c.cellLocation.index.col-1, // hypergrid starts indexing at 0
-          gridRow = c.cellLocation.index.row-1, // hypergrid starts indexing at 0
-          display = U.Render.showValue(c.cellValue);
+      let cellSheetId = c.location.sheetId,
+          gridCol = c.location.col-1, // hypergrid starts indexing at 0
+          gridRow = c.location.row-1, // hypergrid starts indexing at 0
+          display = U.Render.showValue(c.value);
       model.setValue(gridCol, gridRow, display.toString());
       // Update our list of overlays if we have an image
       self.addCellSourcedOverlay(c);
@@ -392,8 +393,8 @@ export default class ASSpreadsheet
   picture initially in the correct place. We use Hypergrid methods to return an Overlay object.
   Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
   */
-  getImageOverlayForCell(cell: ASCellObject): ?ASOverlaySpec {
-    let {col, row} =  cell.cellLocation.index,
+  getImageOverlayForCell(cell: ASCell): ?ASOverlaySpec {
+    let {col, row} =  cell.location,
         p =  finRect.point.create(col, row),
         point = this._getHypergrid().getBoundsOfCell(p).origin;
     /*
@@ -401,7 +402,7 @@ export default class ASSpreadsheet
     If the image was resized or dragged, its metadata would have been modified and updateCellValues would be called,
     which calls this function. Here, we produce the up-to-date overlay based on current offsets and size
     */
-    let ct = cell.cellProps, imageWidth = 300, imageHeight = 300, imageOffsetX = 0, imageOffsetY = 0;
+    let ct = cell.props, imageWidth = 300, imageHeight = 300, imageOffsetX = 0, imageOffsetY = 0;
     for (var i = 0 ; i < ct.length; i++) {
       if (ct[i].tag === "ImageData") {
         imageOffsetX = ct[i].imageOffsetX;
@@ -428,7 +429,7 @@ export default class ASSpreadsheet
         offsetY: imageOffsetY,
         left: point.x,
         top:  point.y,
-        loc: cell.cellLocation
+        loc: cell.location.obj()
       };
     }
   }
@@ -439,19 +440,19 @@ export default class ASSpreadsheet
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
   That location-based update and state change is done here.
   */
-  addCellSourcedOverlay(cell: ASCellObject) {
+  addCellSourcedOverlay(cell: ASCell) {
     let imageOverlay = this.getImageOverlayForCell(cell);
     if (imageOverlay === null || imageOverlay === undefined) return;
     this.addOverlay(imageOverlay, cell);
   }
 
-  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCellObject) {
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
     let overlays = this.state.overlays,
         locs = catMaybes(overlays.map((o) => o.loc));
 
     locs.forEach((loc, i) => {
       if (cell !== null && cell !== undefined) {
-        if (U.Render.locEquals(loc, cell.cellLocation)) {
+        if (U.Render.locEquals(loc, cell.location.obj())) {
           overlays.splice(i,1);
         }
       }

@@ -16,8 +16,7 @@ import type {
   ASRangeObject,
   ASLocation,
   ASSheet,
-  ASWorkbook,
-  ASCellObject
+  ASWorkbook
 } from '../../types/Eval';
 
 import type {
