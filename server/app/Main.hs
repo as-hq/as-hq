@@ -52,7 +52,6 @@ main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
-  $err "fuck you"
   state <- initApp
   curState <- readMVar state
   let settings = curState^.appSettings
