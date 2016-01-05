@@ -17,7 +17,7 @@ import AS.Types.Updates
 
 import Safe (headMay)
 
-import Control.Lens
+import Control.Lens hiding (index)
 import Control.Applicative ((<$>), (<*>))
 
 import qualified Data.List as L
@@ -77,9 +77,9 @@ rangeKeyToIndices k = rangeToIndices range
 rangeRect :: RangeKey -> Rect
 rangeRect (RangeKey idx dims) = (tl, br)
   where 
-    Index _ (col, row) = idx
-    tl = (col, row)
-    br = (col + (width dims) - 1, row + (height dims) - 1)
+    tl = index $ idx
+    o = Offset ((width dims) -1) ((height dims) -1)
+    br = shiftCoordIgnoreOutOfBounds o tl
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = locSheetId . keyIndex
@@ -98,7 +98,13 @@ getFatCellIntersections :: EvalContext -> Either [ASIndex] [RangeKey] -> [RangeD
 getFatCellIntersections ctx (Left locs) = filter descriptorIntersects $ virtualRangeDescriptors ctx
   where
     indexInRect :: Rect -> ASIndex -> Bool
-    indexInRect ((a',b'),(a2',b2')) (Index _ (a,b)) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+    indexInRect (rectCoord1, rectCoord2) (Index _ indexCoord) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
+      where a   = view col indexCoord
+            b   = view row indexCoord
+            a'  = view col rectCoord1
+            b'  = view row rectCoord1
+            a2' = view col rectCoord2
+            b2' = view row rectCoord2
     anyLocsContainedInRect :: [ASIndex] -> Rect -> Bool
     anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
     descriptorIntersects :: RangeDescriptor -> Bool
@@ -111,9 +117,18 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
     descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
     descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
     keysIntersect k1 k2    = rectsIntersect (rangeRect k1) (rangeRect k2)
-    rectsIntersect ((y,x),(y2,x2)) ((y',x'),(y2',x2'))
+    rectsIntersect (rect1Coord1, rect1Coord2) (rect2Coord1, rect2Coord2)
       | y2 < y' = False 
       | y > y2' = False
       | x2 < x' = False 
       | x > x2' = False
       | otherwise = True 
+        where
+          y  = view col rect1Coord1
+          x  = view row rect1Coord1
+          y2 = view col rect1Coord2
+          x2 = view row rect1Coord2
+          y'  = view col rect2Coord1
+          x'  = view row rect2Coord1
+          y2' = view col rect2Coord2
+          x2' = view row rect2Coord2

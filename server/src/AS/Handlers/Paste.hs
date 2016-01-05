@@ -64,7 +64,7 @@ getCopyOffSets from to = offsets
     xRepOffsets = take xRep [0, (width fromDims)..]
     yRepOffsets = take yRep [0, (height fromDims)..]
     tlOffset = getRangeOffset from to
-    offsets = [Offset { dX = (dX tlOffset) + x, dY = (dY tlOffset) + y } | x <- xRepOffsets, y <- yRepOffsets]
+    offsets = [Offset { dCol = (dCol tlOffset) + x, dRow = (dRow tlOffset) + y } | x <- xRepOffsets, y <- yRepOffsets]
 
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
 getCopyCells :: Connection -> ASRange -> ASRange -> IO [ASCell]

@@ -25,6 +25,8 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Text as T
 import Database.Redis (Connection)
+import Control.Lens hiding ((.=), index, Context)
+import Control.Lens.TH
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
@@ -34,11 +36,11 @@ data SingleRefType = ABS | REL deriving (Eq)
 -- TODO: only SingleRefType should exist. Timchu, 1/3/15.
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
-data ExIndex   = ExIndex {refType :: RefType, col :: String, row :: String} 
+data ExIndex   = ExIndex {refType :: RefType, colStr :: String, rowStr :: String} 
   deriving (Eq)
 data ExCol = ExCol { singleRefType :: SingleRefType, col2 :: String}
   deriving (Eq)
-data ExColRange = ExColRange {firstCoord :: ExIndex, secondCol :: ExCol}
+data ExColRange = ExColRange {firstIndex :: ExIndex, secondCol :: ExCol}
   deriving (Eq)
 data ExRange = ExRange {first :: ExIndex, second :: ExIndex}
    deriving (Eq)
@@ -394,18 +396,26 @@ intToColStr x
         m = (x-1) `mod` 26
         d = (x-1) `div` 26
 
+-- | "27" -> 27
+rowStrToInt :: String -> Int
+rowStrToInt r = read r :: Int
+
+-- | 27 -> "27"
+intToRowStr :: Int -> String
+intToRowStr i = show i
+
 -- used in DB Ranges
 indexToExcel :: ASIndex -> String
-indexToExcel (Index _ (c,r)) = (intToColStr c) ++ (show r)
+indexToExcel (Index _ coord) = (intToColStr $ coord^.col) ++ (show $ coord^.row)
 
 -- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
 -- ref, unless it's a part of the ExRef)
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
-  ExIndexRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' (colStrToInt c, read r :: Int)
+  ExIndexRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
-  ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, colStrToInt c2)
+  ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, InfiniteRowCoord (colStrToInt c2))
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index  _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
@@ -414,7 +424,7 @@ exRefToASRef sid exRef = case exRef of
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
       IndexRef (Index _ br) = exRefToASRef sid' $ ExIndexRef s sn Nothing
-  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' (colStrToInt c, read r :: Int)
+  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of

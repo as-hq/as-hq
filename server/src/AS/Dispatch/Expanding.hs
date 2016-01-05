@@ -92,13 +92,17 @@ decomposeCompositeValue c (Expanding (VPSeries indices vals)) = Just $ FatCell c
     cells     = decomposeCells desc c (A vals)
 
 decomposeCells :: RangeDescriptor -> ASCell -> Collection -> [ASCell]
-decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet (c,r)) xp _ ps _) coll = case coll of -- #lens
+decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet coord) xp _ ps _) coll = case coll of -- #lens
   A arr -> unpack $ zip [r..] arr
-      where unpack = map (\(r', val) -> Cell (Index sheet (c,r')) xp val ps (Just key))
+      where
+        r = coord^.row
+        unpack = map (\(r', val) -> Cell (Index sheet (coord & row .~ r')) xp val ps (Just key))
   M mat -> concat . unpack $ zip [r..] mat
       where
+        r = coord^.row
+        c = coord^.col
         unpack = map (\(r', row) -> unpackRow r' $ zip [c..] row)
-        unpackRow r' = map (\(c', val) -> Cell (Index sheet (c',r')) xp val ps (Just key))
+        unpackRow r' = map (\(c', val) -> Cell (Index sheet (coord & row .~ r' & col .~ c')) xp val ps (Just key))
 
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 

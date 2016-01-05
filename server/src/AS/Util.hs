@@ -27,7 +27,7 @@ trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
 
 -- takes a cell transform to convert the test cell to something desired
 testCell :: ASCell
-testCell = Cell (Index "" (1,1)) (Expression "=1+1" Excel) NoValue emptyProps Nothing
+testCell = Cell (Index "" (Coord 1 1)) (Expression "=1+1" Excel) NoValue emptyProps Nothing
 
 --------------------------------------------------------------------------------------------------------------
 -- Misc

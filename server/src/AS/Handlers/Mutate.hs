@@ -22,8 +22,11 @@ import AS.Dispatch.Core
 import AS.Logging
 
 import Control.Concurrent
+import Control.Monad
 import Control.Lens
 import Data.Maybe
+
+-- TODO: timchu, 1/5/15. Remove uses of Coord.
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
 handleMutateSheet uc state mutateType = do
@@ -60,6 +63,7 @@ keepUnequal x = (ls1, ls2)
     ls2 = mapMaybe snd unequals
 
 -- Functions from colMutate and rowMutate are helper functions for barIndexMutate,
+--
 -- indexMutate, exIndexMutate, exRangeMutate.
 -- TODO: timchu 1/1/16. Refactor MutateType so that Inserts take two arguments: barType and bar number.
 -- This is to reduce code duplication, and because conceptually insert, drag, delete
@@ -108,18 +112,12 @@ barIndexMutate mt bar@(BarIndex sid typ bari) = do
 barMutate :: MutateType -> Bar -> Maybe Bar
 barMutate mt (Bar bInd bProps) = fmap (`Bar` bProps) (barIndexMutate mt bInd)
 
+coordMutate :: MutateType -> Coord -> Maybe Coord
+coordMutate mt = (col %%~ colMutate mt) >=> (row %%~ rowMutate mt)
+
+-- #lenses
 indexMutate :: MutateType -> (ASIndex -> Maybe ASIndex)
-indexMutate mt (Index sid (c, r)) = do
-    c' <- colMutate mt c
-    r' <- rowMutate mt r
-    return $ Index sid (c', r')
-
--- move these to same file.
-rowStrToInt :: String -> Int
-rowStrToInt r = read r :: Int
-
-intToRowStr :: Int -> String
-intToRowStr i = show i
+indexMutate mt (Index sid coord) = (Index sid) <$> (coordMutate mt coord)
 
 exIndexMutate :: MutateType -> ExIndex -> Maybe ExIndex
 exIndexMutate mt (ExIndex indexRefType cStr rStr) = do
@@ -229,41 +227,47 @@ between :: Int -> Int -> Int -> Bool
 between lower upper x = (x >= lower) && (x <= upper)
 
 fatCellGotMutated :: MutateType -> RangeKey -> Bool
-fatCellGotMutated (InsertCol c) (RangeKey (Index _ (tlc, _)) dims) = between (tlc + 1) (tlc + (width dims) - 1) c
-fatCellGotMutated (InsertRow r) (RangeKey (Index _ (_, tld)) dims) = between (tld + 1) (tld + (height dims) - 1) r
+fatCellGotMutated (InsertCol c) (RangeKey (Index _ coord) dims) = between (tlc + 1) (tlc + (width dims) - 1) c
+  where tlc = coord^.col
+fatCellGotMutated (InsertRow r) (RangeKey (Index _ coord) dims) = between (tlr + 1) (tlr + (height dims) - 1) r
+  where tlr = coord^.row
+fatCellGotMutated (DeleteCol c) (RangeKey (Index _ coord) dims) = between tlc (tlc + (width dims) - 1) c
+  where tlc = coord^.col
+fatCellGotMutated (DeleteRow r) (RangeKey (Index _ coord) dims) = between tlr (tlr + (height dims) - 1) r
+  where tlr = coord^.row
 
-fatCellGotMutated (DeleteCol c) (RangeKey (Index _ (tlc, _)) dims) = between tlc (tlc + (width dims) - 1) c
-fatCellGotMutated (DeleteRow r) (RangeKey (Index _ (_, tld)) dims) = between tld (tld + (height dims) - 1) r
-
-fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ (tlc, _)) dims) = case (width dims) of
+fatCellGotMutated (DragCol c1 c2) (RangeKey (Index _ coord) dims) = case (width dims) of
   1 -> False -- if width of the dragged col area was 1, then happeneds.
   _ -> or [
       between tlc (tlc + (width dims) - 1) c1
     , between (tlc + 1) (tlc + (width dims) - 1) c2
     ]
+  where tlc = coord^.col
 
-fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ (_, tld)) dims) = case (height dims) of
+fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ coord) dims) = case (height dims) of
   1 -> False -- if height of the dragged row area was 1, then nothing happened.
   _ -> or [
-      between tld (tld + (height dims) - 1) r1
-    , between (tld + 1) (tld + (height dims) - 1) r2
+      between tlr (tlr + (height dims) - 1) r1
+    , between (tlr + 1) (tlr + (height dims) - 1) r2
     ]
+  where tlr = coord^.row
 
 -- #incomplete not actually correct for dragging columns; in sheets, if we drag B to F, and the range was from A1:D4,
 -- the new ranges become A1:A4, B1:C4, and F1:F4 (or something like that).
+-- TODO: timchu, refacor this so Coord is never used.
 rangeMutate :: MutateType -> (ASRange -> [ASRange])
-rangeMutate mt@(DeleteCol c) rng@(Range sid ((tlCol, tlRow), (blCol, blRow)))
+rangeMutate mt@(DeleteCol c) rng@(Range sid (Coord tlCol tlRow, Coord blCol blRow))
 -- #Question, timchu, 12/29/15. We seem to allow improperly oriented ranges!
   | tlCol > blCol            = error "improperly oriented range passed into rangeMutate"
   | tlCol == c && blCol == c = []
-  | tlCol == c             = [Range sid ((tlCol, tlRow), (blCol-1, blRow))] -- not ((tlCol+1, tlRow), (blCol, blRow)) since the cols gets shifted
-  | blCol == c             = [Range sid ((tlCol, tlRow), (blCol-1, blRow))]
+  | tlCol == c             = [Range sid (Coord tlCol tlRow, Coord (blCol-1) blRow)] -- not (Coord tlCol+1 tlRow, Coord blCol blRow) since the cols gets shifted
+  | blCol == c             = [Range sid (Coord tlCol tlRow, Coord (blCol-1) blRow)]
   | otherwise            = rangeMutate' mt rng
-rangeMutate mt@(DeleteRow r) rng@(Range sid ((tlCol, tlRow), (blCol, blRow)))
+rangeMutate mt@(DeleteRow r) rng@(Range sid (Coord tlCol tlRow, Coord blCol blRow))
   | tlRow > blRow            = error "improperly oriented range passed into rangeMutate"
   | tlRow == r && blRow == r = []
-  | tlRow == r             = [Range sid ((tlCol, tlRow), (blCol, blRow-1))]
-  | blRow == r             = [Range sid ((tlCol, tlRow), (blCol, blRow-1))]
+  | tlRow == r             = [Range sid (Coord tlCol tlRow, Coord blCol (blRow-1))]
+  | blRow == r             = [Range sid (Coord tlCol tlRow, Coord blCol (blRow-1))]
   | otherwise            = rangeMutate' mt rng
 rangeMutate mt rng = rangeMutate' mt rng
 

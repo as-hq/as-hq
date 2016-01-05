@@ -32,7 +32,9 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
 
 -- | Extracts an element of a matrix
 matrixIndex :: Coord -> EMatrix -> EValue
-matrixIndex (c,r) (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
+matrixIndex coord (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
+  where r = coord^.row
+        c = coord^.col
 
 -- | Cast ASValue (from CellMap) to an Excel entity. 
 asValueToEntity :: Formatted ASValue -> Maybe EEntity
@@ -124,7 +126,11 @@ topLeftLoc (RangeRef (Range _ (a,_))) = a
 
 dimension :: ASReference -> (Int,Int)
 dimension (IndexRef (Index _ _)) = (1,1)
-dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
+dimension (RangeRef (Range _ (coord1, coord2))) = (c-a+1,d-b+1)
+  where a = coord1^.col
+        b = coord1^.row
+        c = coord2^.col
+        d = coord2^.row
 
 -- | Given current reference and another reference, only return the relevant part of the second reference
 -- | Returns Nothing if the second reference is 2D, or if no intersection possible
@@ -132,16 +138,22 @@ dimension (RangeRef (Range _ ((a,b),(c,d)))) = (c-a+1,d-b+1)
 -- | Ex. ABS(A1:A3) while on B2 -> ABS(A2)
 scalarizeLoc :: ASReference -> ASReference -> Maybe ASReference
 scalarizeLoc (IndexRef i) j@(IndexRef _) = Just j
-scalarizeLoc (IndexRef (Index sh1 (e,f))) r@(RangeRef (Range sh2 ((a,b),(c,d))))
+scalarizeLoc (IndexRef (Index sh1 indexCoord)) r@(RangeRef (Range sh2 (rangeCoord1, rangeCoord2)))
   | sh1 /= sh2 = Nothing
   | h /= 1 && w/= 1 = Nothing
   | h == 1 = if e>=a && e<=c
-    then Just $ IndexRef $ Index sh1 (e,b) -- intersect column;  b==d
+    then Just $ IndexRef $ Index sh1 (Coord e b) -- intersect column;  b==d
     else Nothing
   | w == 1 = if f>=b && f<=d
-    then Just $ IndexRef $ Index sh1 (a,f) -- intersect row;  a==c
+    then Just $ IndexRef $ Index sh1 (Coord a f) -- intersect row;  a==c
     else Nothing
     where
+      a = rangeCoord1^.col
+      b = rangeCoord1^.row
+      c = rangeCoord2^.col
+      d = rangeCoord2^.row
+      e = indexCoord^.col
+      f = indexCoord^.row
       h = d-b+1
       w = c-a+1
 
@@ -153,12 +165,13 @@ locIntersect a b = Just b
 -- | If the second loc doesn't have the same dim as the first, fix it
 -- | Used for sumif-type functions to "extend" the second range
 matchDimension :: ERef -> ERef -> ERef
-matchDimension (ERef r1) (ERef r2) = if (a,b) == (c,d)
-  then ERef $ IndexRef $ Index sh (a,b)
-  else ERef $ RangeRef $ Range sh ((a,b),(c,d))
+matchDimension (ERef r1) (ERef r2) = if topLeft == botRight
+  then ERef $ IndexRef $ Index sh topLeft
+  else ERef $ RangeRef $ Range sh (topLeft, botRight)
   where
-    (a,b) = topLeftLoc r2
-    (c,d) = (a + getWidth r1 -1, b + getHeight r1 -1)
+    topLeft = topLeftLoc r2
+    o = Offset (getWidth r1 - 1) (getHeight r1 - 1)
+    botRight = shiftCoordIgnoreOutOfBounds o topLeft
     sh = shName r2
 
 extractRefs :: [EEntity] -> [ERef]

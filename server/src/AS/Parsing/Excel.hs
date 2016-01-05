@@ -170,8 +170,8 @@ shiftExRef o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
   ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol (dX o) dType c
-      newRowVal = shiftRow (dY o) dType r
+      newColVal = shiftCol (dCol o) dType c
+      newRowVal = shiftRow (dRow o) dType r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
@@ -188,7 +188,7 @@ shiftExRef o exRef = case exRef of
         shiftedInd = shiftExRef o (ExIndexRef f sh wb)
         shiftedF = exIndex shiftedInd
         -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) srType c
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) srType c
         exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
 
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
@@ -201,8 +201,8 @@ shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
   ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol (dX o) REL_REL c
-      newRowVal = shiftRow (dY o) REL_REL r
+      newColVal = shiftCol (dCol o) REL_REL c
+      newRowVal = shiftRow (dRow o) REL_REL r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
@@ -219,7 +219,7 @@ shiftExRefForced o exRef = case exRef of
         shiftedInd = shiftExRef o (ExIndexRef f sh wb)
         shiftedF = exIndex shiftedInd
         -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) REL c
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) REL c
         exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExIndexRef l' _ _ = shiftExRefForced o (ExIndexRef l sh wb)

@@ -139,7 +139,7 @@ instance (Read2 ASReference) where
               "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read locstr :: Coord))
               "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
-              "C" -> ColRangeRef $ ColRange (T.pack sid) (read locstr :: (Coord, Int))
+              "C" -> ColRangeRef $ ColRange (T.pack sid) (read locstr :: (Coord, InfiniteRowCoord))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
