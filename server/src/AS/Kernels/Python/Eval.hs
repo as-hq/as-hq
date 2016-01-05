@@ -120,7 +120,7 @@ evaluateWithScope addr scope sid code = do
   case v of 
     Nothing -> case err of 
       Just e -> return . CellValue $ ValueError e ""
-      Nothing -> return . CellValue $ ValueError "Last line of expression is empty, comment, or otherwise not evaluable." ""
+      Nothing -> return $ CellValue NoValue
     Just v -> hoistEither $ R.parseValue Python v
 
 sendMessage :: KernelAddress -> KernelMessage -> EitherTExec KernelResponse
