@@ -4,6 +4,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
+import ASCell from '../../classes/ASCell';
+
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
@@ -16,14 +18,13 @@ import type {
 } from '../../types/Toolbar';
 
 import type {
-  ASLanguage, 
-  NakedRange, 
-  ASCellObject
+  ASLanguage,
+  NakedRange
 } from '../../types/Eval';
 
-type LanguageMenuOption = { 
-  name: string; 
-  shortcut: string; 
+type LanguageMenuOption = {
+  name: string;
+  shortcut: string;
 };
 
 type LanguagePickerProps = {
@@ -47,7 +48,7 @@ export default class LanguagePicker
   constructor(props: LanguagePickerProps) {
     super(props);
 
-    this.state = { 
+    this.state = {
       language: ExpStore.getDefaultLanguage()
     }
 
@@ -97,11 +98,11 @@ export default class LanguagePicker
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCellObject): ASLanguage {
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
+  _getMenuValueFromCell(cell: ASCell): ASLanguage {
     console.log("Language picker cell ", cell)
-    if (cell != null && cell.cellExpression.language != null) { // #cellrefactor ()
-      return cell.cellExpression.language;
+    if (cell != null && cell.expression.language != null) { // #cellrefactor ()
+      return cell.expression.language;
     } else {
       return ExpStore.getDefaultLanguage();
     }
@@ -132,7 +133,7 @@ export default class LanguagePicker
         toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
         propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue={this.state.language}
-        menuWidth={65} 
+        menuWidth={65}
         toolbarControlWidth={85}
         id="LanguagePicker" />
     );

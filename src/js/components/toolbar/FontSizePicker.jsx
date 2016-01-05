@@ -4,18 +4,19 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
+import ASCell from '../../classes/ASCell';
+
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 import type {
-  ToolbarControlProps, 
+  ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
 
 import type {
-  NakedRange,
-  ASCellObject
+  NakedRange
 } from '../../types/Eval';
 
 type FontSizePickerDefaultProps = {};
@@ -31,7 +32,7 @@ export default class FontSizePicker
   /*************************************************************************************************************************/
   // Sub-component generation
 
-  fontSizes: Array<number>; 
+  fontSizes: Array<number>;
 
   constructor(props: FontSizePickerProps) {
     super(props);
@@ -58,8 +59,8 @@ export default class FontSizePicker
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCellObject): string {
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
+  _getMenuValueFromCell(cell: ASCell): string {
     return "10"; // TODO: something like cell.cellProps.font.fontSize
   }
 
@@ -88,7 +89,7 @@ export default class FontSizePicker
         toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
         propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue="10"
-        menuWidth={65} 
+        menuWidth={65}
         toolbarControlWidth={45}
         id="FontSizePicker" />
     );

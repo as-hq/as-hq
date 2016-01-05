@@ -4,17 +4,18 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
+import ASCell from '../../classes/ASCell';
+
 import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 import type {
-  ToolbarControlProps, 
+  ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
 
 import type {
-  NakedRange,
-  ASCellObject
+  NakedRange
 } from '../../types/Eval';
 
 type VAlignPickerDefaultProps = {};
@@ -36,10 +37,10 @@ export default class VAlignPicker
   // Return a bunch of menu items
   getMenuProps(): Array<MenuProps> {
     let genIcon = (iconName) => {
-      return <FontIcon 
-        style={{backgroundColor: Styles.Colors.grey400, color: Styles.Colors.grey800}} 
-        className="material-icons"> 
-          {iconName} 
+      return <FontIcon
+        style={{backgroundColor: Styles.Colors.grey400, color: Styles.Colors.grey800}}
+        className="material-icons">
+          {iconName}
         </FontIcon>;
     };
     let menuItems = [
@@ -65,8 +66,8 @@ export default class VAlignPicker
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCellObject): string {
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
+  _getMenuValueFromCell(cell: ASCell): string {
     return 'bottom'; // TODO: eventually cell.cellProps.valign
   }
 
@@ -96,7 +97,7 @@ export default class VAlignPicker
         toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
         propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue={'bottom'}
-        menuWidth={65} 
+        menuWidth={65}
         id="VAlignPicker" />
     );
   }

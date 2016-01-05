@@ -3,8 +3,7 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASIndexObject,
-  ASCellObject
+  ASIndexObject
 } from '../../types/Eval';
 
 import type {

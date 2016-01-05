@@ -11,7 +11,6 @@ import type {
   ASRangeObject,
   ASLocation,
   ASSheet,
-  ASCellObject,
   ASLanguage,
   ASSelectionObject,
   RangeDescriptor
@@ -295,7 +294,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     );
   },
 
-  /* Set an ASCellObject */
+  /* Set an ASCell */
   setCell(c: ASCell) { //error here
     let {col, row, sheetId} = c.location;
     if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];

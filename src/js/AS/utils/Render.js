@@ -7,8 +7,7 @@ import type {
   NakedRange,
   ASIndexObject,
   ASValue,
-  ASCellProp,
-  ASCellObject
+  ASCellProp
 } from '../../types/Eval';
 
 import type {
@@ -193,7 +192,7 @@ const Render = {
   // each edge is a 2-length array [start, end]
   // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
   getPaintedBorders(col: number, row: number, rngs: Array<NakedRange>): Array<CellBorder> {
-    return rngs.map((rng) => Render.getBordersForInteriorCell(col, row, rng), Render);; 
+    return rngs.map((rng) => Render.getBordersForInteriorCell(col, row, rng), Render);;
   },
 
   getUniqueId(): string {

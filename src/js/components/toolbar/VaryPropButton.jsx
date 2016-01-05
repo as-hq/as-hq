@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  ASCellObject,
   NakedRange
 } from '../../types/Eval';
 

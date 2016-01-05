@@ -1,8 +1,7 @@
 /* @flow */
 
 import type {
-  NakedRange,
-  ASCellObject
+  NakedRange
 } from '../../types/Eval';
 
 import React, {PropTypes} from 'react';

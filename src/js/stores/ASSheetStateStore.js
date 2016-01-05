@@ -20,7 +20,6 @@ import type {
   ASIndexObject,
   ASRangeObject,
   ASSheet,
-  ASCellObject,
   ASLanguage,
   ASSelectionObject
 } from '../types/Eval';
