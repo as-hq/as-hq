@@ -33,7 +33,8 @@ data ServerState = State  { _userClients :: [ASUserClient]
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port
                                 , _graphDbAddress :: GraphAddress
-                                , _pyKernelAddress :: KernelAddress}
+                                , _pyKernelAddress :: KernelAddress
+                                , _redisPort :: Port}
 
 type Port = Int
 type GraphAddress = String
@@ -46,7 +47,8 @@ instance FromJSON AppSettings where
     wsPort <- v .:? "backendWsPort" .!= 5000
     graphAddr <- v .:? "graphDbAddress_haskell" .!= "tcp://localhost:5555"
     pyAddr <- v .:? "pyKernelAddress_haskell" .!= "tcp://localhost:20000"
-    return $ AppSettings wsAddr wsPort graphAddr pyAddr
+    redisPort <- v .:? "redisPort" .!= 6379
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort
   parseJSON _ = error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

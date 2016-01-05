@@ -70,8 +70,8 @@ main = R.withEmbeddedR R.defaultConfig $ do
 initApp :: IO (MVar ServerState)
 initApp = do
   -- init state
-  conn <- R.connect DI.cInfo
   settings <- getSettings 
+  conn <- DI.connectRedis settings
   state <- newMVar $ State [] [] conn settings 
   -- init python kernel
   KP.initialize (settings^.pyKernelAddress) conn
@@ -103,7 +103,8 @@ defaultSettings :: AppSettings
 defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
                                 , _backendWsPort = 5000
                                 , _graphDbAddress = "tcp://localhost:5555"
-                                , _pyKernelAddress = "tcp://localhost:20000"}
+                                , _pyKernelAddress = "tcp://localhost:20000"
+                                , _redisPort = 6379}
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()

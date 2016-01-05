@@ -130,6 +130,7 @@ library
                      , unordered-containers
                      , safecopy
                      , safe
+                     , network
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
