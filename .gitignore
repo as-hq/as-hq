@@ -32,6 +32,8 @@ server/static/*
 
 graph-database/server
 
+# Environment file
+Environment.json
 
 
 #TIMs FILES
