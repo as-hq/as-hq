@@ -159,6 +159,10 @@ let Key = {
     return e.ctrlKey && e.which === 83;
   },
 
+  isAltH(e: SyntheticKeyboardEvent): boolean {
+    return e.altKey && e.which === 72;
+  },
+
   keyToString(e: SyntheticKeyboardEvent): string {
     let c = e.which;
 

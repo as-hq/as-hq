@@ -142,7 +142,7 @@ export default {
   },
 
   evalHeaderShouldDeferKey(e: SyntheticKeyboardEvent): boolean { 
-    return KeyUtils.isCtrlS(e);
+    return KeyUtils.isCtrlS(e) || KeyUtils.isAltH(e);
   },
 
   compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {

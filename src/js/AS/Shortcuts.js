@@ -123,8 +123,8 @@ export default {
         self.refs.spreadsheet.repaint();
       });
     });
-    SU.add('common', 'toggle_repl', 'Alt+F11', (wildcard: string) => {
-      self._toggleRepl();
+    SU.add('common', 'toggle_header', 'Alt+H', (wildcard: string) => {
+      self.toggleEvalHeader();
     });
     SU.add('common', 'esc', 'Esc', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
@@ -448,6 +448,12 @@ export default {
     // eval header shortcuts -------------------------------------------------------------------------------
     SU.add('evalHeader', 'save', 'Ctrl+S', (wildcard: string) => {
       self.refs.evalHeader.saveAndEval();
+    });
+
+    // #needsrefactor. Redundant with common... but no easy way to DRY this up right now. 
+    // ::ALEX::
+    SU.add('evalHeader', 'toggle_header', 'Alt+H', (wildcard: string) => {
+      self.toggleEvalHeader();
     });
 
     // top level shortcuts -------------------------------------------------------------------------------

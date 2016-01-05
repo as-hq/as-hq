@@ -93,8 +93,6 @@ export default class EvalHeaderEditor
   }
 
   handleKeyDown(e: SyntheticKeyboardEvent) {
-    let lang = this.props.language,
-        val = this.editor.getValue();
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
       U.Shortcut.tryShortcut(e, 'evalHeader');
