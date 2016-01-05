@@ -9,7 +9,7 @@ import type {
 
 import type {
   NakedRange,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 import CellStore from '../stores/ASCellStore';
@@ -55,7 +55,7 @@ const Renderers = {
     return _renderParams.dragCorner;
   },
 
-  getDottedSelection() : ?ASSelection {
+  getDottedSelection() : ?ASSelectionObject {
     return _renderParams.draggedBoxSelection;
   },
 
@@ -67,7 +67,7 @@ const Renderers = {
     _renderParams.mode = mode;
   },
 
-  setSelection(sel: ?ASSelection) {
+  setSelection(sel: ?ASSelectionObject) {
     _renderParams.selection = sel;
   },
 

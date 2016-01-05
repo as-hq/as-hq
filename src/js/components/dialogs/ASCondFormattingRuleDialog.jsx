@@ -11,7 +11,7 @@ import type {
 
 import type {
   NakedRange,
-  ASRange,
+  ASRangeObject,
   ASExpression,
   ASCellProp
 } from '../../types/Eval';

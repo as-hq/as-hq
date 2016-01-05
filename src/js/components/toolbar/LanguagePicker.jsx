@@ -18,7 +18,7 @@ import type {
 import type {
   ASLanguage, 
   NakedRange, 
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 type LanguageMenuOption = { 
@@ -98,7 +98,7 @@ export default class LanguagePicker
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCell): ASLanguage {
+  _getMenuValueFromCell(cell: ASCellObject): ASLanguage {
     console.log("Language picker cell ", cell)
     if (cell != null && cell.cellExpression.language != null) { // #cellrefactor ()
       return cell.cellExpression.language;

@@ -2,9 +2,9 @@
 
 import type {
   NakedRange,
-  ASIndex,
+  ASIndexObject,
   BooleanCellTag,
-  ASCell,
+  ASCellObject,
   ASCellProp
 } from '../../types/Eval';
 

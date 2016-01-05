@@ -1,7 +1,7 @@
 /* @flow */
 
 import type {
-  ASCell,
+  ASCellObject,
   NakedRange
 } from '../../types/Eval';
 
@@ -68,7 +68,7 @@ export default class VaryPropButton
   }
 
   /* When the cell updates due to store change, push the button if the prop corresponding to our tag isn't null */
-  _setControlStateFromCell(cell: ?ASCell) {
+  _setControlStateFromCell(cell: ?ASCellObject) {
     let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
     this.refs.button.setPushState(prop != null);
     // We want the bold button's icon to be black upon a bold cell, default color otherwise

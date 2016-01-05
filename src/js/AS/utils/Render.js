@@ -5,10 +5,10 @@ import type {
   ValueError,
   NakedIndex,
   NakedRange,
-  ASIndex,
+  ASIndexObject,
   ASValue,
   ASCellProp,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 import type {
@@ -200,7 +200,7 @@ const Render = {
     return shortid.generate();
   },
 
-  locEquals(c1: ASIndex, c2: ASIndex): boolean {
+  locEquals(c1: ASIndexObject, c2: ASIndexObject): boolean {
     let tagE = c1.tag === c2.tag,
         colE = c1.index.col === c2.index.col,
         rowE = c1.index.row === c2.index.row,

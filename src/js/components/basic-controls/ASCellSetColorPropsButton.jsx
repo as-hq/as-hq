@@ -2,9 +2,9 @@
 //
 // import type {
 //   NakedRange,
-//   ASIndex,
+//   ASIndexObject,
 //   ColorCellTag,
-//   ASCell,
+//   ASCellObject,
 //   ASCellProp
 // } from '../../types/Eval';
 //

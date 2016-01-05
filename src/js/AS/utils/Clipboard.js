@@ -8,7 +8,7 @@ import type {
 	NakedIndex,
 	NakedRange,
 	ASLanguage,
-	ASCell
+	ASCellObject
 } from '../../types/Eval';
 
 import type { 

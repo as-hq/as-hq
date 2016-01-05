@@ -7,13 +7,13 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
-  ASIndex,
-  ASRange,
+  ASIndexObject,
+  ASRangeObject,
   ASLocation,
   ASSheet,
-  ASCell,
+  ASCellObject,
   ASLanguage,
-  ASSelection,
+  ASSelectionObject,
   RangeDescriptor
 } from '../types/Eval';
 
@@ -51,7 +51,7 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
 type CellStoreData = {
   allCells: ASCellGrid;
   allErrors: Array<ASClientError>;
-  lastUpdatedCells: Array<ASCell>;
+  lastUpdatedCells: Array<ASCellObject>;
 };
 
 let _data: CellStoreData = {
@@ -78,7 +78,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         _data.lastUpdatedCells = [];
         ASCellStore.removeLocations(action.oldLocs);
 
-        let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells); 
+        let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells);
         ASCellStore.updateCells(newCellsWithExpandingTypes);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
@@ -201,7 +201,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   /* Usually called by AS components so that they can get the updated values of the store */
-  getLastUpdatedCells(): Array<ASCell> {
+  getLastUpdatedCells(): Array<ASCellObject> {
     return _data.lastUpdatedCells;
   },
 
@@ -212,7 +212,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Copy paste helpers */
 
-  // Converts a range to a row major list of lists of values, represented by their underlying strings. 
+  // Converts a range to a row major list of lists of values, represented by their underlying strings.
   getRowMajorCellValues(rng): Array<Array<string>> {
     let {tl, br} = rng,
         height = br.row - tl.row + 1,
@@ -226,7 +226,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
               cell = self.getCell({col: currentColumn, row: currentRow});
           if (cell != null) {
             return String(U.Render.showValue(cell.cellValue));
-          } else { 
+          } else {
             return "";
           };
       });
@@ -267,7 +267,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     return _data.allErrors;
   },
 
-  setErrors(c: ASCell) {
+  setErrors(c: ASCellObject) {
     ASCellStore.unsetErrors(c);
 
     const { cellValue: cv, cellExpression: cxp, cellLocation: cl } = c;
@@ -284,13 +284,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
   },
 
-  unsetErrors(c: ASCell) {
+  unsetErrors(c: ASCellObject) {
     _data.allErrors = _data.allErrors.filter(
       ({ location }) => ! _.isEqual(c.cellLocation.index, location)
     );
   },
 
-  /* Set an ASCell */
+  /* Set an ASCellObject */
   setCell(c) { //error here
     let {col, row} = c.cellLocation.index,
         sheetId = c.cellLocation.sheetId;
@@ -302,14 +302,14 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   // Replace cells with empty ones
-  removeCells(cells: Array<ASCell>) {
+  removeCells(cells: Array<ASCellObject>) {
     cells.forEach((cell) => {
       ASCellStore.removeIndex(cell.cellLocation);
     });
   },
 
-  // Remove a cell at an ASIndex
-  removeIndex(loc: ASIndex) { //error here
+  // Remove a cell at an ASIndexObject
+  removeIndex(loc: ASIndexObject) { //error here
     let sheetId = loc.sheetId,
         emptyCell = U.Conversion.makeEmptyCell(loc);
     if (ASCellStore.locationExists(loc.index.col, loc.index.row, sheetId)) {
@@ -343,7 +343,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   // @optional mySheetId
-  getCell({col, row}: NakedIndex): ?ASCell {
+  getCell({col, row}: NakedIndex): ?ASCellObject {
     let sheetId = SheetStateStore.getCurrentSheet().sheetId;
     if (ASCellStore.locationExists(col, row, sheetId))
       return _data.allCells[sheetId][col][row];
@@ -352,7 +352,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
   },
 
-  getCells({tl, br}: NakedRange): Array<Array<?ASCell>> {
+  getCells({tl, br}: NakedRange): Array<Array<?ASCellObject>> {
     let sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return _.range(tl.col, br.col+1).map((c) => {
       return _.range(tl.row, br.row+1).map((r) => {
@@ -363,7 +363,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     });
   },
 
-  cellToJSVal(c: ASCell): ?(string|number) {
+  cellToJSVal(c: ASCellObject): ?(string|number) {
     switch (c.cellValue.tag) {
       case "ValueI":
       case "ValueD":
@@ -374,29 +374,29 @@ const ASCellStore = Object.assign({}, BaseStore, {
     };
   },
 
-  // When we receive cell updates from the backend, we're given a list of *all* the cells that have changed, 
+  // When we receive cell updates from the backend, we're given a list of *all* the cells that have changed,
   // including those that have gotten coupled/gotten decoupled. We need to figure out the expandingType's of these
-  // cells, for rendering. 
-  _addExpandingTypesToCells(cs: Array<ASCell>): Array<ASCell> { 
-    let foos = cs.map((c) => ASCellStore._addExpandingTypeToCell(c)); 
-    return foos; 
+  // cells, for rendering.
+  _addExpandingTypesToCells(cs: Array<ASCellObject>): Array<ASCellObject> {
+    let foos = cs.map((c) => ASCellStore._addExpandingTypeToCell(c));
+    return foos;
   },
 
-  _addExpandingTypeToCell(c: ASCell): ASCell {
-    let newC = _.cloneDeep(c); //might end up remaining the same as the c passed in, if c isn't in any of the ranges. 
+  _addExpandingTypeToCell(c: ASCellObject): ASCellObject {
+    let newC = _.cloneDeep(c); //might end up remaining the same as the c passed in, if c isn't in any of the ranges.
 
     if (newC.cellRangeKey != null) {
       let rd = DescriptorStore.getRangeDescriptor(newC.cellRangeKey);
-      if (rd != null) { 
-        newC.expandingType = rd.expandingType; 
+      if (rd != null) {
+        newC.expandingType = rd.expandingType;
         delete newC.cellRangeKey; // no need for this attribute anymore
-      } else { 
-        let ds = DescriptorStore; 
+      } else {
+        let ds = DescriptorStore;
         throw "null range descriptor at the range descriptor key passed in to _addExpandingTypeToCell, with cell" + JSON.stringify(c) + ". (This means a cell has cellRangeKey, indicating it's coupled, while the range descriptors indicate it isn't.)";
       }
-    } 
+    }
 
-    return newC; 
+    return newC;
   },
 });
 

@@ -2,7 +2,7 @@
 
 import type {
   NakedRange,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 export type Style = { [key: string]: (string|number) };
@@ -22,7 +22,7 @@ export type RenderParams = {
   mode: ?string,
   deps: Array<NakedRange>,
   cellWidth: number,
-  selection: ?ASSelection,
+  selection: ?ASSelectionObject,
   selectionRect: ?PXRectangle,
   mouseoverError: number,
   dragRect: ?NakedRange,
@@ -30,5 +30,5 @@ export type RenderParams = {
   boxWidth: number,
   topLeftBox: ?HGPoint,
   dragCorner: ?DragCorner,
-  draggedBoxSelection: ?ASSelection
+  draggedBoxSelection: ?ASSelectionObject
 };

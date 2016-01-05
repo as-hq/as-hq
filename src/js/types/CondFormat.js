@@ -1,11 +1,11 @@
 /* @flow */
 
 import type { 
-  ASCell, 
+  ASCellObject, 
   ASLocation, 
   ASCellProp, 
   ASExpression, 
-  ASRange
+  ASRangeObject
 } from'./Eval';
 
 export type CondFormatRule = {
@@ -13,7 +13,7 @@ export type CondFormatRule = {
   condFormatRuleId: string; 
   condFormat: ASCellProp;
   condition: CondFormatCondition;
-  cellLocs: Array<ASRange>;
+  cellLocs: Array<ASRangeObject>;
 };
 
 export type CondFormatCondition =

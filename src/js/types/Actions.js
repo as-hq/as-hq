@@ -1,14 +1,14 @@
 /* @flow */
 
 import type {
-  ASIndex,
+  ASIndexObject,
   ASLocation,
-  ASRange,
-  ASCell,
+  ASRangeObject,
+  ASCellObject,
   ASExpression,
   ASValue,
   ASCompositeValue,
-  ASSelection,
+  ASSelectionObject,
   ASLanguage,
   RangeDescriptor,
   RangeKey
@@ -49,12 +49,12 @@ export type GotOpenAction = {
 
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
-  newSelection: ASSelection;
+  newSelection: ASSelectionObject;
 };
 
 export type GotUpdatedCellsAction = {
   _type: 'GOT_UPDATED_CELLS';
-  newCells: Array<ASCell>;
+  newCells: Array<ASCellObject>;
   oldLocs: Array<ASLocation>;
 };
 
@@ -72,7 +72,7 @@ export type GotUpdatedBarsAction = {
 
 export type ImportAction = {
   _type: 'GOT_IMPORT';
-  newCells: Array<ASCell>;
+  newCells: Array<ASCellObject>;
 };
 
 export type ClearedAction = {
@@ -108,7 +108,7 @@ export type GotEvalHeaderResponseAction = {
 
 export type GotFindAction = {
   _type: 'GOT_FIND';
-  findLocs: Array<ASIndex>;
+  findLocs: Array<ASIndexObject>;
 };
 
 export type GotNewWorkbooksAction = {

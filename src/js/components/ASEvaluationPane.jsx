@@ -4,7 +4,7 @@ import type {
   ASValue,
   ASLanguage,
   ASSheet,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 import type {
@@ -458,7 +458,7 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
-  _onSelectionChange(sel: ASSelection) {
+  _onSelectionChange(sel: ASSelectionObject) {
 
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),

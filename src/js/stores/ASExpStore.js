@@ -2,7 +2,7 @@
 
 import type {
   NakedRange,
-  ASCell,
+  ASCellObject,
   ASLanguage
 } from '../types/Eval';
 
@@ -306,7 +306,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
     ASExpStore.emitChange();
   },
 
-  updateOnBackendChange(cell : ?ASCell) {
+  updateOnBackendChange(cell : ?ASCellObject) {
     // Only do these changes if the user isn't typing (has evalled)
     // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
     if (!ASExpStore.getUserIsTyping()) {

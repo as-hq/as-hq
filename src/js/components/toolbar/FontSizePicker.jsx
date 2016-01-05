@@ -15,7 +15,7 @@ import type {
 
 import type {
   NakedRange,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 type FontSizePickerDefaultProps = {};
@@ -59,7 +59,7 @@ export default class FontSizePicker
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCell): string {
+  _getMenuValueFromCell(cell: ASCellObject): string {
     return "10"; // TODO: something like cell.cellProps.font.fontSize
   }
 

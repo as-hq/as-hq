@@ -1,8 +1,8 @@
 /* @flow */
 
 import type {
-  ASCell,
-  ASRange
+  ASCellObject,
+  ASRangeObject
 } from '../../types/Eval';
 
 import React from 'react';

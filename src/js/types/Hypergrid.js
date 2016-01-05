@@ -1,7 +1,7 @@
 /* @flow */
 
 import type {
-  ASIndex
+  ASIndexObject
 } from '../types/Eval';
 
 import type {
@@ -24,5 +24,5 @@ export type ASOverlaySpec = {
   offsetY: number;
   left: number;
   top: number;
-  loc: ?ASIndex;
+  loc: ?ASIndexObject;
 };

@@ -3,8 +3,8 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASIndex,
-  ASRange,
+  ASIndexObject,
+  ASRangeObject,
   ValueD,
   ValueI,
   ValueS,
@@ -16,7 +16,7 @@ import type {
   ASExpression,
   ASLanguage,
   ASCellProp,
-  ASCell,
+  ASCellObject,
   VAlignType,
   HAlignType,
   BooleanCellTag,
@@ -109,11 +109,11 @@ export function colIndex(ind: number): BarIndex {
   };
 }
 
-export function asIndex(loc: string): ASIndex {
+export function asIndex(loc: string): ASIndexObject {
   return U.Conversion.simpleToASIndex(U.Conversion.excelToIndex(loc));
 }
 
-export function asRange(loc: string): ASRange {
+export function asRange(loc: string): ASRangeObject {
   return U.Conversion.excelToASRange(loc);
 }
 
@@ -554,7 +554,7 @@ export function shouldError(prf: Prf): Prf {
   return responseShouldSatisfy(prf, ({ clientAction: { tag } }) => tag === 'ShowFailureMessage');
 }
 
-export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCell>) => void): Prf {
+export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCellObject>) => void): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
       API.getIndices([ asIndex(loc) ]);

@@ -11,13 +11,13 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
-  ASSelection,
-  ASIndex,
-  ASRange,
+  ASSelectionObject,
+  ASIndexObject,
+  ASRangeObject,
   ASLocation,
   ASSheet,
   ASWorkbook,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 import type {
@@ -42,7 +42,7 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeEvalInstruction(asIndex: ASIndex, xpObj: ASClientExpression): EvalInstruction {
+  makeEvalInstruction(asIndex: ASIndexObject, xpObj: ASClientExpression): EvalInstruction {
     return  {
       tag: "EvalInstruction", 
       evalXp: xpObj, 
@@ -50,7 +50,7 @@ let CU = {
     }; 
   },
 
-  makeEmptyCell(asIndex?: ASIndex): ASCell {
+  makeEmptyCell(asIndex?: ASIndexObject): ASCellObject {
     let cl = asIndex || {tag:"index",
               sheetId: "TEST_SHEET_ID",
               index:{row: -1, col:-1}},
@@ -60,7 +60,7 @@ let CU = {
     return {cellLocation:cl, cellExpression:ce, cellValue:cv, cellProps:cp};
   },
 
-  makeASIndex(sheetId: string, col: number, row: number): ASIndex {
+  makeASIndex(sheetId: string, col: number, row: number): ASIndexObject {
     return {
       sheetId: sheetId,
       tag: 'index',
@@ -115,12 +115,12 @@ let CU = {
     return c.charCodeAt(0) - 64;
   },
 
-  simpleToASRange(rng: NakedRange, sheetId?: string): ASRange {
+  simpleToASRange(rng: NakedRange, sheetId?: string): ASRangeObject {
     if (typeof(sheetId) == "undefined") sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return {tag: 'range', range: rng, sheetId: sheetId};
   },
 
-  simpleToASIndex(idx: NakedIndex, sheetId?: string): ASIndex {
+  simpleToASIndex(idx: NakedIndex, sheetId?: string): ASIndexObject {
     if (typeof(sheetId) == "undefined") sheetId = SheetStateStore.getCurrentSheet().sheetId;
     return {tag: 'index', index: idx, sheetId: sheetId};
   },
@@ -140,7 +140,7 @@ let CU = {
   //xcxc: I know it's bad that this is here, but I couldn't get it to work in Util.js.
   //  Apparently JS is really bad at circular dependency injection and it was fucking up
   //  getHostUrl()
-  excelToASRange(xp: string): ASRange {
+  excelToASRange(xp: string): ASRangeObject {
     let parts = xp.split('!');
 
     if (parts.length === 1) {
@@ -158,7 +158,7 @@ let CU = {
     return { tl: ind, br: ind };
   },
 
-  indexToSelection(ind: NakedIndex): ASSelection {
+  indexToSelection(ind: NakedIndex): ASSelectionObject {
     return { origin: ind, range: { tl: ind, br: ind } };
   },
 
@@ -167,7 +167,7 @@ let CU = {
     return { window: rng, sheetId: sheetId };
   },
 
-  rangeToASIndices(rng: NakedRange): Array<ASIndex> {
+  rangeToASIndices(rng: NakedRange): Array<ASIndexObject> {
     let inds = [];
     for (var r = rng.tl.row; r <= rng.br.row; r++) {
       for (var c = rng.tl.col; c <= rng.br.col; c++) {
@@ -187,7 +187,7 @@ let CU = {
     return inds;
   },
 
-  asRangeToASIndices(rng: ASRange): Array<ASIndex> {
+  asRangeToASIndices(rng: ASRangeObject): Array<ASIndexObject> {
     let inds = [], 
         {range, sheetId} = rng;
     for (var r = range.tl.row; r <= range.br.row; r++) {
@@ -198,7 +198,7 @@ let CU = {
     return inds;
   },
 
-  asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndex> { 
+  asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndexObject> { 
     let indicesList = locs.map((l) => { 
       switch (l.tag) { 
         case 'range': return CU.asRangeToASIndices(l); 

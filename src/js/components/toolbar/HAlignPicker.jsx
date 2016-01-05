@@ -14,7 +14,7 @@ import type {
 
 import type {
   NakedRange,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 type HAlignPickerDefaultProps = {};
@@ -67,7 +67,7 @@ export default class HAlignPicker
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCell): string {
+  _getMenuValueFromCell(cell: ASCellObject): string {
     return 'left'; // TODO: eventually cell.cellProps.halign
   }
 

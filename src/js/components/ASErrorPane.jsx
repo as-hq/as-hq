@@ -7,7 +7,7 @@ import type {
 
 import type {
   NakedIndex,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 import type {
@@ -50,7 +50,7 @@ type ASErrorPaneProps = {
 };
 
 type ASErrorPaneState = {
-  currentSelection: ?ASSelection;
+  currentSelection: ?ASSelectionObject;
   errors: Array<ASClientError>;
   onlyCurrentCell: boolean;
   selectedRow: number;

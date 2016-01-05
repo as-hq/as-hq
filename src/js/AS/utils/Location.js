@@ -3,7 +3,7 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASSelection
+  ASSelectionObject
 } from '../../types/Eval';
 
 import type {
@@ -41,11 +41,11 @@ let LocationUtils = {
     return locs.some((loc) => LocationUtils._isContainedInLoc(col, row, loc));
   },
 
-  getSafeSelection(sel: ASSelection): ASSelection {
+  getSafeSelection(sel: ASSelectionObject): ASSelectionObject {
     return { origin: LocationUtils.getSafeIndex(sel.origin), range: LocationUtils.getSafeRange(sel.range) };
   },
 
-  originIsCornerOfSelection(sel: ASSelection): boolean {
+  originIsCornerOfSelection(sel: ASSelectionObject): boolean {
     let {origin, range: {tl, br}} = sel;
     return (origin.row === tl.row || origin.row == br.row) &&
            (origin.col == tl.col || origin.col == br.col);

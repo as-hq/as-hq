@@ -11,8 +11,8 @@ import type {
 } from '../../types/Toolbar';
 
 import type {
-  ASRange,
-  ASCell
+  ASRangeObject,
+  ASCellObject
 } from '../../types/Eval';
 
 import ToolbarController from './ToolbarController.jsx';
@@ -75,11 +75,11 @@ export default class FontPicker
   // Helper methods to pass to generator
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCell): string {
+  _getMenuValueFromCell(cell: ASCellObject): string {
     return "Arial"; // TODO: something like cell.cellProps.font.fontName
   }
 
-  _propagateControlStateChange(nextValue: string, rng: ASRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRangeObject) {
     // TODO: case on value, call some API function
     console.log("Propagating state change to backend: " + nextValue);
   }

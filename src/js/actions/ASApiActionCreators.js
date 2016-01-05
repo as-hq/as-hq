@@ -12,16 +12,16 @@ import type {
 import type {
   NakedRange,
   NakedIndex,
-  ASIndex,
-  ASRange,
+  ASIndexObject,
+  ASRangeObject,
 
-  ASSelection,
+  ASSelectionObject,
   ASLanguage,
   ASExpression,
   ASValue,
   ASSheet,
   ASCellProp,
-  ASCell,
+  ASCellObject,
   VAlignType,
   HAlignType
 } from '../types/Eval';
@@ -467,7 +467,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIsCoupled(ind: ASIndex) {
+  getIsCoupled(ind: ASIndexObject) {
     let msg = {
       tag: "GetIsCoupled",
       contents: ind
@@ -595,7 +595,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  copy(fromRng: ASRange, toRng: ASRange) {
+  copy(fromRng: ASRangeObject, toRng: ASRangeObject) {
     let msg = {
       tag: "Copy",
       copyFrom: fromRng,
@@ -604,7 +604,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  cut(fromRng: ASRange, toRng: ASRange) {
+  cut(fromRng: ASRangeObject, toRng: ASRangeObject) {
     let msg = {
       tag: "Cut",
       cutFrom: fromRng,
@@ -622,7 +622,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIndices(locs: Array<ASIndex>) {
+  getIndices(locs: Array<ASIndexObject>) {
     let msg = {
       tag: "Get",
       contents: locs
@@ -630,7 +630,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  repeat(sel: ASSelection) {
+  repeat(sel: ASSelectionObject) {
     // temporarily not maintaining (Alex 12/29)
     // let msg = {
     //   tag: "Repeat",

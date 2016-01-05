@@ -22,17 +22,17 @@ import type {
 import type {
   NakedRange,
   ASLocation,
-  ASRange,
-  ASSelection,
+  ASRangeObject,
+  ASSelectionObject,
   ASLanguage,
-  ASIndex,
+  ASIndexObject,
   ASSheet,
   ASValue,
   ASCompositeValue,
   ASExpression,
   ASWorkbook,
   ASCellProp,
-  ASCell,
+  ASCellObject,
   FormatType
 } from './Eval';
 
@@ -97,12 +97,12 @@ export type PayloadN = {
 
 export type PayloadCL = {
   tag: 'PayloadCL';
-  contents: Array<ASCell>;
+  contents: Array<ASCellObject>;
 };
 
 export type PayloadLL = {
   tag: 'PayloadLL';
-  contents: Array<ASIndex>;
+  contents: Array<ASIndexObject>;
 };
 
 export type PayloadSS = {
@@ -122,28 +122,28 @@ export type PayloadWorkbookSheets = {
 
 export type PayloadSelection = {
   tag: 'PayloadSelection';
-  selectionRange: ASRange;
-  selectionOrigin: ASIndex;
+  selectionRange: ASRangeObject;
+  selectionOrigin: ASIndexObject;
 };
 
 export type PayloadJump = {
   tag: 'PayloadJump';
-  jumpRange: ASRange;
-  jumpOrigin: ASIndex;
+  jumpRange: ASRangeObject;
+  jumpOrigin: ASIndexObject;
   isShifted: boolean;
   jumpDirection: ASBackendDirection;
 };
 
 export type PayloadPaste = {
   tag: 'PayloadPaste';
-  copyRange: ASRange;
-  copyTo: ASRange;
+  copyRange: ASRangeObject;
+  copyTo: ASRangeObject;
 };
 
 export type PayloadProp = {
   tag: 'PayloadTag';
   prop: ASCellProp;
-  tagRange: ASRange;
+  tagRange: ASRangeObject;
 };
 
 export type PayloadText = {
@@ -153,8 +153,8 @@ export type PayloadText = {
 
 export type PayloadDrag = {
   tag: 'PayloadDrag';
-  initialRange: ASRange;
-  dragRange: ASRange;
+  initialRange: ASRangeObject;
+  dragRange: ASRangeObject;
 };
 
 export type PayloadInit = {
@@ -170,7 +170,7 @@ export type PayloadOpen = {
 
 export type PayloadR = {
   tag: 'PayloadR';
-  contents: ASRange;
+  contents: ASRangeObject;
 };
 
 export type PayloadS = {
@@ -215,7 +215,7 @@ export type PayloadMutate = {
 
 export type PayloadFind = {
   tag: 'PayloadFind';
-  contents: Array<ASIndex>;
+  contents: Array<ASIndexObject>;
 };
 
 export type PayloadValue = {
@@ -327,7 +327,7 @@ export type Initialize = {
 export type InitializeDaemon = {
   tag: "InitializeDaemon";
   parentUserId: string; 
-  parentLoc: ASIndex; 
+  parentLoc: ASIndexObject; 
 };
 
 export type Open = {
@@ -348,7 +348,7 @@ export type Export = {
 export type EvalInstruction = {
   tag: "EvalInstruction";
   evalXp:  ASClientExpression; 
-  evalLoc: ASIndex; 
+  evalLoc: ASIndexObject; 
 };
 
 export type Evaluate = {
@@ -363,7 +363,7 @@ export type EvaluateHeader = {
 
 export type Get = {
   tag: "Get";
-  contents: Array<ASIndex>;
+  contents: Array<ASIndexObject>;
 };
 
 export type GetBar = {
@@ -373,12 +373,12 @@ export type GetBar = {
 
 export type GetIsCoupled = {
   tag: "GetIsCoupled";
-  contents: ASIndex;
+  contents: ASIndexObject;
 };
 
 export type Delete = {
   tag: "Delete";
-  contents: ASRange; 
+  contents: ASRangeObject; 
 };
 
 export type ClearSheetServer = {
@@ -398,29 +398,29 @@ export type Redo = {
 
 export type Copy = {
   tag: "Copy";
-  copyFrom: ASRange; 
-  copyTo: ASRange; 
+  copyFrom: ASRangeObject; 
+  copyTo: ASRangeObject; 
 };
 
 export type Cut = {
   tag: "Cut";
-  cutFrom: ASRange; 
-  cutTo: ASRange; 
+  cutFrom: ASRangeObject; 
+  cutTo: ASRangeObject; 
 };
 
 export type ToggleProp = {
   tag: "ToggleProp";
-  contents: [ASCellProp, ASRange]; 
+  contents: [ASCellProp, ASRangeObject]; 
 };
 
 export type SetProp = {
   tag: "SetProp";
-  contents: [ASCellProp, ASRange]; 
+  contents: [ASCellProp, ASRangeObject]; 
 };
 
 export type Repeat = {
   tag: "Repeat";
-  contents: ASSelection;
+  contents: ASSelectionObject;
 };
 
 export type BugReport = {
@@ -435,8 +435,8 @@ export type MutateSheet = {
 
 export type Drag = {
   tag: "Drag";
-  initialRange: ASRange;  
-  dragRange: ASRange; 
+  initialRange: ASRangeObject;  
+  dragRange: ASRangeObject; 
 };
 
 export type Decouple = {
@@ -456,7 +456,7 @@ export type SetBarProp = {
 
 export type ImportCSV = {
   tag: "ImportCSV";
-  csvIndex: ASIndex; 
+  csvIndex: ASIndexObject; 
   csvLang: ASLanguage; 
   csvFileName: string; 
 };
@@ -514,12 +514,12 @@ export type ClearSheet = {
 
 export type MakeSelection = { 
   tag: "MakeSelection"; 
-  contents: ASSelection; 
+  contents: ASSelectionObject; 
 }
 
 export type LoadImportedCells = { 
   tag: "LoadImportedCells"; 
-  contents: Array<ASCell>;
+  contents: Array<ASCellObject>;
 }
 
 export type ShowHeaderResult = { 

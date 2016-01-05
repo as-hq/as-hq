@@ -6,7 +6,7 @@ import type {
 
 import type {
   NakedRange,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 import type {

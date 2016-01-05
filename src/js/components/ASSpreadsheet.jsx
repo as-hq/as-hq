@@ -3,10 +3,10 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASRange,
-  ASCell,
-  ASIndex,
-  ASSelection
+  ASRangeObject,
+  ASCellObject,
+  ASIndexObject,
+  ASSelectionObject
 } from '../types/Eval';
 
 import type {
@@ -72,7 +72,7 @@ type ASSpreadsheetProps = {
   onReady: () => void;
   onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
   onFileDrop: (files: Array<File>) => void;
-  onSelectionChange: (sel: ASSelection) => void;
+  onSelectionChange: (sel: ASSelectionObject) => void;
   onNavKeyDown: (e: SyntheticKeyboardEvent) => void;
   behavior: string;
   width?: string;
@@ -253,7 +253,7 @@ export default class ASSpreadsheet
     return this._getHypergrid().getBehavior();
   }
 
-  getSelectionArea(): ASSelection {
+  getSelectionArea(): ASSelectionObject {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().getSelections()[0],
         ul = selection.origin,
@@ -361,7 +361,7 @@ export default class ASSpreadsheet
   // Hypergrid update display
 
   /* Called by eval pane's onChange method, when eval pane receives a change evt from the store */
-  updateCellValues(clientCells: Array<ASCell>) {
+  updateCellValues(clientCells: Array<ASCellObject>) {
     let model = this._getBehavior(),
         self = this;
     // Update the hypergrid values
@@ -388,7 +388,7 @@ export default class ASSpreadsheet
   picture initially in the correct place. We use Hypergrid methods to return an Overlay object.
   Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
   */
-  getImageOverlayForCell(cell: ASCell): ?ASOverlaySpec {
+  getImageOverlayForCell(cell: ASCellObject): ?ASOverlaySpec {
     let {col, row} =  cell.cellLocation.index,
         p =  finRect.point.create(col, row),
         point = this._getHypergrid().getBoundsOfCell(p).origin;
@@ -435,13 +435,13 @@ export default class ASSpreadsheet
   In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
   That location-based update and state change is done here.
   */
-  addCellSourcedOverlay(cell: ASCell) {
+  addCellSourcedOverlay(cell: ASCellObject) {
     let imageOverlay = this.getImageOverlayForCell(cell);
     if (imageOverlay === null || imageOverlay === undefined) return;
     this.addOverlay(imageOverlay, cell);
   }
 
-  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
+  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCellObject) {
     let overlays = this.state.overlays,
         locs = catMaybes(overlays.map((o) => o.loc));
 
@@ -477,7 +477,7 @@ export default class ASSpreadsheet
   }
 
   // do not call before polymer is ready.
-  select(unsafeSelection: ASSelection, shouldScroll: boolean = true) {
+  select(unsafeSelection: ASSelectionObject, shouldScroll: boolean = true) {
     logDebug("Spreadsheet select start");
 
     // unsafe if it references values <= 0.
@@ -559,7 +559,7 @@ export default class ASSpreadsheet
     return col - 1;
   }
 
-  _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
+  _getNewScroll(oldSel: ?ASSelectionObject, newSel: ASSelectionObject): HGPoint {
     let hg = this._getHypergrid();
     let {
       range: {tl, br},

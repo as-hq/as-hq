@@ -25,7 +25,7 @@ import type {
 
 import type {
   NakedRange,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 type MenuControllerDefaultProps = {
@@ -36,7 +36,7 @@ type MenuControllerDefaultProps = {
 type MenuControllerProps = {
   toolbarComponent: React.Element; 
   menuComponent: React.Element; 
-  setControlStateFromCell: (cell: ?ASCell) => void; 
+  setControlStateFromCell: (cell: ?ASCellObject) => void; 
   propagateControlStateChange: (nextState: any, rng: NakedRange) =>  void; 
   toolbarWidth: number;
   toolbarHeight: number;

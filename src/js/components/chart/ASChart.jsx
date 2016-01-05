@@ -3,8 +3,8 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASIndex,
-  ASCell
+  ASIndexObject,
+  ASCellObject
 } from '../../types/Eval';
 
 import type {
@@ -76,7 +76,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return this.refs.baseChart.getChart();
   }
 
-  _isListening(c: ASCell): boolean {
+  _isListening(c: ASCellObject): boolean {
     let {index, sheetId} = c.cellLocation;
     return isContainedInLocs(index.col, index.row, [this.props.valueRange])
         && sheetId == this.props.sheetId;
@@ -93,7 +93,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return {col: idx.col - tl.col, row: idx.row - tl.row};
   }
 
-  _updateData(cs: Array<ASCell>) {
+  _updateData(cs: Array<ASCellObject>) {
     let newData = this.state.data;
     cs.forEach((c) => {
       let {col, row} = this._getRelativeIndex(c.cellLocation.index);

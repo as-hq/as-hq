@@ -1,7 +1,7 @@
 /* @flow */
 
 import type {
-  ASCell,
+  ASCellObject,
   NakedRange
 } from '../../types/Eval';
 
@@ -30,7 +30,7 @@ const colors = [
 ];
 
 const ChartUtils = {
-  cellToChartVal(c: ?ASCell): number {
+  cellToChartVal(c: ?ASCellObject): number {
     if (c !== null && c !== undefined) {
       switch (c.cellValue.tag) {
         case "ValueI":
@@ -42,7 +42,7 @@ const ChartUtils = {
     } else return 0;
   },
 
-  cellToLabel(c: ?ASCell): string {
+  cellToLabel(c: ?ASCellObject): string {
     if (c !== null && c !== undefined) {
       switch (c.cellValue.tag) {
         case "ValueI":

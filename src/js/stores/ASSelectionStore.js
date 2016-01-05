@@ -20,7 +20,7 @@ import {Just} from '../AS/Maybe';
 
 import type {
   ASLanguage,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 import type {
@@ -28,7 +28,7 @@ import type {
 } from '../types/Base';
 
 type SelectionStoreData = {
-  activeSelection: ?ASSelection;
+  activeSelection: ?ASSelectionObject;
 };
 
 let _data: SelectionStoreData = {
@@ -64,11 +64,11 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
     ASSelectionStore.emitChange();
   },
 
-  getActiveSelection(): ?ASSelection {
+  getActiveSelection(): ?ASSelectionObject {
     return _data.activeSelection;
   },
 
-  withActiveSelection<T>(cb: (sel: ASSelection) => T): ?T {
+  withActiveSelection<T>(cb: (sel: ASSelectionObject) => T): ?T {
     return Just(ASSelectionStore.getActiveSelection()).fmap(cb).out();
   },
 });

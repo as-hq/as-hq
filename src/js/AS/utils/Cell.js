@@ -1,18 +1,18 @@
 /* @flow */
 
 import type {
-  ASCell,
+  ASCellObject,
   ASCellProp
 } from '../../types/Eval';
 
 import _ from 'lodash';
 
 let CellUtils = {
-  isEmptyCell(c: ASCell): boolean {
+  isEmptyCell(c: ASCellObject): boolean {
     return !c || ((c.cellExpression.expression == "") && (c.cellProps.length == 0));
   },
 
-  getPropByTag(tag: string, cell: ASCell): ?ASCellProp {
+  getPropByTag(tag: string, cell: ASCellObject): ?ASCellProp {
     let {cellProps} = cell,
         retProps = cellProps.filter(
           ({tag: cellPropTag}) => tag === cellPropTag
@@ -24,7 +24,7 @@ let CellUtils = {
     }
   },
 
-  cellHasProp(prop: ASCellProp, cell: ASCell): boolean {
+  cellHasProp(prop: ASCellProp, cell: ASCellObject): boolean {
     let {cellProps} = cell, {tag} = prop;
     let propInd = cellProps.map(({tag}) => tag).indexOf(tag);
     return (propInd >= 0 && _.isEqual(cellProps[propInd], prop));

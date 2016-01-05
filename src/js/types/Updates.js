@@ -1,7 +1,7 @@
 /* @flow */
 
 import type { 
-  ASCell, 
+  ASCellObject, 
   ASLocation, 
   RangeDescriptor, 
   RangeKey
@@ -30,7 +30,7 @@ export type Update = CellUpdate | BarUpdate | CondFormatRuleUpdate | RangeDescri
 
 export type CellUpdate = {
   tag: 'Update';
-  newVals: Array<ASCell>;
+  newVals: Array<ASCellObject>;
   oldKeys: Array<ASLocation>;
 };
 

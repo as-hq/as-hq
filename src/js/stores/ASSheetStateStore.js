@@ -17,12 +17,12 @@ import CellStore from './ASCellStore';
 import type {
   NakedIndex,
   NakedRange,
-  ASIndex,
-  ASRange,
+  ASIndexObject,
+  ASRangeObject,
   ASSheet,
-  ASCell,
+  ASCellObject,
   ASLanguage,
-  ASSelection
+  ASSelectionObject
 } from '../types/Eval';
 
 import type {
@@ -44,7 +44,7 @@ type SheetStateStoreData = {
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   clipboard: {
-    area: ?ASSelection;
+    area: ?ASSelectionObject;
     isCut: boolean;
   };
   externalError: ?string;

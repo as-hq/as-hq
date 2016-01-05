@@ -2,7 +2,7 @@
 
 import type {
   NakedRange,
-  ASCell
+  ASCellObject
 } from '../../types/Eval';
 
 import React, {PropTypes} from 'react';
@@ -18,7 +18,7 @@ easy communication between stores and controls that monitor cell state (props, l
 */
 
 type ToolbarControllerProps = {
-  setControlStateFromCell: (activeCell: ?ASCell) => void; 
+  setControlStateFromCell: (activeCell: ?ASCellObject) => void; 
   propagateControlStateChange: (nextState: any, activerange: NakedRange) => void;
   control: React.Element; 
 };
@@ -27,7 +27,7 @@ type ToolbarControllerDefaultProps = {
 };
 
 type ToolbarControllerState = {
-  activeCell: ?ASCell; 
+  activeCell: ?ASCellObject; 
 };
 
 

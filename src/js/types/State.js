@@ -7,9 +7,9 @@ import type {
 import type {
   NakedIndex,
   NakedRange,
-  ASIndex,
-  ASRange,
-  ASCell,
+  ASIndexObject,
+  ASRangeObject,
+  ASCellObject,
   ASLanguage,
 } from './Eval';
 
@@ -35,7 +35,7 @@ export type ASClientExpression = {
   language: ASLanguage;
 };
 
-export type ASCellGrid = Dict<Array<Array<ASCell>>>;
+export type ASCellGrid = Dict<Array<Array<ASCellObject>>>;
 
 export type ASBarLines = { [key: BarIndex]: Bar }; // please help me think of a better name
 

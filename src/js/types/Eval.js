@@ -304,24 +304,24 @@ export type NakedRange = {
   br: NakedIndex;
 };
 
-export type ASSelection = {
+export type ASSelectionObject = {
   origin: NakedIndex;
   range: NakedRange;
 };
 
-export type ASIndex = {
+export type ASIndexObject = {
   tag: 'index';
   sheetId: string;
   index: NakedIndex;
 };
 
-export type ASRange = {
+export type ASRangeObject = {
   tag: 'range';
   sheetId: string;
   range: NakedRange;
 };
 
-export type ASLocation = ASIndex | ASRange;
+export type ASLocation = ASIndexObject | ASRangeObject;
 
 export type ASSheet = {
   tag: 'Sheet';
@@ -336,10 +336,10 @@ export type ASWorkbook = {
   workbookSheets: Array<string>;
 };
 
-export type ASCell = {
+export type ASCellObject = {
   cellExpression: ASExpression;
   cellValue: ASValue;
-  cellLocation: ASIndex;
+  cellLocation: ASIndexObject;
   cellProps: Array<ASCellProp>;
   expandingType?: ExpandingType; 
   // The color of the rendered cell depends on the cell's expanding type (e.g., whether it's a list or dataframe or general object.)
@@ -359,7 +359,7 @@ export type RangeDescriptor = {
 };
 
 export type RangeKey = { 
-  keyIndex: ASIndex; 
+  keyIndex: ASIndexObject; 
   keyDimensions: RangeKeyDimensions;
 };
 
