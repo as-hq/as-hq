@@ -37,6 +37,7 @@ library
                        AS.Eval.Core
                        AS.Eval.Endware
                        AS.Eval.Middleware
+                       AS.Eval.ColRangeHelpers
                        AS.Handlers.Delete
                        AS.Handlers.Eval
                        AS.Handlers.JumpSelect

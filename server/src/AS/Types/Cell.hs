@@ -121,7 +121,7 @@ partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
         liftListTuple t = (concatMap fst t, concatMap snd t)
 
 getCellFormatType :: ASCell -> Maybe FormatType
-getCellFormatType = maybe Nothing (Just . formatType) . getProp ValueFormatProp . view cellProps
+getCellFormatType = fmap formatType . getProp ValueFormatProp . view cellProps
 
 execErrorToValueError :: ASExecError -> ASValue
 execErrorToValueError e = ValueError (show e) "Exec error"

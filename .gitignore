@@ -34,15 +34,3 @@ graph-database/server
 
 # Environment file
 Environment.json
-
-
-#TIMs FILES
-hdevtools/
-installs/
-server/Double
-server/app/.Main.hs.swp
-server/deleteme.txt
-server/nuclide/
-server/src/AS/Eval/.*.hs.swp
-server/test/CondFormatTest.hs
-

@@ -6,7 +6,7 @@
 #include "location.h"
 
 using namespace std;
-string refDelimiter = "/"; 
+string refDelimiter = "/";
 
 /***********************************************************************************************************************/
 // Class methods
@@ -35,31 +35,74 @@ void Location::rangeToIndices(vector<Location>& indices) const {
   }
 };
 
+void Location::colRangeToMinRowAndColumns(int& minRow, vector<Column>& columns) const {
+  if (type == LocationType::COLRANGE) {
+    for (int i = tlCol; i <= brCol; ++i){
+      columns.push_back(Column(sheetName,i));
+    }
+  }
+  minRow = tlRow;
+};
 /***********************************************************************************************************************/
-// Hash function of Location for map data structures 
+// Hash function of Location for map data structures
 
 namespace std {
-  template <>
-  struct hash<Location> {
-      size_t operator()(const Location& l) const {
-        return hash_value(l); // using the friend boost hash
-      }
-  };
+  size_t hash<Location>::operator()(const Location& l) const {
+    return hash_value(l); // using the friend boost hash
+  }
+}
+
+/***********************************************************************************************************************/
+// Hash function of Column for map data structures 
+
+namespace std {
+  size_t hash<Column>::operator()(const Column& c) const {
+    return hash_value(c); // using the friend boost hash
+  }
+}
+
+/***********************************************************************************************************************/
+// Helper functions for getting features of locations.
+// INTENDED ONLY FOR INDEX.
+int getRowNumOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return loc.getTlRow();
+  }
+  cout << "Attempted to get row num of non-index location. Actual tlrow: " <<  loc.getTlRow() <<  endl;
+  throw "Attempted to get row num of non-index";
+}
+
+int getColumnNumOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return loc.getTlCol();
+  }
+  cout << "Attempted to get Column num of non-index" << endl;
+  throw "Attempted to get Column num of non-index";
+}
+
+Column getColumnOfIndex(const Location& loc) {
+  if (loc.getLocationType() == Location::LocationType::INDEX) {
+    return Column(loc.getSheetName(), getColumnNumOfIndex(loc));
+  }
+  cout << "Attempted to get Column of non-index" << endl;
+  throw "Attempted to get Column of non-index";
 }
 
 /***********************************************************************************************************************/
 // To and from string methods for Location
 
-/* 
+/*
   Make an index/pointer regex and a range regex and try to match both
   Throw error if no parse
 */
 Location fromString(string str) {
-  string prefix = "^([IPR])\\" + refDelimiter + "(.*)\\" + refDelimiter;
+  string prefix = "^([IPRC])\\" + refDelimiter + "(.*)\\" + refDelimiter;
   string index = "\\(([0-9]+),([0-9]+)\\)$";
   string range = "\\(\\(([0-9]+),([0-9]+)\\),\\(([0-9]+),([0-9]+)\\)\\)$";
+  string colRange = "\\(\\(([0-9]+),([0-9]+)\\),([0-9]+)\\)$";
   boost::regex indexPattern(prefix + index);
   boost::regex rangePattern(prefix + range);
+  boost::regex colRangePattern(prefix + colRange);
   boost::smatch r;
   if (boost::regex_search(str, r, indexPattern)) {
     string type(r[1].first, r[1].second);
@@ -72,6 +115,16 @@ Location fromString(string str) {
     } else if (type == "P") {
       return Location(Location::LocationType::POINTER,sheet,stoi(col),stoi(row),0,0);
     }
+  } else if (boost::regex_search(str, r, colRangePattern)) {
+    cout << "Testing" << endl;
+    string type(r[1].first, r[1].second);
+    string sheet(r[2].first, r[2].second);
+    string col(r[3].first, r[3].second);
+    string row(r[4].first, r[4].second);
+    string col2(r[5].first, r[5].second);
+    if (type == "C") {
+      return Location(Location::LocationType::COLRANGE,sheet,stoi(col),stoi(row),stoi(col2),0);
+    }
   } else if (boost::regex_search(str, r, rangePattern)) {
     string type(r[1].first, r[1].second);
     string sheet(r[2].first, r[2].second);
@@ -83,30 +136,34 @@ Location fromString(string str) {
     if (type == "R") {
       return Location(Location::LocationType::RANGE,sheet,stoi(col),stoi(row),stoi(col2),stoi(row2));
     }
-  } 
+  }
   cout << "Could not parse string into location " << str << endl;
   throw "Could not parse string into location";
 }
 
 string toString(const Location& l) {
-    string middle = refDelimiter + l.getSheetName() + refDelimiter;
-    string location;
-    int tlCol = l.getTlCol(); 
-    int tlRow = l.getTlRow();
-    int brRow = l.getBrRow();
-    int brCol = l.getBrCol();
-    switch(l.getLocationType()) {
-      case Location::LocationType::INDEX:
-        location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
-        return "I" + middle + location;
-        break;
-      case Location::LocationType::POINTER:
-        location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
-        return "P" + middle + location;
-        break;
-      case Location::LocationType::RANGE: 
-        location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
-        return "R" + middle + location;
-        break;
-    }
-  };
+  string middle = refDelimiter + l.getSheetName() + refDelimiter;
+  string location;
+  int tlCol = l.getTlCol();
+  int tlRow = l.getTlRow();
+  int brRow = l.getBrRow();
+  int brCol = l.getBrCol();
+  switch(l.getLocationType()) {
+    case Location::LocationType::INDEX:
+      location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
+      return "I" + middle + location;
+      break;
+    case Location::LocationType::POINTER:
+      location = "(" + to_string(tlCol) + "," + to_string(tlRow) + ")";
+      return "P" + middle + location;
+      break;
+    case Location::LocationType::COLRANGE:
+      location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "))";
+      return "C" + middle + location;
+      break;
+    case Location::LocationType::RANGE:
+      location = "((" +  to_string(tlCol) + "," + to_string(tlRow) + "),(" + to_string(brCol) + "," + to_string(brRow) + "))";
+      return "R" + middle + location;
+      break;
+  }
+};

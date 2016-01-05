@@ -18,6 +18,11 @@ import AS.Util
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
+readSingleRef :: Maybe Char -> SingleRefType
+readSingleRef d1 = case d1 of
+  Nothing -> REL
+  Just _ -> ABS
+
 readRefType :: Maybe Char -> Maybe Char -> RefType 
 readRefType d1 d2 = case d1 of
   Nothing -> maybe REL_REL (const REL_ABS) d2
@@ -40,7 +45,7 @@ pointer = char  '@'
 
 -- matches a valid sheet name
 nameMatch :: Parser (Maybe String)
-nameMatch = (many $ noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
+nameMatch = many ( noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
   where 
     rdName "" = Nothing
     rdName s = Just s
@@ -68,7 +73,54 @@ indexMatch = do
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
+--matches $A type things.
+colMatch :: Parser ExCol
+colMatch = do
+  dol  <- optionMaybe dollar
+  rcol <- many1 letter
+  return $ ExCol (readSingleRef dol) rcol
+
+-- | Three cases for colRange matching
+
+-- Matches A1:A type things.
+colRangeA1ToAMatch :: Parser ExColRange
+colRangeA1ToAMatch = do
+  tl <- indexMatch
+  colon
+  r <- colMatch
+  return $ ExColRange tl r
+
+-- Matches A:A1 type things.
+colRangeAToA1Match :: Parser ExColRange
+colRangeAToA1Match = do
+  r <- colMatch
+  colon
+  tl <- indexMatch
+  return $ ExColRange tl r
+
+-- Parses A:A as A$1:A
+colRangeAToAMatch :: Parser ExColRange
+colRangeAToAMatch = do
+  a  <- optionMaybe dollar
+  lcol <- many1 letter
+  colon
+  r <- colMatch
+  return $ ExColRange (ExIndex (readRefType a (Just '$')) lcol "1")  r
+
+-- checks for matches to both both A:A and A1:A.
+colRangeMatch :: Parser ExColRange
+colRangeMatch = do
+  -- order matters. AToA must be tried after AToA1
+  colrngAToA1 <- optionMaybe $ try colRangeAToA1Match
+  colrngA1ToA <- optionMaybe $ try colRangeA1ToAMatch
+  case colrngAToA1 of
+    Just a -> return a
+    Nothing -> case colrngA1ToA of
+           Just a -> return a
+           Nothing -> colRangeAToAMatch
+
 -- | matches index:index
+--
 rangeMatch :: Parser ExRange
 rangeMatch = do
   tl <- indexMatch
@@ -76,11 +128,15 @@ rangeMatch = do
   br <- indexMatch
   return $ ExRange tl br
 
+instance Show ExRange where
+  show (ExRange (ExIndex _ tl br) (ExIndex _ tl' br')) = tl ++ br ++ ":" ++ tl' ++ br'
+
 refMatch :: Parser ExRef
 refMatch = do
   point <- optionMaybe $ try pointer
   (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
   rng <- optionMaybe $ try rangeMatch 
+  colrng <- optionMaybe $ try colRangeMatch
   idx <- optionMaybe $ try indexMatch
   ofb <- optionMaybe $ try outOfBoundsMatch
   case point of 
@@ -90,12 +146,17 @@ refMatch = do
         Just ofb' -> return ExOutOfBounds
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
-      Just rng' -> return $ ExRangeRef rng' sh wb
-      Nothing -> case idx of 
-        Just idx' -> return $ ExLocRef idx' sh wb
-        Nothing -> case ofb of  
-          Just ofb' -> return ExOutOfBounds
-          Nothing -> fail "expected valid excel A1:B4 format reference"
+      -- Force ranges to have tl <= br.
+      Just rng' -> return $ ExRangeRef (orientExRange rng') sh wb
+      -- Force colRanges to have l <= r.
+      -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
+      Nothing -> case colrng of
+        Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
+        Nothing -> case idx of 
+          Just idx' -> return $ ExLocRef idx' sh wb
+          Nothing -> case ofb of  
+            Just ofb' -> return ExOutOfBounds
+            Nothing -> fail "expected valid excel A1:B4 format reference"
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
@@ -121,10 +182,20 @@ shiftExRef o exRef = case exRef of
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
+  -- TODO: timchu, have not implemented out of bounds handling.
+  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
+      where
+        shiftedInd = shiftExRef o (ExLocRef f sh wb)
+        shiftedF = exLoc shiftedInd
+        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) srType c
+        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
+
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRef o (ExLocRef l sh wb)
 
 -- shifts absolute references too
+-- TODO: timchu, 12/29/15. Massive code duplication.
 shiftExRefForced :: Offset -> ExRef -> ExRef
 shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
@@ -142,6 +213,14 @@ shiftExRefForced o exRef = case exRef of
         exRef' = case shiftedInds of 
           (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
+  -- TODO: timchu, have not implemented out of bounds handling.
+  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
+      where
+        shiftedInd = shiftExRef o (ExLocRef f sh wb)
+        shiftedF = exLoc shiftedInd
+        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) REL c
+        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExLocRef l' _ _ = shiftExRefForced o (ExLocRef l sh wb)
 
@@ -165,6 +244,12 @@ shiftRow dR rType r = newRVal
       REL_ABS -> 0
       REL_REL -> dR )
 
+shiftSingleCol :: Int -> SingleRefType -> String -> Int
+shiftSingleCol dC srType c = newSCVal
+  where scVal = colStrToInt c
+        newSCVal = scVal + (case srType of
+          ABS -> 0
+          REL -> dC )
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 

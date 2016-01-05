@@ -38,12 +38,15 @@ data ASPointer = Pointer { pointerIndex :: ASIndex }
   deriving (Show, Read, Eq, Generic, Ord)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: (Coord, Coord)} -- ALWAYS (Col, Row)
   deriving (Show, Read, Eq, Generic, Ord)
-data ASReference = IndexRef ASIndex | RangeRef ASRange | PointerRef ASPointer | OutOfBounds 
+data ASColRange = ColRange {colRangeSheetId :: ASSheetId, colRange :: (Coord, Col)} -- A4:B = ((1,4),2)
+  deriving (Show, Read, Eq, Generic, Ord)
+data ASReference = IndexRef ASIndex | ColRangeRef ASColRange | RangeRef ASRange | PointerRef ASPointer | OutOfBounds
   deriving (Show, Read, Eq, Generic, Ord)
 
 refSheetId :: ASReference -> ASSheetId
 refSheetId (IndexRef   i) = locSheetId     i
 refSheetId (RangeRef   r) = rangeSheetId   r
+refSheetId (ColRangeRef   r) = colRangeSheetId   r
 refSheetId (PointerRef p) = locSheetId . pointerIndex $ p
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -97,7 +100,28 @@ instance ToJSON ASReference where
   toJSON (IndexRef idx) = toJSON idx
   toJSON (PointerRef p) = toJSON p
   toJSON (RangeRef rng) = toJSON rng
+  toJSON (ColRangeRef colrng) = toJSON colrng
 instance FromJSON ASReference
+
+--TODO: timchu: not sure if r .= object ["col" .=r2 ] is right. Maybe no list brackets?
+                            --Note: r stands for right, not row.
+instance ToJSON ASColRange where
+  toJSON (ColRange sid ((c,r),c2)) = object["tag" .= ("colRange" :: String),
+                                            "sheetId" .= sid,
+                                            "colRange" .= object[
+                                              "tl" .= object ["row" .=r,
+                                                              "col" .= c],
+                                              "r"  .= object ["col" .= c2]]]
+-- TODO: timchu, check that this actually works.
+instance FromJSON ASColRange where
+  parseJSON (Object v) = do
+    colrng <- v .: "colRange"
+    (tl, r) <- (,) <$>  colrng .: "tl" <*> colrng .: "r"
+    tl' <- (,) <$> tl .: "col" <*> tl .: "row"
+    r' <- r .: "col"
+    sid <- v .: "sheetId"
+    return $ ColRange sid (tl', r')
+  parseJSON _ = fail "client message JSON attributes missing"
 
 instance ToJSON Dimensions
 instance FromJSON Dimensions
@@ -106,6 +130,7 @@ instance FromJSON Dimensions
 instance NFData ASIndex             where rnf = genericRnf
 instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
+instance NFData ASColRange          where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
 instance Hashable ASIndex
@@ -118,20 +143,24 @@ deriveSafeCopy 1 'base ''Dimensions
 -- Helpers
 
 
+-- TODO: timchu, refactor getHeight to return a maybeInt.
 getHeight :: ASReference -> Int
 getHeight (IndexRef _) = 1
 getHeight (PointerRef _) = 1
 getHeight (RangeRef (Range _ ((_,b),(_,d)))) = d-b+1
 
+-- TODO: refactor getWidth to return a maybeInt, or an Either Int.
 getWidth :: ASReference -> Int
 getWidth (IndexRef _) = 1
 getWidth (PointerRef _) = 1
 getWidth (RangeRef (Range _ ((a,_),(c,_)))) = c-a+1
+getWidth (ColRangeRef (ColRange _ ((a,_),c))) = c-a+1
 
 isRange :: ASReference -> Bool
 isRange (IndexRef _) = False
 isRange (PointerRef _) = False
 isRange (RangeRef _) = True
+isRange (ColRangeRef _ ) = False
 
 -- tail recursive for speed
 containsRange :: [ASReference] -> Bool
@@ -166,24 +195,27 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [starty..endy]
     endy = max (row ul) (row lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
-rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [ 
+rangeContainsIndex (Range sid1 ((x1,y1),(x2,y2))) idx = and [
   sid1 == sid2, x >= x1, x <= x2, y >= y1, y <= y2 ]
     where
-      (x,y,sid2) = case idx of 
+      (x,y,sid2) = case idx of
         Index sid2 (x,y) -> (x,y,sid2)
 
 rangeContainsRange :: ASRange -> ASRange -> Bool
-rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [ 
+rangeContainsRange (Range sid1 ((x1, y1), (x2, y2))) (Range sid2 ((x1', y1'), (x2', y2'))) = and [
   sid1 == sid2, x1 <= x1', x2 >= x2', y1 <= y1', y2 >= y2']
 
 -- Probably needs case for columns
 rangeContainsRef :: ASRange -> ASReference -> Bool
-rangeContainsRef r ref = case ref of 
+rangeContainsRef r ref = case ref of
   IndexRef i  -> rangeContainsIndex r i
   PointerRef p -> rangeContainsIndex r (pointerIndex p)
   RangeRef r' -> rangeContainsRange r r'
-  OutOfBounds -> False 
+  -- TODO: timchu, should never contain columns?
+  ColRangeRef r' -> False
+  OutOfBounds -> False
 
+-- #Question, timchu, 12/29/15. Can we use this in exRefToASRef, for consistency?
 orientRange :: ASRange -> ASRange
 orientRange (Range sid (tl, br)) = Range sid (tl',br')
   where
@@ -210,6 +242,7 @@ shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc o (IndexRef (Index sh (x,y))) = IndexRef $ Index sh (x+(dX o), y+(dY o))
 shiftLoc o (PointerRef (Pointer (Index sh (x,y)))) = PointerRef $ Pointer $ Index sh (x + (dX o), y + (dY o))
 shiftLoc o (RangeRef (Range sh ((x,y),(x2,y2)))) = RangeRef $ Range sh ((x+(dX o), y+(dY o)), (x2+(dX o), y2+(dY o)))
+shiftLoc o (ColRangeRef (ColRange sh ((x,y),x2))) = ColRangeRef $ ColRange sh ((x+(dX o), y+(dY o)), x2+(dX o))
 
 shiftInd :: Offset -> ASIndex -> Maybe ASIndex
 shiftInd o (Index sh (x,y)) = if x+(dX o) >= 1 && y+(dY o) >= 1 
