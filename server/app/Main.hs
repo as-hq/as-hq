@@ -96,7 +96,7 @@ getSettings = catch readEnvironment handleException
     readEnvironment = do
       env <- B.readFile =<< getEnvironmentPath
       case (eitherDecode env) of 
-        Right settings -> return settings
+        Right settings -> putStrLn "using settings from Environment.json" >> return settings
         Left err -> error $ "couldn't decode environment file, because: " ++ err
 
 defaultSettings :: AppSettings
@@ -108,7 +108,8 @@ defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
 initDebug _ = do
-  putStrLn "\n\n Evaluating debug statements..."
+  putStrLn "\n\nEvaluating debug statements..."
+  putStrLn "\nDone."
   return ()
 
 application :: MVar ServerState -> WS.ServerApp

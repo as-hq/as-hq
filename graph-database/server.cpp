@@ -155,9 +155,9 @@ int main () {
     try {
         ptree json;
         read_json("../Environment.json", json);
-        addr = json.get("graphDbAddress", "tcp://*:5555"); // specifying default in case we don't find it
+        addr = json.get("graphDbAddress_cpp", "tcp://*:5555"); // specifying default in case we don't find it
         cout << "Found address in environment: " << addr << endl;
-    } catch (int e) {
+    } catch (...) {
         cout << "exception reading Environment.json, falling back on defaults" << endl;
         addr = "tcp://*:5555";
     }

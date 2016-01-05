@@ -7,9 +7,9 @@ from .shell import ASShell
 
 class ASKernel(object):
 
-  def __init__(self, host='*', port=20000):
+  def __init__(self, address='tcp://*:20000'):
     self.init_shell()
-    self.init_zmq(host, port)
+    self.init_zmq(address)
 
   def init_shell(self):
     init_ns = self.get_initial_ns()
@@ -17,12 +17,12 @@ class ASKernel(object):
     self.shell.serializer = serialize
     self.shell.serialize_post_execute = True
 
-  def init_zmq(self, host, port):
+  def init_zmq(self, address):
     context = zmq.Context()
     self.socket = context.socket(zmq.REP)
-    self.url = 'tcp://' + host + ':' + str(port)
-    print '\nKernel listening at address:', self.url, '\n'
-    self.socket.bind(self.url)
+    self.address = address
+    print '\nKernel listening at address:', self.address, '\n'
+    self.socket.bind(self.address)
 
   def get_initial_ns(self):
     from AS.stdlib import *
