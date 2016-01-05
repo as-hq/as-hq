@@ -411,10 +411,10 @@ export default class ASSpreadsheet
         imageHeight  = ct[i].imageHeight;
       }
     }
-    if (cell.cellValue.tag !== "ValueImage") {
+    if (cell.value.tag !== "ValueImage") {
       return null;
     }  else {
-      let imagePath = cell.cellValue.imagePath;
+      let imagePath = cell.value.imagePath;
       // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
       // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
       let imageSrc = Constants.getBackendUrl('http', Constants.BACKEND_STATIC_PORT) + "/images/" + imagePath;
