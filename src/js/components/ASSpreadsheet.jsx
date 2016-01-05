@@ -67,7 +67,6 @@ type ASSpreadsheetDefaultProps = {
 };
 
 type ASSpreadsheetProps = {
-  onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
   hideToast: () => void;
   setFocus: (elem: ASFocusType) => void;
   onReady: () => void;
@@ -662,8 +661,7 @@ export default class ASSpreadsheet
       } else {
         // Try shortcuts
         logDebug("Grid key down, trying shortcut");
-        ShortcutUtils.tryShortcut(e, 'common');
-        ShortcutUtils.tryShortcut(e, 'grid');
+        ShortcutUtils.tryGridShortcut(e);
       }
     } else if (KeyUtils.isNavKey(e)) { // nav key from grid
       let activeSelection = SelectionStore.getActiveSelection();
@@ -686,12 +684,6 @@ export default class ASSpreadsheet
 
   _onKeyUp(e: SyntheticKeyboardEvent) {
     e.persist();
-  }
-
-  onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
-    if (e.ctrlKey) { // only for ctrl+arrowkeys
-      ShortcutUtils.tryShortcut(e, 'grid');
-    }
   }
 
   _onFocus(e: SyntheticEvent) {
@@ -863,7 +855,6 @@ ASSpreadsheet.defaultProps = {
 
 ASSpreadsheet.propTypes = {
   onSelectionChange: React.PropTypes.func.isRequired,
-  onTextBoxDeferredKey: React.PropTypes.func.isRequired,
   onNavKeyDown: React.PropTypes.func.isRequired,
   setFocus: React.PropTypes.func.isRequired
 }

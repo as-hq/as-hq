@@ -417,8 +417,7 @@ export default class ASEvalPane
 
   _onEditorDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug("Editor deferred key");
-    ShortcutUtils.tryShortcut(e, 'common');
-    ShortcutUtils.tryShortcut(e, 'editor');
+    ShortcutUtils.tryEditorShortcut(e);
   }
 
   _onGridNavKeyDown(e: SyntheticKeyboardEvent) {
@@ -447,8 +446,7 @@ export default class ASEvalPane
 
   _onTextBoxDeferredKey(e: SyntheticKeyboardEvent) {
     logDebug("Textbox key not visible");
-    ShortcutUtils.tryShortcut(e, 'common');
-    ShortcutUtils.tryShortcut(e, 'textbox');
+    ShortcutUtils.tryTextboxShortcut(e);
   }
 
   // /* Callback from Repl component */

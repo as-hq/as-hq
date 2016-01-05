@@ -36,9 +36,9 @@ let _S: {[key: ASShortcutTarget]: Array<ASKeyCombination>} = {
   grid: [],
   editor: [],
   textbox: [],
-  common: [], // refers to the union of grid, editor, and textbox
-  toplevel: [],
-  evalHeader: []
+  evalPane: [],   // refers to the union of grid, editor, and textbox
+  evalHeader: [], // just the eval header
+  toplevel: []    // all of the above
 };
 
 // are all functions so that checks can be lazy evaluated
@@ -87,7 +87,23 @@ export default {
     return checksMatch;
   },
 
-  tryShortcut(e: SyntheticKeyboardEvent, set: ASShortcutTarget): boolean {
+  tryGridShortcut(e: SyntheticKeyboardEvent): boolean { 
+    return this._tryShortcut(e, 'grid') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
+  },
+
+  tryEditorShortcut(e: SyntheticKeyboardEvent): boolean { 
+    return this._tryShortcut(e, 'editor') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
+  },
+
+  tryTextboxShortcut(e: SyntheticKeyboardEvent): boolean { 
+    return this._tryShortcut(e, 'textbox') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
+  },
+
+  tryEvalHeaderShortcut(e: SyntheticKeyboardEvent): boolean { 
+    return this._tryShortcut(e, 'evalHeader') || this._tryShortcut(e, 'toplevel'); 
+  },
+
+  _tryShortcut(e: SyntheticKeyboardEvent, set: ASShortcutTarget): boolean {
     let ss = _S[set]; // shortcut set to try
 
     return ss.some((keyComb) => {

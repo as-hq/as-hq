@@ -8,7 +8,7 @@ import type {
 export type ASShortcutTarget =
   'grid' |
   'editor' |
-  'common' |
+  'evalPane' |
   'toplevel' |
   'evalHeader' |
   'textbox';

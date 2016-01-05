@@ -27,17 +27,17 @@ export default {
     // though, hence self = evalPane.
     let self = evalPane;
 
-    // common shortcuts -------------------------------------------------------------------------------
-    SU.add('common', 'toggle_focus', 'F2', (wildcard: string) => {
+    // evalPane shortcuts -------------------------------------------------------------------------------
+    SU.add('evalPane', 'toggle_focus', 'F2', (wildcard: string) => {
       logDebug('F2 PRESSED ');
       SheetStateStore.toggleFocusF2();
       self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(SheetStateStore.getFocus());
     });
-    SU.add('common', 'new_sheet', 'Shift+F11', (wildcard: string) => {
+    SU.add('evalPane', 'new_sheet', 'Shift+F11', (wildcard: string) => {
       // TODO
     });
-    SU.add('common', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
+    SU.add('evalPane', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
@@ -45,7 +45,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, null, null);
     });
-    SU.add('common', 'cell_eval_up', 'Shift+Enter', (wildcard: string) => {
+    SU.add('evalPane', 'cell_eval_up', 'Shift+Enter', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
@@ -53,7 +53,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, -1);
     });
-    SU.add('common', 'cell_eval_left', 'Shift+Tab', (wildcard: string) => {
+    SU.add('evalPane', 'cell_eval_left', 'Shift+Tab', (wildcard: string) => {
       let xpObj = {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
@@ -61,7 +61,7 @@ export default {
       self.setFocus('grid');
       self.handleEvalRequest(xpObj, -1, 0);
     });
-    SU.add('common', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
+    SU.add('evalPane', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
       // Always eval and stay put, but only sometimes add brackets
       let editorValue = self._getRawEditor().getValue();
       if (ExpStore.getLanguage() == Constants.Languages.Excel) {
@@ -78,7 +78,7 @@ export default {
       self.handleEvalRequest(xpObj, 0, 0);
     });
 
-    SU.add('common', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
+    SU.add('evalPane', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
       // Upon a shortcut, call toggle language, which will update the ExpStore's language and 
       // inform the language dropdown in the toolbar of an update
       switch(wildcard) {
@@ -96,7 +96,7 @@ export default {
             break;
         }
     });
-    SU.add('common', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
+    SU.add('evalPane', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let formatType;
         // TODO other wildcards
@@ -111,22 +111,20 @@ export default {
         }
       });
     });
-    SU.add("common", "bold", "Ctrl+B", (wildcard: string) => {
+    SU.add("evalPane", "bold", "Ctrl+B", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         API.toggleProp({tag: "Bold", contents: []}, sel.range);
         self.refs.spreadsheet.repaint();
       });
     });
-    SU.add("common", "italic", "Ctrl+I", (wildcard: string) => {
+    SU.add("evalPane", "italic", "Ctrl+I", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         API.toggleProp({tag: "Italic", contents: []}, sel.range);
         self.refs.spreadsheet.repaint();
       });
     });
-    SU.add('common', 'toggle_header', 'Alt+H', (wildcard: string) => {
-      self.toggleEvalHeader();
-    });
-    SU.add('common', 'esc', 'Esc', (wildcard: string) => {
+
+    SU.add('evalPane', 'esc', 'Esc', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         logDebug('Esc pressed');
         ExpActionCreator.handleEscape();
@@ -137,12 +135,12 @@ export default {
       });
     });
 
-    SU.add('common', 'find', 'Ctrl+F', (wildcard: string) => {
+    SU.add('evalPane', 'find', 'Ctrl+F', (wildcard: string) => {
       logDebug('Find pressed');
       self.setState({showFindBar:true, userIsTyping:false});
     });
 
-    SU.add('common', 'insert_ref', 'Ctrl+J', () => {
+    SU.add('evalPane', 'insert_ref', 'Ctrl+J', () => {
       // Ctrl+J is a currently unassigned shortcut in Mac/Windows Excels
       // This lets users insert refs in Python
       logDebug('Inserting a ref');
@@ -173,7 +171,7 @@ export default {
 
 
     // editor shortcuts -------------------------------------------------------------------------------
-    SU.add('common', 'toggle_reference', 'F4', (wildcard: string) => {
+    SU.add('evalPane', 'toggle_reference', 'F4', (wildcard: string) => {
       let focus = SheetStateStore.getFocus(),
           xp = ExpStore.getExpression();
 
@@ -450,7 +448,7 @@ export default {
       self.refs.evalHeader.saveAndEval();
     });
 
-    // #needsrefactor. Redundant with common... but no easy way to DRY this up right now. 
+    // #needsrefactor. Redundant with evalPane... but no easy way to DRY this up right now. 
     // ::ALEX::
     SU.add('evalHeader', 'toggle_header', 'Alt+H', (wildcard: string) => {
       self.toggleEvalHeader();
@@ -462,6 +460,10 @@ export default {
     });
     SU.add('toplevel', 'select_tab_left', 'Ctrl+PageUp', (wildcard) => {
       //TODO
+    });
+
+    SU.add('toplevel', 'toggle_header', 'Alt+H', (wildcard: string) => {
+      self.toggleEvalHeader();
     });
 
   }

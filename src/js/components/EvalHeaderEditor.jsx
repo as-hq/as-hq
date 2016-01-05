@@ -95,7 +95,7 @@ export default class EvalHeaderEditor
   handleKeyDown(e: SyntheticKeyboardEvent) {
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
-      U.Shortcut.tryShortcut(e, 'evalHeader');
+      U.Shortcut.tryEvalHeaderShortcut(e); 
     }
   }
 
