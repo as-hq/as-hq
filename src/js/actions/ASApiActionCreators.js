@@ -48,7 +48,8 @@ import type {
 
 import type {
   SheetUpdate,
-  CondFormatRuleUpdate
+  CondFormatRuleUpdate,
+  Update
 } from '../types/Updates';
 
 import type {
@@ -204,30 +205,42 @@ wss.onmessage = (event: MessageEvent) => {
   }
 };
 
+function updateIsEmpty(update: Update) { 
+  return update.newVals.length == 0 && update.oldKeys.length == 0; 
+}
+
 function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
-  Dispatcher.dispatch({
-    _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
-    newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
-    oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
-  });
+  if (!updateIsEmpty(sheetUpdate.descriptorUpdates)) { 
+    Dispatcher.dispatch({
+      _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
+      newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
+      oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
+    });
+  }
 
-  Dispatcher.dispatch({
-    _type: 'GOT_UPDATED_CELLS',
-    newCells: sheetUpdate.cellUpdates.newVals,
-    oldLocs: sheetUpdate.cellUpdates.oldKeys
-  });
+  if (!updateIsEmpty(sheetUpdate.cellUpdates)) { 
+    Dispatcher.dispatch({
+      _type: 'GOT_UPDATED_CELLS',
+      newCells: sheetUpdate.cellUpdates.newVals,
+      oldLocs: sheetUpdate.cellUpdates.oldKeys
+    });
+  }
 
-  Dispatcher.dispatch({
-    _type: 'GOT_UPDATED_BARS',
-    newBars: sheetUpdate.barUpdates.newVals,
-    oldBarLocs: sheetUpdate.barUpdates.oldKeys
-  });
+  if (!updateIsEmpty(sheetUpdate.barUpdates)) { 
+    Dispatcher.dispatch({
+      _type: 'GOT_UPDATED_BARS',
+      newBars: sheetUpdate.barUpdates.newVals,
+      oldBarLocs: sheetUpdate.barUpdates.oldKeys
+    });
+  }
 
-  Dispatcher.dispatch({
-    _type: 'GOT_UPDATED_RULES',
-    newRules: sheetUpdate.condFormatRulesUpdates.newVals,
-    oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
-  });
+  if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) { 
+    Dispatcher.dispatch({
+      _type: 'GOT_UPDATED_RULES',
+      newRules: sheetUpdate.condFormatRulesUpdates.newVals,
+      oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
+    });
+  }
 }
 
 wss.onopen = (evt) => {

@@ -26,6 +26,8 @@ export type SheetUpdate = {
   descriptorUpdates: RangeDescriptorUpdate;
 };
 
+export type Update = CellUpdate | BarUpdate | CondFormatRuleUpdate | RangeDescriptorUpdate; 
+
 export type CellUpdate = {
   tag: 'Update';
   newVals: Array<ASCell>;

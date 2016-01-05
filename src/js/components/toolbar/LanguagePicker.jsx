@@ -54,8 +54,8 @@ export default class LanguagePicker
     this.languages = [
       {name: 'Excel', shortcut: 'Ctrl+1'},
       {name: 'Python', shortcut: 'Ctrl+2'},
-      {name: 'SQL', shortcut: 'Ctrl+3'},
-      {name: 'R', shortcut: 'Ctrl+4'},
+      {name: 'R', shortcut: 'Ctrl+3'},
+      {name: 'SQL', shortcut: 'Ctrl+4'}
     ];
   }
 
