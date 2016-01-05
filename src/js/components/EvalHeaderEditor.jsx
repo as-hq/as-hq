@@ -97,7 +97,7 @@ export default class EvalHeaderEditor
         val = this.editor.getValue();
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
-      this.props.saveAndEval();
+      U.Shortcut.tryShortcut(e, 'evalHeader');
     }
   }
 
