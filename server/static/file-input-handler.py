@@ -4,7 +4,7 @@ import cgi
 
 # If connected to the server, address = ip address of server
 # localhost configs: change host to localhost
-host = 'localhost'
+host = '18.102.225.27'
 defaultFrontendPort = 8080
 defaultFileHandlingPort = 9000
 
@@ -53,5 +53,5 @@ if __name__ == '__main__':
     FileInputHandler.frontendAddress = 'http://' + host + ':' + str(defaultFrontendPort)
 
   httpd = HTTPServer(server_address, FileInputHandler)
-  print('http server is running...')
+  print('http server is running on address: ' + str(server_address))
   httpd.serve_forever()
