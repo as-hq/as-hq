@@ -1264,7 +1264,7 @@ describe('backend', () => {
         // Known ref error bug when B1=A:A, A1=1, delete A1. Thing is still a range (maybe because default range is []?).
         describe('Display', () => {
           // TODO: create 1:1 parsing tests.
-          // TODO: B:A doens't work on anything complicated. 
+          // TODO: B:A doens't work on anything complicated.
           // TODO: Activate the expressions shouldBe in the F:J.
           it ('should display A:A properly', (done) => {
             _do([
@@ -1843,7 +1843,7 @@ describe('backend', () => {
             _do([
               python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
               deleteRow(2),
-              shouldBeError('A2'), // this used to be A3, which had A2+1 in it.
+              shouldBe('A2', noValue()), // this used to be A3, which had A2+1 in it.
               python('A2', 'A1+5'),
               shouldBe('A3', valueI(16)),
               exec(done)
@@ -1856,7 +1856,7 @@ describe('backend', () => {
               python('B1', '2'),
               python('A2', 'A1:B1'),
               deleteRow(1),
-              shouldBeError('A1'),
+              shouldBe('A1', noValue()),
               exec(done)
             ]);
           });
@@ -2063,7 +2063,7 @@ describe('backend', () => {
             _do([
               python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
               deleteCol(2),
-              shouldBeError('B1'), // this used to be A3, which had A2+1 in it.
+              shouldBe('B1', noValue()), // this used to be A3, which had A2+1 in it.
               python('B1', 'A1+5'),
               shouldBe('C1', valueI(16)),
               exec(done)
@@ -2075,7 +2075,7 @@ describe('backend', () => {
               python('A2', '2'),
               python('B1', 'A1:A2'),
               deleteCol(1),
-              shouldBeError('A1'),
+              shouldBe('A1', noValue()),
               exec(done)
             ]);
           });
@@ -2217,13 +2217,13 @@ describe('backend', () => {
 
           it ('should update column properties', (done) => {
             _do([
-              setColumnWidth(1, 150), 
-              setColumnWidth(2, 200), 
-              dragCol(1, 4), 
-              colShouldHaveDimension(1, 200), 
-              colShouldNotHaveDimensionProp(2), 
-              colShouldNotHaveDimensionProp(3), 
-              colShouldHaveDimension(4, 150), 
+              setColumnWidth(1, 150),
+              setColumnWidth(2, 200),
+              dragCol(1, 4),
+              colShouldHaveDimension(1, 200),
+              colShouldNotHaveDimensionProp(2),
+              colShouldNotHaveDimensionProp(3),
+              colShouldHaveDimension(4, 150),
               exec(done)
             ]);
           });
@@ -2427,11 +2427,11 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should refuse to copy out of bounds', (done) => {
+        it ('should behave correctly when copying out of bounds', (done) => {
           _do([
             python('A2', 'A1+1'),
             copy('A2', 'A1'),
-            shouldBeError('A1'),
+            shouldBe('A1', noValue()),
             exec(done)
           ]);
         });
@@ -2465,7 +2465,7 @@ describe('backend', () => {
             python('A2', 'A1+1'),
             copy('A2', 'A1'),
             copy('A1', 'B1'),
-            shouldBeError('B1'),
+            shouldBe('B1', noValue()),
             exec(done)
           ]);
         });
@@ -2557,7 +2557,7 @@ describe('backend', () => {
             excel('A2', '$100'),
             excel('A3', '50%'),
             delete_('A1'), delete_('A2'), delete_('A3'),
-            shouldBeNothing('A1'), shouldBeNothing('A2'), shouldBeNothing('A3'), 
+            shouldBeNothing('A1'), shouldBeNothing('A2'), shouldBeNothing('A3'),
             shouldNotHaveProp('A1', 'ValueFormat'),
             shouldHaveProp('A2', 'ValueFormat', 'Money'),
             shouldHaveProp('A3', 'ValueFormat', 'Percent'),
@@ -2572,7 +2572,7 @@ describe('backend', () => {
               makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldNotHaveProp('A1', 'Bold'),
-            delete_('A1'), 
+            delete_('A1'),
             shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
@@ -2738,7 +2738,7 @@ describe('backend', () => {
 
       // Currently not supporting (Alex 12/29)
       // note -- there is a known backend bug that causes these to sometimes not pass. clearSheet doesn't properly
-      // delete the keys in the database that store repeat information. 
+      // delete the keys in the database that store repeat information.
       xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
@@ -2944,7 +2944,7 @@ describe('backend', () => {
             python('B1', 'range(10)'),
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("B1:B10", "Bold", "=B1>4")
-            ), 
+            ),
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("A1:B10", "Italic", "=A1>5")
             ),
@@ -2960,7 +2960,7 @@ describe('backend', () => {
           let rule = makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6");
           _do([
             python('A1', 'range(10)'),
-            updateCondFormattingRule(rule), 
+            updateCondFormattingRule(rule),
             shouldHaveProp('A6', 'Italic'),
             removeCondFormattingRule(rule.condFormatRuleId),
             shouldNotHaveProp('A6', 'Italic'),
@@ -2969,11 +2969,11 @@ describe('backend', () => {
         });
 
         it ('should revert formats bold when a rule is deleted (2)', (done) => {
-          let rule = makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6"); 
+          let rule = makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6");
           _do([
             python('A1', 'range(10)'),
             toggleProp('A6', 'Italic'),
-            updateCondFormattingRule(rule), 
+            updateCondFormattingRule(rule),
             shouldHaveProp('A6', 'Italic'),
             removeCondFormattingRule(rule.condFormatRuleId),
             shouldHaveProp('A6', 'Italic'),
@@ -3012,7 +3012,7 @@ describe('backend', () => {
             shouldHaveProp('A9', 'Bold'),
             exec(done)
           ]);
-        }); 
+        });
 
         it ('formats bold on GreaterThanCondition properly, and correctly evaluates expression passed into GreaterThanCondition', (done) => {
           _do([
@@ -3183,7 +3183,7 @@ describe('backend', () => {
         });
       });
 
-      
+
       describe('Updating on mutation', () => {
         it ('shifts formatting rules on column drag', (done) => {
           _do([
@@ -3192,7 +3192,7 @@ describe('backend', () => {
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
             shouldHaveProp('A5', 'Bold'),
-            dragCol(1, 2), 
+            dragCol(1, 2),
             shouldNotHaveProp('A5', 'Bold'),
             shouldHaveProp('B5', 'Bold'),
             python('B6', '1'),
@@ -3207,9 +3207,9 @@ describe('backend', () => {
               makeIsNotBetweenCondFormattingFontRuleExcel("A1:A10", "Bold", "=(A2+1)/2 - 0.01", "5")
             ),
             insertRow(1),
-            dragCol(1, 2), 
+            dragCol(1, 2),
             python('B2', 'range(10)'),
-            shouldHaveProp('B3', 'Bold'), 
+            shouldHaveProp('B3', 'Bold'),
             shouldNotHaveProp('B4', 'Bold'),
             exec(done)
           ]);
@@ -3223,8 +3223,8 @@ describe('backend', () => {
             ),
             deleteCol(3),
             deleteCol(1),
-            shouldHaveProp('A5', 'Bold'), 
-            shouldNotHaveProp('A6', 'Bold'), 
+            shouldHaveProp('A5', 'Bold'),
+            shouldNotHaveProp('A6', 'Bold'),
             python('A6', '1'),
             shouldHaveProp('A6', 'Bold'),
             exec(done)
@@ -3239,12 +3239,12 @@ describe('backend', () => {
             ),
             deleteRow(10),
             deleteRow(1),
-            shouldHaveProp('C1', 'Bold'), 
+            shouldHaveProp('C1', 'Bold'),
             shouldNotHaveProp('D1', 'Bold'),
-            python('D1', '1'), 
+            python('D1', '1'),
             shouldHaveProp('D1', 'Bold'),
-            python('A8', '1'), 
-            python('A9', '1'), 
+            python('A8', '1'),
+            python('A9', '1'),
             shouldHaveProp('A8', 'Bold'),
             shouldNotHaveProp('A9', 'Bold'),
             exec(done)
@@ -3408,25 +3408,25 @@ describe('backend', () => {
         it ('should undo and redo a column drag column properties', (done) => {
           _do([
             python('A1', '15'),
-            setColumnWidth(1, 150), 
-            setColumnWidth(2, 200), 
-            dragCol(1, 4), 
+            setColumnWidth(1, 150),
+            setColumnWidth(2, 200),
+            dragCol(1, 4),
 
             undo(),
             shouldBe('A1', valueI(15)),
 
-            colShouldHaveDimension(1, 150), 
-            colShouldHaveDimension(2, 200), 
-            colShouldNotHaveDimensionProp(3), 
-            colShouldNotHaveDimensionProp(4), 
+            colShouldHaveDimension(1, 150),
+            colShouldHaveDimension(2, 200),
+            colShouldNotHaveDimensionProp(3),
+            colShouldNotHaveDimensionProp(4),
 
             redo(),
             shouldBe('D1', valueI(15)),
 
-            colShouldHaveDimension(1, 200), 
-            colShouldNotHaveDimensionProp(2), 
-            colShouldNotHaveDimensionProp(3), 
-            colShouldHaveDimension(4, 150), 
+            colShouldHaveDimension(1, 200),
+            colShouldNotHaveDimensionProp(2),
+            colShouldNotHaveDimensionProp(3),
+            colShouldHaveDimension(4, 150),
             exec(done)
           ]);
         });
