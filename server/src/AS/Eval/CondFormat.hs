@@ -63,7 +63,7 @@ ruleToCellTransform state sid ctx cfr@(CondFormatRule _ rngs condFormatCondition
 
 evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evaluateExpression state sid ctx xp@(Expression str lang) = do
-  let dummyLoc = Index sid (-1,-1) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
+  let dummyLoc = Index sid (Coord (-1) (-1)) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
       valMap = virtualCellsMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
       conn = state^.dbConn

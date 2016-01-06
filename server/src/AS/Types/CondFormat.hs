@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeFamilies, DeriveGeneric, TemplateHaskell #-}
 
---TODO: timchu, can clean up these imports.
 module AS.Types.CondFormat where
 
 import AS.ASJSON 

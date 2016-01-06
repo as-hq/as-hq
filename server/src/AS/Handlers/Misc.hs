@@ -78,7 +78,7 @@ handleOpen uc state sid = do
   -- update state
   conn <- view dbConn <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
-      startWindow = Window sid (-1,-1) (-1,-1)
+      startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
   let langs = [Python, R] -- should probably make list of langs a const somewhere...
