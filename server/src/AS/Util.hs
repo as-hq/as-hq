@@ -19,26 +19,12 @@ import Data.Aeson
 import Debug.Trace 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as B
-import Language.Haskell.TH
 
 -------------------------------------------------------------------------------------------------------------------------
 -- For debugging purposes only 
 
 trace' :: (Show a) => String -> a -> a
 trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
-
-err :: Q Exp
-err = locatedError =<< location
-
-locatedError :: Loc -> Q Exp
-locatedError loc = do
-    let prefix = formatLoc loc ++ " ----> "
-    [| (\msg -> error ("Error at " ++ $(litE $ stringL prefix) ++ msg)) |]
-
-formatLoc :: Loc -> String
-formatLoc loc = let file = loc_filename loc
-                    (line, col) = loc_start loc
-                in concat [file, ":", show line, ":", show col]
 
 -- takes a cell transform to convert the test cell to something desired
 testCell :: ASCell

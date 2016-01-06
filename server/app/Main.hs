@@ -70,7 +70,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
 initApp :: IO (MVar ServerState)
 initApp = do
   -- init state
-  settings <- getSettings 
+  settings <- S.getSettings 
   conn <- DI.connectRedis settings
   state <- newMVar $ State [] [] conn settings 
   -- init python kernel
@@ -87,24 +87,6 @@ initApp = do
   DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
 
   return state
-
-getSettings :: IO AppSettings
-getSettings = catch readEnvironment handleException 
-  where 
-    handleException :: SomeException -> IO AppSettings
-    handleException _ = putStrLn "decoding Environment failed, falling back on defaults" >> return defaultSettings
-    readEnvironment = do
-      env <- B.readFile =<< getEnvironmentPath
-      case (eitherDecode env) of 
-        Right settings -> putStrLn "using settings from Environment.json" >> return settings
-        Left err -> error $ "couldn't decode environment file, because: " ++ err
-
-defaultSettings :: AppSettings
-defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
-                                , _backendWsPort = 5000
-                                , _graphDbAddress = "tcp://localhost:5555"
-                                , _pyKernelAddress = "tcp://localhost:20000"
-                                , _redisPort = 6379}
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
