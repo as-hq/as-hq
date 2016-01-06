@@ -1,15 +1,15 @@
 /* @flow */
 
 import type ASCell from '../classes/ASCell';
+import type ASIndex from '../classes/ASIndex';
+import type ASRange from '../classes/ASRange';
+import type ASSelection from '../classes/ASSelection';
 
 import type {
-  ASIndexObject,
   ASLocation,
-  ASRangeObject,
   ASExpression,
   ASValue,
   ASCompositeValue,
-  ASSelectionObject,
   ASLanguage,
   RangeDescriptor,
   RangeKey
@@ -50,7 +50,7 @@ export type GotOpenAction = {
 
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
-  newSelection: ASSelectionObject;
+  newSelection: ASSelection;
 };
 
 export type GotUpdatedCellsAction = {
@@ -109,7 +109,7 @@ export type GotEvalHeaderResponseAction = {
 
 export type GotFindAction = {
   _type: 'GOT_FIND';
-  findLocs: Array<ASIndexObject>;
+  findLocs: Array<ASIndex>;
 };
 
 export type GotNewWorkbooksAction = {

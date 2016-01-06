@@ -102,7 +102,7 @@ export default class ASExcelRef {
     this._workbookId = _workbookId;
   }
 
-  fromString(str: string): ASExcelRef {
+  static fromString(str: string): ASExcelRef {
     const parts = str.split('!').reverse();
     // reverse so that ['A2:B2'] is subset of ['A2:B2', 'sheetid'] etc
 

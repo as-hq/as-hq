@@ -48,6 +48,17 @@ export default class ASRange {
     this._sheetId = sheetId;
   }
 
+  static fromASIndices({ tl, br }: ({ tl: ASIndex, br: ASIndex })): ASRange {
+    return ASRange.fromNaked({
+      tl: tl.obj(),
+      br: br.obj()
+    });
+  }
+
+  static fromExcelString(excStr: string): ASRange {
+    return ASExcelRef.fromString(excStr).toRange();
+  }
+
   static fromNaked(naked: NakedRange, sheetId?: ?string): ASRange {
     sheetId = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASRange({
@@ -114,6 +125,26 @@ export default class ASRange {
       row: this.tl.row,
       col: this.br.col
     }, this.sheetId);
+  }
+
+  getTopRow(): ASRange {
+    const {tl, br} = this;
+    return ASRange.fromASIndices({
+      tl: tl,
+      br: ASIndex.fromNaked({
+        row: tl.row, col: br.col
+      })
+    });
+  }
+
+  getLeftColumn(): ASRange {
+    const {tl, br} = this;
+    return ASRange.fromASIndices({
+      tl: tl,
+      br: ASIndex.fromNaked({
+        row: br.row, col: tl.col
+      })
+    });
   }
 
   extendByCache(): ASRange {

@@ -348,7 +348,7 @@ export default class ASEvalPane
       let clipboard = SheetStateStore.getClipboard(),
           sheetId = SheetStateStore.getCurrentSheet().sheetId,
           {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
-          toASRange = U.Conversion.simpleToASRange(sel.range);
+          toASRange = sel.range;
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
       // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
@@ -518,22 +518,20 @@ export default class ASEvalPane
          this.hideToast();
       }
     } else if (userIsTyping) {
+      let excelStr = U.Conversion.rangeToExcel(range);
       if (editorCanInsertRef) { // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
-        let excelStr = U.Conversion.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
       } else if (textBoxCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
-        let excelStr = U.Conversion.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       } else if (gridCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
-        let excelStr = U.Conversion.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {

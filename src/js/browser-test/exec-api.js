@@ -63,6 +63,9 @@ import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
 
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+
 import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
 
@@ -84,16 +87,16 @@ export function actionAPIResponse(
   ]);
 }
 
-export function indFromExcel(exLoc: string): NakedIndex {
-  return U.Conversion.excelToIndex(exLoc);
+export function asIndex(exLoc: string): ASIndex {
+  return ASIndex.fromExcelString(exLoc);
 }
 
-export function rangeFromExcel(exLoc: string): NakedRange {
-  return U.Conversion.excelToRange(exLoc);
+export function asRange(exLoc: string): ASRange {
+  return ASRange.fromExcelString(exLoc);
 }
 
-export function locToExcel(loc: NakedRange): string {
-  return U.Conversion.rangeToExcel(loc);
+export function locToExcel(loc: ASRange): string {
+  return loc.toExcel().toString();
 }
 
 export function numToAlpha(num: number): string {
@@ -107,14 +110,6 @@ export function colIndex(ind: number): BarIndex {
     barType: "ColumnType",
     barNumber: ind
   };
-}
-
-export function asIndex(loc: string): ASIndexObject {
-  return U.Conversion.simpleToASIndex(U.Conversion.excelToIndex(loc));
-}
-
-export function asRange(loc: string): ASRangeObject {
-  return U.Conversion.excelToASRange(loc);
 }
 
 export function apiExec(fn: () => void): Prf {
@@ -152,9 +147,8 @@ export function openSheet(): Prf {
 
 export function syncWindow(): Prf {
   return apiExec(() => {
-    let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
-      vWindow = U.Conversion.rangeToASWindow(range);
-    API.updateViewingWindow(vWindow);
+    let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }};
+    API.updateViewingWindow(ASRange.fromNaked(range));
   });
 }
 
@@ -177,7 +171,7 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
       'R': Constants.Languages.R,
       'excel': Constants.Languages.Excel
     };
-    let idx   = U.Conversion.excelToIndex(loc),
+    let idx   = asIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
     API.evaluate(idx, xpObj);
   });
@@ -212,7 +206,7 @@ export function rEvalHeader(xp: string): Prf {
 
 export function repeat(rng: string, origin: string): Prf {
   return apiExec(() => {
-    let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
+    let sel = {origin: asIndex(origin), range: asRange(rng)}
     API.repeat(sel);
   });
 }
@@ -255,7 +249,7 @@ export function dragRow(r1: number, r2: number): Prf {
 
 export function dragInference(rng1: string, rng2: string): Prf {
   return apiExec(() => {
-    let [nakedRng1, nakedRng2] = [rng1, rng2].map(rangeFromExcel);
+    let [nakedRng1, nakedRng2] = [rng1, rng2].map(asRange);
     API.drag(nakedRng1, nakedRng2);
   });
 }
@@ -295,62 +289,62 @@ export function decouple(): Prf {
 
 export function delete_(rng: string): Prf {
   return apiExec(() => {
-    API.deleteRange(rangeFromExcel(rng));
+    API.deleteRange(asRange(rng));
   });
 }
 
 export function toggleProp(rng: string, propName: BooleanCellTag): Prf {
   return apiExec(() => {
     // $FlowFixMe
-    API.toggleProp({tag: propName, contents: []}, rangeFromExcel(rng));
+    API.toggleProp({tag: propName, contents: []}, asRange(rng));
   });
 }
 
 export function setTextColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setTextColor(contents, rangeFromExcel(rng));
+    API.setTextColor(contents, asRange(rng));
   });
 }
 
 export function setFillColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setFillColor(contents, rangeFromExcel(rng));
+    API.setFillColor(contents, asRange(rng));
   });
 }
 
 export function setVAlign(rng: string, contents: VAlignType): Prf {
   return apiExec(() => {
-    API.setVAlign(contents, rangeFromExcel(rng));
+    API.setVAlign(contents, asRange(rng));
   });
 }
 
 export function setHAlign(rng: string, contents: HAlignType): Prf {
   return apiExec(() => {
-    API.setHAlign(contents, rangeFromExcel(rng));
+    API.setHAlign(contents, asRange(rng));
   });
 }
 
 export function setFontSize(rng: string, contents: number): Prf {
   return apiExec(() => {
-    API.setFontSize(contents, rangeFromExcel(rng));
+    API.setFontSize(contents, asRange(rng));
   });
 }
 
 export function setFontName(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setFontName(contents, rangeFromExcel(rng));
+    API.setFontName(contents, asRange(rng));
   });
 }
 
 export function setFormat(rng: string, formatType: string): Prf {
   return apiExec(() => {
-    API.setFormat(formatType, rangeFromExcel(rng));
+    API.setFormat(formatType, asRange(rng));
   });
 }
 
 export function setUrl(rng: string, urlLink: string): Prf {
   return apiExec(() => {
-    API.setUrl(urlLink, rangeFromExcel(rng));
+    API.setUrl(urlLink, asRange(rng));
   });
 }
 
@@ -371,7 +365,7 @@ function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, pro
     tag: "CondFormatRule",
     condFormatRuleId: U.Render.getUniqueId(),
     condition: cond,
-    cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
+    cellLocs: [asRange(rng).obj()],
     condFormat: {
       // $FlowFixMe
       tag: prop,

@@ -69,8 +69,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
   /* Upon drag or resize, update the backend metadata about the image */
   updateImageProps(prop: ASCellProp) {
     if (this.props.overlay.loc) {
-      let rng = {tl: this.props.overlay.loc.index, br: this.props.overlay.loc.index};
-      API.setProp(prop, rng);
+      API.setProp(prop, this.props.overlay.loc.toRange());
     }
   }
 

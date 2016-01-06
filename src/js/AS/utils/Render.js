@@ -3,9 +3,6 @@
 import type {
   ExpandingType,
   ValueError,
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
   ASValue,
   ASCellProp
 } from '../../types/Eval';
@@ -22,6 +19,9 @@ import LocationUtils from './Location';
 import Format from './Format';
 import shortid from 'shortid';
 import U from '../Util';
+
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
 
 const Render = {
   safeExtractContentsFromValue(cv: ASValue): string {
@@ -169,9 +169,9 @@ const Render = {
             [[0,1],[0,0]]];
   },
 
-  getBordersForInteriorCell(col: number, row: number, rng: NakedRange): CellBorder {
+  getBordersForInteriorCell(col: number, row: number, rng: ASRange): CellBorder {
     let {tl, br} = rng;
-    if (LocationUtils.isIndex(rng) && (col === tl.col && row === tl.row)) {
+    if (rng.isIndex() && (col === tl.col && row === tl.row)) {
       return Render.getPaintedBordersForSingleCell();
     } else {
       let borders: CellBorder = [null,null,null,null];
@@ -191,24 +191,12 @@ const Render = {
   // returns a list of edges that can be painted in any order
   // each edge is a 2-length array [start, end]
   // executed by graphicscontext.moveTo(startx, starty) -> graphicscontext.lineTo(endx, endy)
-  getPaintedBorders(col: number, row: number, rngs: Array<NakedRange>): Array<CellBorder> {
+  getPaintedBorders(col: number, row: number, rngs: Array<ASRange>): Array<CellBorder> {
     return rngs.map((rng) => Render.getBordersForInteriorCell(col, row, rng), Render);;
   },
 
   getUniqueId(): string {
     return shortid.generate();
-  },
-
-  locEquals(c1: ASIndexObject, c2: ASIndexObject): boolean {
-    let tagE = c1.tag === c2.tag,
-        colE = c1.index.col === c2.index.col,
-        rowE = c1.index.row === c2.index.row,
-        sheetE = c1.sheetId === c2.sheetId
-    return tagE && colE && rowE && sheetE;
-  },
-
-  simpleIndexEquals(c1: NakedIndex, c2: NakedIndex): boolean {
-    return (c1.row === c2.row) && (c1.col === c2.col);
   },
 
   getX(col: number, scrollX: number): string {

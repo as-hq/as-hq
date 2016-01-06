@@ -69,6 +69,9 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 
 import ASCell from '../classes/ASCell';
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -176,7 +179,7 @@ wss.onmessage = (event: MessageEvent) => {
     case 'MakeSelection':
       Dispatcher.dispatch({
         _type: 'GOT_SELECTION',
-        newSelection: action.contents
+        newSelection: new ASSelection(action.contents)
       });
       break;
     case 'ShowHeaderResult':
@@ -288,7 +291,7 @@ const API = {
     this.initMessage();
     this.openSheet();
     this.updateViewingWindow(
-      U.Conversion.rangeToASWindow(SheetStateStore.getViewingWindow().range)
+      SheetStateStore.getViewingWindow()
     );
   },
 
@@ -326,11 +329,10 @@ const API = {
     wss.send(((file: any): string), {binary: true});
   },
 
-  importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
-    let asIndex = U.Conversion.simpleToASIndex(origin);
+  importCSV(origin: ASIndex, lang: ASLanguage, fileName: string) {
     let msg = {
       tag: "ImportCSV",
-      csvIndex: asIndex,
+      csvIndex: origin.obj(),
       csvLang: lang,
       csvFileName: fileName
     };
@@ -342,14 +344,13 @@ const API = {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin: NakedIndex, xp: ASClientExpression) {
-    let asIndex = U.Conversion.simpleToASIndex(origin),
-        msg: Evaluate = {
+  evaluate(origin: ASIndex, xp: ASClientExpression) {
+    let msg: Evaluate = {
           tag: "Evaluate",
           contents: [{
             tag: "EvalInstruction",
             evalXp: xp,
-            evalLoc: U.Conversion.simpleToASIndex(origin)
+            evalLoc: origin.obj()
           }]
         };
     API.sendMessageWithAction(msg);
@@ -453,10 +454,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  deleteRange(rng: NakedRange) {
+  deleteRange(rng: ASRange) {
     let msg: Delete = {
       tag: "Delete",
-      contents: U.Conversion.simpleToASRange(rng)
+      contents: rng.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -503,10 +504,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  toggleProp(prop: ASCellProp, rng: NakedRange) {
+  toggleProp(prop: ASCellProp, rng: ASRange) {
     let msg: ToggleProp = {
       tag: "ToggleProp",
-      contents: [prop, U.Conversion.simpleToASRange(rng)]
+      contents: [prop, rng.obj()]
     };
 
     API.sendMessageWithAction(msg);
@@ -514,103 +515,103 @@ const API = {
 
   // #needsrefactor should privatize, and expose only the functions that construct the prop too,
   // e.g. setTextColor.
-  setProp(prop: ASCellProp, rng: NakedRange) {
+  setProp(prop: ASCellProp, rng: ASRange) {
     let msg: SetProp = {
       tag: "SetProp",
-      contents: [prop, U.Conversion.simpleToASRange(rng)]
+      contents: [prop, rng.obj()]
     };
 
     API.sendMessageWithAction(msg);
   },
 
-  setTextColor(contents: string, rng: NakedRange) {
+  setTextColor(contents: string, rng: ASRange) {
     let prop = {
       tag: "TextColor",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setFillColor(contents: string, rng: NakedRange) {
+  setFillColor(contents: string, rng: ASRange) {
     let prop = {
       tag: "FillColor",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setVAlign(contents: VAlignType, rng: NakedRange) {
+  setVAlign(contents: VAlignType, rng: ASRange) {
     let prop = {
       tag: "VAlign",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setHAlign(contents: HAlignType, rng: NakedRange) {
+  setHAlign(contents: HAlignType, rng: ASRange) {
     let prop = {
       tag: "HAlign",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setFontSize(contents: number, rng: NakedRange) {
+  setFontSize(contents: number, rng: ASRange) {
     let prop = {
       tag: "FontSize",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setFontName(contents: string, rng: NakedRange) {
+  setFontName(contents: string, rng: ASRange) {
     let prop = {
       tag: "FontName",
       contents: contents
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  setFormat(formatType: string, rng: NakedRange) {
+  setFormat(formatType: string, rng: ASRange) {
     let formatProp = {
       tag: "ValueFormat",
       formatType: formatType
     };
-    this.setProp(formatProp, rng);
+    this.setProp(formatProp, rng.obj());
   },
 
-  setUrl(urlLink: string, rng: NakedRange) {
+  setUrl(urlLink: string, rng: ASRange) {
     let prop = {
       tag: "URL",
       urlLink: urlLink
     };
-    this.setProp(prop, rng);
+    this.setProp(prop, rng.obj());
   },
 
-  drag(activeRng: NakedRange, dragRng: NakedRange) {
+  drag(activeRng: ASRange, dragRng: ASRange) {
     let msg = {
       tag: "Drag",
-      initialRange: U.Conversion.simpleToASRange(activeRng),
-      dragRange: U.Conversion.simpleToASRange(dragRng)
+      initialRange: activeRng.obj(),
+      dragRange: dragRng.obj()
     };
 
     API.sendMessageWithAction(msg);
   },
 
-  copy(fromRng: ASRangeObject, toRng: ASRangeObject) {
+  copy(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Copy",
-      copyFrom: fromRng,
-      copyTo: toRng
+      copyFrom: fromRng.obj(),
+      copyTo: toRng.obj()
     };
     API.sendMessageWithAction(msg);
   },
 
-  cut(fromRng: ASRangeObject, toRng: ASRangeObject) {
+  cut(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Cut",
-      cutFrom: fromRng,
-      cutTo: toRng
+      cutFrom: fromRng.obj(),
+      cutTo: toRng.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -624,10 +625,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIndices(locs: Array<ASIndexObject>) {
+  getIndices(locs: Array<ASIndex>) {
     let msg = {
       tag: "Get",
-      contents: locs
+      contents: locs.map((loc) => loc.toNaked)
     };
     API.sendMessageWithAction(msg);
   },
@@ -769,10 +770,13 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  updateViewingWindow(vWindow: ASClientWindow) {
+  updateViewingWindow(vWindow: ASRange) {
     let msg: UpdateWindow = {
       tag: "UpdateWindow",
-      contents: vWindow
+      contents: {
+        window: vWindow.obj().range,
+        sheetId: vWindow.sheetId
+      }
     };
     API.sendMessageWithAction(msg);
   },

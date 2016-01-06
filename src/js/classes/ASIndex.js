@@ -54,6 +54,14 @@ export default class ASIndex {
     this._sheetId = sheetId;
   }
 
+  static makeIndices(indexObjects: Array<ASIndexObject>): Array<ASIndex> {
+    return indexObjects.map((obj) => new ASIndex(obj));
+  }
+
+  static fromExcelString(excStr: string): ASIndex {
+    return ASExcelRef.fromString(excStr).toIndex();
+  }
+
   static fromNaked(naked: NakedIndex, sheetId?: ?string): ASIndex {
     sheetId = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASIndex({

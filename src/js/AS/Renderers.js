@@ -7,10 +7,8 @@ import type {
   RenderParams
 } from '../types/Render';
 
-import type {
-  NakedRange,
-  ASSelectionObject
-} from '../types/Eval';
+import ASIndex from '../classes/ASIndex';
+import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
 

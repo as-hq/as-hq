@@ -1,10 +1,7 @@
 /* @flow */
 
-import type {
-  NakedRange
-} from './Eval';
+import type ASRange from '../classes/ASRange';
 
 export type ASClipboardAttrs = {
-  fromRange: NakedRange;
-  fromSheetId: string;
+  fromRange: ASRange;
 };

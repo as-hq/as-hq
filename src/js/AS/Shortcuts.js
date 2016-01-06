@@ -10,6 +10,10 @@ import FindStore from '../stores/ASFindStore';
 import API from '../actions/ASApiActionCreators';
 import U from './Util';
 
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
+
 let {
   Shortcut: SU,
   Conversion: TC,
@@ -234,7 +238,7 @@ export default {
       // Might not be robust. (Alex 11/4)
       let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
       let newInd = SheetStateStore.getDataBoundary(oldInd, dir);
-      self.refs.spreadsheet.select(U.Conversion.indexToSelection(newInd));
+      self.refs.spreadsheet.select(newInd.toSelection());
     });
     SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
@@ -245,20 +249,12 @@ export default {
     });
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
-        let {tl, br} = sel.range;
-        let copyFrom = U.Conversion.simpleToASRange({ tl: tl, br: {row: tl.row, col: br.col} }),
-            copyTo = U.Conversion.simpleToASRange({ tl: {row: tl.row, col: tl.col},
-                                                 br: {row: br.row, col: tl.col} });
-        API.copy(copyFrom, copyTo);
+        API.copy(sel.range.getTopRow(), sel.range);
       });
     });
     SU.add('grid', 'grid_fill_right', 'Ctrl+R', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
-        let {tl, br} = sel.range;
-        let copyFrom = U.Conversion.simpleToASRange({ tl: tl, br: {row: br.row, col: tl.col} }),
-            copyTo = U.Conversion.simpleToASRange({ tl: {row: tl.row, col: tl.col},
-                                                 br: {row: tl.row, col: br.col} });
-        API.copy(copyFrom, copyTo);
+        API.copy(sel.range.getLeftColumn(), sel.range);
       });
     });
     SU.add('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
@@ -277,8 +273,7 @@ export default {
       self._getRawTextbox().navigateFileStart();
     });
     SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
-      let idx = {row: 1, col: 1};
-      self.refs.spreadsheet.select(U.Conversion.indexToSelection(idx));
+      self.refs.spreadsheet.select(ASSelection.defaultSelection());
     });
     SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard: string) => {
       self.setFocus('textbox');

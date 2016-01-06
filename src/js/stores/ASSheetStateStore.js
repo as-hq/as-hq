@@ -1,27 +1,8 @@
 /* @flow */
 
-import {logDebug} from '../AS/Logger';
-
-import React from 'react';
-import Dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
-import Constants from '../Constants';
-
-import U from '../AS/Util';
-
-import Render from '../AS/Renderers';
-import ReplStore from  './ASReplStore';
-import API from '../actions/ASApiActionCreators';
-import CellStore from './ASCellStore';
-
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
-  ASRangeObject,
   ASSheet,
-  ASLanguage,
-  ASSelectionObject
+  ASLanguage
 } from '../types/Eval';
 
 import type {
@@ -33,6 +14,24 @@ import type {
   ASUserId
 } from '../types/User';
 
+import {logDebug} from '../AS/Logger';
+
+import React from 'react';
+import Dispatcher from '../Dispatcher';
+import BaseStore from './BaseStore';
+import Constants from '../Constants';
+
+import U from '../AS/Util';
+
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
+
+import Render from '../AS/Renderers';
+import ReplStore from  './ASReplStore';
+import API from '../actions/ASApiActionCreators';
+import CellStore from './ASCellStore';
+
 type SheetStateStoreData = {
   userId: ASUserId;
   decoupleAttempt: boolean;
@@ -43,11 +42,11 @@ type SheetStateStoreData = {
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   clipboard: {
-    area: ?ASSelectionObject;
+    area: ?ASSelection;
     isCut: boolean;
   };
   externalError: ?string;
-  viewingWindow: { range: NakedRange };
+  viewingWindow: ASRange;
 };
 
 let _data: SheetStateStoreData = {
@@ -100,10 +99,9 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case 'SCROLLED':
-        let extendedRange = U.Location.extendRangeByCache(action.vWindow.range),
-            extendedWindow = U.Conversion.rangeToASWindow(extendedRange);
-        _data.viewingWindow = action.vWindow;
-        API.updateViewingWindow(extendedWindow);
+        const {vWindow} = action;
+        _data.viewingWindow = vWindow.extendByCache();
+        API.updateViewingWindow(vWindow);
         break;
       case 'GOT_FAILURE':
         ASSheetStateStore.setExternalError(action.errorMsg);
@@ -215,7 +213,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   /* Data boundaries */
-  getDataBoundary(start, direction) {
+  getDataBoundary(start: ASIndex, direction): ASIndex {
     let dr = 0, dc = 0;
 
     switch (direction) {
@@ -245,7 +243,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
   //If shift is not held down,
-  getDataBoundSelection(selection, direction) {
+  getDataBoundSelection(selection: ASSelection, direction): ASSelection {
     let rng = selection.range,
         {tl, br} = rng,
         origin = selection.origin;

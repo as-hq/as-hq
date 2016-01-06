@@ -1,20 +1,20 @@
 /* @flow */
 
-import type { 
-  ASCellObject, 
-  ASLocation, 
-  RangeDescriptor, 
+import type {
+  ASLocation,
+  ASCellObject,
+  RangeDescriptor,
   RangeKey
 } from'./Eval';
 
-import type { 
-  Bar, 
-  BarIndex, 
-  BarType, 
+import type {
+  Bar,
+  BarIndex,
+  BarType,
   BarProp
 } from './Bar';
 
-import type { 
+import type {
   CondFormatRule
 } from './CondFormat';
 
@@ -26,28 +26,18 @@ export type SheetUpdate = {
   descriptorUpdates: RangeDescriptorUpdate;
 };
 
-export type Update = CellUpdate | BarUpdate | CondFormatRuleUpdate | RangeDescriptorUpdate; 
+export type Update = CellUpdate | BarUpdate | CondFormatRuleUpdate | RangeDescriptorUpdate;
 
-export type CellUpdate = {
-  tag: 'Update';
-  newVals: Array<ASCellObject>;
-  oldKeys: Array<ASLocation>;
-};
+export type CellUpdate = UpdateTemplate<ASCellObject, ASLocation>
 
-export type BarUpdate = {
-  tag: 'Update';
-  newVals: Array<Bar>;
-  oldKeys: Array<BarIndex>;
-};
+export type BarUpdate = UpdateTemplate<Bar, BarIndex>
 
-export type CondFormatRuleUpdate = {
-  tag: 'Update';
-  newVals: Array<CondFormatRule>;
-  oldKeys: Array<string>;
-};
+export type CondFormatRuleUpdate = UpdateTemplate<CondFormatRule, string>
 
-export type RangeDescriptorUpdate = {
+export type RangeDescriptorUpdate = UpdateTemplate<RangeDescriptor, RangeKey>
+
+export type UpdateTemplate<T, U> = {
   tag: 'Update';
-  newVals: Array<RangeDescriptor>;
-  oldKeys: Array<RangeKey>;
+  newVals: Array<T>;
+  oldKeys: Array<U>;
 };

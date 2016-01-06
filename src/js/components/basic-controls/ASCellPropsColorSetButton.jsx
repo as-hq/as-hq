@@ -1,8 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
-  ASIndexObject,
   ASCellProp
 } from '../../types/Eval';
 
@@ -11,6 +9,10 @@ import React, {PropTypes} from 'react';
 import Constants from '../../Constants';
 import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
+
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';
 import SelectionStore from '../../stores/ASSelectionStore';
@@ -37,7 +39,7 @@ export default React.createClass({
     });
   },
 
-  _setBackendCellProp(nextState: string, rng: NakedRange) {
+  _setBackendCellProp(nextState: string, rng: ASRange) {
     API.setProp({
       // $FlowFixMe: this one's similar to the boolean one
       tag: this.props.propTag,
