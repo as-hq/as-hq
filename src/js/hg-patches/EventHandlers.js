@@ -142,9 +142,9 @@ const callbacks: Array<InitCallback> = [
         } else if (model.featureChain) {
           let clickedCell = evt.gridCell;
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (spreadsheet._clickedCellIsInColumnHeader(clickedCell)) {
+          if (spreadsheet._clickedCellIsInColumnHeader(clickedCell) && spreadsheet._isLeftClick(evt)) {
            spreadsheet.clickedColNum = clickedCell.x;
-          } else if (spreadsheet._clickedCellIsInRowHeader(clickedCell)) {
+          } else if (spreadsheet._clickedCellIsInRowHeader(clickedCell) && spreadsheet._isLeftClick(evt)) {
             spreadsheet.clickedRowNum = clickedCell.y;
           }
           model.featureChain.handleMouseDown(grid, evt);
@@ -182,8 +182,8 @@ const callbacks: Array<InitCallback> = [
 
       // for now, double-clicking rows doesn't size it automatically
 
-      if (spreadsheet._clickedCellIsInColumnHeader(evt.gridCell)) {
-        spreadsheet.clickedColNum = evt.gridCell.x;
+      if (spreadsheet._clickedCellIsInColumnHeader(evt.gridCell) && spreadsheet._isLeftClick(evt)) {
+        spreadsheet.resizedColNum = evt.gridCell.x;
         spreadsheet.finishColumnResize();
       }
     };
@@ -211,9 +211,10 @@ const callbacks: Array<InitCallback> = [
         spreadsheet.repaint(); // show dotted lines
       } else if (model.featureChain) {
         // If we've mouse down'ed on a column header, we're now dragging a column
-        if (spreadsheet.clickedColNum !== null) {
+        if (spreadsheet.clickedColNum !== null && spreadsheet._isLeftClick(evt)) {
+          debugger;
           spreadsheet.draggingCol = true;
-        } else if (spreadsheet.clickedRowNum !== null) {
+        } else if (spreadsheet.clickedRowNum !== null && spreadsheet._isLeftClick(evt)) {
           spreadsheet.draggingRow = true;
         }
         // do default
@@ -283,18 +284,21 @@ const callbacks: Array<InitCallback> = [
 
           // Clean up dragging a column, and send an API message to backend to swap data
           if (spreadsheet.draggingCol) {
-            spreadsheet.draggingCol = false;
-            if (spreadsheet.clickedColNum != null) {
-              API.dragCol(spreadsheet.clickedColNum, Math.max(1, evt.gridCell.x)); // evt.gridCell.x can go negative...
+            let destColNum = Math.max(1, evt.gridCell.x); // evt.gridCell.x can go negative...
+            if (spreadsheet.clickedColNum != null && spreadsheet.clickedColNum != destColNum) {
+              API.dragCol(spreadsheet.clickedColNum, destColNum); 
             }
-            spreadsheet.clickedColNum = null;
           } else if (spreadsheet.draggingRow) {
-            spreadsheet.draggingRow = false;
-            if (spreadsheet.clickedRowNum != null) {
-              API.dragRow(spreadsheet.clickedRowNum, Math.max(1, evt.gridCell.y));
+            let destRowNum = Math.max(1, evt.gridCell.y); 
+            if (spreadsheet.clickedRowNum != destRowNum && spreadsheet.clickedRowNum != null) { 
+              API.dragRow(spreadsheet.clickedRowNum, destRowNum);
             }
-            spreadsheet.clickedRowNum = null;
           }
+
+          spreadsheet.clickedColNum = null;
+          spreadsheet.draggingCol = false;
+          spreadsheet.clickedRowNum = null;
+          spreadsheet.draggingRow = false;
 
           // Ditto for resizing
           spreadsheet.finishColumnResize();
