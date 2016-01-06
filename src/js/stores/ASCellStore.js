@@ -80,8 +80,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
         _data.lastUpdatedCells = [];
         ASCellStore.removeLocations(action.oldLocs);
 
-        let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells);
-        ASCellStore.updateCells(newCellsWithExpandingTypes);
+        // NOTE: removed the following line because expanding types are set in the constructor of ASCell now
+        // let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells);
+        ASCellStore.updateCells(action.newCells);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
         break;
@@ -375,8 +376,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
       default:
         return null;
     };
-  },
+  }
 
+/*
   // When we receive cell updates from the backend, we're given a list of *all* the cells that have changed,
   // including those that have gotten coupled/gotten decoupled. We need to figure out the expandingType's of these
   // cells, for rendering.
@@ -389,7 +391,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     c.getExpandingType(); // TODO: xcxc: temporary hack until render directly calls getExpandingType
 
     return c;
-  },
+  }, */
 });
 
 

@@ -84,6 +84,7 @@
     "jasmine-pit": "^2.0.2",
     "jasmine-then": "^0.2.2",
     "jquery": "^2.1.4",
+    "json-stable-stringify": "^1.0.0",
     "karma": "^0.13.10",
     "karma-jasmine": "^0.3.6",
     "karma-phantomjs-launcher": "^0.2.1",

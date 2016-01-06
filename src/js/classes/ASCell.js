@@ -31,6 +31,7 @@ export default class ASCell {
   get expression(): ASExpression { return this._expression; }
   get value(): ASValue { return this._value; }
   get props(): Array<ASCellProp> { return this._props; }
+  get expandingType(): ?ExpandingType { return this._expandingType; }
 
   static emptyCellAt(asIndex?: ASIndex): ASCell {
     let cl = asIndex ||
@@ -68,6 +69,16 @@ export default class ASCell {
     this._value = cellValue;
     this._props = cellProps;
     this._rangeKey = cellRangeKey;
+
+    if (this._rangeKey) {
+      const rd = DescriptorStore.getRangeDescriptor(this._rangeKey);
+      if (rd) {
+        this._expandingType = rd.expandingType;
+        delete this._rangeKey;
+      }
+    } else {
+      this._expandingType = null;
+    }
   }
 
   obj(): ASCellObject {
@@ -78,22 +89,6 @@ export default class ASCell {
       cellValue: muh._value,
       cellProps: muh._props
     });
-  }
-
-  getExpandingType(): ?ExpandingType {
-    if (this._expandingType === undefined) {
-      if (this._rangeKey) {
-        const rd = DescriptorStore.getRangeDescriptor(this._rangeKey);
-        if (rd) {
-          this._expandingType = rd.expandingType;
-          delete this._rangeKey;
-        }
-      } else {
-        this._expandingType = null;
-      }
-    }
-
-    return this._expandingType;
   }
 
   isEmpty(): boolean {

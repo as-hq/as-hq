@@ -1,6 +1,7 @@
 /* @flow */
 
 import type ASCell from '../classes/ASCell';
+import type ObjectDict from '../classes/ObjectDict';
 
 import type {
   Dict
@@ -38,6 +39,6 @@ export type ASClientExpression = {
 
 export type ASCellGrid = Dict<Array<Array<ASCell>>>;
 
-export type ASBarLines = { [key: BarIndex]: Bar }; // please help me think of a better name
+export type ASBarLines = ObjectDict<BarIndex, Bar>; // please help me think of a better name
 
 export type ASCursorStyle = 'auto' | 'crosshair' | 'move';
