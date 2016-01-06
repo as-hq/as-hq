@@ -55,11 +55,14 @@ refSheetId (PointerRef    p) = locSheetId . pointerIndex $ p
 -- Instances
 
 -- TODOX: timchu, this fromToJSON crap is here to make stuff compile.
+-- I definitely should not need a JSON instance  of (Int, Int)
+instance ToJSON (Int, Int)
+
 instance ToJSON Coord where
-  toJSON coord = object ["row" .= (coord^.row), "col" .= (coord^.col)]
+  toJSON (Coord x y) = toJSON $ (x, y)
 
 instance FromJSON Coord where
-  fromJSON (Object v) = return $ Coord <$> v .: "col" <*> v .: "row"
+  parseJSON (Object v) = Coord <$> v .: "col" <*> v .: "row"
 
 instance ToJSON InfiniteRowCoord
 instance FromJSON InfiniteRowCoord
@@ -123,11 +126,11 @@ instance FromJSON ASReference
                             --Note: r stands for right, not row.
 instance ToJSON ASColRange where
   toJSON (ColRange sid (coord,column)) = object["tag" .= ("colRange" :: String),
-                                            "sheetId" .= sid,
-                                            "colRange" .= object[
-                                              "tl" .= object ["row" .= (coord^.row),
-                                                              "col" .= (coord^.col)],
-                                              "r"  .= object ["col" .= (column^.col)]]]
+                                                "sheetId" .= sid,
+                                                "colRange" .= object[
+                                                "tl" .= object ["row" .= (coord^.row),
+                                                                "col" .= (coord^.col)],
+                                                "r"  .= object ["col" .= (column^.col)]]]
 
 -- TODO: timchu, check that this actually works.
 instance FromJSON ASColRange where
