@@ -22,7 +22,7 @@ import Database.Redis (Connection)
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
-convertEither :: Context -> EResult -> Formatted CompositeValue
+convertEither :: Context -> EResult -> (Formatted CompositeValue)
 convertEither _ (Left e) = return . CellValue $ ValueError (show e) "Excel"
 convertEither c (Right entity) = entityToComposite c entity
 
@@ -44,14 +44,16 @@ entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
-evalExcel :: String -> Context -> EResult
+evalExcel :: String -> Context -> EitherTError EEntity 
 evalExcel s context = do
-  f <- C.parseFormula s
+  f <- hoistEither $ C.parseFormula s
   case f of
     ArrayFormula formula -> L.evalArrayFormula context formula
     SimpleFormula formula -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 evaluate :: Connection -> String -> ASIndex -> CellMap -> EitherTExec (Formatted CompositeValue)
-evaluate conn s idx mp = right $ convertEither context $ evalExcel s context
-  where context = Context mp idx conn
+evaluate conn s idx mp = do
+  let context = Context mp idx conn
+  r <- lift $ runEitherT $ evalExcel s context
+  return $ convertEither context r
