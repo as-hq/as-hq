@@ -43,7 +43,6 @@ import qualified Statistics.Matrix as SM
 
 import Control.Lens hiding ((.=), Context, index, transform)
 import Control.Lens.TH
-import Control.Monad.Trans.Either
 
 
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
@@ -112,8 +111,8 @@ cellType :: EFuncResult -> FuncDescriptor
 cellType = FuncDescriptor [1] [1] [] [1] (Just 1)
 
 -- | Map function names to function descriptors
-eFunctions :: M.Map String FuncDescriptor
-eFunctions =  M.fromList $
+functions :: M.Map String FuncDescriptor
+functions =  M.fromList $
     -- Excel prefix functions
     [("+p"              , prefixD ePositive),
      ("-p"              , prefixD eNegate),
@@ -237,7 +236,7 @@ transform f = \c r -> do
   f c args
 
 getFunc :: String -> ThrowsError FuncDescriptor
-getFunc f = case (M.lookup (map toLower f) eFunctions) of
+getFunc f = case (M.lookup (map toLower f) functions) of
   Nothing -> throwError $ NotFunction $ map toUpper f
   Just fd -> Right fd
 
@@ -258,19 +257,51 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
   | otherwise = valToResult $ V.head v
 topLeftForMatrix _ r = r
 
-evalBasicFormula :: Context -> BasicFormula -> EitherTError EEntity
-evalBasicFormula = undefined 
+evalBasicFormula :: Context -> BasicFormula -> EResult
+evalBasicFormula c (Ref exIndex) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exIndex
+evalBasicFormula c (Var val)   = valToResult val
+evalBasicFormula c (Fun f fs)  = do
+  fDes <- getFunc f
+  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
+      argsRef = substituteRefsInArgs c fDes args
+  checkNumArgs f (maxNumArgs fDes) (length argsRef)
+  topLeftForMatrix f $ (callback fDes) c argsRef
 
-evalFormula :: Context -> Formula -> EitherTError EEntity
-evalFormula = undefined
+evalFormula :: Context -> Formula -> EResult
+evalFormula c (Basic b) = evalBasicFormula c b
+evalFormula c (ArrayConst b) = do
+  let lstChildren = map (map (evalBasicFormula c)) b
+  ac <- compressErrors $ concat lstChildren
+  fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
 
-evalArrayFormula :: Context -> Formula -> EitherTError EEntity
-evalArrayFormula = undefined
+evalArrayFormula :: Context -> Formula -> EResult
+evalArrayFormula c (Basic (Ref exIndex)) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exIndex
+evalArrayFormula c (Basic (Var val)) = valToResult val
+evalArrayFormula c f@(ArrayConst b) = evalFormula c f
+evalArrayFormula c f@(Basic (Fun name fs)) = do
+  fDes <- getFunc name
+  -- curLoc is always an index (you evaluate from within a cell)
+  let s = shName (IndexRef $ curLoc c)
+  --  This is a name duplication with a function in Handlers/Mutate.hs.
+  refMap <- unexpectedRefMap c (getUnexpectedRefs s f)
+  checkNumArgs name (maxNumArgs fDes) (length fs)
+  case refMap of
+    Just mp -> evalArrayFormula' c mp f
+    Nothing -> do
+      let args = map (evalArrayFormula c) fs
+      let argsRef = substituteRefsInArgs c fDes args
+      (callback fDes) c argsRef
 
 -- | Evaluate a (valid) array formula given a RefMap to replace unexpected array references
 -- | In particular, calling this method means the callback will return a Matrix
-evalArrayFormula' :: Context -> RefMap -> Formula -> EitherT EError IO EEntity
-evalArrayFormula' = undefined
+evalArrayFormula' :: Context -> RefMap -> Formula -> EResult
+evalArrayFormula' c mp (Basic (Fun f fs)) = do
+  let args = map (evalArrayFormula' c mp) fs
+  let replacedArgs = map (replace (refMap mp)) args
+  fDes <- getFunc f
+  mapArgs (refDim mp) fDes c replacedArgs
+evalArrayFormula' c mp f = evalArrayFormula c f
+
 --------------------------------------------------------------------------------------------------------------
 -- | AST Normal Evaluation helpers
 
@@ -278,31 +309,27 @@ evalArrayFormula' = undefined
 -- | Depending on arg number, do normal eval or array formula eval
 -- | If the resulting EResult is a reference to be scalarized, compute intersection/throw error
 -- | The callback function itself will throw an error if it has an invalid argument type
-type EitherTError = EitherT EError IO
-
-getFunctionArg :: Context -> FuncDescriptor -> Arg Formula -> EitherTError EEntity
+getFunctionArg :: Context -> FuncDescriptor -> Arg Formula -> EResult
 getFunctionArg c fd (argNum,(ArrayConst lst)) = scalarizeArrConst c fd argNum lst
-getFunctionArg c fd (argNum,f) = do
-  let result
-        | elem argNum (arrFormEvalArgs fd) = evalArrayFormula c f
-        | otherwise = evalFormula c f
-  res <- result
-  scalarizeRef (IndexRef $ curLoc c) fd (argNum, Right res) -- curLoc is always an index (you evaluate from within a cell)
+getFunctionArg c fd (argNum,f) = scalarizeRef (IndexRef $ curLoc c) fd (argNum,res) -- curLoc is always an index (you evaluate from within a cell)
+  where
+    res | elem argNum (arrFormEvalArgs fd) = evalArrayFormula c f
+      | otherwise = evalFormula c f
 
-scalarizeArrConst :: Context -> FuncDescriptor -> Int -> [[BasicFormula]] -> EitherTError EEntity
+scalarizeArrConst :: Context -> FuncDescriptor -> Int -> [[BasicFormula]] -> EResult
 scalarizeArrConst c fd argNum lst
   | (elem argNum (scalarArgsIfNormal fd)) = case (topLeftLst lst) of
-    Nothing -> hoistEither $ throwError $ EmptyArrayConstant
+    Nothing -> throwError $ EmptyArrayConstant
     Just tl -> evalBasicFormula c tl
   | otherwise =  evalFormula c (ArrayConst lst)
 
-scalarizeRef :: ASReference -> FuncDescriptor -> Arg EResult -> EitherTError EEntity
+scalarizeRef :: ASReference -> FuncDescriptor -> Arg EResult -> EResult
 scalarizeRef curLoc fd (argNum,r@(Right (EntityRef (ERef loc))))
   |(elem argNum (scalarArgsIfNormal fd)) = case (scalarizeLoc curLoc loc) of
-    Nothing -> hoistEither $ throwError $ ScalarizeIntersectionError curLoc loc
-    Just newLoc -> hoistEither $ locToResult newLoc
-  |otherwise = hoistEither $ r
-scalarizeRef _ _ x = hoistEither $ snd x
+    Nothing -> throwError $ ScalarizeIntersectionError curLoc loc
+    Just newLoc -> locToResult newLoc
+  |otherwise = r
+scalarizeRef _ _ x = snd x
 
 --------------------------------------------------------------------------------------------------------------
 -- | AST Array Formula Evaluation helpers
