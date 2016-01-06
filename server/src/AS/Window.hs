@@ -31,18 +31,16 @@ instance ToJSON ASWindow where
                                                         r  = view row coord1
                                                         c2 = view col coord2
                                                         r2 = view row coord2
-instance FromJSON ASWindow
 
--- TODO:timchu, reactivate this!
---instance FromJSON ASWindow where
---  parseJSON (Object v) = do
---    rng <- v .: "window" 
---    (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
---    tl' <- (,) <$> tl .: "col" <*> tl .: "row"
---    br' <- (,) <$> br .: "col" <*> br .: "row"
---    sid <- v .: "sheetId"
---    return $ Window sid tl' br'
---  parseJSON _          = fail "client message JSON attributes missing"
+instance FromJSON ASWindow where
+  parseJSON (Object v) = do
+    rng <- v .: "window" 
+    (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
+    tl' <- Coord <$> tl .: "col" <*> tl .: "row"
+    br' <- Coord <$> br .: "col" <*> br .: "row"
+    sid <- v .: "sheetId"
+    return $ Window sid tl' br'
+  parseJSON _          = fail "client message JSON attributes missing"
 
 deriveSafeCopy 1 'base ''ASWindow
 

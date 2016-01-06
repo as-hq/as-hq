@@ -26,8 +26,6 @@ import Control.Monad
 import Control.Lens
 import Data.Maybe
 
--- TODO: timchu, 1/5/15. Remove uses of Coord.
-
 handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
 handleMutateSheet uc state mutateType = do
   let sid = userSheetId uc
@@ -254,7 +252,7 @@ fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ coord) dims) = case (height
 
 -- #incomplete not actually correct for dragging columns; in sheets, if we drag B to F, and the range was from A1:D4,
 -- the new ranges become A1:A4, B1:C4, and F1:F4 (or something like that).
--- TODO: timchu, refacor this so Coord is never used.
+-- #ExposedConstructor : Coord
 rangeMutate :: MutateType -> (ASRange -> [ASRange])
 rangeMutate mt@(DeleteCol c) rng@(Range sid (Coord tlCol tlRow, Coord blCol blRow))
 -- #Question, timchu, 12/29/15. We seem to allow improperly oriented ranges!
