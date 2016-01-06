@@ -433,9 +433,10 @@ refToEntity context (ERef l@(IndexRef i)) = case (asValueToEntity v) of
     v = case (M.lookup i (evalMap context)) of
       Nothing -> dbLookup (dbConn context) i
       c -> cellToFormattedVal c 
-refToEntity context (ERef (l@(RangeRef r))) = if any isNothing vals
-  then Left $ CannotConvertToExcelValue l
-  else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
+refToEntity context (ERef (l@(RangeRef r))) =
+  if any isNothing vals
+      then Left $ CannotConvertToExcelValue l
+      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
   where
     mp = evalMap context
     idxs = rangeToIndicesRowMajor r
