@@ -249,7 +249,7 @@ export default class ResizablePanel
     return (
       <div ref="root" style={styles.root}>
         {firstDiv}
-        <div style={styles.separator} onMouseDown={this._onMouseDown} />
+        <div style={styles.separator} onMouseDown={this._onMouseDown.bind(this)} />
         {secondDiv}
       </div>
     );
