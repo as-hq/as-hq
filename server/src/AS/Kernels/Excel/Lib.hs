@@ -379,7 +379,7 @@ getCommonDimension refs = dim
       | otherwise = Nothing
 
 -- | Given the correct dimension and a reference, replace it with a matrix of the right dimension, possibly using replication
-modifyRefToEntity :: Context -> Dim -> ERef -> EitherTError EEntity
+modifyRefToEntity :: Context -> Dim -> ERef -> ThrowsError EEntity
 modifyRefToEntity con (c,r) ref@(ERef l) = case (refToEntity con ref) of
   Left e   -> throwError e
   Right (EntityMatrix (EMatrix dCol dRow vec)) -> Right $ EntityMatrix (EMatrix c r res)
