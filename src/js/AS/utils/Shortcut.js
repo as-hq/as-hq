@@ -1,6 +1,6 @@
 /* @flow */
 
-// this file is not properly flowed. In fact, the types here are completely fucked 
+// this file is not properly flowed. In fact, the types here are completely fucked
 
 import type {
   Callback
@@ -87,20 +87,20 @@ export default {
     return checksMatch;
   },
 
-  tryGridShortcut(e: SyntheticKeyboardEvent): boolean { 
+  tryGridShortcut(e: SyntheticKeyboardEvent): boolean {
     return this._tryShortcut(e, 'grid') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
   },
 
-  tryEditorShortcut(e: SyntheticKeyboardEvent): boolean { 
+  tryEditorShortcut(e: SyntheticKeyboardEvent): boolean {
     return this._tryShortcut(e, 'editor') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
   },
 
-  tryTextboxShortcut(e: SyntheticKeyboardEvent): boolean { 
+  tryTextboxShortcut(e: SyntheticKeyboardEvent): boolean {
     return this._tryShortcut(e, 'textbox') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
   },
 
-  tryEvalHeaderShortcut(e: SyntheticKeyboardEvent): boolean { 
-    return this._tryShortcut(e, 'evalHeader') || this._tryShortcut(e, 'toplevel'); 
+  tryEvalHeaderShortcut(e: SyntheticKeyboardEvent): boolean {
+    return this._tryShortcut(e, 'evalHeader') || this._tryShortcut(e, 'toplevel');
   },
 
   _tryShortcut(e: SyntheticKeyboardEvent, set: ASShortcutTarget): boolean {
@@ -157,17 +157,22 @@ export default {
     return !KeyUtils.producesTextChange(e);
   },
 
-  evalHeaderShouldDeferKey(e: SyntheticKeyboardEvent): boolean { 
+  evalHeaderShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
     return KeyUtils.isCtrlS(e) || KeyUtils.isAltH(e);
   },
 
   compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
     // TODO: $FlowFixMe: This can't currently be flowed because of s[name] and e[name]
     let propertyMatches = (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
+
     return ['shiftKey', 'altKey'].every(propertyMatches)
       && (
+    // #needsrefactor should we allow meta and ctrl keys to be essentially interchangeable?
+    // if not, that should be reflected in the checks below. Currently, the following is a
+    // catchall way of ensuring the command version of any control-based shortcut will work.
         ['ctrlKey', 'metaKey'].every(propertyMatches)
-        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey)
+        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey) // #ANAND this case allows ctrl keys to substitute for meta keys
+        || (s.metaKey && !s.ctrlKey && e.ctrlKey && !e.metaKey) // #ANAND this case allows meta keys to substitute for ctrl keys. do we want this??
       );
   },
 

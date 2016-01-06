@@ -151,12 +151,16 @@ let Key = {
            e.which === 36 || e.which === 35; // home, end
   },
 
+  isCtrlCmdKey(e: SyntheticKeyboardEvent): boolean {
+    return e.ctrlKey || e.metaKey;
+  },
+
   isCtrlA(e: SyntheticKeyboardEvent): boolean {
-    return e.ctrlKey && e.which === 65;
+    return Key.isCtrlCmdKey(e) && e.which === 65;
   },
 
   isCtrlS(e: SyntheticKeyboardEvent): boolean {
-    return e.ctrlKey && e.which === 83;
+    return Key.isCtrlCmdKey(e) && e.which === 83;
   },
 
   isAltH(e: SyntheticKeyboardEvent): boolean {
@@ -213,12 +217,12 @@ let Key = {
 
   // is it a copy event or a paste event or a cut event?
   isCopyPasteType(e: SyntheticKeyboardEvent): boolean {
-    return e.ctrlKey && (e.which === 67 || e.which === 86 || e.which === 88);
+    return Key.isCtrlCmdKey(e) && (e.which === 67 || e.which === 86 || e.which === 88);
   },
 
   // is it an undo or redo? (includes ctrl+shift+z)
   isUndoType(e: SyntheticKeyboardEvent): boolean {
-    return e.ctrlKey && (e.which === 89 || e.which === 90);
+    return Key.isCtrlCmdKey(e) && (e.which === 89 || e.which === 90);
   },
 
   modifyStringByKey(str: string, cursorPos: ?number, e: SyntheticKeyboardEvent): [string, number] {
