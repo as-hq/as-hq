@@ -351,6 +351,10 @@ export default class ASSpreadsheet
     return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
   }
 
+  _isLeftClick(e: HGMouseEvent): boolean { 
+    return e.primitiveEvent.detail.primitiveEvent.which == 1; 
+  }
+
   // expects that the current sheet has already been set
   getInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheet());
