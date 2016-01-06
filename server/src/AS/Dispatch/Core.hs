@@ -1,11 +1,12 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import Prelude
+import Prelude()
+import AS.Prelude
 import qualified Data.Map   as M
 import qualified Data.Set   as S
 import qualified Data.List  as L
-import Data.Maybe (fromJust, isNothing, catMaybes)
+import Data.Maybe (isNothing, catMaybes)
 import Text.ParserCombinators.Parsec
 import Control.Applicative
 import Data.Text as T (unpack,pack)
@@ -164,7 +165,7 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithCo
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
-      else return $ map fromJust mcells
+      else return $ map $fromJust mcells
         where missingLocs = map fst $ filter (\(_,mc) -> isNothing mc) $ zip locs mcells 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

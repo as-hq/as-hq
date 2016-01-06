@@ -1,6 +1,8 @@
 module AS.Parsing.Show where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char as C
@@ -40,7 +42,7 @@ showPrimitive lang v = case v of
   ValueD d   -> show d
   ValueB b   -> LD.outBool lang b
   ValueSerialized s _ -> s
-  _ -> error ("In showPrimitive, failed to pattern match: " ++ (show v))
+  _ -> $error ("In showPrimitive, failed to pattern match: " ++ (show v))
 
 showExpanding :: ASLanguage -> ExpandingValue -> String
 
@@ -91,7 +93,7 @@ showExpanding Python (VPSeries indices vals) = "pd.Series(" ++ inner ++ ")"
     vals'    = "data=" ++ (showCollection Python $ A vals)
     indices' = "index=" ++ (showCollection Python $ A indices)
 
-showExpanding l v = error $ "cannot insert value " ++ (show v) ++ " in language " ++ (show l)
+showExpanding l v = $error $ "cannot insert value " ++ (show v) ++ " in language " ++ (show l)
     
 -----------------------------------------------------------------------------------------------------------------------
 -- helpers

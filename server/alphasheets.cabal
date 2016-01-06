@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     AS.TH
+  exposed-modules:     AS.Prelude
                        AS.ASJSON
                        AS.Daemon
                        AS.LanguageDefs
@@ -168,6 +168,7 @@ executable alphasheets-exe
                      , vector
                      , unordered-containers
                      , lens
+                     , split
   PkgConfig-Depends:   python
   c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010

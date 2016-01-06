@@ -3,7 +3,9 @@ module AS.Users where
 import AS.Types.User
 import AS.Types.Network 
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.List as L

@@ -2,7 +2,8 @@
 
 module AS.DB.Internal where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.DB
 import AS.Types.Cell
@@ -87,7 +88,7 @@ getKeysInSheetByType :: Connection -> ASSheetId -> RedisKeyType -> IO [B.ByteStr
 getKeysInSheetByType conn sid kt = getKeysByPattern conn $ keyPatternBySheet kt sid
 
 getKeysByPattern :: Connection -> String -> IO [B.ByteString]
-getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack pattern)
+getKeysByPattern conn pattern = runRedis conn $ $fromRight <$> keys (BC.pack pattern)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
@@ -110,9 +111,9 @@ toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
 -- DB conversions
 
 bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
-bStrToSheet (Just b) = Just (read (BC.unpack b) :: ASSheet)
+bStrToSheet (Just b) = Just ($read (BC.unpack b) :: ASSheet)
 bStrToSheet Nothing = Nothing
 
 bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
-bStrToWorkbook (Just b) = Just (read (BC.unpack b) :: ASWorkbook)
+bStrToWorkbook (Just b) = Just ($read (BC.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing

@@ -1,12 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 module AS.Config.Settings where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Config.Paths
 import qualified AS.Config.Internal as I
 import AS.Types.Network
 import AS.Types.Cell
-import AS.TH
 
 imagesStaticPath = "static/images/"
 -- For debugging purposes, the app behaves differently at various points in the code.
@@ -15,7 +15,7 @@ isDebug :: Bool
 isDebug = True
 
 shouldWritetoConsole :: Bool
-shouldWritetoConsole = $getPrintSetting
+shouldWritetoConsole = $(I.getPrintSetting)
 
 largeSearchBound :: Int
 largeSearchBound = 1000

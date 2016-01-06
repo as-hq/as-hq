@@ -2,7 +2,8 @@
 
 module AS.DB.API where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp, ASBarProps) 
@@ -22,15 +23,11 @@ import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
 
-import Data.List (zip4,head,nub,intercalate)
-import Data.Maybe 
+import Data.List (zip4,intercalate,find)
 import Data.List.Split
 import qualified Data.Map as M
 
-import Foreign
-import Foreign.C.Types
-import Foreign.C.String(CString(..))
-import Foreign.C
+import Data.Maybe hiding (fromJust)
 
 import Control.Applicative
 import Control.Concurrent
@@ -43,7 +40,6 @@ import Database.Redis hiding (decode)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
-import Data.List as L
 import Data.Aeson hiding (Success)
 import Data.ByteString.Unsafe as BU
 import Data.List.Split
@@ -83,7 +79,7 @@ import Control.Monad.Trans.Either
 getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
 getCells conn locs = runRedis conn $ do
-  sCells <- map fromRight <$> mapM (get . S.encode) locs
+  sCells <- map $fromRight <$> mapM (get . S.encode) locs
   return $ map (S.maybeDecode =<<) sCells
 
 setCells :: Connection -> [ASCell] -> IO ()
@@ -98,13 +94,13 @@ deleteLocs conn locs = runRedis conn $ del (map S.encode locs) >> return ()
 -- Additional cell API methods
 
 getCell :: Connection -> ASIndex -> IO (Maybe ASCell)
-getCell conn loc = head <$> getCells conn [loc]
+getCell conn loc = $head <$> getCells conn [loc]
 
 setCell :: Connection -> ASCell -> IO ()
 setCell conn c = setCells conn [c]
 
 getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
-getPossiblyBlankCell conn loc = head <$> getPossiblyBlankCells conn [loc]
+getPossiblyBlankCell conn loc = $head <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
 getCellsInSheet conn sid = getCellsByKeyPattern conn $ "*" ++ (T.unpack sid) ++ "*"
@@ -130,7 +126,7 @@ getCellsByKeyPattern conn pattern = do
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
-  map fromJust <$> getCells conn locs
+  map $fromJust <$> getCells conn locs
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 -- this function is order-preserving
@@ -154,10 +150,10 @@ getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 -- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
-locationsExist conn locs = runRedis conn $ map fromRight <$> mapM (exists . S.encode) locs
+locationsExist conn locs = runRedis conn $ map $fromRight <$> mapM (exists . S.encode) locs
 
 locationExists :: Connection -> ASIndex -> IO Bool
-locationExists conn loc = head <$> locationsExist conn [loc] 
+locationExists conn loc = $head <$> locationsExist conn [loc] 
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
@@ -190,7 +186,7 @@ getRangeDescriptor conn key = runRedis conn $ do
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
   keys <- getRangeKeysInSheet conn sid
-  map fromJust <$> mapM (getRangeDescriptor conn) keys
+  map $fromJust <$> mapM (getRangeDescriptor conn) keys
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -198,7 +194,7 @@ getRangeDescriptorsInSheet conn sid = do
 matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
 matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookUpSheets w ss) | w <- ws]
   where
-    findSheet sid = L.find (\sh -> sid == sheetId sh) ss
+    findSheet sid = find (\sh -> sid == sheetId sh) ss
     lookUpSheets workbook sheets = map findSheet (workbookSheets workbook)
 
 getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
@@ -255,7 +251,7 @@ getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = runRedis conn $ do
   Right wbKeys <- smembers . toRedisFormat $ AllWorkbooksKey
   wbs <- mapM get wbKeys
-  return $ map (\(Right (Just w)) -> read (BC.unpack w) :: ASWorkbook) wbs
+  return $ map (\(Right (Just w)) -> $read (BC.unpack w) :: ASWorkbook) wbs
 
 setWorkbook :: Connection -> ASWorkbook -> IO ()
 setWorkbook conn wb = runRedis conn $ do
@@ -289,7 +285,7 @@ getSheet conn sid = runRedis conn $ do
 
 getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = 
-  let readSheet (Right (Just s)) = read (BC.unpack s) :: ASSheet
+  let readSheet (Right (Just s)) = $read (BC.unpack s) :: ASSheet
   in runRedis conn $ do
     Right sheetKeys <- smembers (toRedisFormat AllSheetsKey)
     sheets <- mapM get sheetKeys
@@ -323,10 +319,10 @@ setSheet conn sheet = do
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map S.maybeDecode) . fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- (map S.maybeDecode) . $fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
   if any isNothing vl 
-    then error "Error decoding volatile locs!!!"
-    else return $ map fromJust vl
+    then $error "Error decoding volatile locs!!!"
+    else return $ map $fromJust vl
 
 -- TODO: some of the cells may change from volatile -> not volatile, but they're still in volLocs
 setChunkVolatileCells :: [ASCell] -> Redis ()
@@ -376,9 +372,9 @@ storeLastMessage conn msg src = case (serverAction msg) of
   _ -> runRedis conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg)) >> return ()
 
 getLastMessage :: Connection -> CommitSource -> IO ServerMessage
-getLastMessage conn src = error "Currently not implemented"
+getLastMessage conn src = $error "Currently not implemented"
  -- runRedis conn $ do 
- --  msg <- fromRight <$> get (toRedisFormat $ LastMessageKey src)
+ --  msg <- $fromRight <$> get (toRedisFormat $ LastMessageKey src)
  --  return $ case (maybeDecode =<< msg) of 
  --    Just m -> m
  --    -- _ -> ServerMessage NoAction (PayloadN ())
@@ -445,7 +441,7 @@ getBarsInSheet conn sid = do
 
 deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
 deleteBarsInSheet conn sid = do
-  colKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
-  rowKeys <- fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
+  colKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
+  rowKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
   runRedis conn $ del (colKeys ++ rowKeys)
   return ()

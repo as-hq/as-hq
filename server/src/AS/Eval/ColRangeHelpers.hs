@@ -1,6 +1,7 @@
 module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Errors
@@ -86,7 +87,7 @@ listOfCellsByColToRange c@(ColRange sid ((startCol, t), endCol)) cellsByCol =
       if (maxRowInCols < t)
          then Range sid ((startCol, t), (endCol, t))
          else Range sid ((startCol, t), (endCol, maxRowInCols))
-    False -> error "colRange startCol > endCol in listOfCellsByColToRange "
+    False -> $error "colRange startCol > endCol in listOfCellsByColToRange "
 
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
 -- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range

@@ -2,7 +2,8 @@
 
 module AS.DB.Clear where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp, ASBarProps) 

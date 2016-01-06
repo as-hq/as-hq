@@ -1,7 +1,9 @@
 {-# LANGUAGE QuasiQuotes #-}
 module AS.Eval.Core where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import System.IO
 import System.Process
 import Control.Applicative

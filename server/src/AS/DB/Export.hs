@@ -1,6 +1,7 @@
 module AS.DB.Export where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.DB
@@ -26,7 +27,7 @@ exportData conn sid = do
 
 importData :: AppSettings -> Connection -> ExportData -> IO ()
 importData settings conn (ExportData cs descriptors) = do
-  DC.clearSheet settings conn $ locSheetId . view cellLocation . head $ cs -- assumes all cells are in the same sheet.
+  DC.clearSheet settings conn $ locSheetId . view cellLocation . $head $ cs -- assumes all cells are in the same sheet.
   DB.setCells conn cs
   G.recompute (settings^.graphDbAddress) conn
   mapM_ (DE.setDescriptor conn) descriptors

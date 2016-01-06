@@ -1,7 +1,9 @@
 module AS.Kernels.LanguageUtils where
 
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Text.Parsec
 import Text.Parsec.Text
 import qualified Data.Text as T

@@ -1,6 +1,8 @@
 module AS.Config.Paths where
 
-import Prelude
+import Prelude()
+import AS.Prelude 
+
 import System.Directory
 import System.FilePath.Posix
 

@@ -1,6 +1,7 @@
 module AS.Daemon where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Network
@@ -28,7 +29,6 @@ import Data.List as L
 import Control.Monad
 import Control.Lens hiding ((.=))
 import Data.Default
-import Data.Maybe
 import System.Posix.Daemon
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ removeDaemon loc state = do
   running <- isRunning name
   when running $ do 
     mConn <- getConnByLoc loc state
-    WS.sendClose (fromJust mConn) ("Bye" :: Text)
+    WS.sendClose ($fromJust mConn) ("Bye" :: Text)
     killAndWait name
 
 -- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 

@@ -1,6 +1,8 @@
 module AS.Eval.Middleware where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Data.List
 import Database.Redis (Connection)
 import Data.Maybe

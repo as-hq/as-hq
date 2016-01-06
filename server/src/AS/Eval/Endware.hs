@@ -1,6 +1,8 @@
 module AS.Eval.Endware where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Network

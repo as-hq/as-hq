@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell #-}
 
 module Main where
+  
+import Prelude()
+import AS.Prelude
  
 import AS.Config.Settings as S
 
@@ -19,7 +22,6 @@ import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
 import qualified AS.Kernels.Python.Eval as KP
 
-import Prelude
 import System.Environment (getArgs)
 
 import Control.Exception
@@ -28,10 +30,11 @@ import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 
 import Data.Aeson hiding (Success)
-import Data.Maybe
+import Data.Maybe hiding (fromJust)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
+import Data.List.Split (chunksOf)
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
@@ -124,9 +127,9 @@ preprocess :: WS.Connection -> MVar ServerState -> IO ()
 preprocess conn state = do
   -- prepare the preprocessing
   logDir <- getServerLogDir
-  fileContents <- Prelude.readFile (logDir ++ "client_messages")
+  fileContents <- AS.Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && ($head l) /= '#') fileLinesWithNumbers
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
@@ -135,17 +138,9 @@ preprocess conn state = do
         mockUc = UserClient cid conn win (T.pack "")
     curState <- readMVar state
     when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (\s -> return $ addClient mockUc s)
-    processMessage mockUc state (read msg)
+    processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
-
--- too lazy to import from Data.List.Split
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf _ [] = []
-chunksOf n l
-  | n > 0 = (take n l) : (chunksOf n (drop n l))
-  | otherwise = error "Negative n"
-
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do

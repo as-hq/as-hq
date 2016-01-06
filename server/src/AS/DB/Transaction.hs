@@ -1,6 +1,7 @@
 module AS.DB.Transaction where 
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.DB
@@ -182,7 +183,7 @@ updateDBWithCommit addr conn src c = do
 -- Key: commitSource + "tempcommit", value: ASCommit bytestring
 getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
 getTempCommit conn src = do 
-  maybeBStr <- runRedis conn $ fromRight <$> get (toRedisFormat . TempCommitKey $ src)
+  maybeBStr <- runRedis conn $ $fromRight <$> get (toRedisFormat . TempCommitKey $ src)
   return $ S.maybeDecode =<< maybeBStr
   
 setTempCommit :: Connection  -> CommitSource -> ASCommit -> IO ()

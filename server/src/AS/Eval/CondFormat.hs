@@ -1,5 +1,8 @@
 module AS.Eval.CondFormat where
 
+import Prelude()
+import AS.Prelude
+
 import AS.DB.API as DB
 import AS.DB.Eval
 
@@ -14,7 +17,6 @@ import AS.Eval.Core
 import AS.Parsing.Substitutions
 import AS.Util (insertMultiple)
 
-import Prelude
 import Data.List
 import qualified Data.Map as M
 import Database.Redis (Connection)

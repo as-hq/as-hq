@@ -1,6 +1,8 @@
 module AS.Parsing.Read where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char as C
@@ -114,7 +116,7 @@ extractCellValue js = case (js .$> "cellValueType") of
 
 extractExpanding :: JSON -> Maybe ExpandingValue
 extractExpanding js = 
-  let readEType e = read e :: ExpandingType
+  let readEType e = $read e :: ExpandingType
   in case (readEType <$> js .$> "expandingType") of 
     Just List -> VList <$> extractCollection js "listVals"
     Just NPArray -> VNPArray <$> extractCollection js "arrayVals"

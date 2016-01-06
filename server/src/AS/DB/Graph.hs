@@ -1,6 +1,7 @@
 module AS.DB.Graph where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import qualified Data.List as L
 import Data.List.NonEmpty as N (fromList)
 
@@ -25,7 +26,6 @@ import AS.DB.Internal
 import AS.Logging
 import AS.Parsing.Substitutions (getDependencies)
 
-import Data.Maybe
 import Control.Lens
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -50,7 +50,7 @@ setCellsAncestors addr cells = do
 -- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
 getAncestorsForCell c = if not $ isEvaluable c
-  then [IndexRef . keyIndex . fromJust $ c^.cellRangeKey]
+  then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
   else getDependencies (locSheetId $ c^.cellLocation) (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the

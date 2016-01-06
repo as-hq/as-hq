@@ -5,7 +5,8 @@ module AS.Types.DB
   , module AS.Types.Commits
   ) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -134,12 +135,12 @@ instance (Read2 ASReference) where
           where 
             (tag, sid, locstr) = case splitBy refDelimiter str of 
               [tag', sid', locstr'] -> (tag', sid', locstr')
-              _ -> error ("read2 :: ASReference failed to split string " ++ str)
+              _ -> $error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
-              "I" -> IndexRef $ Index (T.pack sid) (read locstr :: Coord)
-              "P" -> PointerRef $ Pointer (Index (T.pack sid) (read locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) (read locstr :: (Coord, Coord))
-              "C" -> ColRangeRef $ ColRange (T.pack sid) (read locstr :: (Coord, Int))
+              "I" -> IndexRef $ Index (T.pack sid) ($read locstr :: Coord)
+              "P" -> PointerRef $ Pointer (Index (T.pack sid) ($read locstr :: Coord))
+              "R" -> RangeRef $ Range (T.pack sid) ($read locstr :: (Coord, Coord))
+              "C" -> ColRangeRef $ ColRange (T.pack sid) ($read locstr :: (Coord, Int))
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
@@ -162,7 +163,7 @@ instance (Read2 GraphDescendant) where
 
 instance (Read2 Dimensions) where
   read2 str = Dimensions { width = w, height = h }
-    where (w, h) = read str :: (Int, Int)
+    where (w, h) = $read str :: (Int, Int)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis keys 
@@ -223,7 +224,7 @@ instance Read2 (RedisKey RangeType) where
     where 
       [typeStr, keyStr] = splitOn keyTypeSeparator s
       [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
-      rkey = case (read typeStr :: RedisKeyType) of 
+      rkey = case ($read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
 instance Read2 (RedisKey BarType2) where
@@ -232,8 +233,8 @@ instance Read2 (RedisKey BarType2) where
         [typeStr, keyStr] = splitOn keyTypeSeparator s
         [sidStr, typStr, indStr] = splitOn keyPartDelimiter keyStr
         sid = T.pack sidStr
-        typ = read typStr :: BarType
-        ind = read indStr :: Int
+        typ = $read typStr :: BarType
+        ind = $read indStr :: Int
 
 instance Show CommitSource where
   show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)
