@@ -352,7 +352,7 @@ getCommonDimension refs = dim
       | otherwise = Nothing
 
 -- | Given the correct dimension and a reference, replace it with a matrix of the right dimension, possibly using replication
-modifyRefToEntity :: Context -> Dim -> ERef -> EitherTError EEntity
+modifyRefToEntity :: Context -> Dim -> ERef -> ThrowsError EEntity
 modifyRefToEntity con (c,r) ref@(ERef l) = case (refToEntity con ref) of
   Left e   -> throwError e
   Right (EntityMatrix (EMatrix dCol dRow vec)) -> Right $ EntityMatrix (EMatrix c r res)
@@ -398,6 +398,9 @@ arrConstToResult c es = do
 -- | Seems OK to map over this function, since any given formula won't have too many references requiring DB
 
 -- NOTE: treating index refs as 1x1 matrices for functions like sum that need to know that a value came from a reference
+refToEntity' :: Context -> ERef -> EitherTError EEntity
+refToEntity' context = hoistEither . refToEntity context
+
 refToEntity :: Context -> ERef -> ThrowsError EEntity
 refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Nothing -> Left $ CannotConvertToExcelValue l
