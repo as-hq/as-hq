@@ -22,7 +22,8 @@ import Control.Lens.TH
 type Col = Int
 type Row = Int 
 
--- need Ord on data types for maps.
+-- We want O(n log n) unions for collections of locations and datatypes that depend on them
+-- (e.g. ASCell), so we're making them Ord. 
 data Coord = Coord { _coordCol :: Col, _coordRow :: Row } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''Coord
 data InfiniteRowCoord = InfiniteRowCoord { _infiniteRowCoordCol :: Int } deriving (Show, Read, Eq, Ord, Generic)
@@ -53,16 +54,6 @@ refSheetId (PointerRef    p) = locSheetId . pointerIndex $ p
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
-
--- I definitely should not need a JSON instance  of (Int, Int)
--- #?: Unclear if these ToJSON methods are necessary.
-instance ToJSON (Int, Int)
-
-instance ToJSON Coord where
-  toJSON (Coord x y) = toJSON $ (x, y)
-
-instance FromJSON Coord where
-  parseJSON (Object v) = Coord <$> v .: "col" <*> v .: "row"
 
 instance ToJSON InfiniteRowCoord
 instance FromJSON InfiniteRowCoord
@@ -198,10 +189,10 @@ containsRange (ref:refs) = case ref of
 
 -- TODO:#ErrorSource. This requires that ranges are tl < br.
 rangeContainsRect :: ASRange -> Rect -> Bool
-rangeContainsRect (Range _ (coord1, coord2)) (coord1', coord2') = tl && br
+rangeContainsRect (Range _ (topLeft1, bottomRight1)) (topLeft2, bottomRight2) = tl && br
   where
-    tl = (coord1'^.col >= coord1^.col) && (coord1'^.row >= coord1^.row)
-    br = (coord2'^.col <= coord2^.col) && (coord2'^.row <= coord2^.row)
+    tl = (topLeft2^.col >= topLeft1^.col) && (topLeft2^.row >= topLeft1^.row)
+    br = (bottomRight2^.col <= bottomRight1^.col) && (bottomRight2^.row <= bottomRight1^.row)
 
 -- #needsrefactor we should use a better type than ASReference for this... since this really only makes sense
 -- when the ASReference passed in is an index or a range
@@ -223,28 +214,28 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (Coord x y) | y <- [starty.
     endy = max (view row ul) (view row lr)
 
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
-rangeContainsIndex (Range sid1 (coord1, coord2)) (Index sid2 coord) = and [
+rangeContainsIndex (Range sid1 (topLeft, bottomRight)) (Index sid2 coord) = and [
   sid1 == sid2, col' >= col1, col' <= col2, row' >= row1, row' <= row2 ]
     where 
-      col1 = coord1^.col
-      row1 = coord1^.row
-      col2 = coord2^.col
-      row2 = coord2^.row
+      col1  = topLeft^.col
+      row1  = topLeft^.row
+      col2  = bottomRight^.col
+      row2  = bottomRight^.row
       col'  = coord^.col
       row'  = coord^.row
 
 rangeContainsRange :: ASRange -> ASRange -> Bool
-rangeContainsRange (Range sid1 (coord1,  coord2)) (Range sid2 (coord1', coord2')) = and [
+rangeContainsRange (Range sid1 (topLeft1,  bottomRight1)) (Range sid2 (topLeft2, bottomRight2)) = and [
   sid1 == sid2, col1 <= col1', col2 >= col2', row1 <= row1', row2 >= row2']
   where
-    col1  = coord1 ^.col
-    col2  = coord2 ^.col
-    col1' = coord1'^.col
-    col2' = coord2'^.col
-    row1  = coord1 ^.row
-    row2  = coord2 ^.row
-    row1' = coord1'^.row
-    row2' = coord2'^.row
+    col1  = topLeft1 ^.col
+    col2  = bottomRight1 ^.col
+    col1' = topLeft2^.col
+    col2' = bottomRight2^.col
+    row1  = topLeft1 ^.row
+    row2  = bottomRight1 ^.row
+    row1' = topLeft2^.row
+    row2' = bottomRight2^.row
 
 -- Probably needs case for columns
 rangeContainsRef :: ASRange -> ASReference -> Bool

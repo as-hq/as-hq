@@ -103,7 +103,7 @@ instance Show2 Coord where
 instance Show2 InfiniteRowCoord where
   show2 infiniteRowCoord = show $ infiniteRowCoord^.col
 
-instance Show2 (Coord, Coord) where
+instance Show2 Rect where
   show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
 
 instance Show2 (Coord, InfiniteRowCoord) where
@@ -151,7 +151,7 @@ instance (Read2 ASReference) where
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: (Coord, Coord))
+              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: Rect)
               "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
 
 pairToCoord :: (Int, Int) -> Coord
@@ -163,19 +163,15 @@ instance (Read2 Coord) where
 instance (Read2 InfiniteRowCoord) where
   read2 str = InfiniteRowCoord $ (read str)
 
-instance (Read2 (Coord, Coord)) where
+instance (Read2 Rect) where
   read2 str =  (pairToCoord pair1, pairToCoord pair2)
     where
-      pairPair = read str :: ((Int, Int), (Int, Int))
-      pair1 = fst pairPair
-      pair2 = snd pairPair
+      (pair1, pair2) = read str :: ((Int, Int), (Int, Int))
 
 instance (Read2 (Coord, InfiniteRowCoord)) where
-  read2 str = (pairToCoord pair1, InfiniteRowCoord col2)
+  read2 str = (pairToCoord pair, InfiniteRowCoord col)
     where
-      pairAndCol = read str :: ((Int, Int), Int)
-      pair1 = fst pairAndCol
-      col2  = snd pairAndCol
+      (pair, col) = read str :: ((Int, Int), Int)
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
