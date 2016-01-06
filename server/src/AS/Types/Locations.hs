@@ -196,11 +196,12 @@ containsRange (ref:refs) = case ref of
   (RangeRef _) -> True
   _ -> containsRange refs
 
+-- TODO:#ErrorSource. This requires that ranges are tl < br.
 rangeContainsRect :: ASRange -> Rect -> Bool
 rangeContainsRect (Range _ (coord1, coord2)) (coord1', coord2') = tl && br
   where
-    tl = (coord1'^.row >= coord1^.row) && (coord1'^.col >= coord1^.col)
-    br = (coord1'^.row <= coord2^.row) && (coord2'^.col <= coord2^.col)
+    tl = (coord1'^.col >= coord1^.col) && (coord1'^.row >= coord1^.row)
+    br = (coord2'^.col <= coord2^.col) && (coord2'^.row <= coord2^.row)
 
 -- #needsrefactor we should use a better type than ASReference for this... since this really only makes sense
 -- when the ASReference passed in is an index or a range

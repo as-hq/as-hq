@@ -124,11 +124,11 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
       | x > x2' = False
       | otherwise = True 
         where
-          y  = view col rect1Coord1
-          x  = view row rect1Coord1
-          y2 = view col rect1Coord2
-          x2 = view row rect1Coord2
+          y   = view col rect1Coord1
           y'  = view col rect2Coord1
-          x'  = view row rect2Coord1
+          y2  = view col rect1Coord2
           y2' = view col rect2Coord2
+          x   = view row rect1Coord1
+          x'  = view row rect2Coord1
+          x2  = view row rect1Coord2
           x2' = view row rect2Coord2

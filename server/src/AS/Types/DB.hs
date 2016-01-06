@@ -103,12 +103,11 @@ instance Show2 Coord where
 instance Show2 InfiniteRowCoord where
   show2 infiniteRowCoord = show $ infiniteRowCoord^.col
 
--- TODOX: timchu, 1/3/15. Can I generalize show2 on pairs?
 instance Show2 (Coord, Coord) where
   show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
 
 instance Show2 (Coord, InfiniteRowCoord) where
-  show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
+  show2 (coord1, infRowCoord2) = "(" ++ show2 coord1 ++ "," ++ show2 infRowCoord2 ++ ")" 
 
 instance (Show2 ASIndex) where 
   show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))

@@ -26,7 +26,7 @@ import Control.Monad
 import Control.Lens
 import Data.Maybe
 
--- TODO: timchu, 1/5/15. Remove uses of Coord.
+-- TODOX: timchu, 1/5/15. Remove uses of Coord.
 
 handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
 handleMutateSheet uc state mutateType = do
