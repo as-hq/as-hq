@@ -426,25 +426,25 @@ arrConstToResult c es = do
 
 -- NOTE: treating index refs as 1x1 matrices for functions like sum that need to know that a value came from a reference
 refToEntity :: Context -> ERef -> ThrowsError EEntity
-refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
+refToEntity context (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   Nothing -> Left $ CannotConvertToExcelValue l
   Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
   where
-    v = case (M.lookup i (evalMap c)) of
-      Nothing -> dbLookup (dbConn c) i
+    v = case (M.lookup i (evalMap context)) of
+      Nothing -> dbLookup (dbConn context) i
       c -> cellToFormattedVal c 
-refToEntity c (ERef (l@(RangeRef r))) = if any isNothing vals
+refToEntity context (ERef (l@(RangeRef r))) = if any isNothing vals
   then Left $ CannotConvertToExcelValue l
   else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
   where
-    mp = evalMap c
+    mp = evalMap context
     idxs = rangeToIndicesRowMajor r
     (inMap,needDB) = partition ((flip M.member) mp) idxs
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
     mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
-    dbVals = dbLookupBulk (dbConn c) needDB
+    dbVals = dbLookupBulk (dbConn context) needDB
     vals = map toEValue $ mapVals ++ dbVals 
-refToEntity c (ERef (PointerRef p)) = Left $ REF $ "Can't convert pointer to entity"
+refToEntity _ (ERef (PointerRef _)) = Left $ REF $ "Can't convert pointer to entity"
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
 replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of
