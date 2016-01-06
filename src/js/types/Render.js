@@ -1,9 +1,7 @@
 /* @flow */
 
-import type {
-  NakedRange,
-  ASSelectionObject
-} from '../types/Eval';
+import type ASRange from '../classes/ASRange';
+import type ASSelection from '../classes/ASSelection';
 
 export type Style = { [key: string]: (string|number) };
 
@@ -20,15 +18,15 @@ export type PXRectangle = {
 
 export type RenderParams = {
   mode: ?string,
-  deps: Array<NakedRange>,
+  deps: Array<ASRange>,
   cellWidth: number,
-  selection: ?ASSelectionObject,
+  selection: ?ASSelection,
   selectionRect: ?PXRectangle,
   mouseoverError: number,
-  dragRect: ?NakedRange,
+  dragRect: ?ASRange,
   shouldRenderSquareBox: boolean,
   boxWidth: number,
   topLeftBox: ?HGPoint,
   dragCorner: ?DragCorner,
-  draggedBoxSelection: ?ASSelectionObject
+  draggedBoxSelection: ?ASSelection
 };

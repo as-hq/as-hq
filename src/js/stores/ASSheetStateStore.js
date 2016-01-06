@@ -71,12 +71,11 @@ let _data: SheetStateStoreData = {
     isCut: false
   },
   externalError: null,
-  viewingWindow: {
-    range: {
+  viewingWindow:
+    ASRange.fromNaked({
       tl: { col: 0, row: 0},
       br: { col: 100, row: 100}
-    }
-  }
+    })
 };
 
 const ASSheetStateStore = Object.assign({}, BaseStore, {
@@ -238,7 +237,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     if (c > Constants.numCols) c = Constants.numCols;
     if (r > Constants.numRows) r = Constants.numRows;
 
-    return {col: c, row: r};
+    return ASIndex.fromNaked({col: c, row: r});
   },
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
@@ -275,7 +274,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     }
     // I haven't actually figured out why the above code works, it seems like it sort of just does.
 
-    return { range: U.Location.orientRange({tl: newTl, br: newBr}), origin: origin };
+    return new ASSelection({ range: {tl: newTl, br: newBr}, origin: origin });
   },
 
   // TODO actually get the data boundaries by iterating, or something

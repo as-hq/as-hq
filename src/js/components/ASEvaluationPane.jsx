@@ -3,8 +3,7 @@
 import type {
   ASValue,
   ASLanguage,
-  ASSheet,
-  ASSelectionObject
+  ASSheet
 } from '../types/Eval';
 
 import type {
@@ -40,7 +39,6 @@ import ExpActionCreator from '../actions/ASExpActionCreators';
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
 
-
 let {
   Shortcut: ShortcutUtils,
   Clipboard: ClipboardUtils,
@@ -48,6 +46,8 @@ let {
   Conversion: TC,
   Key: KeyUtils
 } = U;
+
+import ASSelection from '../classes/ASSelection';
 
 import Constants from '../Constants';
 import {Snackbar} from 'material-ui';
@@ -347,7 +347,8 @@ export default class ASEvalPane
     if (isAlphaSheets) { // From AS
       let clipboard = SheetStateStore.getClipboard(),
           sheetId = SheetStateStore.getCurrentSheet().sheetId,
-          {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
+          fromRange = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
+          fromSheetId = sel.range.sheetId,
           toASRange = sel.range;
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
@@ -355,17 +356,16 @@ export default class ASEvalPane
       if (isTesting() || U.Browser.isMac()) {
         if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
-          fromSheetId = SheetStateStore.getCurrentSheet().sheetId;
+          fromSheetId = SheetStateStore.getCurrentSheetId();
         }
       }
 
-      let fromASRange = U.Conversion.simpleToASRange(fromRange, fromSheetId);
       if (fromRange) {
         if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
-          API.cut(fromASRange, toASRange);
+          API.cut(fromRange, toASRange);
           SheetStateStore.setClipboard(null, false);
         } else {
-          API.copy(fromASRange, toASRange);
+          API.copy(fromRange, toASRange);
         }
       } else {
         this.setToast("Nothing in clipboard.", "Error");
@@ -458,7 +458,7 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
-  _onSelectionChange(sel: ASSelectionObject) {
+  _onSelectionChange(sel: ASSelection) {
 
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
@@ -518,7 +518,7 @@ export default class ASEvalPane
          this.hideToast();
       }
     } else if (userIsTyping) {
-      let excelStr = U.Conversion.rangeToExcel(range);
+      let excelStr = range.toExcel().toString();
       if (editorCanInsertRef) { // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
         this._getEditorComponent().insertRef(excelStr);

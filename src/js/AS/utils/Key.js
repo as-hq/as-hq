@@ -309,16 +309,16 @@ let Key = {
       return Key.keyToString(e);
   },
 
-  shiftIndexByKey(e: SyntheticKeyboardEvent, idx: NakedIndex): NakedIndex {
+  keyShiftValue(e: SyntheticKeyboardEvent): ({ dr: number, dc: number }) {
     switch (e.which) {
       case 37:
-        return {row: idx.row, col: idx.col - 1};
+        return {dr: 0, dc: -1};
       case 38:
-        return {row: idx.row - 1, col: idx.col};
+        return {dr: -1, dc: 0};
       case 39:
-        return {row: idx.row, col: idx.col + 1};
+        return {dr: 0, dc: 1};
       case 40:
-        return {row: idx.row + 1, col: idx.col};
+        return {dr: 1, dc: 0};
       default:
         throw "Invalid keyboard event passed in to shiftIndexByKey";
     }

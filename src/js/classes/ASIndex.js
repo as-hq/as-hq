@@ -9,6 +9,8 @@ import type {
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
+import Util from '../AS/Util';
+
 import ASExcelRef from './ASExcelRef';
 import ASRange from './ASRange';
 import ASSelection from './ASSelection';
@@ -62,6 +64,10 @@ export default class ASIndex {
     return ASExcelRef.fromString(excStr).toIndex();
   }
 
+  static fromGridCell(gridCell: HGPoint): ASIndex {
+    return ASIndex.fromNaked({ row: gridCell.y, col: gridCell.x });
+  }
+
   static fromNaked(naked: NakedIndex, sheetId?: ?string): ASIndex {
     sheetId = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASIndex({
@@ -107,6 +113,10 @@ export default class ASIndex {
       ...this.obj(),
       index: { row: (this.row + dr), col: (this.col + dc) }
     });
+  }
+
+  shiftByKey(e: SyntheticKeyboardEvent): ASIndex {
+    return this.shift(Util.Key.keyShiftValue(e));
   }
 
   isAboveAndLeft(idx: ASIndex): boolean {

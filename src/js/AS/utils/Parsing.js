@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
   ASLanguage
 } from '../../types/Eval';
 
@@ -119,7 +118,7 @@ let Parsing = {
     }
   },
 
-  parseDependencies(str: string, lang: ?ASLanguage): Array<NakedRange> {
+  parseDependencies(str: string, lang: ?ASLanguage): Array<ASRange> {
     // logDebug("parsing dependencies of: " + str);
     if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
       return [];

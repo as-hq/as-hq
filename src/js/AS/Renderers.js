@@ -8,6 +8,7 @@ import type {
 } from '../types/Render';
 
 import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
@@ -53,7 +54,7 @@ const Renderers = {
     return _renderParams.dragCorner;
   },
 
-  getDottedSelection() : ?ASSelectionObject {
+  getDottedSelection() : ?ASSelection {
     return _renderParams.draggedBoxSelection;
   },
 
@@ -65,17 +66,17 @@ const Renderers = {
     _renderParams.mode = mode;
   },
 
-  setSelection(sel: ?ASSelectionObject) {
+  setSelection(sel: ?ASSelection) {
     _renderParams.selection = sel;
   },
 
-  setDependencies(deps: Array<NakedRange>) {
+  setDependencies(deps: Array<ASRange>) {
     _renderParams.deps = deps;
   },
 
-  setDragRect(rng: ?NakedRange) { _renderParams.dragRect = rng; },
+  setDragRect(rng: ?ASRange) { _renderParams.dragRect = rng; },
 
-  getDragRect() : ?NakedRange { return _renderParams.dragRect; },
+  getDragRect() : ?ASRange { return _renderParams.dragRect; },
 
   /*************************************************************************************************************************/
   // Misc utils

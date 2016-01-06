@@ -61,7 +61,7 @@ const Clipboard = {
 		// Simplest solution without creating the DOM element and checking for the tag
 	},
 
-  getAttrsFromHtmlString(s: string): ASClipboardAttrs {
+  getAttrsFromHtmlString(s: string): ASRange {
     // #needsrefactor should build better model of what causes various formats to show up, and handle them better
     if (s.indexOf("<!--StartFragment-->") == -1) {
       // I'm aware this is dumb, but it's sufficient for now
@@ -73,7 +73,7 @@ const Clipboard = {
           table = doc.firstChild.firstChild,
           fromSheetId = (table: any).getAttribute('data-sheet-id'),
           fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-      return {fromSheetId: fromSheetId, fromRange: fromRange};
+			return ASRange.fromNaked(fromRange, fromSheetId);
     } else {
       // assumes the format is something like
       // <html>
@@ -86,7 +86,7 @@ const Clipboard = {
           table = (doc.firstChild: any).firstElementChild.firstElementChild,
           fromSheetId = (table: any).getAttribute('data-sheet-id'),
           fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-      return {fromSheetId: fromSheetId, fromRange: fromRange};
+			return ASRange.fromNaked(fromRange, fromSheetId);
     }
   },
 

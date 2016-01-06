@@ -326,6 +326,8 @@ export type ASRangeObject = {
 
 export type ASLocation = ASIndex | ASRange;
 
+export type ASLocationObject = ASIndexObject | ASRangeObject;
+
 export type ASSheet = {
   tag: 'Sheet';
   sheetId: string;

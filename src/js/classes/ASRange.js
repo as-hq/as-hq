@@ -9,6 +9,7 @@ import type {
   ASClientWindow
 } from '../types/Messages';
 
+import Util from '../AS/Util';
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
@@ -160,5 +161,9 @@ export default class ASRange {
       tl: this.tl.shift(delta),
       br: this.br.shift(delta)
     }, this.sheetId);
+  }
+
+  shiftByKey(e: SyntheticKeyboardEvent): ASRange {
+    return this.shift(Util.Key.keyShiftValue(e));
   }
 }

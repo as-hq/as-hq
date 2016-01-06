@@ -44,6 +44,17 @@ export default class ASSelection {
     }, sheetId);
   }
 
+  static fromASLocations({ origin, range, sheetId }: ({
+    origin: ASIndex;
+    range: ASRange;
+    sheetId?: string;
+  })): ASSelection {
+    return new ASSelection({
+      origin: origin.obj().index,
+      range: range.obj().range
+    }, sheetId);
+  }
+
   originIsCorner(): boolean {
     const rng = this._range;
     return [rng.tl, rng.br, rng.getBL(), rng.getTR()].

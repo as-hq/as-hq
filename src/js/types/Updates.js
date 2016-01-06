@@ -1,7 +1,7 @@
 /* @flow */
 
 import type {
-  ASLocation,
+  ASLocationObject,
   ASCellObject,
   RangeDescriptor,
   RangeKey
@@ -28,7 +28,7 @@ export type SheetUpdate = {
 
 export type Update = CellUpdate | BarUpdate | CondFormatRuleUpdate | RangeDescriptorUpdate;
 
-export type CellUpdate = UpdateTemplate<ASCellObject, ASLocation>
+export type CellUpdate = UpdateTemplate<ASCellObject, ASLocationObject>
 
 export type BarUpdate = UpdateTemplate<Bar, BarIndex>
 
