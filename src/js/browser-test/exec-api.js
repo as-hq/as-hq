@@ -28,7 +28,7 @@ import type {
 } from '../types/Messages';
 
 import type {
-  Bar, 
+  Bar,
   BarIndex
 } from '../types/Bar';
 
@@ -101,10 +101,10 @@ export function numToAlpha(num: number): string {
 }
 
 export function colIndex(ind: number): BarIndex {
-  return { 
-    tag: "BarIndex", 
+  return {
+    tag: "BarIndex",
     barSheetId: "INIT_SHEET_ID", // #needsrefactor
-    barType: "ColumnType", 
+    barType: "ColumnType",
     barNumber: ind
   };
 }
@@ -369,7 +369,7 @@ export function removeCondFormattingRule(ruleId: string): Prf {
 function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag) {
   return {
     tag: "CondFormatRule",
-    condFormatRuleId: U.Render.getUniqueId(), 
+    condFormatRuleId: U.Render.getUniqueId(),
     condition: cond,
     cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
     condFormat: {
@@ -476,9 +476,9 @@ export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: B
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function setColumnWidth(col: number, dim: number): Prf { 
+export function setColumnWidth(col: number, dim: number): Prf {
   return apiExec(() => {
-    API.setColumnWidth(col, dim); 
+    API.setColumnWidth(col, dim);
   });
 }
 
@@ -586,7 +586,7 @@ export function cellMessageShouldSatisfy(loc: string, fn: (cs: Array<ASCellObjec
 function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
-      API.getIsCoupled(asIndex(loc)); 
+      API.getIsCoupled(asIndex(loc));
     }, {
       fulfill: (result: ?ClientMessage) => {
         if (! result) {
@@ -602,7 +602,7 @@ function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
           return;
         }
 
-        expect(clientAction.contents).toBe(isCoupled); 
+        expect(clientAction.contents).toBe(isCoupled);
         fulfill();
       },
       reject: reject
@@ -610,19 +610,19 @@ function _determineIfCoupled(loc: string, isCoupled: boolean): Prf {
   });
 }
 
-export function shouldBeCoupled(loc: string): Prf { 
-  return _determineIfCoupled(loc, true); 
+export function shouldBeCoupled(loc: string): Prf {
+  return _determineIfCoupled(loc, true);
 }
 
-export function shouldBeDecoupled(loc: string): Prf { 
-  return _determineIfCoupled(loc, false); 
+export function shouldBeDecoupled(loc: string): Prf {
+  return _determineIfCoupled(loc, false);
 }
 
 
 export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf {
   return promise((fulfill, reject) => {
     API.test(() => {
-      API.getBar(barInd); 
+      API.getBar(barInd);
     }, {
       fulfill: (result: ?ClientMessage) => {
         if (! result) {
@@ -646,22 +646,22 @@ export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf 
   });
 }
 
-export function colShouldHaveDimension(ind: number, dim: number): Prf { 
-  return barShouldSatisfy(colIndex(ind), (bar) => { 
+export function colShouldHaveDimension(ind: number, dim: number): Prf {
+  return barShouldSatisfy(colIndex(ind), (bar) => {
     logDebug(`${bar} should have dimension ${dim}`);
 
     let dimInd = bar.barProps.map(({tag}) => tag).indexOf("Dimension");
     expect(dimInd >= 0).toBe(true);
-    expect(bar.barProps[dimInd].contents).toBe(dim); 
+    expect(bar.barProps[dimInd].contents).toBe(dim);
   });
 }
 
-export function colShouldNotHaveDimensionProp(ind: number, dim: number): Prf { 
-  return barShouldSatisfy(colIndex(ind), (bar) => { 
-    logDebug(`${bar} should not have a dimension prop`); 
+export function colShouldNotHaveDimensionProp(ind: number, dim: number): Prf {
+  return barShouldSatisfy(colIndex(ind), (bar) => {
+    logDebug(`${bar} should not have a dimension prop`);
 
-    expect(bar.barProps.map(({tag}) => tag).indexOf("Dimension")).toBe(-1); 
-    
+    expect(bar.barProps.map(({tag}) => tag).indexOf("Dimension")).toBe(-1);
+
   });
 }
 
@@ -764,7 +764,7 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
     }, {
       fulfill: (result: ?ClientMessage) => {
         if (result == null) {
-          console.log("result message in shouldBeL is null."); 
+          console.log("result message in shouldBeL is null.");
           reject();
           return;
         }

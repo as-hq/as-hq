@@ -68,6 +68,8 @@ import Constants from '../Constants';
 
 import U from '../AS/Util';
 
+import ASCell from '../classes/ASCell';
+
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ws from '../AS/PersistentWebSocket';
@@ -199,18 +201,18 @@ wss.onmessage = (event: MessageEvent) => {
     case 'LoadImportedCells':
       Dispatcher.dispatch({
         _type: 'GOT_IMPORT',
-        newCells: action.contents
+        newCells: ASCell.makeCells(action.contents)
       });
       break;
   }
 };
 
-function updateIsEmpty(update: Update) { 
-  return update.newVals.length == 0 && update.oldKeys.length == 0; 
+function updateIsEmpty(update: Update) {
+  return update.newVals.length == 0 && update.oldKeys.length == 0;
 }
 
 function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
-  if (!updateIsEmpty(sheetUpdate.descriptorUpdates)) { 
+  if (!updateIsEmpty(sheetUpdate.descriptorUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
       newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
@@ -218,15 +220,15 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     });
   }
 
-  if (!updateIsEmpty(sheetUpdate.cellUpdates)) { 
+  if (!updateIsEmpty(sheetUpdate.cellUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_CELLS',
-      newCells: sheetUpdate.cellUpdates.newVals,
+      newCells: ASCell.makeCells(sheetUpdate.cellUpdates.newVals),
       oldLocs: sheetUpdate.cellUpdates.oldKeys
     });
   }
 
-  if (!updateIsEmpty(sheetUpdate.barUpdates)) { 
+  if (!updateIsEmpty(sheetUpdate.barUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_BARS',
       newBars: sheetUpdate.barUpdates.newVals,
@@ -234,7 +236,7 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     });
   }
 
-  if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) { 
+  if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_RULES',
       newRules: sheetUpdate.condFormatRulesUpdates.newVals,

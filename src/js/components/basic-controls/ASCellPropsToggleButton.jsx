@@ -4,7 +4,6 @@ import type {
   NakedRange,
   ASIndexObject,
   BooleanCellTag,
-  ASCellObject,
   ASCellProp
 } from '../../types/Eval';
 

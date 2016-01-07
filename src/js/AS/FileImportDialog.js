@@ -53,7 +53,9 @@ const FileImportDialog = {
       fileSelector.setAttribute('multiple', 'multiple');
     }
     fileSelector.addEventListener("change", (evt) => {
-      debugger;
+      // DO NOT REMOVE THE BELOW CONSOLE.LOG. THIS DIALOG BOX FAILS TO OPERATE IF IT IS
+      // REMOVED. IF YOU UNDERSTAND WHY PLEASE LET ME KNOW. (--ALEX 1/5)
+      console.log(fileSelector);
       evt.preventDefault();
       let files = evt.target.files;
       let req = request.post(FileImportDialog.url);

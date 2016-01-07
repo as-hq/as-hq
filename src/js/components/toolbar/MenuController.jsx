@@ -12,36 +12,37 @@ import ToolbarController from './ToolbarController.jsx';
 import ToolbarStore from '../../stores/ASToolbarStore';
 import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
 
+import ASCell from '../../classes/ASCell';
+
 /*
-This higher order component takes a toolbar component, a menu-style component, and styles them to be on top of one another.  
-It also adds listeners to stores by invoking ToolbarController, and makes sure that at most one dropdown is open using the 
+This higher order component takes a toolbar component, a menu-style component, and styles them to be on top of one another.
+It also adds listeners to stores by invoking ToolbarController, and makes sure that at most one dropdown is open using the
 ToolbarStore.
 */
 
 import type {
-  ToolbarControlProps, 
+  ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
 
 import type {
-  NakedRange,
-  ASCellObject
+  NakedRange
 } from '../../types/Eval';
 
 type MenuControllerDefaultProps = {
-  toolbarWidth: number; 
-  toolbarHeight: number; 
+  toolbarWidth: number;
+  toolbarHeight: number;
 };
 
 type MenuControllerProps = {
-  toolbarComponent: React.Element; 
-  menuComponent: React.Element; 
-  setControlStateFromCell: (cell: ?ASCellObject) => void; 
-  propagateControlStateChange: (nextState: any, rng: NakedRange) =>  void; 
+  toolbarComponent: React.Element;
+  menuComponent: React.Element;
+  setControlStateFromCell: (cell: ?ASCell) => void;
+  propagateControlStateChange: (nextState: any, rng: NakedRange) =>  void;
   toolbarWidth: number;
   toolbarHeight: number;
   id: string;
-  onMenuShouldClose: () => void; 
+  onMenuShouldClose: () => void;
 };
 
 type MenuControllerState = {};
@@ -59,7 +60,7 @@ export default class MenuController
 
   /*************************************************************************************************************************/
   // Mounting
-  // We have a toolbar store to make sure that at most one dropdown is open at a time. 
+  // We have a toolbar store to make sure that at most one dropdown is open at a time.
 
   componentDidMount() {
     // After the initial render, inform the ToolbarStore of our existence
@@ -97,7 +98,7 @@ export default class MenuController
     return this.props.menuComponent != null;
   }
 
-  // When the store has a change event, some dropdown was clicked. If it's not this dropdown, and this dropdown is visible, 
+  // When the store has a change event, some dropdown was clicked. If it's not this dropdown, and this dropdown is visible,
   // inform the parent, which will update its state and then render the menu invisible.
   _onDropdownClicked() {
     let lastClickedId = ToolbarStore.getLastClickedId();
@@ -115,15 +116,15 @@ export default class MenuController
     return {
       // Styling element for the menu
       menuStyle: {
-        position: 'absolute', 
+        position: 'absolute',
         display: 'inline-block', // this sets it just to the right of the button
-        marginLeft:-width, 
+        marginLeft:-width,
         // ^ this moves it back to the left edge of the toolbar control; counter-act inline-block
         top: '50%',
         height: height,
         transform: 'translateY(50%)',
         // ^ Note that the toolbar control's bottom is at toolbarHeight/2 + controlHeight/2. The above transform puts
-        // the top of the menu at this location. 
+        // the top of the menu at this location.
         zIndex: 50 // needed to display over the editor/sheet
       },
     };
@@ -131,7 +132,7 @@ export default class MenuController
 
   render(): React.Element {
     let {menuStyle} = this.getStyles();
-    let toolbarComponentWithMenu = 
+    let toolbarComponentWithMenu =
       <span>
         {this.props.toolbarComponent}
         <div style={menuStyle}>
@@ -139,7 +140,7 @@ export default class MenuController
         </div>
       </span>;
     return (
-       <ToolbarController 
+       <ToolbarController
           ref="controller"
           setControlStateFromCell={this.props.setControlStateFromCell}
           propagateControlStateChange={this.props.propagateControlStateChange}
@@ -148,9 +149,9 @@ export default class MenuController
   }
 }
 
-/* 
-  We need both components (menu and toolbar), 
-  Callbacks to pass the ToolbarController, 
+/*
+  We need both components (menu and toolbar),
+  Callbacks to pass the ToolbarController,
   Size data for styling,
   The uid of the menu component for uniquess of dropdown,
   A callback for when the menu needs to close due to uniquess of dropdown
@@ -167,6 +168,6 @@ MenuController.propTypes =  {
 };
 
 MenuController.defaultProps = {
-  toolbarWidth: 100, 
+  toolbarWidth: 100,
   toolbarHeight: 36
 };

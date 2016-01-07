@@ -20,7 +20,6 @@ import type {
   ASIndexObject,
   ASRangeObject,
   ASSheet,
-  ASCellObject,
   ASLanguage,
   ASSelectionObject
 } from '../types/Eval';
@@ -137,6 +136,10 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   getCurrentSheet() {
     return _data.currentSheet;
+  },
+
+  getCurrentSheetId(): string {
+    return ASSheetStateStore.getCurrentSheet().sheetId;
   },
 
   setCurrentSheet(sht) {

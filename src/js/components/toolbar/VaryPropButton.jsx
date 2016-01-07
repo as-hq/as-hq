@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  ASCellObject,
   NakedRange
 } from '../../types/Eval';
 
@@ -17,6 +16,8 @@ import {Styles} from 'material-ui';
 import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
 
+import ASCell from '../../classes/ASCell';
+
 import ToolbarButton from './ToolbarButton.jsx';
 import ToolbarController from './ToolbarController.jsx';
 
@@ -25,15 +26,15 @@ This component is for things like the Bold and Italic buttons on the Toolbar
 */
 
 type VaryPropButtonProps = {
-  propTag: string; 
-  tooltip: string; 
-  iconName: string; 
+  propTag: string;
+  tooltip: string;
+  iconName: string;
 };
 
 type VaryPropButtonDefaultProps = {};
 
 type VaryPropButtonState = {
-  iconColor: string; 
+  iconColor: string;
 };
 
 export default class VaryPropButton
@@ -45,7 +46,7 @@ export default class VaryPropButton
   constructor(props: VaryPropButtonProps) {
     super(props);
 
-    this.state = { 
+    this.state = {
       iconColor: Styles.Colors.grey500
     };
   }
@@ -54,7 +55,7 @@ export default class VaryPropButton
     console.log("setting backend");
     // TODO: Not quite the right function to call here
     switch (this.props.propTag) {
-      case "Money": 
+      case "Money":
         API.setFormat("Money", rng);
         break;
       case "Percentage":
@@ -68,8 +69,8 @@ export default class VaryPropButton
   }
 
   /* When the cell updates due to store change, push the button if the prop corresponding to our tag isn't null */
-  _setControlStateFromCell(cell: ?ASCellObject) {
-    let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
+  _setControlStateFromCell(cell: ?ASCell) {
+    let prop = (cell != null) ? cell.getPropByTag(this.props.propTag) : null;
     this.refs.button.setPushState(prop != null);
     // We want the bold button's icon to be black upon a bold cell, default color otherwise
     if (this.props.propTag === "Bold"){
@@ -91,10 +92,10 @@ export default class VaryPropButton
     let {iconName, tooltip} = this.props;
 
     // Define the button control, and note that we always show the tooltip for this component
-    let button = 
+    let button =
       <ToolbarButton
         ref="button"
-        onClick={this._onClick.bind(this)}  
+        onClick={this._onClick.bind(this)}
         iconName={iconName}
         tooltip={tooltip}
         iconColor={this.state.iconColor} />;

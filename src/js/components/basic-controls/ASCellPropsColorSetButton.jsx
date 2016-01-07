@@ -3,7 +3,6 @@
 import type {
   NakedRange,
   ASIndexObject,
-  ASCellObject,
   ASCellProp
 } from '../../types/Eval';
 

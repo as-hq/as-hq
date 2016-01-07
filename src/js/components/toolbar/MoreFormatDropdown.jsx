@@ -8,14 +8,15 @@ import ToolbarController from './ToolbarController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
+import ASCell from '../../classes/ASCell';
+
 import type {
-  ToolbarControlProps, 
+  ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
 
 import type {
-  NakedRange,
-  ASCellObject
+  NakedRange
 } from '../../types/Eval';
 
 type MoreFormatDropdownDefaultProps = {};
@@ -61,9 +62,9 @@ export default class MoreFormatDropdown
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCellObject): string {
-    return "Number"; 
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
+  _getMenuValueFromCell(cell: ASCell): string {
+    return "Number";
   }
 
   _propagateControlStateChange(nextValue: string, rng: NakedRange) {

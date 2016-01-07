@@ -3,7 +3,6 @@
 import type {
   NakedRange,
   ASIndexObject,
-  ASCellObject,
   ASCellProp
 } from '../../types/Eval';
 
@@ -34,7 +33,7 @@ type ASCellPropControlProps<T> = {
 
 export default React.createClass({
 
-  /* We need to know the control, tag of the prop (Bold), how to update control state if stores change, and how to update backend if 
+  /* We need to know the control, tag of the prop (Bold), how to update control state if stores change, and how to update backend if
   control changes */
   propTypes: {
     propTag: React.PropTypes.string.isRequired,
@@ -53,21 +52,21 @@ export default React.createClass({
     CellStore.removeChangeListener(this._onActiveCellChange);
   },
 
-  /* 
+  /*
     When the active selection or cell change, get the active cell's prop via the propTag and tell the
-    underlying control to change its state based on that prop. For example, change loc to A5; if A5 is bold, 
+    underlying control to change its state based on that prop. For example, change loc to A5; if A5 is bold,
     the bold button needs to be pushed in.
   */
   _onActiveCellChange() {
     let ac = CellStore.getActiveCell(),
-        prop = (ac != null) ? U.Cell.getPropByTag(this.props.propTag, ac) : null;
+        prop = (ac != null) ? ac.getPropByTag(this.props.propTag) : null;
     this.props.setControlStateFromCellProp(prop);
   },
 
   /*
-    When the control's state changes, bubble up here and use that state and the current active selection to 
+    When the control's state changes, bubble up here and use that state and the current active selection to
     change props on backend. For example, user presses bold button while A5 is selected -> API message to change prop, which
-    in turn will cause the cell to become bold. We shouldn't use any, but JS doesn't like T. 
+    in turn will cause the cell to become bold. We shouldn't use any, but JS doesn't like T.
   */
   onControlStateChange(nextState: any) {
     console.log("control about to set backend");

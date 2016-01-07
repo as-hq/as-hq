@@ -1,19 +1,20 @@
 /* @flow */
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-import {Styles, FontIcon} from 'material-ui';
-
 import type {
-  Font, 
-  ToolbarControlProps, 
+  Font,
+  ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
 
 import type {
-  ASRangeObject,
-  ASCellObject
+  ASRangeObject
 } from '../../types/Eval';
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {Styles, FontIcon} from 'material-ui';
+
+import ASCell from '../../classes/ASCell';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
@@ -50,9 +51,9 @@ export default class FontPicker
     });
     let moreFontIcon = <FontIcon style={{backgroundColor: Styles.Colors.grey50}} className="material-icons"> {"add_box"} </FontIcon>;
     menuItems.push({
-      tag: 'MenuItem', 
-      leftFontIcon: moreFontIcon, 
-      primaryText: "More Fonts", 
+      tag: 'MenuItem',
+      leftFontIcon: moreFontIcon,
+      primaryText: "More Fonts",
       value: "",
       onTouchTap: this._onMoreFonts.bind(this)});
     return menuItems;
@@ -74,8 +75,8 @@ export default class FontPicker
   /*************************************************************************************************************************/
   // Helper methods to pass to generator
 
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked 
-  _getMenuValueFromCell(cell: ASCellObject): string {
+  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
+  _getMenuValueFromCell(cell: ASCell): string {
     return "Arial"; // TODO: something like cell.cellProps.font.fontName
   }
 
@@ -104,7 +105,7 @@ export default class FontPicker
         toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
         propagateControlStateChange={this._propagateControlStateChange.bind(this)}
         initialValue="Arial"
-        menuWidth={65} 
+        menuWidth={65}
         toolbarControlWidth={200}
         id="FontPicker" />
     );

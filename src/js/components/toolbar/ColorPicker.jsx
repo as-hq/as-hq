@@ -66,7 +66,7 @@ export default React.createClass({
 
   _setControlStateFromCell(cell) {
     let newColor = Constants.DefaultColors[this.props.propTag];
-    let prop = (cell != null) ? U.Cell.getPropByTag(this.props.propTag, cell) : null;
+    let prop = (cell != null) ? cell.getPropByTag(this.props.propTag) : null;
     if (prop != null) {
       newColor = prop.contents;
     }
@@ -94,7 +94,7 @@ export default React.createClass({
 
   render() {
     let {colorPickerStyle, paperStyle} = this.getStyles();
-    let button = 
+    let button =
       <ToolbarButton
         usePushState={false}
         spacing={7}
@@ -104,7 +104,7 @@ export default React.createClass({
         includeDropdownArrow={true}
         tooltip={this.props.tooltip}
         onClick={this._onButtonClick} />;
-    let colorPicker = this.state.pickerVisible ? 
+    let colorPicker = this.state.pickerVisible ?
         <div style={colorPickerStyle} >
           <ColorPicker
             onChangeComplete={this.handleColorChange}
@@ -127,5 +127,3 @@ export default React.createClass({
   }
 
 });
-
-

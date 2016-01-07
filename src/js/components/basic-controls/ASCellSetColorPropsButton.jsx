@@ -4,7 +4,6 @@
 //   NakedRange,
 //   ASIndexObject,
 //   ColorCellTag,
-//   ASCellObject,
 //   ASCellProp
 // } from '../../types/Eval';
 //

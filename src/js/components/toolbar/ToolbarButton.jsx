@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  ASCellObject,
   ASRangeObject
 } from '../../types/Eval';
 
@@ -25,9 +24,9 @@ It also has the ability to display a tooltip (blurb of what the button does upon
 type ToolbarButtonDefaultProps = {
   width: number;
   height: number;
-  spacing: number; 
-  onClick: (e: SyntheticMouseEvent, state: any) => void; 
-  iconName: string; 
+  spacing: number;
+  onClick: (e: SyntheticMouseEvent, state: any) => void;
+  iconName: string;
   iconElement: ?React.Element;
   tooltip: string; 
   usePushState: boolean;
@@ -40,11 +39,11 @@ type ToolbarButtonDefaultProps = {
 type ToolbarButtonProps = {
   width: number;
   height: number;
-  spacing: number; 
+  spacing: number;
   onClick: (e: SyntheticMouseEvent, state: any) => void; // #needsrefactor only any because type of second arg depends on a prop...
-  iconName: string; 
+  iconName: string;
   iconElement: ?React.Element;
-  tooltip: string; 
+  tooltip: string;
   usePushState: boolean;
   showTooltip: boolean;
   includeDropdownArrow: boolean;
@@ -53,8 +52,8 @@ type ToolbarButtonProps = {
 };
 
 type ToolbarButtonState = {
-  pushed: boolean; 
-  hovered: boolean; 
+  pushed: boolean;
+  hovered: boolean;
 };
 
 export default class ToolbarButton
@@ -81,7 +80,7 @@ export default class ToolbarButton
       12) Color of the icon
   */
 
-  /* 
+  /*
     We keep the following state:
       1) pushed; is the button pushed?
   */
@@ -89,8 +88,8 @@ export default class ToolbarButton
   constructor(props: ToolbarButtonProps) {
     super(props);
 
-    this.state = { 
-      pushed: false, 
+    this.state = {
+      pushed: false,
       hovered: false
     }
   }
@@ -110,7 +109,7 @@ export default class ToolbarButton
     }
   }
 
-  // Push the button (upon parent's request) 
+  // Push the button (upon parent's request)
   setPushState(shouldBePushed: boolean) {
     if (this.props.usePushState) {
       this.setState({pushed: shouldBePushed});
@@ -133,17 +132,17 @@ export default class ToolbarButton
       pushedColor: Styles.Colors.pink300,
       buttonStyle: {
         display: 'inline-block', // buttons should stack horizontally
-        position: 'relative', 
-        top: '50%', 
-        transform: 'translateY(-50%)', 
-        width: this.props.width, 
+        position: 'relative',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        width: this.props.width,
         minWidth: this.props.width, // needed to make override current minWidth, which prevents width from having an effect if too small
         height: this.props.height,
         marginLeft: this.props.spacing, // spacing between buttons
         // background color gets in the way of hoverColor and the default is already set by toolbarStyle
       },
-      // Put an icon in the center of the button. If there's an arrow as well, the icon won't be centered horizontally in the middle. 
-      iconStyle: { 
+      // Put an icon in the center of the button. If there's an arrow as well, the icon won't be centered horizontally in the middle.
+      iconStyle: {
         position: 'absolute',
         top: '50%',
         left: this.props.includeDropdownArrow ? `calc(50% - ${this.props.arrowSize/2.0 + 'px'})` : '50%',
@@ -167,8 +166,8 @@ export default class ToolbarButton
     if (this.state.pushed) {
       buttonStyle.backgroundColor = pushedColor;
     }
-    // If the user passes in their own icon element, use that, or use their material-ui icon, or default 
-    let iconElement = (this.props.iconElement == null) ? 
+    // If the user passes in their own icon element, use that, or use their material-ui icon, or default
+    let iconElement = (this.props.iconElement == null) ?
       <FontIcon style={iconStyle} className="material-icons"> {this.props.iconName} </FontIcon>
       : this.props.iconElement;
 
@@ -178,11 +177,11 @@ export default class ToolbarButton
       arrowElement = <DropDownArrow style={arrowStyle} />;
     }
 
-    // Display the tooltip only if the user says so, and if the control isn't visible. 
+    // Display the tooltip only if the user says so, and if the control isn't visible.
     // Note that we use tooltip for the tooltipId, so this technically assumes (reasonably) that tooltips are different
-    let buttonElement = (this.props.showTooltip) ? 
+    let buttonElement = (this.props.showTooltip) ?
       <span>
-        <FlatButton 
+        <FlatButton
           data-for={this.props.tooltip}
           data-tip={this.props.tooltip}
           style={buttonStyle}
@@ -192,16 +191,16 @@ export default class ToolbarButton
           {iconElement}
           {arrowElement}
         </FlatButton>
-        <Tooltip 
+        <Tooltip
           id={this.props.tooltip}
           delayHide={50}
           delayShow={300}
           place="bottom"
           type="info"
-          effect="solid"          
+          effect="solid"
           offset={{'top': 10, 'left': 0}} />
       </span>
-    : <FlatButton 
+    : <FlatButton
         style={buttonStyle}
         onClick={this._onClick.bind(this)}
         onMouseLeave={this._onMouseLeave.bind(this)}
@@ -213,17 +212,17 @@ export default class ToolbarButton
     return buttonElement;
   }
 
-  
+
 }
 
 ToolbarButton.propTypes = {
-  width: React.PropTypes.number, 
+  width: React.PropTypes.number,
   height: React.PropTypes.number,
-  spacing: React.PropTypes.number, 
-  onClick: React.PropTypes.func, 
-  iconName: React.PropTypes.string, 
-  iconElement: React.PropTypes.object, 
-  tooltip: React.PropTypes.string, 
+  spacing: React.PropTypes.number,
+  onClick: React.PropTypes.func,
+  iconName: React.PropTypes.string,
+  iconElement: React.PropTypes.object,
+  tooltip: React.PropTypes.string,
   usePushState: React.PropTypes.bool,
   showTooltip: React.PropTypes.bool,
   includeDropdownArrow: React.PropTypes.bool,

@@ -16,8 +16,7 @@ import type {
   ASRangeObject,
   ASLocation,
   ASSheet,
-  ASWorkbook,
-  ASCellObject
+  ASWorkbook
 } from '../../types/Eval';
 
 import type {
@@ -28,7 +27,7 @@ import type {
 import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
-  ServerMessage, 
+  ServerMessage,
   EvalInstruction
 } from '../../types/Messages';
 
@@ -44,20 +43,10 @@ let CU = {
 
   makeEvalInstruction(asIndex: ASIndexObject, xpObj: ASClientExpression): EvalInstruction {
     return  {
-      tag: "EvalInstruction", 
-      evalXp: xpObj, 
+      tag: "EvalInstruction",
+      evalXp: xpObj,
       evalLoc: asIndex
-    }; 
-  },
-
-  makeEmptyCell(asIndex?: ASIndexObject): ASCellObject {
-    let cl = asIndex || {tag:"index",
-              sheetId: "TEST_SHEET_ID",
-              index:{row: -1, col:-1}},
-        ce = {tag:"Expression",expression:"",language:null},
-        cv = {tag:"NoValue", contents: []},
-        cp = [];
-    return {cellLocation:cl, cellExpression:ce, cellValue:cv, cellProps:cp};
+    };
   },
 
   makeASIndex(sheetId: string, col: number, row: number): ASIndexObject {
@@ -152,7 +141,7 @@ let CU = {
     } else {
       throw new Error('Does not support workbooks yet');
     }
-  }, 
+  },
 
   indexToRange(ind: NakedIndex): NakedRange {
     return { tl: ind, br: ind };
@@ -188,7 +177,7 @@ let CU = {
   },
 
   asRangeToASIndices(rng: ASRangeObject): Array<ASIndexObject> {
-    let inds = [], 
+    let inds = [],
         {range, sheetId} = rng;
     for (var r = range.tl.row; r <= range.br.row; r++) {
       for (var c = range.tl.col; c <= range.br.col; c++) {
@@ -198,12 +187,12 @@ let CU = {
     return inds;
   },
 
-  asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndexObject> { 
-    let indicesList = locs.map((l) => { 
-      switch (l.tag) { 
-        case 'range': return CU.asRangeToASIndices(l); 
-        case 'index': return [l]; 
-        default: throw "tag invalid in a location passed into asLocsToASIndices"; 
+  asLocsToASIndices(locs: Array<ASLocation>): Array<ASIndexObject> {
+    let indicesList = locs.map((l) => {
+      switch (l.tag) {
+        case 'range': return CU.asRangeToASIndices(l);
+        case 'index': return [l];
+        default: throw "tag invalid in a location passed into asLocsToASIndices";
       }
     });
 

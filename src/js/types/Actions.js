@@ -1,10 +1,11 @@
 /* @flow */
 
+import type ASCell from '../classes/ASCell';
+
 import type {
   ASIndexObject,
   ASLocation,
   ASRangeObject,
-  ASCellObject,
   ASExpression,
   ASValue,
   ASCompositeValue,
@@ -18,7 +19,7 @@ import type {
   ASViewingWindow
 } from './State';
 
-import type { 
+import type {
   CondFormatRule
 } from './CondFormat';
 
@@ -54,7 +55,7 @@ export type GotSelectionAction = {
 
 export type GotUpdatedCellsAction = {
   _type: 'GOT_UPDATED_CELLS';
-  newCells: Array<ASCellObject>;
+  newCells: Array<ASCell>;
   oldLocs: Array<ASLocation>;
 };
 
@@ -72,7 +73,7 @@ export type GotUpdatedBarsAction = {
 
 export type ImportAction = {
   _type: 'GOT_IMPORT';
-  newCells: Array<ASCellObject>;
+  newCells: Array<ASCell>;
 };
 
 export type ClearedAction = {
@@ -132,7 +133,7 @@ export type FindDecrementedAction = {
 export type GridKeyPressedAction = {
   _type: 'GRID_KEY_PRESSED';
   xpStr: string;
-  cursorPos: number; 
+  cursorPos: number;
 };
 
 export type EditorChangedAction = {

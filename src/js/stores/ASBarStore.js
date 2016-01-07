@@ -2,13 +2,6 @@
 
 // Bar means row or col
 
-import {logDebug} from '../AS/Logger';
-
-import Dispatcher from '../Dispatcher';
-import Constants from '../Constants';
-import BaseStore from './BaseStore';
-import Util from '../AS/Util';
-
 import type {
   Bar,
   BarProp,
@@ -20,13 +13,21 @@ import type {
   ASBarLines
 } from '../types/State';
 
+import {logDebug} from '../AS/Logger';
+
+import Dispatcher from '../Dispatcher';
+import Constants from '../Constants';
+import BaseStore from './BaseStore';
+import Util from '../AS/Util';
+import ObjectDict from '../classes/ObjectDict';
+
 let _data = {
-  bars: ({}: ASBarLines),
+  bars: new ObjectDict(),
   lastUpdatedBars: ([]: Array<Bar>)
 };
 
 // Dict that takes in a RowType/ColumnType and maps to ordered pairs of row/col indices and their heights/widths (null if not set)
-type BarDimensions = { [key: BarType]: Array<[number,?number]> }; 
+type BarDimensions = {[key: BarType]: Array<[number,?number]>};
 
 const ASBarStore = Object.assign({}, BaseStore, {
 
@@ -34,7 +35,7 @@ const ASBarStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       case 'GOT_UPDATED_BARS':
-        _data.lastUpdatedBars = []; 
+        _data.lastUpdatedBars = [];
 
         let oldBarLocs = action.oldBarLocs;
         ASBarStore._removeBarsAt(oldBarLocs);
@@ -58,7 +59,7 @@ const ASBarStore = Object.assign({}, BaseStore, {
             dims[barIndex.barType].push([barIndex.barNumber, dimensionProp.contents]);
             break;
         }
-      } else { 
+      } else {
         dims[barIndex.barType].push([barIndex.barNumber, null]);
       }
     });
@@ -67,30 +68,30 @@ const ASBarStore = Object.assign({}, BaseStore, {
   },
 
   // #incomplete must also filter by sheet
-  getLastUpdatedBarsDimensions(): BarDimensions { 
+  getLastUpdatedBarsDimensions(): BarDimensions {
     return ASBarStore._getDimensions(_data.lastUpdatedBars);
   },
 
   _updateBars(bars: Array<Bar>) {
-    bars.forEach((b) => _data.bars[b.barIndex] = b); 
+    bars.forEach((b) => {
+      _data.bars.set(b.barIndex, b);
+    });
     _data.lastUpdatedBars = _data.lastUpdatedBars.concat(bars);
   },
 
   _removeBarsAt(barInds: Array<BarIndex>) {
     barInds.forEach((i) => {
-      if (_data.bars[i] != null) {
-        delete _data.bars[i]; 
-      }
+      _data.bars.del(i);
     });
 
     _data.lastUpdatedBars = _data.lastUpdatedBars.concat(ASBarStore._blankBarsAt(barInds));
   },
 
-  _blankBarsAt(inds: Array<BarIndex>): Array<Bar> { 
+  _blankBarsAt(inds: Array<BarIndex>): Array<Bar> {
     return inds.map((i) => {
       return {
-        tag: 'Bar', 
-        barIndex: i, 
+        tag: 'Bar',
+        barIndex: i,
         barProps: []
       };
     });

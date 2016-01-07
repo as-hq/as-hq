@@ -1,16 +1,15 @@
 /* @flow */
 
-import type { 
-  ASCellObject, 
+import type {
   ASLocation, 
-  ASCellProp, 
-  ASExpression, 
+  ASCellProp,
+  ASExpression,
   ASRangeObject
 } from'./Eval';
 
 export type CondFormatRule = {
   tag: 'CondFormatRule';
-  condFormatRuleId: string; 
+  condFormatRuleId: string;
   condFormat: ASCellProp;
   condition: CondFormatCondition;
   cellLocs: Array<ASRangeObject>;

@@ -1,7 +1,6 @@
 /* @flow */
 
-import type { 
-  ASCellObject, 
+import type {
   ASLocation, 
   ASCellProp
 } from'./Eval';
