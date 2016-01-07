@@ -1768,13 +1768,13 @@ instance ShowE EValue where
   showE (EValueE s) = "#ERROR!"
 
 eAmpersand :: EFunc
-eAmpersand c e = do
-  let f = "&"
-  val1 <- getRequired f 1 e :: ThrowsError EValue
-  val2 <- getRequired f 2 e :: ThrowsError EValue
-  let makeString :: (EValue, Int) -> ThrowsError String
-      makeString (x,i) = case x of
-                 EValueE s -> Left $ ArgType f i "non-error value" "err"
-                 otherwise -> Right $ showE x
-  [str1, str2] <- mapM makeString (zip [val1, val2] [1,2])
+eAmpersand context arguments = do
+  let functionName = "&"
+  val1 <- getRequired functionName 1 arguments :: ThrowsError EValue
+  val2 <- getRequired functionName 2 arguments :: ThrowsError EValue
+  let makeValueString :: (EValue, Int) -> ThrowsError String
+      makeValueString (value,argNumber) = case value of
+                 EValueE s -> Left $ ArgType functionName argNumber "non-error value" "err"
+                 otherwise -> Right $ showE value
+  [str1, str2] <- mapM makeValueString (zip [val1, val2] [1,2])
   stringResult $ str1 ++ str2
