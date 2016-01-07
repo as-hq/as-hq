@@ -25,10 +25,12 @@ class ASExecutionResult(object):
     Stores information about what took place.
     """
     execution_count = None
-    error_before_exec = None
-    error_in_exec = None
-    result = None
-    display = []
+    
+    def __init__(self):
+        self.error_before_exec = None
+        self.error_in_exec = None
+        self.result = None
+        self.display = []
 
     @property
     def success(self):
@@ -239,6 +241,7 @@ class ASShell(InteractiveShell):
     with self.builtin_trap:
         cell_name = self.compile.cache(cell, self.execution_count)
 
+
         with self.display_trap:
             # Compile to bytecode
             try:
@@ -279,7 +282,7 @@ class ASShell(InteractiveShell):
                                 isolated=isolated)
 
             # capture all stdout during eval
-            result.display.insert(0, sys.stdout.getvalue())
+            result.display.insert(0,sys.stdout.getvalue())
 
             # Reset this so later displayed values do not modify the
             # ExecutionResult
@@ -516,10 +519,13 @@ class ASShell(InteractiveShell):
         self.write_err('\n' + self.get_exception_only())
 
   def _init_eval_stdout(self):
+    # print("PRE EXEC", file=sys.__stdout__)
     sys.stdout = self.user_stdout
 
   def _close_eval_stdout(self):
-    sys.stdout.flush()
+    # print("POST EXEC", file=sys.__stdout__)
+    # it's *actually* faster to declare a new StringIO than to flush the old one, because Python
+    self.user_stdout = StringIO()
     sys.stdout = sys.__stdout__
 
   def auto_rewrite_input(self, cmd):

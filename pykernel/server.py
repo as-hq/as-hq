@@ -30,7 +30,9 @@ if __name__ == '__main__':
 # pls leave
 
   # shell = ASShell(user_ns=kernel.get_initial_ns())
-#   print shell.run_cell('class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\ncPickle.dumps(A())', 'sheetid')
+  # print shell.run_header('print "hi"; a=1; a', 'sheetid2')
+  # print shell.run_cell('a+2', 'sheetid')
+  # print shell.run_cell('print "fuck you"', 'sheetid')
 #   expr = """
 # class A(object):
 #   def __init__(self):
