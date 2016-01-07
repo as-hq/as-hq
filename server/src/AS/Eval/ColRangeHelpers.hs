@@ -1,4 +1,4 @@
-module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices) where
+module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices, colRangeWithCellMapToRange) where
 
 import Prelude
 
@@ -52,10 +52,10 @@ lookUpDBCellsByCol conn sid column =  do
 
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
-evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column = virtualCellsMapCellsByCol virtualCellsMap sid column
+evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column = cellMapCellsByCol virtualCellsMap sid column
 
-virtualCellsMapCellsByCol :: CellMap -> ASSheetId -> Col -> [ASCell]
-virtualCellsMapCellsByCol virtualCellsMap sid column = 
+cellMapCellsByCol :: CellMap -> ASSheetId -> Col -> [ASCell]
+cellMapCellsByCol virtualCellsMap sid column = 
   filter (\c -> (getCellCol c == column && locSheetId (c^.cellLocation) == sid)) $ cellsInCtx where
     cellsInCtx = M.elems virtualCellsMap
 
@@ -123,10 +123,11 @@ colRangeWithDBAndContextToRange conn ctx cr = do
 -- ancestor cells were loaded in the beginning of dispatch.
 -- Note: this is very inefficient: this converts cells to indices, where they're later converted back to cells.
 -- Note: I actually don't know the best way to do this directly.
-colRangeWithContextToRange :: EvalContext -> ASColRange -> ASRange
-colRangeWithContextToRange ctx cr =
+
+colRangeWithCellMapToRange :: CellMap -> ASColRange -> ASRange
+colRangeWithCellMapToRange cellMap cr =
   let cellsInCol :: Col -> [ASCell]
-      cellsInCol column = evalContextCellsByCol ctx sid column
+      cellsInCol column = cellMapCellsByCol cellMap sid column
       orientedCr@(ColRange sid (coord1, col2)) = orientColRange cr
       cellsByCol = map cellsInCol [(coord1 ^. col).. (col2 ^. col)] -- :: [[ASIndex]]
   in
@@ -135,7 +136,8 @@ colRangeWithContextToRange ctx cr =
 -- Uses the evalcontext and column range to extract the indices used in a column range.
 -- Used in evaluateLanguage.
 colRangeWithContextToIndicesRowMajor2D :: EvalContext -> ASColRange -> [[ASIndex]]
-colRangeWithContextToIndicesRowMajor2D ctx c = rangeToIndicesRowMajor2D $ colRangeWithContextToRange ctx c
+colRangeWithContextToIndicesRowMajor2D ctx c =
+  rangeToIndicesRowMajor2D $ colRangeWithCellMapToRange (virtualCellsMap ctx) c
 
 -- For use in conditional formatting and shortCircuit.
 -- TODO: timchu, 12/29/15. Haven't checked that anything works with cond format.

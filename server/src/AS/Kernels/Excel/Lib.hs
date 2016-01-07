@@ -4,6 +4,7 @@ import AS.Types.Excel
 import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
+import AS.Eval.ColRangeHelpers (colRangeWithCellMapToRange)
 
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
@@ -432,7 +433,8 @@ refToEntity context (ERef l@(IndexRef i)) = case (asValueToEntity v) of
   where
     v = case (M.lookup i (evalMap context)) of
       Nothing -> dbLookup (dbConn context) i
-      c -> cellToFormattedVal c 
+      c -> cellToFormattedVal c
+
 refToEntity context (ERef (l@(RangeRef r))) =
   if any isNothing vals
       then Left $ CannotConvertToExcelValue l
@@ -444,7 +446,23 @@ refToEntity context (ERef (l@(RangeRef r))) =
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
     mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
     dbVals = dbLookupBulk (dbConn context) needDB
-    vals = map toEValue $ mapVals ++ dbVals 
+    vals = map toEValue $ mapVals ++ dbVals
+
+refToEntity context (ERef (colRange@(ColRangeRef cr))) =
+  if any isNothing vals
+      then Left $ CannotConvertToExcelValue l
+      else Right $ EntityMatrix $ EMatrix (trace' "WIDTH: " $ (getWidth l)) (trace' "HEIGHT: " (getHeight l)) $ V.fromList $ catMaybes vals
+  where
+    mp = evalMap context
+    r = colRangeWithCellMapToRange mp cr
+    l = RangeRef r
+    idxs = rangeToIndicesRowMajor r
+    (inMap,areBlank) = partition ((flip M.member) mp) idxs
+    -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
+    mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
+    blankVals = map (\index -> return NoValue) (trace' "AREBLANK: " areBlank)
+    vals = map toEValue $ mapVals ++ blankVals
+
 refToEntity _ (ERef (PointerRef _)) = Left $ REF $ "Can't convert pointer to entity"
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
