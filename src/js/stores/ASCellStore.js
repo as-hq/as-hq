@@ -181,8 +181,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   getActiveCellDisplay(): ?string {
     let cell = ASCellStore.getActiveCell();
-    if (!!cell && !!cell.cellDisplay) {
-      return cell.cellDisplay;
+    if (!!cell) {
+      // #needsrefactor mgao can you flow this file with classes
+      return cell._display;
     } else {
       return null;
     }
