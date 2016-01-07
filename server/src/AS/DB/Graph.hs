@@ -1,6 +1,7 @@
 module AS.DB.Graph where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import qualified Data.List as L
 import Data.List.NonEmpty as N (fromList)
 
@@ -17,6 +18,7 @@ import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.DB
 import AS.Types.Eval
+import AS.Types.Network
 
 import AS.Config.Settings as S
 import qualified AS.DB.API as DB
@@ -24,7 +26,6 @@ import AS.DB.Internal
 import AS.Logging
 import AS.Parsing.Substitutions (getDependencies)
 
-import Data.Maybe
 import Control.Lens
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -37,9 +38,9 @@ import Control.Monad.Trans.Either
 -- added to the graph.)
 -- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
 -- including pointer, range, and index. 
-setCellsAncestors :: [ASCell] -> EitherTExec ()
-setCellsAncestors cells = do
-  setRelations relations 
+setCellsAncestors :: GraphAddress -> [ASCell] -> EitherTExec ()
+setCellsAncestors addr cells = do
+  setRelations addr relations 
   printObjT "Set cell ancestors" relations
   where
     depSets = map getAncestorsForCell cells
@@ -49,21 +50,21 @@ setCellsAncestors cells = do
 -- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
 getAncestorsForCell c = if not $ isEvaluable c
-  then [IndexRef . keyIndex . fromJust $ c^.cellRangeKey]
+  then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
   else getDependencies (locSheetId $ c^.cellLocation) (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 
-removeAncestorsAt :: [ASIndex] -> EitherTExec ()
-removeAncestorsAt = setCellsAncestors . blankCellsAt
+removeAncestorsAt :: GraphAddress -> [ASIndex] -> EitherTExec ()
+removeAncestorsAt addr = (setCellsAncestors addr) . blankCellsAt
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
 -- introduce errors. 
-setCellsAncestorsForce :: [ASCell] -> IO ()
-setCellsAncestorsForce cells = runEitherT (setCellsAncestors cells) >> return ()
+setCellsAncestorsForce :: GraphAddress -> [ASCell] -> IO ()
+setCellsAncestorsForce addr cells = runEitherT (setCellsAncestors addr cells) >> return ()
 
-removeAncestorsAtForced :: [ASIndex] -> IO ()
-removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
+removeAncestorsAtForced :: GraphAddress -> [ASIndex] -> IO ()
+removeAncestorsAtForced addr locs = runEitherT (removeAncestorsAt addr locs) >> return ()
 
 
 ------------------------------------------------------------------------------------------------------------------
@@ -71,10 +72,10 @@ removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
 
 -- Use ZMQ to send a message to the graph DB and get the list of ByteStrings as a multi-part reply 
 -- Currently using request-reply architecture 
-execGraphQuery :: BL.ByteString -> IO [B.ByteString]
-execGraphQuery msg = runZMQ $ do
+execGraphQuery :: GraphAddress -> BL.ByteString -> IO [B.ByteString]
+execGraphQuery addr msg = runZMQ $ do
   reqSocket <- socket Req
-  connect reqSocket S.graphDbHost
+  connect reqSocket addr
   send' reqSocket [] msg  -- using lazy bytestring send function
   liftIO $ printObj "sent message to graph db" msg
   receiveMulti reqSocket
@@ -102,37 +103,37 @@ produceReadMessage r input = BS.show $ L.intercalate msgPartDelimiter elements
 
 -- Deal with the entire cycle of a read request. First produce the read message, then execute the query, 
 -- then process the reply. 
-processReadRequest :: (Read2 a, Show2 a) => GraphReadRequest -> [GraphReadInput] -> EitherTExec [a]
-processReadRequest readType input = do 
+processReadRequest :: (Read2 a, Show2 a) => GraphAddress -> GraphReadRequest -> [GraphReadInput] -> EitherTExec [a]
+processReadRequest addr readType input = do 
   let msg = produceReadMessage readType input
-  reply <- liftIO $ execGraphQuery msg
+  reply <- liftIO $ execGraphQuery addr msg
   processGraphReply reply
 
-getDescendants :: [GraphReadInput] -> EitherTExec [GraphDescendant]
-getDescendants = processReadRequest GetDescendants
+getDescendants :: GraphAddress -> [GraphReadInput] -> EitherTExec [GraphDescendant]
+getDescendants addr = processReadRequest addr GetDescendants
 
 -- Given a list of indices, returns descendants as a list of indices
-getDescendantsIndices :: [ASIndex] -> EitherTExec [ASIndex]
-getDescendantsIndices indices = fmap descendantsToIndices $ getDescendants $ indicesToGraphReadInput indices
+getDescendantsIndices :: GraphAddress -> [ASIndex] -> EitherTExec [ASIndex]
+getDescendantsIndices addr indices = fmap descendantsToIndices $ getDescendants addr $ indicesToGraphReadInput indices
 
-getProperDescendantsIndices :: [ASIndex] -> EitherTExec [ASIndex]
-getProperDescendantsIndices indices = fmap descendantsToIndices $ getProperDescendants $ indicesToGraphReadInput indices
+getProperDescendantsIndices :: GraphAddress -> [ASIndex] -> EitherTExec [ASIndex]
+getProperDescendantsIndices addr indices = fmap descendantsToIndices $ getProperDescendants addr $ indicesToGraphReadInput indices
 
-getProperDescendants :: [GraphReadInput] -> EitherTExec [GraphDescendant]
-getProperDescendants = processReadRequest GetProperDescendants
+getProperDescendants :: GraphAddress -> [GraphReadInput] -> EitherTExec [GraphDescendant]
+getProperDescendants addr = processReadRequest addr GetProperDescendants
 
-getImmediateAncestors :: [GraphReadInput] -> EitherTExec [GraphAncestor]
-getImmediateAncestors = processReadRequest GetImmediateAncestors
+getImmediateAncestors :: GraphAddress -> [GraphReadInput] -> EitherTExec [GraphAncestor]
+getImmediateAncestors addr = processReadRequest addr GetImmediateAncestors
 
 -- #incomplete. In the one place this is called, the non-immediate descendants don't cause any
 -- problems, so this works as a temporary solution. 
-getImmediateDescendants :: [GraphReadInput] -> EitherTExec [GraphDescendant]
+getImmediateDescendants :: GraphAddress -> [GraphReadInput] -> EitherTExec [GraphDescendant]
 getImmediateDescendants = getDescendants
 
 -- ugly and bad
-getImmediateDescendantsForced :: [ASIndex] -> IO [ASIndex]
-getImmediateDescendantsForced locs = do 
-  e <- runEitherT $ getImmediateDescendants (indicesToGraphReadInput locs)
+getImmediateDescendantsForced :: GraphAddress -> [ASIndex] -> IO [ASIndex]
+getImmediateDescendantsForced addr locs = do 
+  e <- runEitherT $ getImmediateDescendants addr (indicesToGraphReadInput locs)
   case e of 
     Left _ -> return []
     Right ancLocs -> return (descendantsToIndices ancLocs)
@@ -141,37 +142,37 @@ getImmediateDescendantsForced locs = do
 -- Deal with writing to the graph
 
 -- Just send a write-related message to graph, and ignore the response
-execGraphWriteQuery :: GraphWriteRequest -> IO ()
-execGraphWriteQuery q = runZMQ $ do 
+execGraphWriteQuery :: GraphAddress -> GraphWriteRequest -> IO ()
+execGraphWriteQuery addr q = runZMQ $ do 
   reqSocket <- socket Req
-  connect reqSocket S.graphDbHost
+  connect reqSocket addr
   send reqSocket [] $ BC.pack (show $ show q) -- graph db requires quotes around message
   return ()
 
 shouldSetRelationsOfCellWhenRecomputing :: ASCell -> Bool 
 shouldSetRelationsOfCellWhenRecomputing cell =  maybe True ((== cell^.cellLocation) . keyIndex) $ cell^.cellRangeKey
 
-recompute :: R.Connection -> IO ()
-recompute conn = do
+recompute :: GraphAddress -> R.Connection -> IO ()
+recompute addr conn = do
   cells <- filter shouldSetRelationsOfCellWhenRecomputing <$> DB.getAllCells conn
-  clear
-  setCellsAncestorsForce cells
+  clear addr
+  setCellsAncestorsForce addr cells
   return ()
 
-clear = execGraphWriteQuery Clear
+clear addr = execGraphWriteQuery addr Clear
 
 -- Takes in a list of (index, [list of ancestors of that cell])'s and sets the ancestor relationship in the graph
 -- Note: ASRelation is of type (ASIndex, [ASReference])
-setRelations :: [ASRelation] -> EitherTExec ()
-setRelations [] = return ()
-setRelations rels = do 
+setRelations :: GraphAddress -> [ASRelation] -> EitherTExec ()
+setRelations _ [] = return ()
+setRelations addr rels = do 
   let showRel = \rel -> (show2 (fst rel)):(L.map show2 (snd rel))
   let relStrs = L.map (L.intercalate relationDelimiter . showRel) rels
   let elements = (show SetRelations):relStrs
   let msg = BS.show $ L.intercalate msgPartDelimiter elements
   -- ^ You can have multiple relations sent per "batch message", intercalated with a msgPartDelimiter
   -- ^ Each separate relation is separated by a relationDelimiter
-  reply <- liftIO $ execGraphQuery msg
+  reply <- liftIO $ execGraphQuery addr msg
   -- Map Right [] to Right () and keep error messages the same as usual
   bimapEitherT id (\_ -> ()) $ ((processGraphReply reply) :: EitherTExec [ASIndex])
   

@@ -1,6 +1,7 @@
 module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices, colRangeWithCellMapToRange) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Errors
@@ -89,7 +90,7 @@ listOfCellsByColToRange c@(ColRange sid (Coord startCol t, InfiniteRowCoord endC
       if (maxRowInCols < t)
          then Range sid (Coord startCol t, Coord endCol t)
          else Range sid (Coord startCol t, Coord endCol maxRowInCols)
-    False -> error "colRange startCol > endCol in listOfCellsByColToRange "
+    False -> $error "colRange startCol > endCol in listOfCellsByColToRange "
 
 orientColRange :: ASColRange -> ASColRange
 orientColRange cr@(ColRange sid (coord1, col2)) = 

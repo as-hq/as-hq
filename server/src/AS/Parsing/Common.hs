@@ -1,6 +1,8 @@
 module AS.Parsing.Common where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Text.Regex.Posix
 import Data.List (elemIndex)
 import Data.Maybe
@@ -95,7 +97,7 @@ float' = fmap rd $ integer <++> decimal <++> exponent
         number     = many1 digit
         minus      = char '-' <:> number
         integer    = plus <|> minus <|> number
-        rd         = read :: String -> Double
+        rd         = $read :: String -> Double
         decimal    = char '.' <:> number
         exponent   = option "" $ oneOf "eE" <:> integer
 

@@ -7,7 +7,8 @@ module AS.Parsing.Substitutions (
   , shiftCell
   ) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)

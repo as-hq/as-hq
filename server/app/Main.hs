@@ -1,6 +1,9 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell #-}
 
 module Main where
+  
+import Prelude()
+import AS.Prelude
  
 import AS.Config.Settings as S
 
@@ -10,7 +13,7 @@ import AS.Types.Network
 import AS.Clients()
 import AS.Logging
 import AS.Window
-import AS.Util (sendMessage)
+import AS.Util
 import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
@@ -20,29 +23,28 @@ import AS.Handlers.Misc (handleImportBinary)
 import AS.Types.Locations
 import qualified AS.Kernels.Python.Eval as KP
 
-import Prelude
-import System.Environment (getArgs)
-
 import Control.Exception
 import Control.Monad (forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 
 import Data.Aeson hiding (Success)
-import Data.Maybe
+import Data.Maybe hiding (fromJust)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
+import Data.List.Split (chunksOf)
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
 -- import Text.ParserCombinators.Parsec (parse)
 
 import qualified Network.WebSockets as WS
-import qualified Database.Redis as R
 
 import Language.R.Instance as R
 import Language.R.QQ
+
+import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
@@ -51,47 +53,47 @@ main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
   -- initializations
   putStrLn "STARTING APP"
-  (conn, ports, states) <- initApp
+  state <- initApp
+  curState <- readMVar state
+  let settings = curState^.appSettings
 
   if isDebug -- set in Settings.hs
-    then initDebug conn (head states)
+    then initDebug state
     else return ()
 
-  G.recompute conn
+  G.recompute (settings^.graphDbAddress) (curState^.dbConn)
   putStrLn "RECOMPUTED DAG"
-  putStrLn $ "server started on ports " ++ (show ports)
-  mapM_ (\(port, state) -> WS.runServer S.wsAddress port $ application state) (zip ports states)
+
+  putStrLn $ "server started on port " ++ (show $ settings^.backendWsPort)
+  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
   putStrLn $ "DONE WITH MAIN"
 
-initApp :: IO (R.Connection, [Port], [MVar ServerState])
+initApp :: IO (MVar ServerState)
 initApp = do
-  conn <- R.connect DI.cInfo
+  -- init state
+  settings <- S.getSettings 
+  conn <- DI.connectRedis settings
+  state <- newMVar $ State [] [] conn settings 
   -- init python kernel
-  KP.initialize conn
+  KP.initialize (settings^.pyKernelAddress) conn
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
     [r|library("rjson")|]
     [r|library("ggplot2")|]
     return ()
-  -- init state
-  args <- getArgs
-  let intArgs = map (\a -> read a :: Int) args
-  let ports = case intArgs of 
-        [] -> [S.wsDefaultPort]
-        _ -> intArgs
-  states <- mapM (\p -> newMVar $ State [] [] conn p) ports 
   -- init data
   let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
   DB.setSheet conn sheet
   DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
 
-  return (conn, ports, states)
+  return state
 
 -- |  for debugging. Only called if isDebug is true.
-initDebug :: R.Connection -> MVar ServerState -> IO ()
-initDebug _ _ = do
-  putStrLn "\n\n Evaluating debug statements..."
+initDebug :: MVar ServerState -> IO ()
+initDebug _ = do
+  putStrLn "\n\nEvaluating debug statements..."
+  putStrLn "\nDone."
   return ()
 
 application :: MVar ServerState -> WS.ServerApp
@@ -123,9 +125,9 @@ preprocess :: WS.Connection -> MVar ServerState -> IO ()
 preprocess conn state = do
   -- prepare the preprocessing
   logDir <- getServerLogDir
-  fileContents <- Prelude.readFile (logDir ++ "client_messages")
+  fileContents <- AS.Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && (head l) /= '#') fileLinesWithNumbers
+      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && ($head l) /= '#') fileLinesWithNumbers
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
@@ -134,17 +136,9 @@ preprocess conn state = do
         mockUc = UserClient cid conn win (T.pack "")
     curState <- readMVar state
     when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (\s -> return $ addClient mockUc s)
-    processMessage mockUc state (read msg)
+    processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
-
--- too lazy to import from Data.List.Split
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf _ [] = []
-chunksOf n l
-  | n > 0 = (take n l) : (chunksOf n (drop n l))
-  | otherwise = error "Negative n"
-
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
@@ -169,9 +163,9 @@ handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
   putStrLn logMsg
   logError logMsg (userCommitSource user)
-  port <- appPort <$> readMVar state
+  settings <- view appSettings <$> readMVar state
   purgeZombies state
-  WS.runServer S.wsAddress port $ application state
+  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
 
 -- | Sometimes, onDisconnect gets interrupted. (Not sure exactly what.) At any rate, 
 -- when this happens, a client that's disconnected is still stored in the state. 
@@ -179,7 +173,7 @@ handleRuntimeException user state e = do
 -- a robust solution. 
 purgeZombies :: MVar ServerState -> IO ()
 purgeZombies state = do 
-  ucs <- userClients <$> readMVar state
+  ucs <- view userClients <$> readMVar state
   (flip mapM_) ucs (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
                                  (onDisconnect' uc state))
 
@@ -192,7 +186,7 @@ onDisconnect' user state _ = do
 
 processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processMessage client state message = do
-  dbConnection <- fmap dbConn (readMVar state) -- state stores connection to db; pull it out
+  dbConnection <- view dbConn <$> readMVar state -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if (isPermissible || isDebug)
     then handleServerMessage client state message

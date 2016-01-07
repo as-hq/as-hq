@@ -1,6 +1,7 @@
 module AS.DB.Eval where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Errors
@@ -46,10 +47,10 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
   let mp = virtualCellsMap ctx
   let cell = mp M.! idx
   case cell^.cellRangeKey of 
-    Nothing -> error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
+    Nothing -> $error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
     Just rKey -> do 
       case virtualRangeDescriptorAt ctx rKey of
-        Nothing -> error "Couldn't find range descriptor of coupled expression!"
+        Nothing -> $error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = rangeKeyToIndices rKey
               cells  = map ((virtualCellsMap ctx) M.!) indices
@@ -134,7 +135,7 @@ getEvalHeader conn sid lang = runRedis conn $ do
   return $ case msg of 
     Right (Just msg') -> BC.unpack msg'
     Right Nothing -> ""
-    Left _            -> error "Failed to retrieve eval header"
+    Left _            -> $error "Failed to retrieve eval header"
 
 setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
 setEvalHeader conn sid lang xp = runRedis conn $ do

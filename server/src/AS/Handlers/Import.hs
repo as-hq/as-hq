@@ -19,6 +19,8 @@ import qualified Data.Maybe as DM
 import qualified Data.ByteString.Lazy as BL
 import qualified AS.DB.Transaction as DT 
 
+import Control.Lens hiding ((.=))
+
 -- used for importing arbitrary files 
 -- handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
 -- handleImport uc state msg = return () -- TODO
@@ -26,9 +28,9 @@ import qualified AS.DB.Transaction as DT
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.
 -- Frontend already put the file in the static folder, and all cells created will have the default language passed in
 handleCSVImport :: ASUserClient -> MVar ServerState -> ASIndex -> ASLanguage -> String -> IO ()
-handleCSVImport uc state ind lang fileName = do 
+handleCSVImport uc mstate ind lang fileName = do 
   csvData <- BL.readFile $ "static/" ++ fileName
-  conn <- dbConn <$> readMVar state
+  state <- readMVar mstate
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
   case decoded of 
@@ -41,9 +43,9 @@ handleCSVImport uc state ind lang fileName = do
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
-      DT.updateDBWithCommit conn src commit
+      DT.updateDBWithCommit (state^.appSettings.graphDbAddress) (state^.dbConn) src commit
       -- send list of cells back to frontend
-      broadcastSheetUpdate state $ sheetUpdateFromCells cells
+      broadcastSheetUpdate mstate $ sheetUpdateFromCells cells
 
 -- Map a function over a 2D vector
 map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)

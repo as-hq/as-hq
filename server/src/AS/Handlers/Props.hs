@@ -16,12 +16,14 @@ import Data.List
 import Control.Concurrent
 import Control.Lens
 
+import Database.Redis (Connection)
+
 -- | Used only for flag props. 
 handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
 handleToggleProp uc state p rng = do
   let locs = rangeToIndices rng
       pt   =  propType p
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   cells <- getPossiblyBlankCells conn locs
   let (cellsWithProp, cellsWithoutProp) = partition (hasPropType pt . view cellProps) cells
   -- if there's a single prop present in the range, remove this prop from all the cells; 
@@ -30,14 +32,12 @@ handleToggleProp uc state p rng = do
     then do 
       let cells' = map (cellProps %~ removeProp pt) cellsWithProp
           (emptyCells, nonEmptyCells) = partition isEmptyCell cells'
-      conn <- dbConn <$> readMVar state
       setCells conn nonEmptyCells
       deleteLocs conn $ mapCellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
       sendSheetUpdate uc $ sheetUpdateFromCells cells'
     else do
       let cells' = map (cellProps %~ setProp p) cellsWithoutProp
-      conn <- dbConn <$> readMVar state
       setCells conn cells'
       mapM_ (setPropEndware state p) cells'
       sendSheetUpdate uc $ sheetUpdateFromCells cells'
@@ -53,11 +53,10 @@ removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (c^.cellLocation) state
 removePropEndware _ _ _ = return ()
 
-handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
-handleSetProp uc state prop rng = do
-  curState <- readMVar state
+handleSetProp :: Connection -> ASUserClient -> CellProp -> ASRange -> IO ()
+handleSetProp conn uc prop rng = do
   let locs = rangeToIndices rng
-  cells <- getPossiblyBlankCells (dbConn curState) locs
+  cells <- getPossiblyBlankCells conn locs
   let cells' = map (cellProps %~ setProp prop) cells
-  setCells (dbConn curState) cells'
+  setCells conn cells'
   sendSheetUpdate uc $ sheetUpdateFromCells cells'

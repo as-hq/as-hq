@@ -1,6 +1,8 @@
 module AS.Config.Paths where
 
-import Prelude
+import Prelude()
+import AS.Prelude 
+
 import System.Directory
 import System.FilePath.Posix
 
@@ -20,6 +22,11 @@ getEvalPath :: IO String
 getEvalPath = do
   mainDir <- getCurrentDirectory
   return $ mainDir </> "eval_files/"
+
+getEnvironmentPath :: IO String
+getEnvironmentPath = do
+  mainDir <- getCurrentDirectory
+  return $ mainDir </> ".." </> "Environment.json"
 
 getServerLogDir :: IO String
 getServerLogDir = do

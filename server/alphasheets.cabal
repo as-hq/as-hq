@@ -15,7 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     AS.ASJSON
+  exposed-modules:     AS.Prelude
+                       AS.ASJSON
                        AS.Daemon
                        AS.LanguageDefs
                        AS.Serialize
@@ -31,6 +32,7 @@ library
                        AS.Dispatch.EvalHeader
                        AS.Dispatch.Expanding
                        AS.Clients
+                       AS.Config.Internal
                        AS.Config.Paths
                        AS.Config.Settings
                        AS.Eval.CondFormat
@@ -130,12 +132,14 @@ library
                      , unordered-containers
                      , safecopy
                      , safe
+                     , network
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts
                        OverloadedStrings
                        TypeSynonymInstances
                        FlexibleInstances
+                       TemplateHaskell
   PkgConfig-Depends:   python
   other-extensions:    ForeignFunctionInterface
                        CPP
@@ -163,6 +167,8 @@ executable alphasheets-exe
                      , cassava
                      , vector
                      , unordered-containers
+                     , lens
+                     , split
   PkgConfig-Depends:   python
   c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010

@@ -15,6 +15,7 @@ import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
+import AS.Types.Network
 
 import qualified AS.DB.API as DB
 import qualified AS.DB.Eval as DE
@@ -36,16 +37,21 @@ import Database.Redis (Connection)
 ---------------------------------------------------------------------------------
 -- Exposed functions
 
-initialize :: Connection -> IO ()
-initialize conn = do
+initialize :: KernelAddress -> Connection -> IO ()
+initialize addr conn = do
   -- run all the headers in db to initialize the sheet namespaces
   sids <- map sheetId <$> DB.getAllSheets conn
   headers <- mapM (\sid -> DE.getEvalHeader conn sid Python) sids
-  mapM_ (\(sid, code) -> runEitherT $ evaluateHeader sid code) $ zip sids headers
+  mapM_ (\(sid, code) -> runEitherT $ evaluateHeader addr sid code) $ zip sids headers
 
-evaluate = evaluateWithScope Cell
-evaluateHeader = evaluateWithScope Header
-clear = sendMessage_ . ClearRequest
+evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluate addr = evaluateWithScope addr Cell
+
+evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluateHeader addr = evaluateWithScope addr Header
+
+clear :: KernelAddress -> ASSheetId -> IO ()
+clear addr = (sendMessage_ addr) . ClearRequest
 
 -- SQL has not been updated to use the new kernel yet, because it doesn't seem super urgent rn.
 -- #anand 1/1/16
@@ -58,11 +64,11 @@ evaluateSql header str = do
         else return ()
     execWrappedCode validCode
 
-testCell :: ASSheetId -> EvalCode -> IO ()
-testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
+testCell :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
+testCell addr sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate addr sid code)
 
-testHeader :: ASSheetId -> EvalCode -> IO ()
-testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
+testHeader :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
+testHeader addr sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader addr sid code)
 
 ---------------------------------------------------------------------------------
 -- Helpers
@@ -107,35 +113,35 @@ instance FromJSON KernelResponse where
       "autocomplete" -> return AutocompleteReply -- TODO
       "clear" -> ClearReply <$> v .: "success"
 
-evaluateWithScope :: EvalScope -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluateWithScope _ _ "" = return $ CellValue NoValue
-evaluateWithScope scope sid code = do
-  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
+evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluateWithScope _ _ _ "" = return $ CellValue NoValue
+evaluateWithScope addr scope sid code = do
+  (EvaluateReply v err disp) <- sendMessage addr $ EvaluateRequest scope sid code
   case v of 
     Nothing -> case err of 
       Just e -> return . CellValue $ ValueError e ""
-      Nothing -> return . CellValue $ ValueError "Last line of expression is empty, comment, or otherwise not evaluable." ""
+      Nothing -> return $ CellValue NoValue
     Just v -> hoistEither $ R.parseValue Python v
 
-sendMessage :: KernelMessage -> EitherTExec KernelResponse
-sendMessage msg = do
+sendMessage :: KernelAddress -> KernelMessage -> EitherTExec KernelResponse
+sendMessage addr msg = do
   resp <- liftIO $ runZMQ $ do
-    reqSocket <- connectToKernel
+    reqSocket <- connectToKernel addr
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
   case resp of 
     Left e -> left $ EvaluationError e
     Right r -> return r
 
-sendMessage_ :: KernelMessage -> IO ()
-sendMessage_ msg = runZMQ $ do
-  reqSocket <- connectToKernel
+sendMessage_ :: KernelAddress -> KernelMessage -> IO ()
+sendMessage_ addr msg = runZMQ $ do
+  reqSocket <- connectToKernel addr 
   send' reqSocket [] $ encode msg
   return ()
 
-connectToKernel = do
+connectToKernel addr = do
   reqSocket <- socket Req 
-  connect reqSocket pykernelHost
+  connect reqSocket addr
   return reqSocket
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Old code that should go away when SQL is updated/overhauled/rewritten

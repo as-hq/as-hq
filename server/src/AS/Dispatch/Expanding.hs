@@ -6,7 +6,8 @@ module AS.Dispatch.Expanding
   , recomposeCompositeValue
   ) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Eval

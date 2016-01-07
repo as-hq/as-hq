@@ -116,7 +116,7 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
     descriptors = virtualRangeDescriptors ctx
     descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
     descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
-    keysIntersect k1 k2    = rectsIntersect (rangeRect k1) (rangeRect k2)
+    keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
     rectsIntersect (rect1Coord1, rect1Coord2) (rect2Coord1, rect2Coord2)
       | y2 < y' = False 
       | y > y2' = False
@@ -124,11 +124,7 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
       | x > x2' = False
       | otherwise = True 
         where
-          y   = view col rect1Coord1
-          y'  = view col rect2Coord1
-          y2  = view col rect1Coord2
-          y2' = view col rect2Coord2
-          x   = view row rect1Coord1
-          x'  = view row rect2Coord1
-          x2  = view row rect1Coord2
-          x2' = view row rect2Coord2
+          (y, x)     = (view col rect1Coord1, view row rect1Coord1) -- top left in rect 1
+          (y', x')   = (view col rect2Coord1, view row rect2Coord1) -- bottom right in rect 1
+          (y2, x2)   = (view col rect1Coord2, view row rect1Coord2) -- top left in rect 2
+          (y2', x2') = (view col rect2Coord2, view row rect2Coord2) -- bottom right in rect 2

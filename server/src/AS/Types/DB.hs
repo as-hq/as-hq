@@ -5,7 +5,8 @@ module AS.Types.DB
   , module AS.Types.Commits
   ) where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -103,7 +104,7 @@ instance Show2 Coord where
 instance Show2 InfiniteRowCoord where
   show2 infiniteRowCoord = show $ infiniteRowCoord^.col
 
-instance Show2 (Coord, Coord) where
+instance Show2 Rect where
   show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
 
 instance Show2 (Coord, InfiniteRowCoord) where
@@ -147,35 +148,31 @@ instance (Read2 ASReference) where
           where 
             (tag, sid, locstr) = case splitBy refDelimiter str of 
               [tag', sid', locstr'] -> (tag', sid', locstr')
-              _ -> error ("read2 :: ASReference failed to split string " ++ str)
+              _ -> $error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: (Coord, Coord))
+              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: Rect)
               "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
 
 pairToCoord :: (Int, Int) -> Coord
 pairToCoord (x, y) = Coord x y
 
 instance (Read2 Coord) where
-  read2 str = pairToCoord (read str :: (Int, Int))
+  read2 str = pairToCoord ($read str :: (Int, Int))
 
 instance (Read2 InfiniteRowCoord) where
-  read2 str = InfiniteRowCoord $ (read str)
+  read2 str = InfiniteRowCoord $ ($read str)
 
-instance (Read2 (Coord, Coord)) where
+instance (Read2 Rect) where
   read2 str =  (pairToCoord pair1, pairToCoord pair2)
     where
-      pairPair = read str :: ((Int, Int), (Int, Int))
-      pair1 = fst pairPair
-      pair2 = snd pairPair
+      (pair1, pair2) = $read str :: ((Int, Int), (Int, Int))
 
 instance (Read2 (Coord, InfiniteRowCoord)) where
-  read2 str = (pairToCoord pair1, InfiniteRowCoord col2)
+  read2 str = (pairToCoord pair, InfiniteRowCoord col)
     where
-      pairAndCol = read str :: ((Int, Int), Int)
-      pair1 = fst pairAndCol
-      col2  = snd pairAndCol
+      (pair, col) = $read str :: ((Int, Int), Int)
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
@@ -198,7 +195,7 @@ instance (Read2 GraphDescendant) where
 
 instance (Read2 Dimensions) where
   read2 str = Dimensions { width = w, height = h }
-    where (w, h) = read str :: (Int, Int)
+    where (w, h) = $read str :: (Int, Int)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Redis keys 
@@ -259,7 +256,7 @@ instance Read2 (RedisKey RangeType) where
     where 
       [typeStr, keyStr] = splitOn keyTypeSeparator s
       [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
-      rkey = case (read typeStr :: RedisKeyType) of 
+      rkey = case ($read typeStr :: RedisKeyType) of 
         RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
 
 instance Read2 (RedisKey BarType2) where
@@ -268,8 +265,8 @@ instance Read2 (RedisKey BarType2) where
         [typeStr, keyStr] = splitOn keyTypeSeparator s
         [sidStr, typStr, indStr] = splitOn keyPartDelimiter keyStr
         sid = T.pack sidStr
-        typ = read typStr :: BarType
-        ind = read indStr :: Int
+        typ = $read typStr :: BarType
+        ind = $read indStr :: Int
 
 instance Show CommitSource where
   show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)

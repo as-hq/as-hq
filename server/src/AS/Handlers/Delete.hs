@@ -24,7 +24,7 @@ import Control.Lens
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleDelete uc state rng = do
-  conn <- dbConn <$> readMVar state
+  conn <- view dbConn <$> readMVar state
   let inds = rangeToIndices rng
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
   errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)

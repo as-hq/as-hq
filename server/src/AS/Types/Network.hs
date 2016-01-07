@@ -17,6 +17,7 @@ import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
 import Control.Concurrent (MVar)
+import Control.Lens hiding ((.=))
 
 
 -- Deals with server and client stuff
@@ -24,8 +25,33 @@ import Control.Concurrent (MVar)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-data ServerState = State {userClients :: [ASUserClient], daemonClients :: [ASDaemonClient], dbConn :: R.Connection, appPort :: Port}
+data ServerState = State  { _userClients :: [ASUserClient]
+                          , _daemonClients :: [ASDaemonClient]
+                          , _dbConn :: R.Connection
+                          , _appSettings :: AppSettings}
+
+data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
+                                , _backendWsPort :: Port
+                                , _graphDbAddress :: GraphAddress
+                                , _pyKernelAddress :: KernelAddress
+                                , _redisPort :: Port
+                                , _shouldPrint :: Bool}
+
 type Port = Int
+type GraphAddress = String
+type KernelAddress = String
+type WsAddress = String
+
+instance FromJSON AppSettings where
+  parseJSON (Object v) = do
+    wsAddr <- v .:? "backendWsAddress" .!= "0.0.0.0"
+    wsPort <- v .:? "backendWsPort" .!= 5000
+    graphAddr <- v .:? "graphDbAddress_haskell" .!= "tcp://localhost:5555"
+    pyAddr <- v .:? "pyKernelAddress_haskell" .!= "tcp://localhost:20000"
+    redisPort <- v .:? "redisPort" .!= 6379
+    shouldPrint <- v .:? "shouldWriteToConsole" .!= True
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort shouldPrint
+  parseJSON _ = error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -77,3 +103,6 @@ daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
 
 initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
 initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc
+
+makeLenses ''ServerState
+makeLenses ''AppSettings

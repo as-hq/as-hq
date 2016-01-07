@@ -1,6 +1,8 @@
 module AS.Parsing.Excel where
 
-import Prelude
+import Prelude()
+import AS.Prelude
+
 import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char as C
@@ -237,7 +239,7 @@ shiftCol dC rType c = newCVal
 shiftRow :: Int -> RefType -> String -> Int
 shiftRow dR rType r = newRVal 
   where
-    rVal = (read r :: Int)
+    rVal = ($read r :: Int)
     newRVal = rVal + (case rType of 
       ABS_ABS -> 0
       ABS_REL -> dR

@@ -31,3 +31,6 @@ server/static/*
 !server/static/file-input-handler.py
 
 graph-database/server
+
+# Environment file
+Environment.json

@@ -4,23 +4,25 @@
 
 module AS.Types.Excel where
 
+import Prelude()
+import AS.Prelude
+
 import AS.Types.CellProps
 import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
 
-import Prelude
 import Data.List
-
-import Text.Read
 
 import qualified Data.Vector     as V
 import qualified Data.Char       as C
 import qualified Data.Map.Strict as M
 import Control.Monad.Except
-import Data.Maybe
 import Control.Monad (liftM, ap)
+
+import Text.Read (readMaybe)
+import Data.Maybe (maybe)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Text as T
@@ -215,11 +217,11 @@ instance Ord EValue where
   (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
   (<=) (EValueS s) (EValueNum n) = (<=) (strToEValueNum s) (EValueNum n)
   (<=) (EValueNum n) (EValueS s) = (<=) (EValueNum n) (strToEValueNum s)
-  (<=) _ _ = error "Invalid comparison" 
+  (<=) _ _ = $error "Invalid comparison" 
 
 strToEValueNum :: String -> EValue
 strToEValueNum str = maybe err (EValueNum . return . EValueD) (readMaybe str :: Maybe Double)
-  where err = error "Failed to convert string to number"
+  where err = $error "Failed to convert string to number"
 
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Eq)
@@ -385,7 +387,7 @@ colStrToInt :: String -> Int
 colStrToInt "" = 0
 colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
   where
-    coef = fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
+    coef = $fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
 
 -- | 27 -> "AA",  218332954 ->"RITESH"
 intToColStr :: Int -> String
@@ -398,7 +400,7 @@ intToColStr x
 
 -- | "27" -> 27
 rowStrToInt :: String -> Int
-rowStrToInt r = read r :: Int
+rowStrToInt r = $read r :: Int
 
 -- | 27 -> "27"
 intToRowStr :: Int -> String

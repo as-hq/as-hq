@@ -1,6 +1,7 @@
 module AS.LanguageDefs where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 
 import qualified Data.List as L
@@ -11,7 +12,7 @@ import qualified Data.List as L
 -- functions
 
 readBool :: String -> Bool
-readBool str = case (head str) of
+readBool str = case ($head str) of
   't' -> True
   'T' -> True
   'f' -> False
@@ -35,7 +36,7 @@ outNull lang = case lang of
   Python -> "None"
   R -> "NULL"
   SQL -> "None"
-  _ -> error $ "null value not found for " ++ (show lang)
+  _ -> $error $ "null value not found for " ++ (show lang)
 
 inNull :: ASLanguage -> String
 inNull lang = case lang of 
@@ -45,24 +46,24 @@ inNull lang = case lang of
 inNan :: ASLanguage -> String
 inNan lang = case lang of 
   Python -> "NaN"
-  _ -> error $ "nan value not found for " ++ (show lang)
+  _ -> $error $ "nan value not found for " ++ (show lang)
 
 outNan :: ASLanguage -> String
 outNan lang = case lang of 
   Python -> "np.nan"
   R -> "NaN"
-  _ -> error $ "nan value not found for " ++ (show lang)
+  _ -> $error $ "nan value not found for " ++ (show lang)
 
 inInf :: ASLanguage -> String
 inInf lang = case lang of 
   Python -> "Infinity"
-  _ -> error $ "nan value not found for " ++ (show lang)
+  _ -> $error $ "nan value not found for " ++ (show lang)
 
 outInf :: ASLanguage -> String
 outInf lang = case lang of 
   Python -> "np.inf"
   R -> "Inf"
-  _ -> error $ "inf value not found for " ++ (show lang)
+  _ -> $error $ "inf value not found for " ++ (show lang)
 
 outBool :: ASLanguage -> Bool -> String
 outBool lang val = case val of 

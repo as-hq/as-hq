@@ -63,7 +63,7 @@ getAbsoluteDragPositions (Range _ (rangeCoord1, rangeCoord2)) (Range _ (rangeCoo
 getDragOffsets :: ASRange -> ASRange -> Position -> [Offset]
 -- TODO: timchu, deterine if there's a better way to construct Offset.
 getDragOffsets r1 r2 coord =
-  map (\coord' -> Offset (coord'^.col-coord^.col) (coord'^.row-coord^.row)) $ getAbsoluteDragPositions r1 r2 coord
+  map (\c -> Offset (c^.col-coord^.col) (c^.row-coord^.row)) $ getAbsoluteDragPositions r1 r2 coord
 
 -- Given the sel range and drag range, return the cells in the sel range by DB lookup
 -- If the selection was horizontal, row-major, else column major

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, DeriveGeneric, DefaultSignatures, TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric, DefaultSignatures #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell

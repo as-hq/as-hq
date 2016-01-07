@@ -1,15 +1,18 @@
 module AS.DB.Export where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.DB
+import AS.Types.Network
+
 import AS.DB.API as DB
 import AS.DB.Clear as DC
 import AS.DB.Expanding as DE
 import AS.DB.Graph as G (recompute)
 
-import Control.Lens
+import Control.Lens hiding ((.=))
 
 import Database.Redis
 
@@ -22,9 +25,9 @@ exportData conn sid = do
   descs <- DB.getRangeDescriptorsInSheet conn sid
   return $ ExportData cells descs
 
-importData :: Connection -> ExportData -> IO ()
-importData conn (ExportData cs descriptors) = do
-  DC.clearSheet conn $ locSheetId . view cellLocation . head $ cs -- assumes all cells are in the same sheet.
+importData :: AppSettings -> Connection -> ExportData -> IO ()
+importData settings conn (ExportData cs descriptors) = do
+  DC.clearSheet settings conn $ locSheetId . view cellLocation . $head $ cs -- assumes all cells are in the same sheet.
   DB.setCells conn cs
-  G.recompute conn
+  G.recompute (settings^.graphDbAddress) conn
   mapM_ (DE.setDescriptor conn) descriptors

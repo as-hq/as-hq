@@ -1,7 +1,7 @@
 -- Commenting out until we actually reuse this. (Alex 12/28)
 module AS.Dispatch.Repl where
 
--- import Prelude
+-- import AS.Prelude
 
 -- import AS.Types.Cell
 -- import AS.Types.Messages 

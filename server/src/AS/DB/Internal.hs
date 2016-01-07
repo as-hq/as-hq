@@ -2,12 +2,14 @@
 
 module AS.DB.Internal where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import AS.Types.DB
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Eval
+import AS.Types.Network
 
 import AS.Util as U
 import AS.Logging
@@ -45,14 +47,19 @@ import Foreign.C.Types
 import Foreign.C.String(CString(..))
 import Foreign.C
 
+import Network.Socket.Internal
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
 
+connectRedis :: AppSettings -> IO Connection
+connectRedis settings = connect $ cInfo (settings^.redisPort)
+
 -- | Haskell Redis connection object
-cInfo :: ConnectInfo
-cInfo = ConnInfo
+cInfo :: Port -> ConnectInfo
+cInfo port = ConnInfo
     { connectHost           = "localhost"
-    , connectPort           = PortNumber 6379
+    , connectPort           = PortNumber $ fromIntegral port
     , connectAuth           = Nothing
     , connectDatabase       = 0
     , connectMaxConnections = 100
@@ -81,7 +88,7 @@ getKeysInSheetByType :: Connection -> ASSheetId -> RedisKeyType -> IO [B.ByteStr
 getKeysInSheetByType conn sid kt = getKeysByPattern conn $ keyPatternBySheet kt sid
 
 getKeysByPattern :: Connection -> String -> IO [B.ByteString]
-getKeysByPattern conn pattern = runRedis conn $ fromRight <$> keys (BC.pack pattern)
+getKeysByPattern conn pattern = runRedis conn $ $fromRight <$> keys (BC.pack pattern)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
@@ -104,9 +111,9 @@ toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
 -- DB conversions
 
 bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
-bStrToSheet (Just b) = Just (read (BC.unpack b) :: ASSheet)
+bStrToSheet (Just b) = Just ($read (BC.unpack b) :: ASSheet)
 bStrToSheet Nothing = Nothing
 
 bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
-bStrToWorkbook (Just b) = Just (read (BC.unpack b) :: ASWorkbook)
+bStrToWorkbook (Just b) = Just ($read (BC.unpack b) :: ASWorkbook)
 bStrToWorkbook Nothing = Nothing

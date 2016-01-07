@@ -2,7 +2,8 @@
 
 module AS.DB.Clear where
 
-import Prelude
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp, ASBarProps) 
@@ -13,6 +14,7 @@ import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CondFormat
 import AS.Types.Updates
+import AS.Types.Network
 
 import qualified AS.DB.API as DB
 import qualified AS.Config.Settings as Settings
@@ -31,6 +33,7 @@ import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
+import Control.Lens hiding ((.=))
 import Database.Redis hiding (decode)
 
 -- EitherT
@@ -43,8 +46,8 @@ clear conn = runRedis conn $ flushall >> return ()
 
 -- #needsrefactor #incomplete could be condensed better; also, LastMessageType doesn't actually get deleted
 -- (at least not consistently.)
-clearSheet :: Connection -> ASSheetId -> IO ()
-clearSheet conn sid = 
+clearSheet :: AppSettings -> Connection -> ASSheetId -> IO ()
+clearSheet settings conn sid = 
   let sheetRangesKey = toRedisFormat $ SheetRangesKey sid
       evalHeaderKeys = map (toRedisFormat . (EvalHeaderKey sid)) Settings.headerLangs
       rangeKeys = map (toRedisFormat . RedisRangeKey) <$> DB.getRangeKeysInSheet conn sid
@@ -55,5 +58,6 @@ clearSheet conn sid =
     rangeKeys <- liftIO rangeKeys
     del $ sheetRangesKey : pluralKeys ++ rangeKeys
     liftIO $ DB.deleteLocsInSheet conn sid
-    -- clear sheet namespace in pyclearSheetthon kernel
-    liftIO $ KP.clear sid
+
+    -- clear python kernel for sheet
+    liftIO $ KP.clear (settings^.pyKernelAddress) sid

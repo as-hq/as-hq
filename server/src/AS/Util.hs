@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module AS.Util where
 
 import AS.Types.Cell
@@ -5,7 +6,8 @@ import AS.Types.Network
 import AS.Types.CellProps (emptyProps)
 import AS.Logging
 
-import Prelude
+import Prelude()
+import AS.Prelude
 
 import qualified Data.Map as M
 import Data.List (foldl', find)
@@ -45,14 +47,3 @@ getUniqueId = return . toString =<< nextRandom
 insertMultiple :: (Ord k) => M.Map k v -> [k] -> [v] -> M.Map k v
 insertMultiple mp keys values = foldl' (\curMap (key,value) -> M.insert key value curMap) mp assoc
   where assoc = zip keys values
-
-filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
-filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
-
-fromRight :: Either a b -> b
-fromRight (Right a) = a
-
-nub' :: (Eq a, Ord a) => [a] -> [a]
-nub' xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
-
-(<++>) a b = (++) <$> a <*> b
