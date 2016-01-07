@@ -75,7 +75,7 @@ export default React.createClass({
 
     // 100% doesn't account for the heights of topbar or toolbar??
     let evalPaneOverflowCorrection = 85;
-    let paneHeight = 180;
+    let paneHeight = 150;
     let bottomBarHeight = 24;
     let evalPaneOffset = evalPaneOverflowCorrection
                         + ((errorPaneOpen || outputPaneOpen) ? paneHeight : 0)

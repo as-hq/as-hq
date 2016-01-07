@@ -22,19 +22,19 @@ export default function ASBottomBar(props: ASBottomBarProps): React.Element {
   return (
     <Paper style={_Styles.root}>
       <IconButton
-        iconClassName="muidocs-icon-custom-github"
+        iconClassName="material-icons"
         tooltip="Errors"
-        tooltipPosition="top"
-        style={{marginLeft: '-32px', ..._Styles.button}}
-        iconStyle={_Styles.icon}
-        onClick={toggleErrorPane} />
+        tooltipPosition="top-right"
+        style={_Styles.errorsButton}
+        iconStyle={_Styles.errorsIcon}
+        onClick={toggleErrorPane} >alert_error_outline</IconButton>
       <IconButton
-        iconClassName="muidocs-icon-custom-github"
+        iconClassName="material-icons"
         tooltip="Cell output"
-        tooltipPosition="top"
-        style={{marginLeft: '-28px', ..._Styles.button}}
-        iconStyle={_Styles.icon}
-        onClick={toggleOutputPane} />
+        tooltipPosition="top-right"
+        style={_Styles.outputButton}
+        iconStyle={_Styles.outputIcon}
+        onClick={toggleOutputPane} >action_code</IconButton>
     </Paper>
   );
 }

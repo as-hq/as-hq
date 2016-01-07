@@ -15,15 +15,9 @@ import {Paper} from 'material-ui';
 import _Styles from '../../styles/ASOutputPane';
 
 // $FlowFixMe declaring this is not urgent right now
-import AnsiConverter from 'ansi-to-html';
-
-var ansiConverter = new AnsiConverter(); // only need one instance of the converter, so I put it here
+import Ansi from 'ansi_up';
 
 import U from '../../AS/Util';
-const {
-  Conversion: TC,
-  Location: L
-} = U;
 
 import CellStore from '../../stores/ASCellStore';
 import SelectionStore from '../../stores/ASSelectionStore';
@@ -35,6 +29,7 @@ type ASOutputPaneProps = {
 
 type ASOutputPaneState = {
   content: ?string;
+  selection: ?string;
 };
 
 export default class ASErrorPane
@@ -44,34 +39,57 @@ export default class ASErrorPane
     super(props);
 
     this.state = {
-      content: null
+      content: null,
+      selection: null
     };
   }
 
   componentDidMount() {
-    CellStore.addChangeListener(this._handleActiveCellChange.bind(this));
-    SelectionStore.addChangeListener(this._handleActiveCellChange.bind(this));
+    CellStore.addChangeListener(this._handleCellChange.bind(this));
+    SelectionStore.addChangeListener(this._handleSelectionChange.bind(this));
   }
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._handleActiveCellChange.bind(this));
-    SelectionStore.addChangeListener(this._handleActiveCellChange.bind(this));
+    CellStore.removeChangeListener(this._handleCellChange.bind(this));
+    SelectionStore.addChangeListener(this._handleSelectionChange.bind(this));
   }
 
   render(): React.Element {
-    let {content} = this.state;
+    let {content, selection} = this.state;
 
     return (
-      <Paper style={_Styles.root}>
-        {content ?
-          this._getFormattedContentHTML(content)
-          : <h3>Nothing to display.</h3>}
-      </Paper>
+      <div style={_Styles.root} >
+
+        <Paper style={_Styles.topBar}>
+          <span style={_Styles.topBarTitle}>
+            {`Active cell: ${selection || ''}`}
+          </span>
+        </Paper>
+
+        <Paper style={_Styles.contentPane}>
+          <div style={_Styles.contentContainer} >
+            {content ?
+              this._getFormattedContentHTML(content)
+              : <h3 style={_Styles.altMessage}>Nothing to display.</h3>}
+          </div>
+        </Paper>
+
+      </div>
     );
   }
 
-  _handleActiveCellChange() {
+  _handleCellChange() {
     this.setState({ content: CellStore.getActiveCellDisplay() });
+  }
+
+  _handleSelectionChange() {
+    this._handleCellChange(); // also get the new active cell's display
+    let sel = SelectionStore.getActiveSelection();
+    if (!!sel) {
+      let {origin} = sel;
+      let rng = {tl: origin, br: origin};
+      this.setState({selection: U.Conversion.rangeToExcel(rng)});
+    }
   }
 
   _getFormattedContentHTML(content: string): Array<HTMLElement> {
@@ -83,7 +101,11 @@ export default class ASErrorPane
             .split('\n')
             .map((line) =>
       (
-        <div dangerouslySetInnerHTML={{__html: ansiConverter.toHtml(line)}} />
+        <div
+          style={_Styles.outputLine}
+          dangerouslySetInnerHTML={
+            {__html: Ansi.ansi_to_html(line, {use_classes: true})}
+          } />
       )
     );
   }
