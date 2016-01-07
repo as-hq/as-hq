@@ -26,12 +26,14 @@ export default class ASCell {
   _props: Array<ASCellProp>;
   _expandingType: ?ExpandingType;
   _rangeKey: ?RangeKey;
+  _display: ?string;
 
   get location(): ASIndex { return this._location; }
   get expression(): ASExpression { return this._expression; }
   get value(): ASValue { return this._value; }
   get props(): Array<ASCellProp> { return this._props; }
   get expandingType(): ?ExpandingType { return this._expandingType; }
+  get display(): ?string { return this._display; }
 
   static emptyCellAt(asIndex?: ASIndex): ASCell {
     let cl = asIndex ||
@@ -61,7 +63,8 @@ export default class ASCell {
       cellExpression,
       cellValue,
       cellProps,
-      cellRangeKey
+      cellRangeKey,
+      cellDisplay
     } = obj;
 
     this._location = new ASIndex(cellLocation);
@@ -69,6 +72,7 @@ export default class ASCell {
     this._value = cellValue;
     this._props = cellProps;
     this._rangeKey = cellRangeKey;
+    this._display = cellDisplay;
 
     if (this._rangeKey) {
       const rd = DescriptorStore.getRangeDescriptor(this._rangeKey);
