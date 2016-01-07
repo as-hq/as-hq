@@ -176,6 +176,15 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
   },
 
+  getActiveCellDisplay(): ?string {
+    let cell = ASCellStore.getActiveCell();
+    if (!!cell && !!cell.cellDisplay) {
+      return cell.cellDisplay;
+    } else {
+      return null;
+    }
+  },
+
   getParentList(loc: NakedIndex) {
     let cell = ASCellStore.getCell(loc);
     if (cell) {

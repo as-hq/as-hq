@@ -3,16 +3,16 @@
 import type {
   Callback,
   Lens
-} from '../types/Base';
+} from '../../types/Base';
 
 import type {
   NakedIndex,
   ASSelectionObject
-} from '../types/Eval';
+} from '../../types/Eval';
 
 import type {
   ASClientError
-} from '../types/Errors';
+} from '../../types/Errors';
 
 import React from 'react';
 
@@ -30,23 +30,22 @@ import TableRow from 'material-ui/lib/table/table-row';
 // $FlowFixMe: need to create declarations for all of these, but it's complicated.
 import TableRowColumn from 'material-ui/lib/table/table-row-column';
 
-import U from '../AS/Util';
+import U from '../../AS/Util';
 const {
   Conversion: TC,
   Location: L
 } = U;
 
-import CellStore from '../stores/ASCellStore';
-import SelectionStore from '../stores/ASSelectionStore';
+import CellStore from '../../stores/ASCellStore';
+import SelectionStore from '../../stores/ASSelectionStore';
 
-import _Styles from '../styles/ASErrorPane';
+import _Styles from '../../styles/ASErrorPane';
 
 import _ from 'lodash';
 
 type ASErrorPaneProps = {
   style?: {[key: string]: any};
   onRequestSelect: Callback<NakedIndex>;
-  open: boolean;
 };
 
 type ASErrorPaneState = {
@@ -103,15 +102,11 @@ export default class ASErrorPane
 
   render(): React.Element {
     let errors = this._getCurrentErrorList();
-    let {open} = this.props;
     let {selectedRow} = this.state;
 
     return (
       <Paper style={_Styles.root}>
-        <div style={{
-          ..._Styles.showAllContainer,
-          ...(open ? { } : { display: 'none' })
-        }}>
+        <div style={_Styles.showAllContainer}>
           <div style={_Styles.showAllLabel}>
             Show only errors from current cell
           </div>

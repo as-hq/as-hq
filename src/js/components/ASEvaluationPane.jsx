@@ -111,7 +111,7 @@ export default class ASEvalPane
     };
   }
 
-  componentDidMount() { 
+  componentDidMount() {
     window.addEventListener('copy', this.handleCopyEvent.bind(this));
     window.addEventListener('paste', this.handlePasteEvent.bind(this));
     window.addEventListener('cut', this.handleCutEvent.bind(this));
@@ -722,8 +722,8 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   /* File management */
 
-  _onFileDrop(files: Array<File>) { 
-    API.import(files[0]); 
+  _onFileDrop(files: Array<File>) {
+    API.import(files[0]);
   }
 
   /**************************************************************************************************************************/

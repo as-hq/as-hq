@@ -4,9 +4,12 @@ import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
+import ASBottomBar from './ASBottomBar.jsx';
 import ResizablePanel from './ResizablePanel.jsx'
-import ASErrorPane from './ASErrorPane.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
+
+import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
+import ASOutputPane from './bottom-panes/ASOutputPane.jsx';
 
 import U from '../AS/Util';
 const {
@@ -43,10 +46,10 @@ export default React.createClass({
   getInitialState() {
     return {
       currentPane: 'eval',
-      // object passed from splash pane specifying initial params: opened sheet, etc 
+      // object passed from splash pane specifying initial params: opened sheet, etc
       initEvalInfo: {},
       errorPaneOpen: true,
-      memory: 0
+      outputPaneOpen: false
     }
   },
 
@@ -68,22 +71,52 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   render() {
-    let {errorPaneOpen} = this.state;
-    let evalPane = 
-        <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} height='100%'/>;
-    let errorPane = 
-      <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect}/>;
+    let {errorPaneOpen, outputPaneOpen} = this.state;
 
+    // 100% doesn't account for the heights of topbar or toolbar??
+    let evalPaneOverflowCorrection = 85;
+    let paneHeight = 180;
+    let bottomBarHeight = 24;
+    let evalPaneOffset = evalPaneOverflowCorrection
+                        + ((errorPaneOpen || outputPaneOpen) ? paneHeight : 0)
+                        + bottomBarHeight;
+
+    let paneStyle = {width: '100%',
+                      height: `${paneHeight}px`};
 
     return (
       <div style={{width:"100%",height:"100%"}} >
-        <ASTopBar toggleEvalHeader={this._toggleEvalHeader} />
+        <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
+
         <Toolbar />
-        <div style={{width: '100%', height: '100%'}}> {/* supposed to be calc(100%-72px)*/}
-          <ResizablePanel content={evalPane} sidebar={errorPane} sidebarVisible={errorPaneOpen} side="bottom" />
+
+        <div style={{width: '100%', height: `calc(100% - ${evalPaneOffset}px)`}}>
+          <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />;
+        </div>
+
+        <div style={{
+          ...paneStyle,
+          ...(errorPaneOpen ? { } : {'display': 'none'})}}>
+          <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect.bind(this)}/>;
+        </div>
+
+        <div style={{
+          ...paneStyle,
+          ...(outputPaneOpen ? { } : {'display': 'none'})}}>
+          <ASOutputPane open={outputPaneOpen} />;
+        </div>
+
+        <div style={{height: `${bottomBarHeight}px`, width: '100%'}}>
+          <ASBottomBar
+            toggleErrorPane={this._toggleErrorPane.bind(this)}
+            toggleOutputPane={this._toggleOutputPane.bind(this)} />
         </div>
       </div>
     );
+    // This ResizablePanel isn't currently working
+    // <div style={{width: '100%', height: 'calc(100% - 110px)'}}> {/* supposed to be calc(100%-72px)*/}
+    //   <ResizablePanel content={evalPane} sidebar={errorPane} sidebarVisible={errorPaneOpen} side="bottom" />
+    // </div>
   },
 
 
@@ -97,7 +130,15 @@ export default React.createClass({
 
   _toggleErrorPane() {
     this.setState({
-      errorPaneOpen: ! this.state.errorPaneOpen
+      errorPaneOpen: ! this.state.errorPaneOpen,
+      outputPaneOpen: false
+    });
+  },
+
+  _toggleOutputPane() {
+    this.setState({
+      outputPaneOpen: ! this.state.outputPaneOpen,
+      errorPaneOpen: false
     });
   },
 
