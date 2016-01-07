@@ -451,7 +451,7 @@ refToEntity context (ERef (l@(RangeRef r))) =
 refToEntity context (ERef (colRange@(ColRangeRef cr))) =
   if any isNothing vals
       then Left $ CannotConvertToExcelValue l
-      else Right $ EntityMatrix $ EMatrix (trace' "WIDTH: " $ (getWidth l)) (trace' "HEIGHT: " (getHeight l)) $ V.fromList $ catMaybes vals
+      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
   where
     mp = evalMap context
     r = colRangeWithCellMapToRange mp cr
@@ -460,7 +460,8 @@ refToEntity context (ERef (colRange@(ColRangeRef cr))) =
     (inMap,areBlank) = partition ((flip M.member) mp) idxs
     -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
     mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
-    blankVals = map (\index -> return NoValue) (trace' "AREBLANK: " areBlank)
+    -- this code is silly. Timchu, 1/3/15.
+    blankVals = map (\index -> return NoValue) areBlank
     vals = map toEValue $ mapVals ++ blankVals
 
 refToEntity _ (ERef (PointerRef _)) = Left $ REF $ "Can't convert pointer to entity"
