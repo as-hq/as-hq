@@ -4,10 +4,6 @@ import type {
   Callback
 } from '../../types/Base';
 
-import type {
-  CondFormatRule
-} from '../../types/CondFormat';
-
 import React from 'react';
 
 import {Dialog, FlatButton} from 'material-ui';
@@ -21,6 +17,8 @@ import CFStore from '../../stores/ASCondFormatStore';
 
 import Util from '../../AS/Util';
 
+import ASCondFormatRule from '../../classes/ASCondFormatRule';
+
 import _ from 'lodash';
 
 type ASCondFormattingDialogProps = {
@@ -29,7 +27,7 @@ type ASCondFormattingDialogProps = {
 };
 
 type ASCondFormattingDialogState = {
-  rules: Array<CondFormatRule>;
+  rules: Array<ASCondFormatRule>;
   openRule: string;
 };
 
@@ -112,11 +110,11 @@ export default class ASCondFormattingDialog
 
   _onDeleteRule(ruleId: string): Callback {
     return () => {
-      API.removeCondFormattingRule(ruleId); 
+      API.removeCondFormattingRule(ruleId);
     };
   }
 
-  _onSubmitRule(ruleId: string): Callback<CondFormatRule> {
+  _onSubmitRule(ruleId: string): Callback<ASCondFormatRule> {
     if (ruleId === "create") {
       return (newRule) => {
         this._createRule(newRule);
@@ -136,12 +134,12 @@ export default class ASCondFormattingDialog
     };
   }
 
-  _updateRule(newRule: CondFormatRule) {
-    API.updateCondFormattingRule(newRule); 
+  _updateRule(newRule: ASCondFormatRule) {
+    API.updateCondFormattingRule(newRule);
   }
 
-  _createRule(newRule: CondFormatRule) {
-    API.updateCondFormattingRule(newRule); 
+  _createRule(newRule: ASCondFormatRule) {
+    API.updateCondFormattingRule(newRule);
   }
 
   _onRulesChange() {

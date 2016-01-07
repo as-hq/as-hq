@@ -1,10 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange
-} from '../../types/Eval';
-
-import type {
   PXRectangle
 } from '../../types/Render';
 

@@ -13,6 +13,7 @@ import ToolbarStore from '../../stores/ASToolbarStore';
 import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 /*
 This higher order component takes a toolbar component, a menu-style component, and styles them to be on top of one another.
@@ -25,10 +26,6 @@ import type {
   MenuProps
 } from '../../types/Toolbar';
 
-import type {
-  NakedRange
-} from '../../types/Eval';
-
 type MenuControllerDefaultProps = {
   toolbarWidth: number;
   toolbarHeight: number;
@@ -38,7 +35,7 @@ type MenuControllerProps = {
   toolbarComponent: React.Element;
   menuComponent: React.Element;
   setControlStateFromCell: (cell: ?ASCell) => void;
-  propagateControlStateChange: (nextState: any, rng: NakedRange) =>  void;
+  propagateControlStateChange: (nextState: any, rng: ASRange) =>  void;
   toolbarWidth: number;
   toolbarHeight: number;
   id: string;

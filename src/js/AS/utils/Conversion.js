@@ -9,11 +9,6 @@ import type {
 } from '../../types/Base';
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASSelectionObject,
-  ASIndexObject,
-  ASRangeObject,
   ASLocation,
   ASSheet,
   ASWorkbook

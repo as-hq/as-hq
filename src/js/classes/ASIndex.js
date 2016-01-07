@@ -34,7 +34,6 @@ function validateSheetId(sheetId: string): boolean {
 }
 
 export default class ASIndex {
-  _index: ASIndexObject;
   _row: number;
   _col: number;
   _sheetId: string;
@@ -128,6 +127,21 @@ export default class ASIndex {
       this.row === other.row &&
       this.col === other.col &&
       this.sheetId === other.sheetId
+    );
+  }
+
+  above(): ASIndex { return this.shift({ dr: -1, dc: 0 }); }
+  below(): ASIndex { return this.shift({ dr: 1, dc: 0 }); }
+  toRight(): ASIndex { return this.shift({ dr: 0, dc: 1 }); }
+  toLeft(): ASIndex { return this.shift({ dr: 0, dc: -1 }); }
+
+  isInRange(rng: ASRange): boolean {
+    const {row, col} = this;
+    const {tl, br} = rng;
+
+    return (
+      col >= tl.col && col <= br.col &&
+      row >= tl.row && row <= br.row
     );
   }
 }

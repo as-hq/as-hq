@@ -47,12 +47,25 @@ export default class ASSelection {
   static fromASLocations({ origin, range, sheetId }: ({
     origin: ASIndex;
     range: ASRange;
-    sheetId?: string;
+    sheetId?: ?string;
   })): ASSelection {
+    const updSheetId = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASSelection({
       origin: origin.obj().index,
       range: range.obj().range
-    }, sheetId);
+    }, updSheetId);
+  }
+
+  static fromExcelStrings({ origin, range, sheetId }: ({
+    origin: string;
+    range: string;
+    sheetId?: string;
+  })): ASSelection {
+    return ASSelection.fromASLocations({
+      origin: ASIndex.fromExcelString(origin),
+      range: ASRange.fromExcelString(range),
+      sheetId: sheetId
+    });
   }
 
   originIsCorner(): boolean {

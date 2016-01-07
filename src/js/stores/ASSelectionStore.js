@@ -58,7 +58,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
         activeCellDependencies = U.Parsing.parseDependencies(xp, lang),
         listDep = CellStore.getParentList(origin);
     _data.activeSelection = sel;
-    if (listDep !== null) {
+    if (listDep != null) {
       activeCellDependencies.push(listDep);
     }
     CellStore.setActiveCellDependencies(activeCellDependencies);

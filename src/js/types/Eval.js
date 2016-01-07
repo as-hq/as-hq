@@ -184,7 +184,7 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
-  dependencies?: Array<NakedRange>;
+  dependencies?: Array<ASRange>; // #mustrefactor TODO
 };
 
 export type ExpandingType = 'List' | 'RList' | 'RDataFrame' | 'NPArray' | 'NPMatrix' | 'PDataFrame' | 'PSeries';

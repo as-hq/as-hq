@@ -5,7 +5,6 @@ import type {
 } from '../../types/Eval';
 
 import type {
-  CondFormatRule,
   CondFormatCondition
 } from '../../types/CondFormat';
 
@@ -13,12 +12,15 @@ import React from 'react';
 
 import Util from '../../AS/Util';
 
+import ASCondFormatRule from '../../classes/ASCondFormatRule';
+import ASRange from '../../classes/ASRange';
+
 import _Styles from '../../styles/dialogs/ASCondFormattingDialog';
 
 import ASButton from '../basic-controls/ASButton.jsx';
 
 type ASCondFormattingDialogContentsProps = {
-  rules: Array<CondFormatRule>;
+  rules: Array<ASCondFormatRule>;
   onEditRule: (ruleId: string) => () => void;
   onDeleteRule: (ruleId: string) => () => void;
 };
@@ -55,13 +57,11 @@ function styleDescriptor(prop: ASCellProp): string {
   }
 }
 
-function showRule(rule: CondFormatRule): string {
+function showRule(rule: ASCondFormatRule): string {
   // #needsrefactor why the hell do I have to do .map((r) => Util.rangeToExcel(r)) instead of
   // .map(Util.rangeToExcel) ???
   let rngsStr = Util.String.toSentence(
-    rule.cellLocs.
-      map(Util.Conversion.asLocationToSimple).
-      map((r) => Util.Conversion.rangeToExcel(r))
+    rule.cellLocs.map((r) => r.toExcel().toString())
   );
 
   let {condition, condFormat} = rule;

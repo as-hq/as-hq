@@ -20,8 +20,6 @@ import HAlignPicker from './HAlignPicker.jsx';
 import VAlignPicker from './VAlignPicker.jsx';
 
 import type {
-  NakedRange,
-  NakedIndex,
   ASLanguage,
   ASExpression,
   ASValue,
@@ -33,11 +31,11 @@ import type {
 
 
 type ToolbarProps = {
-  toolbarHeight: number; 
+  toolbarHeight: number;
 };
 
 type ToolbarDefaultProps = {
-  toolbarHeight: number; 
+  toolbarHeight: number;
 };
 
 type ToolbarState = {};

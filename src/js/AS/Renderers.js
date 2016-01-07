@@ -249,7 +249,7 @@ const Renderers = {
     let renderer = Renderers.defaultCellRenderer,
         col = config.x + 1,
         row = config.y + 1,
-        cell = CellStore.getCell({col: col, row: row});
+        cell = CellStore.getCell(ASIndex.fromNaked({col: col, row: row}));
 
     // tag-based cell styling
     if (cell != null) {
@@ -293,7 +293,7 @@ const Renderers = {
 
     // // draw origin rectangle
     gc.beginPath();
-    Util.Canvas.drawRect({tl: origin, br: origin}, this, gc);
+    Util.Canvas.drawRect(origin.toRange(), this, gc);
     gc.strokeStyle = 'blue';
     gc.lineWidth = 1;
     gc.stroke();
@@ -382,18 +382,18 @@ const Renderers = {
             dottedTlY = br.origin.y + br.extent.y;
             height =  drag.origin.y + drag.extent.y - dottedTlY;
             Util.Canvas.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
-            dottedRange = {
+            dottedRange = ASRange.fromNaked({
               tl: {col:tlX,row:tlY},
               br: {col:brX,row:dragY+scrollY}
-            };
+            });
           } else if (dragY <= tlY-scrollY) {
             dottedTlY = tl.origin.y;
             height = drag.origin.y - dottedTlY;
             Util.Canvas.drawDottedVertical(gc,dottedTlX,dottedTlY,width,height);
-            dottedRange = {
+            dottedRange = ASRange.fromNaked({
               tl: {col:tlX,row:dragY+scrollY},
               br: {col:brX,row:brY}
-            };
+            });
           }
         } else if (yInBounds) { // draw horizontal dotted line
           dottedTlY = tl.origin.y,
@@ -402,22 +402,25 @@ const Renderers = {
             dottedTlX = br.origin.x + br.extent.x;
             width = drag.origin.x + drag.extent.x - dottedTlX;
             Util.Canvas.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
-            dottedRange = {
+            dottedRange = ASRange.fromNaked({
               tl: {col:tlX,row:tlY},
               br: {col:dragX+scrollX,row:brY}
-            };
+            });
           } else if (dragX <= tlX-scrollX) {
             dottedTlX = tl.origin.x;
             width = drag.origin.x - dottedTlX;
             Util.Canvas.drawDottedHorizontal(gc,dottedTlX,dottedTlY,width,height);
-            dottedRange  = {
+            dottedRange = ASRange.fromNaked({
               tl: {col:dragX+scrollX,row:tlY},
               br: {col:brX,row:brY}
-            };
+            });
           }
         }
         if (dottedRange != null) {
-        _renderParams.draggedBoxSelection = {origin: origin, range: dottedRange};
+          _renderParams.draggedBoxSelection = ASSelection.fromASLocations({
+            origin: origin,
+            range: dottedRange
+          });
         }
       }
       if (boxShouldBeVisible) {

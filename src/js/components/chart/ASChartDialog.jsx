@@ -5,10 +5,6 @@ import type {
 } from '../../types/Base';
 
 import type {
-  NakedRange
-} from '../../types/Eval';
-
-import type {
   ASOverlaySpec
 } from '../../types/Hypergrid';
 
@@ -48,6 +44,9 @@ import CU from './ChartUtils';
 
 let {ChartTypes} = Constants;
 
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+
 // $FlowFixMe: Too lazy to add ~14 things to declarations
 import { SelectableContainerEnhance } from 'material-ui/lib/hoc/selectable-enhance';
 let SelectableList = SelectableContainerEnhance(List);
@@ -62,9 +61,9 @@ type ASChartDialogProps = {
 };
 
 type ASChartDialogState = {
-  valueRange: ?NakedRange;
-  plotLabelRange: ?NakedRange;
-  xLabelRange: ?NakedRange;
+  valueRange: ?ASRange;
+  plotLabelRange: ?ASRange;
+  xLabelRange: ?ASRange;
   chartType: ASChartType;
   showLegend: boolean;
 };
@@ -134,8 +133,10 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
   _getPlotLabels(): ?Array<string> {
     let {plotLabelRange, valueRange} = this.state;
     if (plotLabelRange) {
-      let plotLabels = CellStore.getCells(plotLabelRange)
-        .map((cs) => cs.map(CU.cellToLabel));
+      let plotLabels = U.Array.map2d(
+        CellStore.getCells(plotLabelRange),
+        CU.cellToLabel
+      );
 
       return CU.reduceNestedArrayStr(plotLabels);
     } else if (valueRange) {
@@ -159,7 +160,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
 
   _getInitialRangeExpression(): string {
     let sel = SelStore.getActiveSelection();
-    if (!! sel){ return U.Conversion.rangeToExcel(sel.range); }
+    if (!! sel){ return sel.range.toExcel().toString(); }
     else { return ''; }
   }
 
@@ -203,7 +204,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
         let str = this.refs[ref].getValue();
         let newState = {};
         if (U.Parsing.isFiniteExcelRef(str)) { // doesn't work with A:A right now, because that's not doable on frontend.
-          let rng = U.Location.orientRange(U.Conversion.excelToRange(str));
+          let rng = ASRange.fromExcelString(str);
           newState[stateField] = rng;
         } else {
           newState[stateField] = null;

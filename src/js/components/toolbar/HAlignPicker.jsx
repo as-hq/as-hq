@@ -5,6 +5,8 @@ import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
 import ASCell from '../../classes/ASCell';
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
@@ -13,10 +15,6 @@ import type {
   ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
-
-import type {
-  NakedRange
-} from '../../types/Eval';
 
 type HAlignPickerDefaultProps = {};
 
@@ -72,7 +70,7 @@ export default class HAlignPicker
     return 'left'; // TODO: eventually cell.cellProps.halign
   }
 
-  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRange) {
     console.log("Propagating language change: " + nextValue);
     return; // TODO: eventually some API call
   }

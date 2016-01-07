@@ -6,11 +6,6 @@ import type {
 } from '../types/Base';
 
 import type {
-  NakedIndex,
-  ASSelectionObject
-} from '../types/Eval';
-
-import type {
   ASClientError
 } from '../types/Errors';
 
@@ -36,6 +31,9 @@ const {
   Location: L
 } = U;
 
+import ASIndex from '../classes/ASIndex';
+import ASSelection from '../classes/ASSelection';
+
 import CellStore from '../stores/ASCellStore';
 import SelectionStore from '../stores/ASSelectionStore';
 
@@ -45,12 +43,12 @@ import _ from 'lodash';
 
 type ASErrorPaneProps = {
   style?: {[key: string]: any};
-  onRequestSelect: Callback<NakedIndex>;
+  onRequestSelect: Callback<ASIndex>;
   open: boolean;
 };
 
 type ASErrorPaneState = {
-  currentSelection: ?ASSelectionObject;
+  currentSelection: ?ASSelection;
   errors: Array<ASClientError>;
   onlyCurrentCell: boolean;
   selectedRow: number;
@@ -153,7 +151,7 @@ export default class ASErrorPane
                 displayBorder={false}
                 selected={selectedRow === rowIdx} >
                 {[
-                  TC.rangeToExcel(TC.indexToRange(location)),
+                  location.toExcel().toString(),
                   language,
                   msg
                 ].map((str, idx) =>
@@ -174,7 +172,7 @@ export default class ASErrorPane
 
     if (onlyCurrentCell && currentSelection) {
       return errors.filter(
-        ({ location }) => L.indexIsInRange(location, currentSelection.range)
+        ({ location }) => location.isInRange(currentSelection.range)
       );
     } else {
       return errors;

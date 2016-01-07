@@ -29,15 +29,14 @@ import U from '../../AS/Util';
 import CU from './ChartUtils';
 
 import ASCell from '../../classes/ASCell';
-
-let {Location: {isContainedInLocs}} = U;
+import ASRange from '../../classes/ASRange';
 
 let {ChartTypes} = Constants;
 
 type ASChartProps = {
   chartContext: ASChartContext;
   chartStyle: Style;
-  valueRange: NakedRange;
+  valueRange: ASRange;
   sheetId: string;
   redraw: boolean;
   showLegend: boolean;
@@ -77,10 +76,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return this.refs.baseChart.getChart();
   }
 
-  _isListening(c: ASCell): boolean {
-    let {row, col, sheetId} = c.location;
-    return isContainedInLocs(col, row, [this.props.valueRange])
-        && sheetId == this.props.sheetId;
+  _isListening({location}: ASCell): boolean {
+    return this.props.valueRange.contains(location)
+      && location.sheetId === this.props.sheetId;
   }
 
   // data binding

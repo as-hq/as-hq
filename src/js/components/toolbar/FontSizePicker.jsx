@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
@@ -14,10 +15,6 @@ import type {
   ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
-
-import type {
-  NakedRange
-} from '../../types/Eval';
 
 type FontSizePickerDefaultProps = {};
 
@@ -64,7 +61,7 @@ export default class FontSizePicker
     return "10"; // TODO: something like cell.cellProps.font.fontSize
   }
 
-  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRange) {
     // TODO: case on value, call some API function
     console.log("Propagating state change to backend: " + nextValue);
   }

@@ -222,22 +222,25 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       case "Up": dr = -1; break;
     }
 
-    let c = start.col, r = start.row;
-    while (c >= 1 && r >= 1 && c <= Constants.numCols && r <= Constants.numRows) {
-      c += dc;
-      r += dr;
-      if (CellStore.isNonBlankCell(c, r)
-       && !(CellStore.isNonBlankCell(c + dc, r + dr) && CellStore.isNonBlankCell(c - dc, r - dr))) {
+    const shiftAmount = { dr: dr, dc: dc };
+    const oppositeShiftAmount = { dr: -dr, dc: -dc };
+    let curIdx = start;
+
+    while (curIdx.col < Constants.numCols && curIdx.row < Constants.numRows) {
+      curIdx = curIdx.shift(shiftAmount);
+
+      if (
+        CellStore.isNonBlankCell(curIdx)
+        && !(
+          CellStore.isNonBlankCell(curIdx.shift(shiftAmount))
+          && CellStore.isNonBlankCell(curIdx.shift(oppositeShiftAmount))
+        )
+      ) {
         break;
       }
     }
 
-    if (c < 1) c = 1;
-    if (r < 1) r = 1;
-    if (c > Constants.numCols) c = Constants.numCols;
-    if (r > Constants.numRows) r = Constants.numRows;
-
-    return ASIndex.fromNaked({col: c, row: r});
+    return curIdx;
   },
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.

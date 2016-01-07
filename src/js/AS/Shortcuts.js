@@ -263,8 +263,13 @@ export default {
       } else {
         SelectionStore.withActiveSelection((sel) => {
           let {origin} = sel;
-          let range = self.refs.spreadsheet.getViewingWindow().range;
-          self.refs.spreadsheet.select({origin: origin, range: range}, false);
+          let range = self.refs.spreadsheet.getViewingWindow();
+          self.refs.spreadsheet.select(
+            ASSelection.fromASLocations({
+              origin: origin,
+              range: range
+            }),
+          false);
         });
       }
     });
@@ -344,7 +349,7 @@ export default {
       // TODO test
       SelectionStore.withActiveSelection((sel) => {
         let {tl} = sel.range,
-            cell = CellStore.getCell({col: tl.col, row: tl.row-1});
+            cell = CellStore.getCell(tl.above());
         if (cell) {
           let xp = cell.expression.expression || '';
           ExpActionCreator.handleEditorChange(xp);
@@ -354,8 +359,8 @@ export default {
     SU.add('grid', 'copy_value_above', 'Ctrl+\'', (wildcard: string) => {
       // TODO test
       SelectionStore.withActiveSelection((sel) => {
-        let tl = sel.range.tl,
-            cell = CellStore.getCell({col: tl.col, row: tl.row-1});
+        let {tl} = sel.range,
+            cell = CellStore.getCell(tl.above());
         if (cell) {
           let xp = U.Render.showValue(cell.value) || '';
           ExpActionCreator.handleEditorChange(xp);

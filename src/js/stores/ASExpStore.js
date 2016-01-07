@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
   ASLanguage
 } from '../types/Eval';
 
@@ -20,6 +19,7 @@ import Util from '../AS/Util';
 import Render from '../AS/Renderers';
 
 import ASCell from '../classes/ASCell';
+import ASRange from '../classes/ASRange';
 
 /*
 This store is for holding common data for three-way data flow between grid, textbox, and editor
@@ -29,7 +29,7 @@ This store is for holding common data for three-way data flow between grid, text
 let _data : {
   xpChangeOrigin : ?string,
   lastCursorPosition: ?string,
-  deps: Array<NakedRange>,
+  deps: Array<ASRange>,
   expression: string,
   language : ASLanguage,
   defaultLanguage: ASLanguage,

@@ -1,6 +1,7 @@
 /* @flow */
 
 import type ASCell from '../classes/ASCell';
+import type ASCondFormatRule from '../classes/ASCondFormatRule';
 import type ASIndex from '../classes/ASIndex';
 import type ASRange from '../classes/ASRange';
 import type ASSelection from '../classes/ASSelection';
@@ -18,10 +19,6 @@ import type {
 import type {
   ASViewingWindow
 } from './State';
-
-import type {
-  CondFormatRule
-} from './CondFormat';
 
 import type {
   ASBackendWorkbookSheet,
@@ -92,7 +89,7 @@ export type GotUpdatedWorkbooksAction = {
 
 export type GotUpdatedRulesAction = {
   _type: 'GOT_UPDATED_RULES';
-  newRules: Array<CondFormatRule>;
+  newRules: Array<ASCondFormatRule>;
   oldRuleIds: Array<string>;
 };
 

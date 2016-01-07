@@ -10,18 +10,11 @@ import type {
 } from '../types/Base';
 
 import type {
-  NakedRange,
-  NakedIndex,
-  ASIndexObject,
-  ASRangeObject,
-
-  ASSelectionObject,
   ASLanguage,
   ASExpression,
   ASValue,
   ASSheet,
   ASCellProp,
-  ASCellObject,
   VAlignType,
   HAlignType
 } from '../types/Eval';
@@ -42,14 +35,10 @@ import type {
 } from '../types/Messages';
 
 import type {
-  CondFormatRule,
-  CondFormatCondition
-} from '../types/CondFormat';
-
-import type {
   SheetUpdate,
   CondFormatRuleUpdate,
-  Update
+  Update,
+  UpdateTemplate
 } from '../types/Updates';
 
 import type {
@@ -69,6 +58,7 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 
 import ASCell from '../classes/ASCell';
+import ASCondFormatRule from '../classes/ASCondFormatRule';
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
@@ -210,7 +200,7 @@ wss.onmessage = (event: MessageEvent) => {
   }
 };
 
-function updateIsEmpty(update: Update) {
+function updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
   return update.newVals.length == 0 && update.oldKeys.length == 0;
 }
 
@@ -227,7 +217,7 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_CELLS',
       newCells: ASCell.makeCells(sheetUpdate.cellUpdates.newVals),
-      oldLocs: sheetUpdate.cellUpdates.oldKeys
+      oldLocs: U.Location.makeLocations(sheetUpdate.cellUpdates.oldKeys)
     });
   }
 
@@ -242,7 +232,10 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_RULES',
-      newRules: sheetUpdate.condFormatRulesUpdates.newVals,
+      newRules:
+        sheetUpdate.condFormatRulesUpdates.newVals.map(
+          (r) => new ASCondFormatRule(r)
+        ),
       oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
     });
   }
@@ -430,7 +423,7 @@ const API = {
     // API.sendMessageWithAction(msg);
   },
 
-  jumpSelect(range: NakedRange, origin: NakedIndex, isShifted: boolean, direction: Direction) {
+  jumpSelect(range: ASRange, origin: ASIndex, isShifted: boolean, direction: Direction) {
     // Currently not supporting -- Alex. (12/29)
     // let msg = {
     //   tag: "JumpSelect",
@@ -470,10 +463,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIsCoupled(ind: ASIndexObject) {
+  getIsCoupled(ind: ASIndex) {
     let msg = {
       tag: "GetIsCoupled",
-      contents: ind
+      contents: ind.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -633,7 +626,7 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  repeat(sel: ASSelectionObject) {
+  repeat(sel: ASSelection) {
     // temporarily not maintaining (Alex 12/29)
     // let msg = {
     //   tag: "Repeat",
@@ -746,12 +739,12 @@ const API = {
     // API.sendMessageWithAction(msg);
   },
 
-  updateCondFormattingRule(rule: CondFormatRule) {
+  updateCondFormattingRule(rule: ASCondFormatRule) {
     let msg = {
       tag: "UpdateCondFormatRules",
       contents: {
         tag: "Update",
-        newVals: [rule],
+        newVals: [rule.obj()],
         oldKeys: []
       }
     };

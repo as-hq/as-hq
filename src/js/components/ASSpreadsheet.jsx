@@ -253,12 +253,13 @@ export default class ASSpreadsheet
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().getSelections()[0],
         ul = selection.origin,
-        range = ASRange.fromNaked({
+
+        range = {
                   tl: {row:  ul.y + 1,
                        col:  ul.x + 1},
                   br: {row: ul.y + selection.height() + 1,
                        col: ul.x + selection.width() + 1}
-                }),
+                },
         sel = {
           range: range,
           origin: {row: ul.y + 1, col: ul.x + 1}

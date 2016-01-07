@@ -10,14 +10,11 @@ import type {
 } from '../../types/Base';
 
 import type {
-  NakedRange,
-  ASRangeObject,
   ASExpression,
   ASCellProp
 } from '../../types/Eval';
 
 import type {
-  CondFormatRule,
   CondFormatCondition
 } from '../../types/CondFormat';
 
@@ -45,6 +42,10 @@ let {
   Conversion: TC
 } = U;
 
+import ASCondFormatRule from '../../classes/ASCondFormatRule';
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+
 import _Styles from '../../styles/dialogs/ASCondFormattingDialog';
 
 type ConditionMenuItem = 'greater_than'
@@ -60,11 +61,11 @@ type StyleMenuItem = 'bold'
   | 'text_color';
 
 type RuleDialogProps = {
-  initialRule?: CondFormatRule;
+  initialRule?: ASCondFormatRule;
   variantRange?: boolean;
   open: boolean;
   onRequestClose: Callback;
-  onSubmitRule: Callback<CondFormatRule>;
+  onSubmitRule: Callback<ASCondFormatRule>;
 };
 
 type DialogCondFormatRule = {
@@ -166,7 +167,7 @@ function convertStyleToClient(ruleStyle: ASCellProp): ({
   }
 }
 
-function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
+function convertToClient(rule: ?ASCondFormatRule): DialogCondFormatRule {
   if (rule === null || rule === undefined) { // Default
     return ({
       id: "CFRID" + U.Render.getUniqueId(), // can probably use a less dumb id -- alex 12/24
@@ -180,7 +181,7 @@ function convertToClient(rule: ?CondFormatRule): DialogCondFormatRule {
   } else {
     return ({
       id: rule.condFormatRuleId,
-      range: TC.rangeToExcel(rule.cellLocs[0].range),
+      range: rule.cellLocs[0].toExcel().toString(),
       ...convertConditionToClient(rule.condition),
       ...convertStyleToClient(rule.condFormat)
     });
@@ -244,17 +245,12 @@ function convertConditionToServer(rule: DialogCondFormatRule): CondFormatConditi
   }
 }
 
-function convertToServer(rule: DialogCondFormatRule): CondFormatRule {
-  return ({
-    tag: 'CondFormatRule',
+function convertToServer(rule: DialogCondFormatRule): ASCondFormatRule {
+  return ASCondFormatRule.fromClasses({
     condFormatRuleId: rule.id,
     condFormat: convertStyleToServer(rule),
     condition: convertConditionToServer(rule),
-    cellLocs: [{
-      tag: 'range',
-      sheetId: SheetStateStore.getCurrentSheet().sheetId , // TODO: get current sheet id
-      range: TC.excelToRange(rule.range)
-    }]
+    cellLocs: [ASRange.fromExcelString(rule.range)]
   });
 }
 
@@ -321,7 +317,7 @@ export default class ASCondFormattingRuleDialog
       let {range} = sel;
 
       this.setState({
-        rule: { ...self.state.rule, range: TC.rangeToExcel(range) }
+        rule: { ...self.state.rule, range: range.toExcel().toString() }
       });
     }
   }

@@ -50,10 +50,16 @@ export default class ASRange {
   }
 
   static fromASIndices({ tl, br }: ({ tl: ASIndex, br: ASIndex })): ASRange {
+    if (tl.sheetId !== br.sheetId) {
+      throw new Error('Sheet IDs are not the same for tl and br');
+    }
+
+    const {sheetId} = tl;
+
     return ASRange.fromNaked({
-      tl: tl.obj(),
-      br: br.obj()
-    });
+      tl: tl.obj().index,
+      br: br.obj().index
+    }, sheetId);
   }
 
   static fromExcelString(excStr: string): ASRange {
@@ -81,14 +87,16 @@ export default class ASRange {
     });
   }
 
-  toIndices(): Array<ASIndex> {
-    return _.flatten(
-      _.range(this.tl.row, this.br.row + 1).map((row) =>
-        _.range(this.tl.col, this.br.col + 1).map((col) =>
-          ASIndex.fromNaked({ row: row, col: col }, this.sheetId)
-        )
+  toIndices2d(): Array<Array<ASIndex>> {
+    return _.range(this.tl.row, this.br.row + 1).map((row) =>
+      _.range(this.tl.col, this.br.col + 1).map((col) =>
+        ASIndex.fromNaked({ row: row, col: col }, this.sheetId)
       )
     );
+  }
+
+  toIndices(): Array<ASIndex> {
+    return [].concat.apply([], this.toIndices2d());
   }
 
   toExcel(): ASExcelRef {
@@ -165,5 +173,9 @@ export default class ASRange {
 
   shiftByKey(e: SyntheticKeyboardEvent): ASRange {
     return this.shift(Util.Key.keyShiftValue(e));
+  }
+
+  contains(idx: ASIndex): boolean {
+    return idx.isInRange(this);
   }
 }
