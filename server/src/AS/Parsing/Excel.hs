@@ -64,7 +64,7 @@ sheetWorkbookMatch = do
         Just _ -> (q2, q1)       -- sheet is inner-most parsed (it's q2), so return the reverse order
 
 -- | matches $AB15 type things
-indexMatch :: Parser ExLoc
+indexMatch :: Parser ExIndex
 indexMatch = do
   a <- optionMaybe dollar
   col <- many1 letter
@@ -149,13 +149,15 @@ refMatch = do
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
       -- Force ranges to have tl <= br.
-      Just rng' -> return $ ExRangeRef (orientExRange rng') sh wb
+      Just rng' -> return $ ExRangeRef rng' sh wb
       -- Force colRanges to have l <= r.
       -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
       Nothing -> case colrng of
+        -- #needsrefactor VV we should not be using orientExColRange here. The logic for orienting
+        -- shouldn't be slapped in the middle of refMatch. 
         Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
         Nothing -> case idx of 
-          Just idx' -> return $ ExLocRef idx' sh wb
+          Just idx' -> return $ ExIndexRef idx' sh wb
           Nothing -> case ofb of  
             Just ofb' -> return ExOutOfBounds
             Nothing -> fail "expected valid excel A1:B4 format reference"
@@ -170,61 +172,61 @@ refMatch = do
 shiftExRef :: Offset -> ExRef -> ExRef
 shiftExRef o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
-  ExLocRef (ExIndex dType c r) _ _ -> exRef' 
+  ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol (dX o) dType c
-      newRowVal = shiftRow (dY o) dType r
+      newColVal = shiftCol (dCol o) dType c
+      newRowVal = shiftRow (dRow o) dType r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
-      exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
+      exRef' = maybe ExOutOfBounds (\i -> exRef { exIndex = i }) idx
   ExRangeRef (ExRange f s) sh wb -> exRef' 
       where
-        shiftedInds = (shiftExRef o (ExLocRef f sh wb), shiftExRef o (ExLocRef s sh wb))
+        shiftedInds = (shiftExRef o (ExIndexRef f sh wb), shiftExRef o (ExIndexRef s sh wb))
         exRef' = case shiftedInds of 
-          (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
+          (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
   -- TODO: timchu, have not implemented out of bounds handling.
   ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
       where
-        shiftedInd = shiftExRef o (ExLocRef f sh wb)
-        shiftedF = exLoc shiftedInd
+        shiftedInd = shiftExRef o (ExIndexRef f sh wb)
+        shiftedF = exIndex shiftedInd
         -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) srType c
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) srType c
         exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
 
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExLocRef l' _ _ = shiftExRef o (ExLocRef l sh wb)
+      where ExIndexRef l' _ _ = shiftExRef o (ExIndexRef l sh wb)
 
 -- shifts absolute references too
 -- TODO: timchu, 12/29/15. Massive code duplication.
 shiftExRefForced :: Offset -> ExRef -> ExRef
 shiftExRefForced o exRef = case exRef of
   ExOutOfBounds -> ExOutOfBounds
-  ExLocRef (ExIndex dType c r) _ _ -> exRef' 
+  ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
     where
-      newColVal = shiftCol (dX o) REL_REL c
-      newRowVal = shiftRow (dY o) REL_REL r
+      newColVal = shiftCol (dCol o) REL_REL c
+      newRowVal = shiftRow (dRow o) REL_REL r
       idx = if (newColVal >= 1 && newRowVal >= 1) 
         then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
         else Nothing
-      exRef' = maybe ExOutOfBounds (\i -> exRef { exLoc = i }) idx
+      exRef' = maybe ExOutOfBounds (\i -> exRef { exIndex = i }) idx
   ExRangeRef (ExRange f s) sh wb -> exRef' 
       where
-        shiftedInds = (shiftExRefForced o (ExLocRef f sh wb), shiftExRefForced o (ExLocRef s sh wb))
+        shiftedInds = (shiftExRefForced o (ExIndexRef f sh wb), shiftExRefForced o (ExIndexRef s sh wb))
         exRef' = case shiftedInds of 
-          (ExLocRef f' _ _, ExLocRef s' _ _) -> exRef { exRange = ExRange f' s' }
+          (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
           _ -> ExOutOfBounds
   -- TODO: timchu, have not implemented out of bounds handling.
   ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
       where
-        shiftedInd = shiftExRef o (ExLocRef f sh wb)
-        shiftedF = exLoc shiftedInd
+        shiftedInd = shiftExRef o (ExIndexRef f sh wb)
+        shiftedF = exIndex shiftedInd
         -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dX o) REL c
+        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) REL c
         exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExLocRef l' _ _ = shiftExRefForced o (ExLocRef l sh wb)
+      where ExIndexRef l' _ _ = shiftExRefForced o (ExIndexRef l sh wb)
 
 shiftCol :: Int -> RefType -> String -> Int
 shiftCol dC rType c = newCVal

@@ -26,7 +26,7 @@ import Control.Lens hiding (index)
 
 import Database.Redis (Connection)
 
-type Position = (Col,Row)
+type Position = Coord
 type PatternGroup = [ASCell]
 type Pattern = ([ASCell],(Int -> ASValue))
 
@@ -38,23 +38,39 @@ pos = view (cellLocation.index)
 
 -- Given the sel and drag ranges, and the current position, return all the corresponding positions in the drag rng 
 -- Ex selRng A1:A3 and drag range A1:A6, pos (1,2) -> absolute positions (1,2) and (1,5)
+-- #ExposedConstructor : Coord
 getAbsoluteDragPositions :: ASRange -> ASRange -> Position -> [Position]
-getAbsoluteDragPositions (Range _ ((a,b),(c,d))) (Range _ ((a',b'),(c',d'))) (x,y) 
-  | (a==a') && (b==b') && (d==d') = takeWhile (\(i,_) -> i<=c') $ zip [x,x+(c-a+1)..] (repeat y)
-  | (c==c') && (d==d') && (b==b') = takeWhile (\(i,_) -> i>=a') $ zip [x,x-(c-a+1)..] (repeat y)
-  | (a==a') && (b==b') && (c==c') = takeWhile (\(_,j) -> j<=d') $ zip (repeat x) [y,y+(d-b+1)..]
-  | otherwise = takeWhile (\(_,j) -> j>=b') $ zip (repeat x) [y,y-(d-b+1)..]
+getAbsoluteDragPositions (Range _ (rangeCoord1, rangeCoord2)) (Range _ (rangeCoord1', rangeCoord2')) pos = positions
+  where 
+    positions = map(\(x,y) -> Coord x y) positionPairs
+    positionPairs
+      | (a==a') && (b==b') && (d==d') = takeWhile (\(i,_) -> i<=c') $ zip [x,x+(c-a+1)..] (repeat y)
+      | (c==c') && (d==d') && (b==b') = takeWhile (\(i,_) -> i>=a') $ zip [x,x-(c-a+1)..] (repeat y)
+      | (a==a') && (b==b') && (c==c') = takeWhile (\(_,j) -> j<=d') $ zip (repeat x) [y,y+(d-b+1)..]
+      | otherwise = takeWhile (\(_,j) -> j>=b') $ zip (repeat x) [y,y-(d-b+1)..]
+    a  = rangeCoord1^.col
+    b  = rangeCoord1^.row
+    c  = rangeCoord2^.col
+    d  = rangeCoord2^.row
+    a' = rangeCoord1'^.col
+    b' = rangeCoord1'^.row
+    c' = rangeCoord2'^.col
+    d' = rangeCoord2'^.row
+    x  = pos^.col
+    y  = pos^.row
 
 -- Same as above, but only return the offsets and not the absolute positions
 getDragOffsets :: ASRange -> ASRange -> Position -> [Offset]
-getDragOffsets r1 r2 (x,y) = map (\(a,b) -> Offset { dX = a-x, dY = b-y }) $ getAbsoluteDragPositions r1 r2 (x,y)
+-- TODO: timchu, deterine if there's a better way to construct Offset.
+getDragOffsets r1 r2 coord =
+  map (\c -> Offset (c^.col-coord^.col) (c^.row-coord^.row)) $ getAbsoluteDragPositions r1 r2 coord
 
 -- Given the sel range and drag range, return the cells in the sel range by DB lookup
 -- If the selection was horizontal, row-major, else column major
 -- Directionality matters; if drag left, each row is from right to left
 -- Inference ignores empty cells, so they can safely be filtered out here
 getCellsRect :: Connection -> ASRange -> ASRange -> IO [[ASCell]]
-getCellsRect conn r1@(Range _ ((a,b),(c,d))) r2@(Range _ ((a',b'),(c',d'))) =  fmap filterMaybeNumCells rectCells
+getCellsRect conn r1@(Range _ (coord1,coord2)) r2@(Range _ (coord1',coord2')) =  fmap filterMaybeNumCells rectCells
   where
     rectCells 
       | (a==a') && (b==b') && (d==d') = do 
@@ -69,6 +85,15 @@ getCellsRect conn r1@(Range _ ((a,b),(c,d))) r2@(Range _ ((a',b'),(c',d'))) =  f
       | otherwise = do 
         cells <- DB.getCells conn $ rangeToIndices r1
         return $ map reverse $ formatRect (d-b+1) cells
+    a  = coord1 ^.col
+    b  = coord1 ^.row
+    c  = coord2 ^.col
+    d  = coord2 ^.row
+    a' = coord1'^.col
+    b' = coord1'^.row
+    c' = coord2'^.col
+    d' = coord2'^.row
+
 
 formatRect :: Int -> [a] -> [[a]]
 formatRect i [] = []

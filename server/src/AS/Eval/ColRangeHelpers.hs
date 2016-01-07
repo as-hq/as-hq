@@ -1,4 +1,4 @@
-module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices) where
+module AS.Eval.ColRangeHelpers (colRangeWithContextToIndicesRowMajor2D, colRangeWithDBAndContextToIndices, colRangeWithCellMapToRange) where
 
 import Prelude()
 import AS.Prelude
@@ -33,10 +33,10 @@ import Control.Monad.Trans.Class
 
 -- #lenses.
 getCellCol :: ASCell -> Col
-getCellCol c = col $ c^.cellLocation.index
+getCellCol c = c^.cellLocation.index.col
 
 getCellRow :: ASCell -> Row
-getCellRow c = row $ c^.cellLocation.index
+getCellRow c = c^.cellLocation.index.row
 
 numTrailingEmptyCells :: [ASCell] -> Int
 numTrailingEmptyCells ls = length $ takeWhile (\c -> (view cellValue c) == NoValue) $ reverse ls
@@ -53,12 +53,16 @@ lookUpDBCellsByCol conn sid column =  do
 
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
-evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column =
-  filter (\c -> (getCellCol c == column && (c^.cellLocation.locSheetId) == sid)) $ cellsInCtx where
+evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column = cellMapCellsByCol virtualCellsMap sid column
+
+cellMapCellsByCol :: CellMap -> ASSheetId -> Col -> [ASCell]
+cellMapCellsByCol virtualCellsMap sid column = filter isInMyColumn cellsInCtx 
+  where
+    isInMyColumn c = getCellCol c == column && (c^.cellLocation.locSheetId == sid)
     cellsInCtx = M.elems virtualCellsMap
 
 compareCellByRow:: ASCell -> ASCell -> Ordering
-compareCellByRow c1 c2  = compare (row $ c1^.cellLocation.index) (row $ c2^.cellLocation.index)
+compareCellByRow c1 c2  = compare (c1^.cellLocation.index.row) (c2^.cellLocation.index.row)
 
 -- gives the maximum non-blank row of a list of cells. Used in colRange interpolation.
 -- if the list contains only NoValues, return 0.
@@ -79,15 +83,24 @@ maxNonBlankRowInListOfLists ll = maximum (map maxNonBlankRow ll)
 -- helper function in colRangeWith(DBAnd)ContextToRange
 -- need to pass in sid, startCol, t, endCol, which we do by passing in a colRange.
 listOfCellsByColToRange :: ASColRange -> [[ASCell]] -> ASRange
-listOfCellsByColToRange c@(ColRange sid ((startCol, t), endCol)) cellsByCol = 
+listOfCellsByColToRange c@(ColRange sid (Coord startCol t, InfiniteRowCoord endCol)) cellsByCol = 
   case startCol <= endCol of
     True ->
       let maxRowInCols = maxNonBlankRowInListOfLists cellsByCol
       in
       if (maxRowInCols < t)
-         then Range sid ((startCol, t), (endCol, t))
-         else Range sid ((startCol, t), (endCol, maxRowInCols))
+         then Range sid (Coord startCol t, Coord endCol t)
+         else Range sid (Coord startCol t, Coord endCol maxRowInCols)
     False -> $error "colRange startCol > endCol in listOfCellsByColToRange "
+
+orientColRange :: ASColRange -> ASColRange
+orientColRange cr@(ColRange sid (coord1, col2)) = 
+  let startCol = min (view col coord1) (view col col2)
+      endCol   = max (view col coord1) (view col col2)
+      tl       = coord1 & col .~ startCol
+      r        = InfiniteRowCoord endCol
+  in
+  ColRange sid (tl, r)
 
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
 -- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range
@@ -95,16 +108,15 @@ listOfCellsByColToRange c@(ColRange sid ((startCol, t), endCol)) cellsByCol =
 -- Note: this is very inefficient: this converts cells to indices, where they're later converted back to cells.
 -- Only used in getModifiedContext
 colRangeWithDBAndContextToRange :: Connection -> EvalContext -> ASColRange -> IO ASRange
-colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
+colRangeWithDBAndContextToRange conn ctx cr = do
   let cellsInCol :: Col -> IO [ASCell]
       cellsInCol column = do
         let ctxCells = evalContextCellsByCol ctx sid column
         dbCells <- lookUpDBCellsByCol conn sid column
         return $ mergeCells ctxCells dbCells
-      startCol = min l r
-      endCol = max l r
-  cellsByCol <- mapM cellsInCol [startCol..endCol] -- :: [[ASIndex]]
-  return $ listOfCellsByColToRange (ColRange sid ((startCol, t), endCol)) cellsByCol
+      orientedCr@(ColRange sid (coord1, col2)) = orientColRange cr
+  cellsByCol <- mapM cellsInCol [(coord1 ^. col).. (col2 ^. col)] -- :: [[ASIndex]]
+  return $ listOfCellsByColToRange orientedCr cellsByCol
 
 -- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range
 -- Range((l,t),(r,t))
@@ -113,20 +125,21 @@ colRangeWithDBAndContextToRange conn ctx c@(ColRange sid ((l, t), r)) = do
 -- ancestor cells were loaded in the beginning of dispatch.
 -- Note: this is very inefficient: this converts cells to indices, where they're later converted back to cells.
 -- Note: I actually don't know the best way to do this directly.
-colRangeWithContextToRange :: Connection -> EvalContext -> ASColRange -> ASRange
-colRangeWithContextToRange conn ctx c@(ColRange sid ((l, t), r)) =
+
+colRangeWithCellMapToRange :: CellMap -> ASColRange -> ASRange
+colRangeWithCellMapToRange cellMap cr =
   let cellsInCol :: Col -> [ASCell]
-      cellsInCol column = evalContextCellsByCol ctx sid column
-      startCol = min l r
-      endCol = max l r
-      cellsByCol = map cellsInCol [startCol..endCol] -- :: [[ASIndex]]
+      cellsInCol column = cellMapCellsByCol cellMap sid column
+      orientedCr@(ColRange sid (coord1, col2)) = orientColRange cr
+      cellsByCol = map cellsInCol [(coord1 ^. col).. (col2 ^. col)] -- :: [[ASIndex]]
   in
-  listOfCellsByColToRange (ColRange sid ((startCol, t), endCol)) cellsByCol
+  listOfCellsByColToRange orientedCr cellsByCol
 
 -- Uses the evalcontext and column range to extract the indices used in a column range.
 -- Used in evaluateLanguage.
-colRangeWithContextToIndicesRowMajor2D :: Connection -> EvalContext -> ASColRange -> [[ASIndex]]
-colRangeWithContextToIndicesRowMajor2D conn ctx c = rangeToIndicesRowMajor2D $ colRangeWithContextToRange conn ctx c
+colRangeWithContextToIndicesRowMajor2D :: EvalContext -> ASColRange -> [[ASIndex]]
+colRangeWithContextToIndicesRowMajor2D ctx c =
+  rangeToIndicesRowMajor2D $ colRangeWithCellMapToRange (virtualCellsMap ctx) c
 
 -- For use in conditional formatting and shortCircuit.
 -- TODO: timchu, 12/29/15. Haven't checked that anything works with cond format.

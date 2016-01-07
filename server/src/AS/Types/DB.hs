@@ -27,6 +27,7 @@ import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
 import Data.SafeCopy
 
+import Control.Lens hiding (index, context)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
 
@@ -97,17 +98,29 @@ class Show2 a where
 class Read2 a where
   read2 :: (Show2 a) => String -> a
 
+instance Show2 Coord where
+  show2 coord = "(" ++ show (coord^.col) ++ "," ++ show (coord^.row) ++ ")"
+
+instance Show2 InfiniteRowCoord where
+  show2 infiniteRowCoord = show $ infiniteRowCoord^.col
+
+instance Show2 Rect where
+  show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
+
+instance Show2 (Coord, InfiniteRowCoord) where
+  show2 (coord1, infRowCoord2) = "(" ++ show2 coord1 ++ "," ++ show2 infRowCoord2 ++ ")" 
+
 instance (Show2 ASIndex) where 
-  show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+  show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
 instance (Show2 ASPointer) where
-  show2 (Pointer (Index sid a)) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+  show2 (Pointer (Index sid a)) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
 instance (Show2 ASRange) where 
-  show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+  show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
 instance (Show2 ASColRange) where 
-  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show a))
+  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
 instance (Show2 GraphReadInput) where
   show2 (IndexInput i) = show2 i
@@ -137,10 +150,29 @@ instance (Read2 ASReference) where
               [tag', sid', locstr'] -> (tag', sid', locstr')
               _ -> $error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
-              "I" -> IndexRef $ Index (T.pack sid) ($read locstr :: Coord)
-              "P" -> PointerRef $ Pointer (Index (T.pack sid) ($read locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) ($read locstr :: (Coord, Coord))
-              "C" -> ColRangeRef $ ColRange (T.pack sid) ($read locstr :: (Coord, Int))
+              "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
+              "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
+              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: Rect)
+              "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
+
+pairToCoord :: (Int, Int) -> Coord
+pairToCoord (x, y) = Coord x y
+
+instance (Read2 Coord) where
+  read2 str = pairToCoord ($read str :: (Int, Int))
+
+instance (Read2 InfiniteRowCoord) where
+  read2 str = InfiniteRowCoord $ ($read str)
+
+instance (Read2 Rect) where
+  read2 str =  (pairToCoord pair1, pairToCoord pair2)
+    where
+      (pair1, pair2) = $read str :: ((Int, Int), (Int, Int))
+
+instance (Read2 (Coord, InfiniteRowCoord)) where
+  read2 str = (pairToCoord pair, InfiniteRowCoord col)
+    where
+      (pair, col) = $read str :: ((Int, Int), Int)
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 

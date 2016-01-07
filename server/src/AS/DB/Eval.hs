@@ -60,7 +60,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
 -- TODO: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
 referenceToCompositeValue conn ctx (ColRangeRef cr) = return $ Expanding . VList . M $ vals
   where
-    indices = colRangeWithContextToIndicesRowMajor2D conn ctx cr
+    indices = colRangeWithContextToIndicesRowMajor2D ctx cr
     -- The only case where the index is not in the virtualCellsMap is when the
     -- current dispatch created new cells in the bottom of a column whose
     -- colRange is being evaluated.

@@ -88,7 +88,7 @@ updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid
 initUser :: WS.Connection -> ASUserId -> ASSheetId -> IO ASUserClient
 initUser c uid sid = do
     time <- getCurrentTime
-    return $ UserClient uid c (Window sid (-1,-1) (-1,-1)) $ pack ((show uid) ++ (show time))
+    return $ UserClient uid c (Window sid (Coord (-1) (-1)) (Coord (-1) (-1))) $ pack ((show uid) ++ (show time))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
@@ -103,7 +103,6 @@ daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
 
 initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
 initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc
-
 
 makeLenses ''ServerState
 makeLenses ''AppSettings
