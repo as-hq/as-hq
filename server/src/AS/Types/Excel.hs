@@ -417,11 +417,12 @@ exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
   ExIndexRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
+    -- VV probably needs orienting 
   ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, InfiniteRowCoord (colStrToInt c2))
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index  _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
-  ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
+  ExRangeRef (ExRange f s) sn wn -> RangeRef $ orientRange $ Range sid' (tl, br)
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
       IndexRef (Index _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
