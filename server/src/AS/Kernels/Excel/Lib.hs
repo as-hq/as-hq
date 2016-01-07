@@ -36,6 +36,7 @@ import qualified Data.Map.Lazy as ML
 
 import AS.Parsing.Excel (refMatch)
 import Control.Exception.Base hiding (try)
+import Control.Lens hiding (Context, transform)
 
 import AS.Util
 
@@ -254,7 +255,7 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
 topLeftForMatrix _ r = r
 
 evalBasicFormula :: Context -> BasicFormula -> EResult
-evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
+evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (view locSheetId (curLoc c)) exLoc
 evalBasicFormula c (Var val)   = valToResult val
 evalBasicFormula c (Fun f fs)  = do
   fDes <- getFunc f
@@ -271,7 +272,7 @@ evalFormula c (ArrayConst b) = do
   fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
 
 evalArrayFormula :: Context -> Formula -> EResult
-evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (locSheetId (curLoc c)) exLoc
+evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (view locSheetId (curLoc c)) exLoc
 evalArrayFormula c (Basic (Var val)) = valToResult val
 evalArrayFormula c f@(ArrayConst b) = evalFormula c f
 evalArrayFormula c f@(Basic (Fun name fs)) = do
@@ -882,7 +883,7 @@ eIndirect :: EFunc
 eIndirect c e = do
   refString <- getRequired "indirect" 1 e :: ThrowsError String
   a1Bool <- getOptional True "indirect" 2 e :: ThrowsError Bool
-  case (stringToLoc a1Bool (locSheetId $ curLoc c) refString) of
+  case (stringToLoc a1Bool (view locSheetId $ curLoc c) refString) of
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 

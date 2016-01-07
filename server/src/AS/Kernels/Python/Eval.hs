@@ -44,10 +44,10 @@ initialize addr conn = do
   headers <- mapM (\sid -> DE.getEvalHeader conn sid Python) sids
   mapM_ (\(sid, code) -> runEitherT $ evaluateHeader addr sid code) $ zip sids headers
 
-evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluate addr = evaluateWithScope addr Cell
 
-evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
+evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader addr = evaluateWithScope addr Header
 
 clear :: KernelAddress -> ASSheetId -> IO ()
@@ -55,14 +55,15 @@ clear addr = (sendMessage_ addr) . ClearRequest
 
 -- SQL has not been updated to use the new kernel yet, because it doesn't seem super urgent rn.
 -- #anand 1/1/16
-evaluateSql :: String -> String -> EitherTExec CompositeValue
-evaluateSql _ "" = return $ CellValue NoValue
+evaluateSql :: String -> String -> EitherTExec EvalResult
+evaluateSql _ "" = return emptyResult
 evaluateSql header str = do
     validCode <- formatCode header SQL str
     if isDebug
         then lift $ writeExecFile SQL validCode
         else return ()
-    execWrappedCode validCode
+    v <- execWrappedCode validCode
+    return $ EvalResult v Nothing
 
 testCell :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
 testCell addr sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate addr sid code)
@@ -113,15 +114,17 @@ instance FromJSON KernelResponse where
       "autocomplete" -> return AutocompleteReply -- TODO
       "clear" -> ClearReply <$> v .: "success"
 
-evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec CompositeValue
-evaluateWithScope _ _ _ "" = return $ CellValue NoValue
+evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateWithScope _ _ _ "" = return emptyResult
 evaluateWithScope addr scope sid code = do
   (EvaluateReply v err disp) <- sendMessage addr $ EvaluateRequest scope sid code
   case v of 
     Nothing -> case err of 
-      Just e -> return . CellValue $ ValueError e ""
-      Nothing -> return $ CellValue NoValue
-    Just v -> hoistEither $ R.parseValue Python v
+      Just e -> return $ EvalResult (CellValue $ ValueError e "") disp
+      Nothing -> return $ EvalResult (CellValue NoValue) disp
+    Just v -> do
+      cval <- hoistEither $ R.parseValue Python v
+      return $ EvalResult cval disp
 
 sendMessage :: KernelAddress -> KernelMessage -> EitherTExec KernelResponse
 sendMessage addr msg = do

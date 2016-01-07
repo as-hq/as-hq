@@ -51,7 +51,7 @@ setCellsAncestors addr cells = do
 getAncestorsForCell :: ASCell -> [ASReference]
 getAncestorsForCell c = if not $ isEvaluable c
   then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
-  else getDependencies (locSheetId $ c^.cellLocation) (c^.cellExpression)
+  else getDependencies (c^.cellLocation.locSheetId) (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 

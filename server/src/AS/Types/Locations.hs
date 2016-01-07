@@ -12,6 +12,7 @@ import Data.Aeson
 import Data.Hashable
 import Data.SafeCopy
 
+import Control.Lens hiding ((.=))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
@@ -32,7 +33,7 @@ row = snd
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-data ASIndex = Index { locSheetId :: ASSheetId, index :: Coord } 
+data ASIndex = Index { _locSheetId :: ASSheetId, _index :: Coord } 
   deriving (Show, Read, Eq, Generic, Ord)
 data ASPointer = Pointer { pointerIndex :: ASIndex } 
   deriving (Show, Read, Eq, Generic, Ord)
@@ -43,11 +44,14 @@ data ASColRange = ColRange {colRangeSheetId :: ASSheetId, colRange :: (Coord, Co
 data ASReference = IndexRef ASIndex | ColRangeRef ASColRange | RangeRef ASRange | PointerRef ASPointer | OutOfBounds
   deriving (Show, Read, Eq, Generic, Ord)
 
+makeLenses ''ASIndex
+
 refSheetId :: ASReference -> ASSheetId
-refSheetId (IndexRef   i) = locSheetId     i
-refSheetId (RangeRef   r) = rangeSheetId   r
-refSheetId (ColRangeRef   r) = colRangeSheetId   r
-refSheetId (PointerRef p) = locSheetId . pointerIndex $ p
+refSheetId (IndexRef i) = i^.locSheetId
+refSheetId (RangeRef r) = rangeSheetId r
+refSheetId (ColRangeRef r) = colRangeSheetId r
+refSheetId (PointerRef p) = (view locSheetId) . pointerIndex $ p
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
@@ -233,10 +237,10 @@ rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (x,y) | y <- [start
 rangeToIndicesRowMajor2D :: ASRange -> [[ASIndex]]
 rangeToIndicesRowMajor2D (Range sheet (ul, lr)) = map (\y -> [Index sheet (x,y) | x <- [startx..endx]]) [starty..endy]
   where
-    startx = min (col ul) (col lr)
-    endx = max (col ul) (col lr)
-    starty = min (row ul) (row lr)
-    endy = max (row ul) (row lr)
+    startx  = min (col ul) (col lr)
+    endx    = max (col ul) (col lr)
+    starty  = min (row ul) (row lr)
+    endy    = max (row ul) (row lr)
 
 shiftLoc :: Offset -> ASReference -> ASReference
 shiftLoc o (IndexRef (Index sh (x,y))) = IndexRef $ Index sh (x+(dX o), y+(dY o))

@@ -133,9 +133,10 @@ getCellsByKeyPattern conn pattern = do
 getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
 getBlankedCellsAt conn locs = 
   let blankExpr = expression .~ "" -- replaces the expression in ASExpression with an empty string
+      blankCell (Cell l xp _ ts _ _) = Cell l (blankExpr xp) NoValue ts Nothing Nothing
   in do 
     cells <- getPossiblyBlankCells conn locs
-    return $ map (\(Cell l xp v ts rk) -> Cell l (blankExpr xp) NoValue ts Nothing) cells -- #lens
+    return $ map blankCell cells -- #lens
 
 -- this function is order-preserving
 getPossiblyBlankCells :: Connection -> [ASIndex] -> IO [ASCell]
@@ -346,7 +347,7 @@ canAccessSheet conn uid sheetId = do
   maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
 
 canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
-canAccess conn uid loc = canAccessSheet conn uid (locSheetId loc)
+canAccess conn uid loc = canAccessSheet conn uid (loc^.locSheetId)
 
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
 canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs

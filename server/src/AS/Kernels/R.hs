@@ -57,22 +57,24 @@ type ASFilePath = String
 -- Exposed functions
 
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
-evaluate :: String -> EvalCode -> EitherTExec CompositeValue
-evaluate _ ""  = return $ CellValue NoValue
+evaluate :: String -> EvalCode -> EitherTExec EvalResult
+evaluate _ ""  = return emptyResult
 evaluate _ str = do
   fp <- liftIO $ getCurrentDirectory 
-  liftIO $ execOnString str (execR fp False)
+  v <- liftIO $ execOnString str (execR fp False)
+  return $ EvalResult v Nothing
 
-evaluateRepl :: EvalCode -> EitherTExec CompositeValue
-evaluateRepl ""  = return $ CellValue NoValue
+evaluateRepl :: EvalCode -> EitherTExec EvalResult
+evaluateRepl ""  = return emptyResult
 evaluateRepl str = do
   fp <- liftIO $ getCurrentDirectory
-  liftIO $ execOnString str (execR fp True)
+  v <- liftIO $ execOnString str (execR fp True)
+  return $ EvalResult v Nothing
 
-evaluateHeader :: EvalCode -> EitherTExec CompositeValue
+evaluateHeader :: EvalCode -> EitherTExec EvalResult
 evaluateHeader str = do 
   lift clearRepl
-  evaluateRepl str 
+  evaluateRepl str
 
 clearRepl :: IO ()
 clearRepl = do

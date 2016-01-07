@@ -52,13 +52,13 @@ import Database.Redis (Connection)
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted CompositeValue)
+evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EitherTExec (Formatted EvalResult)
 evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
   case maybeShortCircuit of
-    Just e -> return . return . CellValue $ e -- short-circuited, return this error
+    Just e -> return . return $ EvalResult (CellValue e) Nothing -- short-circuited, return this error
     Nothing -> case lang of
       Excel -> do 
         KE.evaluate conn str idx (virtualCellsMap ctx)
@@ -80,7 +80,7 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
 --  OCaml   -> KO.evaluateRepl header str
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-evaluateHeader :: AppSettings -> ASSheetId -> ASExpression -> EitherTExec CompositeValue
+evaluateHeader :: AppSettings -> ASSheetId -> ASExpression -> EitherTExec EvalResult
 evaluateHeader sett sid (Expression str lang) = case lang of 
   Python -> KP.evaluateHeader (sett^.pyKernelAddress) sid str
   R      -> KR.evaluateHeader str
@@ -94,15 +94,16 @@ bimapEitherT' f g (EitherT m) = EitherT (fmap h m) where
   h (Left e)  = Right (f e)
   h (Right a) = Right (g a)
 
-catchEitherT :: EitherTExec (Formatted CompositeValue) -> EitherTExec (Formatted CompositeValue)
+catchEitherT :: EitherTExec (Formatted EvalResult) -> EitherTExec (Formatted EvalResult)
 catchEitherT a = do
   result <- liftIO $ catch (runEitherT a) whenCaught
   case result of
     Left e -> left e
     Right e -> right e
     where 
-      whenCaught :: SomeException -> IO (Either ASExecError (Formatted CompositeValue))
-      whenCaught e = return . Right $ Formatted (CellValue $ ValueError (show e) "StdErr") Nothing
+      whenCaught :: SomeException -> IO (Either ASExecError (Formatted EvalResult))
+      whenCaught e = return . Right $ Formatted (EvalResult cv Nothing) Nothing
+        where cv = CellValue $ ValueError (show e) "StdErr"
 
 -- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
@@ -142,7 +143,7 @@ handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-execEvalInLang :: AppSettings -> ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec CompositeValue
+execEvalInLang :: AppSettings -> ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec EvalResult
 execEvalInLang sett sid header lang = case lang of
   Python  -> KP.evaluate (sett^.pyKernelAddress) sid
   R       -> KR.evaluate header 

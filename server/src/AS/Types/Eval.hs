@@ -6,6 +6,8 @@ module AS.Types.Eval
   , module AS.Types.Values
   ) where
 
+import GHC.Generics
+
 import AS.Types.CellProps
 import AS.Types.Values
 import AS.Types.Locations
@@ -15,6 +17,7 @@ import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Updates
 
+import AS.ASJSON
 import Safe (headMay)
 
 import Control.Lens
@@ -45,6 +48,13 @@ data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 
 type EvalCode = String
 
+data EvalResult = EvalResult { _resultValue :: CompositeValue, _resultDisplay :: Maybe String } deriving (Show, Read, Eq, Generic)
+
+emptyResult :: EvalResult
+emptyResult = EvalResult (CellValue NoValue) Nothing
+
+makeLenses ''EvalResult
+asLensedToJSON ''EvalResult -- only used for sending header
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
@@ -72,7 +82,7 @@ indexIsHead idx (RangeKey idx' _) = idx == idx'
 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
 rangeKeyToIndices k = rangeToIndices range
-  where range = Range (locSheetId . keyIndex $ k) (rangeRect k)
+  where range = Range (view locSheetId . keyIndex $ k) (rangeRect k)
 
 rangeRect :: RangeKey -> Rect
 rangeRect (RangeKey idx dims) = (tl, br)
@@ -82,7 +92,7 @@ rangeRect (RangeKey idx dims) = (tl, br)
     br = (col + (width dims) - 1, row + (height dims) - 1)
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
-rangeKeyToSheetId = locSheetId . keyIndex
+rangeKeyToSheetId = view locSheetId . keyIndex
 
 isFatCellHead :: ASCell -> Bool 
 isFatCellHead c = maybe False ((== c^.cellLocation) . keyIndex) (c^.cellRangeKey)

@@ -5,7 +5,7 @@ import AS.Prelude
 
 import AS.Types.Cell
 import AS.Types.Errors
-import AS.Types.Eval as E
+import AS.Types.Eval
 import AS.Types.DB
 import AS.Util
 
@@ -18,7 +18,7 @@ import qualified Data.List as L
 import Database.Redis hiding (decode)
 import Data.List
 import Control.Monad
-import Control.Lens hiding (set)
+import Control.Lens hiding (set, index)
 import Control.Monad.Trans.Class
 
 -- | Helper methods for colRangeWithContextToIndices. Used in colRange list interpolation.
@@ -33,10 +33,10 @@ import Control.Monad.Trans.Class
 
 -- #lenses.
 getCellCol :: ASCell -> Col
-getCellCol (Cell (Index _ (column, _)) _ _ _ _) = column
+getCellCol c = col $ c^.cellLocation.index
 
 getCellRow :: ASCell -> Row
-getCellRow (Cell (Index _ (_, row)) _ _ _ _) = row
+getCellRow c = row $ c^.cellLocation.index
 
 numTrailingEmptyCells :: [ASCell] -> Int
 numTrailingEmptyCells ls = length $ takeWhile (\c -> (view cellValue c) == NoValue) $ reverse ls
@@ -54,11 +54,11 @@ lookUpDBCellsByCol conn sid column =  do
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
 evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column =
-  filter (\c -> (getCellCol c == column && locSheetId (c^.cellLocation) == sid)) $ cellsInCtx where
+  filter (\c -> (getCellCol c == column && (c^.cellLocation.locSheetId) == sid)) $ cellsInCtx where
     cellsInCtx = M.elems virtualCellsMap
 
 compareCellByRow:: ASCell -> ASCell -> Ordering
-compareCellByRow c1 c2  = compare (row $ E.index $ view cellLocation c1) (row $ E.index $ view cellLocation c2)
+compareCellByRow c1 c2  = compare (row $ c1^.cellLocation.index) (row $ c2^.cellLocation.index)
 
 -- gives the maximum non-blank row of a list of cells. Used in colRange interpolation.
 -- if the list contains only NoValues, return 0.
