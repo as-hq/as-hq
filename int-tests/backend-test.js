@@ -1467,6 +1467,23 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        it ('should update SUM(A:A) in Excel when column A changes', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            excel('B1', '=SUM(A:A)'),
+            shouldBe('B1', valueI(3)),
+            python('A4', '5'),
+            shouldBe('B1', valueI(8)),
+            excel('A1', '0'),
+            shouldBe('B1', valueI(7)),
+            python('A5', 'range(10)'),
+            shouldBe('B1', valueI(52)),
+            delete_('A2'),
+            shouldBe('B1', valueI(50)),
+            exec(done)
+          ]);
+        });
         it ('should expand A2:A when a the column size of A increases.', (done) => {
           _do([
             python('A1', 'range(10)'),
