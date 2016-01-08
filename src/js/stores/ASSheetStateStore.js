@@ -46,7 +46,7 @@ type SheetStateStoreData = {
     isCut: boolean;
   };
   externalError: ?string;
-  viewingWindow: ASRange;
+  viewingWindow: ?ASRange;
 };
 
 let _data: SheetStateStoreData = {
@@ -71,11 +71,7 @@ let _data: SheetStateStoreData = {
     isCut: false
   },
   externalError: null,
-  viewingWindow:
-    ASRange.fromNaked({
-      tl: { col: 0, row: 0},
-      br: { col: 100, row: 100}
-    })
+  viewingWindow: null
 };
 
 const ASSheetStateStore = Object.assign({}, BaseStore, {
@@ -288,7 +284,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
                   row: Constants.LARGE_SEARCH_BOUND} };
   },
 
-  getViewingWindow() {
+  getViewingWindow(): ?ASRange {
     return _data.viewingWindow;
   }
 });

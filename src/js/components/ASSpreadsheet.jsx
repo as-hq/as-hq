@@ -628,7 +628,7 @@ export default class ASSpreadsheet
 
   // when you press enter etc after eval, the selection shifts and gets
   // reset to a single cell
-  shiftSelectionPostEval(byCoords: ({ dr: number; dc: number; })) {
+  shiftSelectionArea(byCoords: ({ dr: number; dc: number; })) {
     SelectionStore.withActiveSelection(({origin}) => {
       this.selectIndex(origin.shift(byCoords));
     });

@@ -281,18 +281,20 @@ const API = {
   },
 
   reinitialize() {
-    this.initMessage();
-    this.openSheet();
-    this.updateViewingWindow(
-      SheetStateStore.getViewingWindow()
-    );
+    API.initMessage();
+    API.openSheet();
+
+    const vWindow = SheetStateStore.getViewingWindow();
+    if (vWindow) {
+      API.updateViewingWindow(vWindow);
+    }
   },
 
   initialize() {
-    wss.sendAck = this.ackMessage;
-    wss.beforereconnect = () => { this.reinitialize(); };
+    wss.sendAck = API.ackMessage;
+    wss.beforereconnect = () => { API.reinitialize(); };
 
-    this.initMessage();
+    API.initMessage();
   },
 
   /**************************************************************************************************************************/

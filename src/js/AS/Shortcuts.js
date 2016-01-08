@@ -35,7 +35,7 @@ export default {
     SU.add('evalPane', 'toggle_focus', 'F2', (wildcard: string) => {
       logDebug('F2 PRESSED ');
       SheetStateStore.toggleFocusF2();
-      self.refs.spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
+      self.getASSpreadsheet().refs.textbox.updateTextBox(ExpStore.getExpression());
       self.setFocus(SheetStateStore.getFocus());
     });
     SU.add('evalPane', 'new_sheet', 'Shift+F11', (wildcard: string) => {
@@ -111,20 +111,20 @@ export default {
         }
         if (formatType != null) {
           API.setFormat(formatType, sel.range);
-          self.refs.spreadsheet.repaint();
+          self.getASSpreadsheet().repaint();
         }
       });
     });
     SU.add("evalPane", "bold", "Ctrl+B", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         API.toggleProp({tag: "Bold", contents: []}, sel.range);
-        self.refs.spreadsheet.repaint();
+        self.getASSpreadsheet().repaint();
       });
     });
     SU.add("evalPane", "italic", "Ctrl+I", (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         API.toggleProp({tag: "Italic", contents: []}, sel.range);
-        self.refs.spreadsheet.repaint();
+        self.getASSpreadsheet().repaint();
       });
     });
 
@@ -132,10 +132,10 @@ export default {
       SelectionStore.withActiveSelection((sel) => {
         logDebug('Esc pressed');
         ExpActionCreator.handleEscape();
-        self.refs.spreadsheet.select(sel);
+        self.getASSpreadsheet().select(sel);
         SheetStateStore.setClipboard(null, false);
         self.setState({focus: 'grid', showFindBar: false, userIsTyping: false});
-        self.refs.spreadsheet.repaint(); // render immediately
+        self.getASSpreadsheet().repaint(); // render immediately
       });
     });
 
@@ -236,16 +236,16 @@ export default {
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
       // Might not be robust. (Alex 11/4)
-      let oldInd = self.refs.spreadsheet.getSelectionArea().origin;
+      let oldInd = self.getASSpreadsheet().getSelectionArea().origin;
       let newInd = SheetStateStore.getDataBoundary(oldInd, dir);
-      self.refs.spreadsheet.select(newInd.toSelection());
+      self.getASSpreadsheet().select(newInd.toSelection());
     });
     SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
       // let oldSelection = SelectionStore.getActiveSelection();
-      let oldSelection = self.refs.spreadsheet.getSelectionArea();
+      let oldSelection = self.getASSpreadsheet().getSelectionArea();
       let newSelection = SheetStateStore.getDataBoundSelection(oldSelection, dir);
-      self.refs.spreadsheet.select(newSelection);
+      self.getASSpreadsheet().select(newSelection);
     });
     SU.add('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
@@ -263,8 +263,8 @@ export default {
       } else {
         SelectionStore.withActiveSelection((sel) => {
           let {origin} = sel;
-          let range = self.refs.spreadsheet.getViewingWindow();
-          self.refs.spreadsheet.select(
+          let range = self.getASSpreadsheet().getViewingWindow();
+          self.getASSpreadsheet().select(
             ASSelection.fromASLocations({
               origin: origin,
               range: range
@@ -278,19 +278,19 @@ export default {
       self._getRawTextbox().navigateFileStart();
     });
     SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
-      self.refs.spreadsheet.select(ASSelection.defaultSelection());
+      self.getASSpreadsheet().select(ASSelection.defaultSelection());
     });
     SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard: string) => {
       self.setFocus('textbox');
       self._getRawTextbox().navigateFileEnd();
     });
     SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
-      let dY = self.refs.spreadsheet.getVisibleRows();
-      self.refs.spreadsheet.shiftSelectionArea(0, -dY);
+      let dY = self.getASSpreadsheet().getVisibleRows();
+      self.getASSpreadsheet().shiftSelectionArea({ dc: 0, dr: -dY });
     });
     SU.add('grid', 'move_vwindow_above', 'PageDown', (wildcard: string) => {
-      let dY = self.refs.spreadsheet.getVisibleRows();
-      self.refs.spreadsheet.shiftSelectionArea(0, dY);
+      let dY = self.getASSpreadsheet().getVisibleRows();
+      self.getASSpreadsheet().shiftSelectionArea({ dc: 0, dr: dY });
     });
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
@@ -316,7 +316,7 @@ export default {
       if (ExpStore.getUserIsTyping()) {
         logDebug("Grid key down going to AC");
         let oldStr = ExpStore.getExpression(),
-            editor = self.refs.spreadsheet.refs.textbox.editor,
+            editor = self.getASSpreadsheet().refs.textbox.editor,
            [newStr, newPos] = KeyUtils.modifyTextboxForKey(KeyUtils.mockedKeyboardEvent(32),
                                                            true, null,
                                                            oldStr, editor);
@@ -324,7 +324,7 @@ export default {
       } else {
         SelectionStore.withActiveSelection((sel) => {
           let {origin} = sel;
-          self.refs.spreadsheet.select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
+          self.getASSpreadsheet().select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
                                        origin: origin}, false);
         });
       }
@@ -332,7 +332,7 @@ export default {
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let {origin} = sel;
-        self.refs.spreadsheet.select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
+        self.getASSpreadsheet().select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
                                       origin: origin}, false);
       });
     });

@@ -144,7 +144,7 @@ export default class ASEvalPane
   // Component getter methods
 
   _getSpreadsheet(): HGElement {
-    let ele: HGElement = (ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid): any);
+    let ele: HGElement = (ReactDOM.findDOMNode(this.getASSpreadsheet().refs.hypergrid): any);
     return ele;
   }
 
@@ -170,11 +170,11 @@ export default class ASEvalPane
   }
 
   _getTextbox(): Textbox {
-    return this.refs.spreadsheet.refs.textbox;
+    return this.getASSpreadsheet().refs.textbox;
   }
 
   _getRawTextbox(): AERawClass {
-    return this.refs.spreadsheet.refs.textbox.getRawEditor();
+    return this.getASSpreadsheet().refs.textbox.getRawEditor();
   }
 
   /***************************************************************************************************************************/
@@ -215,7 +215,7 @@ export default class ASEvalPane
       return cell.location.sheetId == SheetStateStore.getCurrentSheet().sheetId;
     });
 
-    this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
+    this.getASSpreadsheet().updateCellValues(updatedCellsOnSheet);
 
     // #needsrefactor error handlers should probably get their own store
     let err = SheetStateStore.getExternalError();
@@ -257,7 +257,7 @@ export default class ASEvalPane
   }
 
   getASSpreadsheet(): ASSpreadsheet {
-    return this.refs.spreadsheet;
+    return this.getASSpreadsheet();
   }
 
 
@@ -314,7 +314,7 @@ export default class ASEvalPane
       SheetStateStore.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals, sel.range),
           plain = ClipboardUtils.valsToPlain(vals);
-      this.refs.spreadsheet.repaint(); // render immediately
+      this.getASSpreadsheet().repaint(); // render immediately
       e.clipboardData.setData("text/html",html);
       e.clipboardData.setData("text/plain",plain);
     }
@@ -370,7 +370,7 @@ export default class ASEvalPane
       } else {
         this.setToast("Nothing in clipboard.", "Error");
       }
-      this.refs.spreadsheet.repaint(); // render immediately
+      this.getASSpreadsheet().repaint(); // render immediately
     } else { // Not from AS
       if (containsPlain) {
         let lang = ExpStore.getLanguage();
@@ -497,7 +497,7 @@ export default class ASEvalPane
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
       SelectionStore.setActiveSelection(sel, "", null);
-      this.refs.spreadsheet.repaint();
+      this.getASSpreadsheet().repaint();
       ExpStore.setLanguage(ExpStore.getDefaultLanguage());
       ExpActionCreator.handleSelChange('');
       this.hideToast();
@@ -557,17 +557,17 @@ export default class ASEvalPane
       return;
     }
 
-    this.refs.spreadsheet.refs.textbox.hideTextBox();
+    this.getASSpreadsheet().refs.textbox.hideTextBox();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
     ExpStore.setUserIsTyping(false);
 
-    this.refs.spreadsheet.repaint();
+    this.getASSpreadsheet().repaint();
 
     let {origin} = selection;
 
     if (moveCol !== null && moveRow !== null) {
       logDebug("Shifting selection area");
-      this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+      this.getASSpreadsheet().shiftSelectionArea(moveCol, moveRow);
     }
 
     // Only re-eval if the cell actually changed from before.
@@ -587,8 +587,8 @@ export default class ASEvalPane
 
   openSheet(sheet: ASSheet) {
     SheetStateStore.setCurrentSheet(sheet);
-    this.refs.spreadsheet.initializeBlank();
-    this.refs.spreadsheet.getInitialData();
+    this.getASSpreadsheet().initializeBlank();
+    this.getASSpreadsheet().getInitialData();
   }
 
   // /* When a REPl request is made, first update the store and then send the request to the backend */
@@ -603,7 +603,7 @@ export default class ASEvalPane
   setFocus(elem: ASFocusType) {
     switch (elem) {
       case 'editor': this._getRawEditor().focus(); break;
-      case 'grid': this.refs.spreadsheet.setFocus(); break;
+      case 'grid': this.getASSpreadsheet().setFocus(); break;
       case 'textbox': this._getRawTextbox().focus(); break;
       default: throw "invalid argument passed into setFocus()";
     }
@@ -616,7 +616,7 @@ export default class ASEvalPane
   }
 
   _handleEditorFocus() { // need to remove blinking cursor from textbox
-    this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
+    this.getASSpreadsheet().refs.textbox.editor.renderer.$cursorLayer.hideCursor();
   }
 
   _getCodeEditorMaxLines(): number {
@@ -714,7 +714,7 @@ export default class ASEvalPane
     FindAction.decrementSelection();
   }
   _onFindChange() {
-    this.refs.spreadsheet.repaint();
+    this.getASSpreadsheet().repaint();
   }
 
   /**************************************************************************************************************************/
