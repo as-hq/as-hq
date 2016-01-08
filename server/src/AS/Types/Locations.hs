@@ -14,6 +14,7 @@ import Data.Aeson
 import Data.Hashable
 import Data.SafeCopy
 
+import Control.Lens hiding ((.=))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import Control.Lens hiding ((.=))
@@ -35,8 +36,8 @@ type Rect = (Coord, Coord)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
-data ASIndex = Index { locSheetId :: ASSheetId, index :: Coord } 
-  deriving (Show, Read, Eq, Ord, Generic)
+data ASIndex = Index { _locSheetId :: ASSheetId, _index :: Coord } 
+  deriving (Show, Read, Eq, Generic, Ord)
 data ASPointer = Pointer { pointerIndex :: ASIndex } 
   deriving (Show, Read, Eq, Ord, Generic)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: Rect }
@@ -46,11 +47,13 @@ data ASColRange = ColRange {colRangeSheetId :: ASSheetId, colRange :: (Coord, In
 data ASReference = IndexRef ASIndex | ColRangeRef ASColRange | RangeRef ASRange | PointerRef ASPointer | OutOfBounds
   deriving (Show, Read, Eq, Ord, Generic)
 
+makeLenses ''ASIndex
+
 refSheetId :: ASReference -> ASSheetId
-refSheetId (IndexRef      i) = locSheetId      i
-refSheetId (RangeRef      r) = rangeSheetId    r
-refSheetId (ColRangeRef   r) = colRangeSheetId r
-refSheetId (PointerRef    p) = locSheetId . pointerIndex $ p
+refSheetId (IndexRef i) = i^.locSheetId
+refSheetId (RangeRef r) = rangeSheetId r
+refSheetId (ColRangeRef r) = colRangeSheetId r
+refSheetId (PointerRef p) = (view locSheetId) . pointerIndex $ p
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances

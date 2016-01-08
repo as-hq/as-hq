@@ -19,19 +19,23 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
-evaluate :: String -> String -> EitherTExec CompositeValue
-evaluate _ "" = return $ CellValue NoValue
-evaluate _ str = do
-    if isDebug 
-        then lift $ writeExecFile OCaml str
-        else return ()
-    printWithTimeT "starting OCaml eval"
-    result <- lift $ execOcaml
-    hoistEither $ parseValue OCaml result
+--  DEPRECATED until we actually support OCaml (anand 1/6/15)
+evaluate :: String -> String -> EitherTExec EvalResult
+evaluate _ _ = undefined
+--evaluate _ "" = return $ CellValue NoValue
+--evaluate _ str = do
+    --if isDebug 
+    --    then lift $ writeExecFile OCaml str
+    --    else return ()
+    --printWithTimeT "starting OCaml eval"
+    --result <- lift $ execOcaml
+    --hoistEither $ parseValue OCaml result
 
-evaluateRepl :: String -> String -> EitherTExec CompositeValue
-evaluateRepl _ "" = return $ CellValue NoValue
-evaluateRepl _ str = left ExecError -- TODO
+--  DEPRECATED until we actually support OCaml (anand 1/6/15)
+evaluateRepl :: String -> String -> EitherTExec EvalResult
+evaluateRepl _ _ = undefined
+--evaluateRepl _ "" = return $ CellValue NoValue
+--evaluateRepl _ str = left ExecError -- TODO
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 

@@ -46,7 +46,7 @@ conditionallyFormatCells state origSid cells rules ctx = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
 ruleToCellTransform :: ServerState -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform state sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps rk) = do
+ruleToCellTransform state sid ctx cfr@(CondFormatRule _ rngs condFormatCondition format) c@(Cell l e v ps rk disp) = do
   let containingRange = find (flip rangeContainsIndex l) rngs
   case containingRange of
     Nothing -> return c
@@ -58,7 +58,7 @@ ruleToCellTransform state sid ctx cfr@(CondFormatRule _ rngs condFormatCondition
           shiftAndEvaluateExpression = eval . shiftXp
       mc <- checker condFormatCondition v shiftAndEvaluateExpression
       if mc
-         then return $ Cell l e v (setCondFormatProp format ps) rk -- #lens
+         then return $ Cell l e v (setCondFormatProp format ps) rk disp -- #lens
          else return c
 
 evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
@@ -72,7 +72,8 @@ evaluateExpression state sid ctx xp@(Expression str lang) = do
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
       ctx' = ctx { virtualCellsMap = valMap' }
-  (Formatted res _) <- evaluateLanguage state dummyLoc ctx' xp
+  -- we don't care about the display string produced by evaluateLanguage
+  (Formatted (EvalResult res _) _) <- evaluateLanguage state dummyLoc ctx' xp
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)
     CellValue (ValueError msg _) -> do

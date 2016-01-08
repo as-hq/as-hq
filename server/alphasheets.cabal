@@ -140,6 +140,7 @@ library
                        TypeSynonymInstances
                        FlexibleInstances
                        TemplateHaskell
+                       DeriveGeneric
   PkgConfig-Depends:   python
   other-extensions:    ForeignFunctionInterface
                        CPP

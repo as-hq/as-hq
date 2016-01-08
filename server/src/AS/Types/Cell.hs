@@ -36,7 +36,8 @@ data ASCell = Cell { _cellLocation :: ASIndex
                    , _cellExpression :: ASExpression
                    , _cellValue :: ASValue
                    , _cellProps :: ASCellProps
-                   , _cellRangeKey :: Maybe RangeKey } 
+                   , _cellRangeKey :: Maybe RangeKey
+                   , _cellDisplay :: Maybe String } 
                    deriving (Read, Show, Eq, Generic)
                    -- If the cell is not part of a range, cellRangeKey is Nothing; otherwise, it's the key to that range. 
                    -- In principle, cellRangeKey can be determined from the collection of all RangeKeys -- we can just find
@@ -105,7 +106,7 @@ toMap cs = M.fromList $ zip (map (view cellLocation) cs) cs
 -- | Returns a list of blank cells at the given locations. For now, the language doesn't matter, 
 -- because blank cells sent to the frontend don't get their languages saved. 
 blankCellAt :: ASIndex -> ASCell
-blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps Nothing
+blankCellAt l = Cell l (Expression "" Excel) NoValue emptyProps Nothing Nothing
 
 blankCellsAt :: [ASIndex] -> [ASCell]
 blankCellsAt = map blankCellAt

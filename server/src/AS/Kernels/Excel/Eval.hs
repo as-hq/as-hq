@@ -52,6 +52,9 @@ evalExcel s context = do
     SimpleFormula formula -> L.evalFormula context formula
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
-evaluate :: Connection -> String -> ASIndex -> CellMap -> EitherTExec (Formatted CompositeValue)
-evaluate conn s idx mp = right $ convertEither context $ evalExcel s context
-  where context = Context mp idx conn
+-- Excel doesn't have print statements, so the display value of EvalResult is always Nothing
+evaluate :: Connection -> String -> ASIndex -> CellMap -> EitherTExec (Formatted EvalResult)
+evaluate conn s idx mp = right $ EvalResult <$> val <*> return Nothing
+  where 
+    context = Context mp idx conn
+    val = convertEither context $ evalExcel s context

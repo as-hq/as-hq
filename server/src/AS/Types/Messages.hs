@@ -47,7 +47,7 @@ data ClientAction =
   | ClearSheet ASSheetId
   | MakeSelection Selection
   | LoadImportedCells [ASCell] -- cells to add to sheet
-  | ShowHeaderResult CompositeValue
+  | ShowHeaderResult EvalResult
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
   | PassCellsToTest [ASCell]

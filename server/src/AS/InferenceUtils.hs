@@ -31,7 +31,7 @@ type PatternGroup = [ASCell]
 type Pattern = ([ASCell],(Int -> ASValue))
 
 pos :: ASCell -> Position
-pos = index . view cellLocation
+pos = view (cellLocation.index)
 
 ------------------------------------------------------------------------------------------------------------------
 -- Deal with offsets and positions
@@ -196,7 +196,7 @@ translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
         newVals = map (snd pattern) seriesIndices
         newLocs = map (Index (rangeSheetId r1)) newPositions
         newExpressions = map (\v -> Expression (showPrimitive lang v) lang) newVals
-        newCells = map (\(l,e,v) -> Cell l e v (cell^.cellProps) Nothing) $ zip3 newLocs newExpressions newVals
+        newCells = map (\(l,e,v) -> Cell l e v (cell^.cellProps) Nothing Nothing) $ zip3 newLocs newExpressions newVals
 
 ------------------------------------------------------------------------------------------------------------------
 -- deal with the actual pattern matching (quite literally)

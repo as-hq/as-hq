@@ -76,7 +76,7 @@ getCopyCells conn from to = do
       translateCell :: Offset -> ASCell -> Maybe ASCell
       translateCell o c = shiftRangeKey o =<< shiftCell o c -- remember to shift the range key of a coupled expression as well
       toCells       = catMaybes $ concatMap (\o -> map (translateCell o) sanitizedFromCells) offsets
-      updateSheetId = \l -> l { locSheetId = rangeSheetId to }
+      updateSheetId = set locSheetId (rangeSheetId to)
       toCells'      = map (cellLocation %~ updateSheetId) toCells
   return toCells'
 
