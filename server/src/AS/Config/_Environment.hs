@@ -1,3 +1,11 @@
+-- This is a file with settings that may be local to your development environment, e.g., 
+-- whether to log to the console. (Don't want this in production.) 
+-- 
+-- We're storing this information in an environemnt file (Environment.hs), which
+-- is in the .gitignore. _Environment.hs exists as a template for creating Environment.hs, 
+-- for convenience (since Environment.hs is in the .gitignore)._Environment.hs is NOT
+-- actually imported by any other modules, and is not in the .cabal. 
+
 module AS.Config.Environment where
 
 import AS.Types.Network
