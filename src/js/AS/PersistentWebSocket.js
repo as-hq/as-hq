@@ -15,34 +15,38 @@ let ws = WebSocket;
 import {logDebug} from './Logger';
 import Constants from '../Constants.js'
 
-const TIMEOUT = 100; // number of timeout intervals to go
-const INTERVAL = 50; // number of ms in an interval
-const SEND_ACK_FREQ = 20;
+const QUEUE_FLUSH_INTERVAL = 50; // every n ms, try sending queued messages
+const CHECK_ALIVE_INTERVAL = 100; // perform the alive check every n ms
+const HEARTBEAT_TIMEOUT = 20; // if we don't receive a heartbeat at least once in this many intervals, timeout the connection
 
 class PersistentWebSocket {
   _url: string;
   _callbackQueue: Array<Callback<WebSocket>>;
   _client: WebSocket;
-  _dcCount: number;
   _onreconnect: () => void;
   _beforereconnect: () => void;
   _sendAck: Callback<WebSocket>;
+  _intervalCounter: number;
+  _heartbeat: IntervalId;
   _messagePump: IntervalId;
 
   constructor(url: string) {
     this._url = url;
     this._callbackQueue = [];
     this._client = new ws(url);
-    this._dcCount = 0;
+    this._intervalCounter = 0;
 
     this._onreconnect = () => {
       logDebug('Reconnected WS automatically after failure');
     };
 
+    this._heartbeat = setInterval(() => {
+      this._checkAliveAndPossiblyReconnect();
+    }, CHECK_ALIVE_INTERVAL)
+
     this._messagePump = setInterval(() => {
-      this._checkDC();
-      this._sendQueue();
-    }, INTERVAL);
+      this._tryFlushingQueue();
+    }, QUEUE_FLUSH_INTERVAL);
   }
 
   static install(w) {
@@ -51,7 +55,7 @@ class PersistentWebSocket {
 
   set onmessage(fn: Callback<MessageEvent>) {
     this._client.onmessage = (evt) => {
-      this._dcCount = 0;
+      this._resetCounter();
       fn(evt);
     };
   }
@@ -68,50 +72,37 @@ class PersistentWebSocket {
     this._sendAck = fn;
   }
 
-  _checkDC() {
-    this._dcCount++;
-    if ((this._dcCount % SEND_ACK_FREQ === 0) && this._client.readyState === 1) {
-      this._sendAck(this._client);
-    }
+  _alive(): boolean {
+    return (this._client.readyState === 1)
+        && (this._intervalCounter < HEARTBEAT_TIMEOUT);
+  }
 
-    if (this._dcCount > TIMEOUT) {
-      if (this._client.readyState === 1) {
-        this._client.close();
-      }
-
-      let {onmessage, onopen} = this._client;
-
-      if (Constants.shouldReconnect) {
-        logDebug('Reconnecting...');
-        this._beforereconnect();
-
-        this._client = new ws(this._url);
-        this._client.onmessage = onmessage;
-        this._client.onopen = onopen;
-        this._dcCount = 0;
-      }
+  _checkAliveAndPossiblyReconnect() {
+    if (this._alive()) {
+      this._intervalCounter++;
+    } else {
+      this.possiblyReconnect();
     }
   }
 
-  _sendQueue() {
-    if (this._client.readyState === 1) {
-      while (this._callbackQueue.length > 0 && this._client.readyState === 1) {
-        let ele = this._callbackQueue.shift();
-        ele(this._client);
+  _resetCounter() {
+    this._intervalCounter = 0;
+  }
+
+  _tryFlushingQueue() {
+    if (this._alive()) {
+      while (this._callbackQueue.length > 0 && this._alive()) {
+        let cb = this._callbackQueue.shift();
+        cb(this._client);
       }
-    } else if (this._client.readyState > 1) {
+    } else {
       // logDebug('TIMING OUT DUE TO CLOSED WS');
       logDebug('Closed WS state:', this._client.readyState);
-      this._dcCount = TIMEOUT;
     }
   }
 
   _withNakedWS(fn: Callback<WebSocket>) { // FOR TESTING PURPOSES
     fn(this._client);
-  }
-
-  readyState(): number {
-    return this._client.readyState;
   }
 
   waitForConnection(cb: Callback<WebSocket>) {
@@ -125,9 +116,24 @@ class PersistentWebSocket {
     });
   }
 
+  possiblyReconnect() {
+    this._client.close();
+    if (Constants.shouldReconnect) {
+      let {onmessage, onopen} = this._client;
+      logDebug('Reconnecting...');
+      this._beforereconnect();
+
+      this._client = new ws(this._url);
+      this._client.onmessage = onmessage;
+      this._client.onopen = onopen;
+      this._resetCounter();
+    }
+  }
+
   close() {
     logDebug('Closed WS command from frontend');
     this._client.close();
+    clearInterval(this._heartbeat);
     clearInterval(this._messagePump);
   }
 }

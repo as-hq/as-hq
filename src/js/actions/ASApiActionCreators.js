@@ -76,7 +76,7 @@ import ws from '../AS/PersistentWebSocket';
 
 let ActionTypes = Constants.ActionTypes;
 console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
-let wss: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 
 let currentCbs: ?ASAPICallbackPair = undefined;
 let uiTestMode: boolean = false;
@@ -99,7 +99,7 @@ let refreshDialogShown: boolean = false;
   Converts server to client types before going further
 */
 
-wss.onmessage = (event: MessageEvent) => {
+pws.onmessage = (event: MessageEvent) => {
   if (event.data === 'ACK') return;
 
   logDebug("Client received data from server: " + event.data.toString());
@@ -242,7 +242,7 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   }
 }
 
-wss.onopen = (evt) => {
+pws.onopen = (evt) => {
   logDebug('WebSockets open');
 };
 
@@ -250,7 +250,7 @@ const API = {
   sendMessageWithAction(action: any) {
     let msg = {serverAction: action};
     logDebug(`Queueing ${msg.serverAction} message`);
-    wss.waitForConnection((innerClient: WebSocket) => {
+    pws.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${msg.serverAction} message`);
       logDebug(JSON.stringify(msg));
       innerClient.send(JSON.stringify(msg));
@@ -290,8 +290,8 @@ const API = {
   },
 
   initialize() {
-    wss.sendAck = this.ackMessage;
-    wss.beforereconnect = () => { this.reinitialize(); };
+    pws.sendAck = this.ackMessage;
+    pws.beforereconnect = () => { this.reinitialize(); };
 
     this.initMessage();
   },
@@ -307,7 +307,7 @@ const API = {
 
   close() {
     logDebug('Sending close message');
-    wss.close();
+    pws.close();
   },
 
   export(sheet: ASSheet) {
@@ -319,8 +319,8 @@ const API = {
   },
 
   import(file: File) {
-    // any typecast necessary because wss.send is an overloaded, untyped function...
-    wss.send(((file: any): string), {binary: true});
+    // any typecast necessary because pws.send is an overloaded, untyped function...
+    pws.send(((file: any): string), {binary: true});
   },
 
   importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
@@ -778,8 +778,8 @@ const API = {
   /**************************************************************************************************************************/
   /* Testing */
 
-  withWS<A>(fn: (pws: ws) => A): A {
-    return fn(wss);
+  withWS<A>(fn: (givenPws: ws) => A): A {
+    return fn(pws);
   },
 
   test(f: Callback, cbs: ASAPICallbackPair) {
