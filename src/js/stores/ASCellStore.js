@@ -132,23 +132,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
         }
 
         break;
-      case 'GOT_IMPORT':
-        _data.lastUpdatedCells = [];
-        let sheetId = action.newCells[0].location.sheetId; // assumes all imported cells are within the same sheet, which should be true.
-        // first, remove cells in current sheet
-        var cellsToRemove = [];
-        _data.allCells[sheetId].forEach((colArray) => {
-          colArray.forEach((cell) => {
-            cellsToRemove.push(cell);
-          });
-        });
-        cellsToRemove = cellsToRemove.filter((cell) => !!cell); // remove nulls
-        ASCellStore.removeCells(cellsToRemove);
-        _data.allCells[sheetId] = [];
-        // then, update with the imported cells
-        ASCellStore.updateCells(action.newCells);
-        ASCellStore.emitChange();
-        break;
     }
   }),
 

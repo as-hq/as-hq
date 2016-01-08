@@ -173,6 +173,9 @@ wss.onmessage = (event: MessageEvent) => {
         sheetId: action.contents
       });
       break;
+    case 'AskUserToOpen':
+      alert("Please refresh, and load the sheet named " + action.contents);
+      break;
     case 'MakeSelection':
       Dispatcher.dispatch({
         _type: 'GOT_SELECTION',
@@ -197,12 +200,6 @@ wss.onmessage = (event: MessageEvent) => {
         _type: 'GOT_FIND',
         findLocs:clientLocs
       }); */
-      break;
-    case 'LoadImportedCells':
-      Dispatcher.dispatch({
-        _type: 'GOT_IMPORT',
-        newCells: ASCell.makeCells(action.contents)
-      });
       break;
   }
 };

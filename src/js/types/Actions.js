@@ -71,11 +71,6 @@ export type GotUpdatedBarsAction = {
   oldBarLocs: Array<BarIndex>;
 };
 
-export type ImportAction = {
-  _type: 'GOT_IMPORT';
-  newCells: Array<ASCell>;
-};
-
 export type ClearedAction = {
   _type: 'CLEARED';
 };
@@ -197,7 +192,6 @@ export type ASAction =
   | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
   | GotUpdatedBarsAction
-  | ImportAction
   | ClearedAction
   | ClearedSheetAction
   // | ReplLeftAction

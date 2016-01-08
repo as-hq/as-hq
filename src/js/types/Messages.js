@@ -478,6 +478,7 @@ export type ClientAction =
   | ShowFailureMessage
   | UpdateSheet 
   | ClearSheet
+  | AskUserToOpen
   | MakeSelection
   | LoadImportedCells
   | ShowHeaderResult;
@@ -509,6 +510,11 @@ export type UpdateSheet = {
 
 export type ClearSheet = { 
   tag: "ClearSheet"; 
+  contents: string; 
+}
+
+export type AskUserToOpen = { 
+  tag: "AskUserToOpen"; 
   contents: string; 
 }
 
