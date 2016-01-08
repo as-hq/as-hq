@@ -137,6 +137,7 @@ getEvalHeader conn sid lang = runRedis conn $ do
     Right Nothing -> ""
     Left _            -> $error "Failed to retrieve eval header"
 
+-- ::ALEX:: #needsrefactor
 setEvalHeader :: Connection -> ASSheetId -> ASLanguage -> String -> IO ()
 setEvalHeader conn sid lang xp = runRedis conn $ do
   set (toRedisFormat $ EvalHeaderKey sid lang) (BC.pack xp)

@@ -9,6 +9,7 @@ import AS.Types.DB hiding (Clear)
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
+import AS.Config.Settings
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp)
 import AS.Types.Selection
@@ -81,16 +82,15 @@ handleOpen uc state sid = do
       startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
-  let langs = [Python, R] -- should probably make list of langs a const somewhere...
-  headers         <- mapM (getEvalHeader conn sid) langs
+  headers         <- mapM (getEvalHeader conn sid) headerLangs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
-  let xps = map (\(str, lang) -> Expression str lang) (zip headers langs)
+  let xps = map (\(str, lang) -> Expression str lang) (zip headers headerLangs) -- ::ALEX::
   -- get column props
   bars <- DB.getBarsInSheet conn sid
-  -- get rangekeys
-  rangeKeys <- DB.getRangeDescriptorsInSheet conn sid
-  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) (Update rangeKeys []) (Update condFormatRules []) -- #exposed
+  -- get rangeDescriptors
+  rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
+  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
   sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate xps
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
@@ -272,13 +272,13 @@ handleImportBinary c mstate bin = do
     Left s ->
       let msg = failureMessage $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (conn c)
-    Right exported -> do
-      DX.importData (state^.appSettings) (state^.dbConn) exported
-      let msg = ClientMessage $ LoadImportedCells $ exportCells exported
+    Right exportedData -> do
+      DX.importSheetData (state^.appSettings) (state^.dbConn) exportedData
+      let msg = ClientMessage $ AskUserToOpen $ exportDataSheetId exportedData
       U.sendMessage msg (conn c)
 
 handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
 handleExport uc state sid = do
   conn  <- view dbConn <$> readMVar state
-  exported <- DX.exportData conn sid
+  exported <- DX.exportSheetData conn sid
   WS.sendBinaryData (userConn uc) (S.encodeLazy exported)

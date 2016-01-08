@@ -1,3 +1,4 @@
+
 {-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.DB
@@ -14,7 +15,7 @@ import AS.Types.Locations
 import AS.Types.Eval
 import AS.Types.CellProps
 import AS.Types.Bar
-import AS.Types.CondFormat (CondFormatRuleId)
+import AS.Types.CondFormat
 
 import Debug.Trace
 
@@ -36,10 +37,6 @@ type ASRelation = (ASIndex, [GraphAncestor])
 
 -- Graph read (getX) and write (setX) requests
 data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors deriving (Show)
-
--- Exporting/Importing
-data ExportData = ExportData { exportCells :: [ASCell], exportDescriptors :: [RangeDescriptor] } deriving (Show, Read, Eq, Generic)
-
 
 data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
 
@@ -65,6 +62,20 @@ descendantsToIndices = map dToI
 indicesToGraphReadInput :: [ASIndex] -> [GraphReadInput]
 indicesToGraphReadInput = map IndexInput
 
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Delimiters
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+data ExportData = ExportData { exportCells           :: [ASCell]
+                             , exportBars            :: [Bar]
+                             , exportDescriptors     :: [RangeDescriptor]
+                             , exportCondFormatRules :: [CondFormatRule]
+                             , exportHeaders         :: [ASExpression] } deriving (Show, Read, Eq, Generic)
+
+-- #incomplete Assumes the export has at least one cell. 
+exportDataSheetId :: ExportData -> ASSheetId
+exportDataSheetId = (view (cellLocation.locSheetId)) . $head . exportCells
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

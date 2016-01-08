@@ -22,6 +22,13 @@ import Data.SafeCopy
 
 data ASTime = Time {day :: String, hour :: Int, minute :: Int, sec :: Int} deriving (Show, Read, Eq, Generic)
 
+-- Note: this does not actually include ALL the information stored in a sheet (you can 
+-- find this in ExportData in Types/DB.hs). This only records the information that should
+-- conceptually get undone if the user presses Ctrl+Z in the spreadsheet. 
+-- 
+-- An example of information this does NOT include is the content in the evaluation header. 
+-- Updating the contents of the eval header and undoing in the spreadsheet should not unset
+-- the contents of the eval header. 
 data ASCommit = Commit { cellDiff :: CellDiff
                        , barDiff :: BarDiff
                        , rangeDescriptorDiff :: DescriptorDiff

@@ -6,10 +6,12 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.DB
 import AS.Types.Network
+import AS.Config.Settings
 
 import AS.DB.API as DB
 import AS.DB.Clear as DC
 import AS.DB.Expanding as DE
+import AS.DB.Eval as DEV
 import AS.DB.Graph as G (recompute)
 
 import Control.Lens hiding ((.=))
@@ -19,15 +21,23 @@ import Database.Redis
 -------------------------------------------------------------------------------------------------------------------------
 -- This module is for database functions associated with exporting/importing data.
 
-exportData :: Connection -> ASSheetId -> IO ExportData
-exportData conn sid = do
+exportSheetData :: Connection -> ASSheetId -> IO ExportData
+exportSheetData conn sid = do
   cells <- DB.getCellsInSheet conn sid
+  bars <- DB.getBarsInSheet conn sid
   descs <- DB.getRangeDescriptorsInSheet conn sid
-  return $ ExportData cells descs
+  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
+  headers <- mapM (DEV.getEvalHeader conn sid) headerLangs
+  let headerExps = map (\(str, lang) -> Expression str lang) $ zip headers headerLangs -- ::ALEX::
+  return $ ExportData cells bars descs condFormatRules headerExps
 
-importData :: AppSettings -> Connection -> ExportData -> IO ()
-importData settings conn (ExportData cs descriptors) = do
-  DC.clearSheet settings conn $ view (cellLocation.locSheetId) . $head $ cs -- assumes all cells are in the same sheet.
-  DB.setCells conn cs
+importSheetData :: AppSettings -> Connection -> ExportData -> IO ()
+importSheetData settings conn (ExportData cells bars descs condFormatRules headers) = do
+  let sid = view (cellLocation.locSheetId) . $head $ cells
+  DC.clearSheet settings conn sid 
+  DB.setCells conn cells
   G.recompute (settings^.graphDbAddress) conn
-  mapM_ (DE.setDescriptor conn) descriptors
+  mapM_ (DB.setBar conn) bars
+  mapM_ (DE.setDescriptor conn) descs
+  DB.setCondFormattingRules conn sid condFormatRules
+  mapM_ (\(Expression xp lang) -> DEV.setEvalHeader conn sid lang xp) headers

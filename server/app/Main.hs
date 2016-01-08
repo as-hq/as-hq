@@ -116,6 +116,7 @@ handleFirstMessage state conn msg =
       putStrLn "First message not an initialization message"
       sendMessage (failureMessage "Cannot connect") conn
 
+-- #needsrefactor should move to Environment.hs, or something
 shouldPreprocess :: Bool
 shouldPreprocess = False
 
