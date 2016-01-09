@@ -448,12 +448,6 @@ export default {
       self.refs.evalHeader.saveAndEval();
     });
 
-    // #needsrefactor. Redundant with evalPane... but no easy way to DRY this up right now.
-    // ::ALEX::
-    SU.add('evalHeader', 'toggle_header', 'Alt+H', (wildcard: string) => {
-      self.toggleEvalHeader();
-    });
-
     // top level shortcuts -------------------------------------------------------------------------------
     SU.add('toplevel', 'select_tab_right', 'Ctrl+PageDown', (wildcard) => {
       //TODO
