@@ -28,7 +28,7 @@ import type {
   ASIndexObject,
   ASSheet,
   ASValue,
-  ASCompositeValue,
+  EvalResult,
   ASExpression,
   ASWorkbook,
   ASCellProp,
@@ -220,7 +220,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: [ASCompositeValue, ASLanguage];
+  contents: [EvalResult, ASLanguage];
 };
 
 export type PayloadCondFormatUpdate = {
@@ -537,5 +537,5 @@ export type LoadImportedCells = {
 
 export type ShowHeaderResult = { 
   tag: "ShowHeaderResult"; 
-  contents: ASCompositeValue;
+  contents: EvalResult;
 }

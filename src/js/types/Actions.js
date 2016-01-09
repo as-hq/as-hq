@@ -8,7 +8,7 @@ import type {
   ASRangeObject,
   ASExpression,
   ASValue,
-  ASCompositeValue,
+  EvalResult,
   ASSelectionObject,
   ASLanguage,
   RangeDescriptor,
@@ -100,7 +100,7 @@ export type GotUpdatedRulesAction = {
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
-  response: ASCompositeValue;
+  response: EvalResult;
 };
 
 export type GotFindAction = {

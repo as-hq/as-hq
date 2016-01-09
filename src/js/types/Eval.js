@@ -289,6 +289,11 @@ export type CellValue = {
 
 export type ASCompositeValue = Expanding | CellValue;
 
+export type EvalResult = { 
+  resultValue: ASCompositeValue; 
+  resultDisplay: ?string;
+}
+
 export type ASReplValue = {
   replValue: ASValue;
   replLang: ASLanguage;

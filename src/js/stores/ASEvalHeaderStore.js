@@ -1,7 +1,7 @@
 /* @flow */
 
 import type {
-  ASCompositeValue,
+  EvalResult,
   ASLanguage
 } from '../types/Eval';
 
@@ -73,8 +73,9 @@ const ASEvalHeaderStore = Object.assign({}, BaseStore, {
     logDebug(JSON.stringify(_data.evalHeaderExps));
   },
 
-  makeDispMessage(val: ASCompositeValue) {
-    let message = "Header saved! ";
+  makeDispMessage(res: EvalResult) {
+    let val = res.resultValue, 
+        message = "Header saved! ";
     if (val.tag == "CellValue") {
       let cellVal = val.contents;
       switch (cellVal.tag) {
