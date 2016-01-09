@@ -11,7 +11,6 @@ import AS.Config.Settings
 import AS.DB.API as DB
 import AS.DB.Clear as DC
 import AS.DB.Expanding as DE
-import AS.DB.Eval as DEV
 import AS.DB.Graph as G (recompute)
 
 import Control.Lens hiding ((.=))
@@ -27,9 +26,8 @@ exportSheetData conn sid = do
   bars <- DB.getBarsInSheet conn sid
   descs <- DB.getRangeDescriptorsInSheet conn sid
   condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
-  headers <- mapM (DEV.getEvalHeader conn sid) headerLangs
-  let headerExps = map (\(str, lang) -> Expression str lang) $ zip headers headerLangs -- ::ALEX::
-  return $ ExportData cells bars descs condFormatRules headerExps
+  headers <- mapM (DB.getEvalHeader conn sid) headerLangs
+  return $ ExportData cells bars descs condFormatRules headers
 
 importSheetData :: AppSettings -> Connection -> ExportData -> IO ()
 importSheetData settings conn (ExportData cells bars descs condFormatRules headers) = do
@@ -40,4 +38,4 @@ importSheetData settings conn (ExportData cells bars descs condFormatRules heade
   mapM_ (DB.setBar conn) bars
   mapM_ (DE.setDescriptor conn) descs
   DB.setCondFormattingRules conn sid condFormatRules
-  mapM_ (\(Expression xp lang) -> DEV.setEvalHeader conn sid lang xp) headers
+  mapM_ (DB.setEvalHeader conn) headers

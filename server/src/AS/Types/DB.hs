@@ -13,6 +13,7 @@ import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Locations
 import AS.Types.Eval
+import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.Bar
 import AS.Types.CondFormat
@@ -71,7 +72,7 @@ data ExportData = ExportData { exportCells           :: [ASCell]
                              , exportBars            :: [Bar]
                              , exportDescriptors     :: [RangeDescriptor]
                              , exportCondFormatRules :: [CondFormatRule]
-                             , exportHeaders         :: [ASExpression] } deriving (Show, Read, Eq, Generic)
+                             , exportHeaders         :: [EvalHeader] } deriving (Show, Read, Eq, Generic)
 
 -- #incomplete Assumes the export has at least one cell. 
 exportDataSheetId :: ExportData -> ASSheetId

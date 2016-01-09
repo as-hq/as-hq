@@ -33,7 +33,6 @@ import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
 import qualified AS.Serialize             as S
 
-import AS.DB.Eval
 import qualified AS.DB.Transaction        as DT
 import qualified AS.DB.API                as DB
 import qualified AS.DB.Clear              as DC
@@ -82,16 +81,15 @@ handleOpen uc state sid = do
       startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
   US.modifyUser makeNewWindow uc state
   -- get header files data to send back to user user
-  headers         <- mapM (getEvalHeader conn sid) headerLangs
+  headers         <- mapM (DB.getEvalHeader conn sid) headerLangs
   -- get conditional formatting data to send back to user user
   condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
-  let xps = map (\(str, lang) -> Expression str lang) (zip headers headerLangs) -- ::ALEX::
   -- get column props
   bars <- DB.getBarsInSheet conn sid
   -- get rangeDescriptors
   rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
   let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
-  sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate xps
+  sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate headers
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get

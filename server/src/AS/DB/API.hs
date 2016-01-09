@@ -9,6 +9,7 @@ import AS.Types.Bar
 import AS.Types.BarProps (BarProp, ASBarProps) 
 import AS.Types.Messages
 import AS.Types.DB
+import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Eval
@@ -427,7 +428,7 @@ deleteBarAt conn bInd = do
   runRedis conn $ del [toRedisFormat $ BarKey bInd]
   return ()
 
-replaceBars :: Connection -> [Bar] -> [Bar] -> IO()
+replaceBars :: Connection -> [Bar] -> [Bar] -> IO ()
 replaceBars conn fromBars toBars = do
   mapM_ ((deleteBarAt conn) . barIndex) fromBars
   mapM_ (setBar conn) toBars
@@ -445,4 +446,23 @@ deleteBarsInSheet conn sid = do
   colKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
   rowKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
   runRedis conn $ del (colKeys ++ rowKeys)
+  return ()
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Header expressions handlers
+
+getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO EvalHeader
+getEvalHeader conn sid lang = runRedis conn $ do 
+  msg <- get . toRedisFormat $ EvalHeaderKey sid lang
+  return $ EvalHeader sid lang $ case msg of 
+    Right (Just msg') -> BC.unpack msg'
+    Right Nothing -> ""
+    Left _            -> $error "Failed to retrieve eval header"
+
+setEvalHeader :: Connection -> EvalHeader -> IO ()
+setEvalHeader conn evalHeader = runRedis conn $ do
+  let sid  = evalHeader^.evalHeaderSheetId
+      lang = evalHeader^.evalHeaderLang
+      xp   = evalHeader^.evalHeaderExpr
+  set (toRedisFormat $ EvalHeaderKey sid lang) (BC.pack xp)
   return ()

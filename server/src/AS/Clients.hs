@@ -73,7 +73,7 @@ instance Client ASUserClient where
       Export sid                  -> handleExport user state sid
       Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
       -- EvaluateRepl          -> handleEvalRepl user payload
-      EvaluateHeader xp           -> handleEvalHeader user curState xp -- mvar not necessary; we should refactor more handlers like this. #anand 1/4/16
+      EvaluateHeader evalHeader   -> handleEvalHeader user curState evalHeader
       Get locs                    -> handleGet user state locs
       GetIsCoupled loc            -> handleIsCoupled user state loc
       Delete sel                  -> handleDelete user state sel

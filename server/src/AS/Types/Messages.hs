@@ -15,6 +15,7 @@ import AS.Types.Excel (indexToExcel)
 import AS.Types.Locations
 import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.CondFormat
 import AS.Types.Updates 
@@ -41,7 +42,7 @@ failureMessage s = ClientMessage $ ShowFailureMessage s
 data ClientAction = 
     NoAction
   | AskDecouple
-  | SetInitialProperties SheetUpdate [ASExpression] -- list of expressions in header
+  | SetInitialProperties SheetUpdate [EvalHeader] -- list of expressions in header
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
@@ -63,7 +64,7 @@ data ServerAction =
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | Export ASSheetId
   | Evaluate [EvalInstruction]
-  | EvaluateHeader ASExpression
+  | EvaluateHeader EvalHeader
   | Get [ASIndex]
   | GetBar BarIndex
   | GetIsCoupled ASIndex

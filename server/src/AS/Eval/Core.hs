@@ -16,6 +16,7 @@ import qualified Data.List as L
 import qualified Data.Text as T
 
 import AS.Types.Eval
+import AS.Types.EvalHeader
 import AS.Types.Excel (indexToExcel)
 import AS.Types.Cell
 import AS.Types.Network
@@ -34,6 +35,7 @@ import AS.Parsing.Common
 import AS.Parsing.Substitutions
 
 import AS.DB.Eval
+import AS.DB.API
 
 import AS.Logging
 import AS.Config.Settings
@@ -67,7 +69,7 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
       otherwise -> do 
         header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
-        return <$> execEvalInLang (state^.appSettings) sid header lang xpWithValuesSubstituted 
+        return <$> execEvalInLang (state^.appSettings) header xpWithValuesSubstituted 
         -- ^ didn't short-circuit, proceed with eval as usual
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
@@ -80,10 +82,15 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
 --  OCaml   -> KO.evaluateRepl header str
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-evaluateHeader :: AppSettings -> ASSheetId -> ASExpression -> EitherTExec EvalResult
-evaluateHeader sett sid (Expression str lang) = case lang of 
-  Python -> KP.evaluateHeader (sett^.pyKernelAddress) sid str
-  R      -> KR.evaluateHeader str
+evaluateHeader :: AppSettings -> EvalHeader -> EitherTExec EvalResult
+evaluateHeader sett evalHeader = 
+  case lang of 
+    Python -> KP.evaluateHeader (sett^.pyKernelAddress) sid str
+    R      -> KR.evaluateHeader str
+  where 
+    sid  = evalHeader^.evalHeaderSheetId
+    lang = evalHeader^.evalHeaderLang
+    str  = evalHeader^.evalHeaderExpr
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -143,9 +150,14 @@ handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-execEvalInLang :: AppSettings -> ASSheetId -> EvalCode -> ASLanguage -> EvalCode -> EitherTExec EvalResult
-execEvalInLang sett sid header lang = case lang of
-  Python  -> KP.evaluate (sett^.pyKernelAddress) sid
-  R       -> KR.evaluate header 
-  SQL     -> KP.evaluateSql header 
-  OCaml   -> KO.evaluate header
+execEvalInLang :: AppSettings -> EvalHeader -> EvalCode -> EitherTExec EvalResult
+execEvalInLang sett evalHeader = 
+  case lang of
+    Python  -> KP.evaluate (sett^.pyKernelAddress) sid
+    R       -> KR.evaluate headerCode
+    SQL     -> KP.evaluateSql headerCode
+    OCaml   -> KO.evaluate headerCode
+  where 
+    sid         = evalHeader^.evalHeaderSheetId
+    lang        = evalHeader^.evalHeaderLang
+    headerCode  = evalHeader^.evalHeaderExpr

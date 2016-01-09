@@ -13,12 +13,12 @@ import qualified AS.Parsing.Read as R
 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
+import AS.Types.EvalHeader
 import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Types.Network
 
 import qualified AS.DB.API as DB
-import qualified AS.DB.Eval as DE
 
 import Data.Maybe (fromJust)
 import Data.Aeson 
@@ -27,6 +27,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Text as T
 
 import Control.Exception (catch, SomeException)
+import Control.Lens hiding ((.=))
 import System.ZMQ4.Monadic
 
 import Control.Monad.Trans.Class
@@ -41,8 +42,8 @@ initialize :: KernelAddress -> Connection -> IO ()
 initialize addr conn = do
   -- run all the headers in db to initialize the sheet namespaces
   sids <- map sheetId <$> DB.getAllSheets conn
-  headers <- mapM (\sid -> DE.getEvalHeader conn sid Python) sids
-  mapM_ (\(sid, code) -> runEitherT $ evaluateHeader addr sid code) $ zip sids headers
+  headers <- mapM (\sid -> DB.getEvalHeader conn sid Python) sids
+  mapM_ (\h -> runEitherT $ evaluateHeader addr (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
 
 evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluate addr = evaluateWithScope addr Cell

@@ -6,6 +6,7 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Commits
 import AS.Types.Eval
+import AS.Types.EvalHeader
 import AS.Types.Network
 
 import AS.Dispatch.Core
@@ -41,11 +42,10 @@ handleEval uc state evalInstructions  = do
 --   msg' <- runReplDispatch sid xp
 --   sendToOriginal uc msg'
 
-handleEvalHeader :: ASUserClient -> ServerState -> ASExpression -> IO ()
-handleEvalHeader uc state xp@(Expression str lang) = do
-  let sid = userSheetId uc
-  setEvalHeader (state^.dbConn) sid lang str
-  msg' <- runEvalHeader (state^.appSettings) sid xp
+handleEvalHeader :: ASUserClient -> ServerState -> EvalHeader -> IO ()
+handleEvalHeader uc state evalHeader = do
+  setEvalHeader (state^.dbConn) evalHeader
+  msg' <- runEvalHeader (state^.appSettings) evalHeader
   sendToOriginal uc msg'
 
 -- The user has said OK to the decoupling

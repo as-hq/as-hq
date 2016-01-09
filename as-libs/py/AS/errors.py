@@ -6,3 +6,9 @@ class ColumnHeaderNotPresent(Exception):
 
 class MultiDimensionalDataException(Exception):
 	pass
+
+class OneDimCalledOnNonListObject(Exception):
+  pass
+
+class OneDimCalledOnNonRowOrCol(Exception):
+  pass
