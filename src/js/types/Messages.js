@@ -356,9 +356,16 @@ export type Evaluate = {
   contents: Array<EvalInstruction>;
 };
 
+export type EvalHeader = {
+  tag: "EvalHeader";
+  evalHeaderSheetId: string; 
+  evalHeaderLang: ASLanguage; 
+  evalHeaderExpr: ASExpression; 
+};
+
 export type EvaluateHeader = {
   tag: "EvaluateHeader";
-  contents: ASExpression;
+  contents: EvalHeader;
 };
 
 export type Get = {
@@ -495,7 +502,7 @@ export type AskDecouple = {
 
 export type SetInitialProperties = { 
   tag: "SetInitialProperties"; 
-  contents: [SheetUpdate, Array<ASExpression>];
+  contents: [SheetUpdate, Array<EvalHeader>];
 }
 
 export type ShowFailureMessage = { 

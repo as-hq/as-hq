@@ -38,6 +38,7 @@ import type {
   Delete,
   ToggleProp,
   Evaluate,
+  EvalHeader,
   EvalInstruction
 } from '../types/Messages';
 
@@ -161,7 +162,7 @@ wss.onmessage = (event: MessageEvent) => {
       dispatchSheetUpdate(action.contents[0]);
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
-        expressions: action.contents[1],
+        evalHeaders: action.contents[1],
       });
       break;
     case 'UpdateSheet':
@@ -353,14 +354,16 @@ const API = {
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = {
-      tag: "EvaluateHeader",
-      contents: {
-        tag: "ASExpression",
-        expression: expression,
-        language: language
-      }
-    };
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
+        msg = {
+          tag: "EvaluateHeader",
+          contents: {
+            tag: "EvalHeader",
+            evalHeaderSheetId: sid,
+            evalHeaderExpr: expression,
+            evalHeaderLang: language
+          }
+        };
     API.sendMessageWithAction(msg);
   },
 

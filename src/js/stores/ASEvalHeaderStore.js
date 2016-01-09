@@ -49,13 +49,13 @@ dispatcherIndex: Dispatcher.register(function (action) {
         ASEvalHeaderStore.emitChange();
         break;
       case 'GOT_OPEN':
-        let xpObjs = action.expressions;
-        xpObjs.forEach((xpObj) => {
-          if (xpObj.language === undefined || xpObj.language === null) {
-            throw new Error('Language undefined for expression');
+        action.evalHeaders.forEach((evalHeader) => {
+          if (evalHeader.evalHeaderLang == null) {
+            throw new Error('language undefined for eval header');
           }
-          let lang = xpObj.language,
-              expr = xpObj.expression,
+
+          let lang = evalHeader.evalHeaderLang,
+              expr = evalHeader.evalHeaderExpr,
               uppercasedLang = lang.charAt(0).toUpperCase() + lang.slice(1);
           evalHeaderExps[uppercasedLang] = expr;
         });

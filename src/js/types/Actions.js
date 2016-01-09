@@ -25,7 +25,8 @@ import type {
 
 import type {
   ASBackendWorkbookSheet,
-  ClientMessage
+  ClientMessage,
+  EvalHeader
 } from './Messages';
 
 import type {
@@ -45,7 +46,7 @@ export type ScrolledAction = {
 
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
-  expressions: Array<ASExpression>;
+  evalHeaders: Array<EvalHeader>;
 };
 
 export type GotSelectionAction = {
