@@ -80,7 +80,6 @@ type ASSpreadsheetState = {
   scrollPixels: HGPoint;
   overlays: Array<ASOverlaySpec>;
   cursorStyle: ASCursorStyle;
-  selectionDraggable: boolean;
 };
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
@@ -137,8 +136,7 @@ export default class ASSpreadsheet
       scroll: { x: 0, y: 0 },
       scrollPixels: { x: 0, y: 0},
       overlays: [],
-      cursorStyle: 'auto',
-      selectionDraggable: false
+      cursorStyle: 'auto'
     };
   }
 
