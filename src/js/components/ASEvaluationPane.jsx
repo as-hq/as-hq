@@ -565,9 +565,12 @@ export default class ASEvalPane
 
     let {origin} = selection;
 
-    if (moveCol !== null && moveRow !== null) {
+    if (moveCol != null && moveRow != null) {
       logDebug("Shifting selection area");
-      this.getASSpreadsheet().shiftSelectionArea(moveCol, moveRow);
+      this.getASSpreadsheet().shiftSelectionArea({
+        dc: moveCol,
+        dr: moveRow
+      });
     }
 
     // Only re-eval if the cell actually changed from before.
@@ -583,12 +586,6 @@ export default class ASEvalPane
       }
     }
     ExpStore.setDefaultLanguage(xpObj.language);
-  }
-
-  openSheet(sheet: ASSheet) {
-    SheetStateStore.setCurrentSheet(sheet);
-    this.getASSpreadsheet().initializeBlank();
-    this.getASSpreadsheet().getInitialData();
   }
 
   // /* When a REPl request is made, first update the store and then send the request to the backend */

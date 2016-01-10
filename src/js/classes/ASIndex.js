@@ -135,6 +135,20 @@ export default class ASIndex {
   toRight(): ASIndex { return this.shift({ dr: 0, dc: 1 }); }
   toLeft(): ASIndex { return this.shift({ dr: 0, dc: -1 }); }
 
+  getRowRange(): ASRange {
+    return new ASRange.fromNaked({
+      tl: { row: this.row, col: 1 },
+      br: { row: this.row, col: Infinity }
+    });
+  }
+
+  getColumnRange(): ASRange {
+    return new ASRange.fromNaked({
+      tl: { row: 1, col: this.col },
+      br: { row: Infinity, col: this.col }
+    });
+  }
+
   isInRange(rng: ASRange): boolean {
     const {row, col} = this;
     const {tl, br} = rng;

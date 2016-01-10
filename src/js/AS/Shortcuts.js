@@ -324,16 +324,20 @@ export default {
       } else {
         SelectionStore.withActiveSelection((sel) => {
           let {origin} = sel;
-          self.getASSpreadsheet().select({range: {tl: {row: origin.row, col: 1}, br: {row: origin.row, col: Infinity}},
-                                       origin: origin}, false);
+          self.getASSpreadsheet().select(ASSelection.fromASLocations({
+            range: origin.getRowRange(),
+            origin: origin
+          }));
         });
       }
     });
     SU.add('grid,notTyping', 'select_col', 'Ctrl+Space', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let {origin} = sel;
-        self.getASSpreadsheet().select({range: {tl: {row: 1, col: origin.col}, br: {row: Infinity, col: origin.col}},
-                                      origin: origin}, false);
+        self.getASSpreadsheet().select(ASSelection.fromASLocations({
+          range: origin.getColumnRange(),
+          origin: origin
+        }));
       });
     });
     SU.add('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
