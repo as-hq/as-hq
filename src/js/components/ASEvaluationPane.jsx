@@ -567,7 +567,7 @@ export default class ASEvalPane
 
     if (moveCol != null && moveRow != null) {
       logDebug("Shifting selection area");
-      this.getASSpreadsheet().shiftSelectionArea({
+      this.getASSpreadsheet().shiftAndResetSelection({
         dc: moveCol,
         dr: moveRow
       });
