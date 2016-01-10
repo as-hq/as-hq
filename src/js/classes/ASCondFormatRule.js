@@ -20,7 +20,7 @@ export default class ASCondFormatRule {
   get condFormatRuleId(): string { return this._condFormatRuleId; }
   get condFormat(): ASCellProp { return this._condFormat; }
   get condition(): CondFormatCondition { return this._condition; }
-  get cellLocs(): Array<ASRange> { return this.cellLocs; }
+  get cellLocs(): Array<ASRange> { return this._cellLocs; }
 
   static fromClasses({ condFormatRuleId, condFormat, condition, cellLocs }: ({
     condFormatRuleId: string;
