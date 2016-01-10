@@ -31,6 +31,7 @@ import type {
   Delete,
   ToggleProp,
   Evaluate,
+  EvalHeader,
   EvalInstruction
 } from '../types/Messages';
 
@@ -154,7 +155,7 @@ wss.onmessage = (event: MessageEvent) => {
       dispatchSheetUpdate(action.contents[0]);
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
-        expressions: action.contents[1],
+        evalHeaders: action.contents[1],
       });
       break;
     case 'UpdateSheet':
@@ -165,6 +166,9 @@ wss.onmessage = (event: MessageEvent) => {
         _type: 'CLEARED_SHEET',
         sheetId: action.contents
       });
+      break;
+    case 'AskUserToOpen':
+      alert("Please refresh, and load the sheet named " + action.contents);
       break;
     case 'MakeSelection':
       Dispatcher.dispatch({
@@ -190,12 +194,6 @@ wss.onmessage = (event: MessageEvent) => {
         _type: 'GOT_FIND',
         findLocs:clientLocs
       }); */
-      break;
-    case 'LoadImportedCells':
-      Dispatcher.dispatch({
-        _type: 'GOT_IMPORT',
-        newCells: ASCell.makeCells(action.contents)
-      });
       break;
   }
 };
@@ -352,14 +350,16 @@ const API = {
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = {
-      tag: "EvaluateHeader",
-      contents: {
-        tag: "ASExpression",
-        expression: expression,
-        language: language
-      }
-    };
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
+        msg = {
+          tag: "EvaluateHeader",
+          contents: {
+            tag: "EvalHeader",
+            evalHeaderSheetId: sid,
+            evalHeaderExpr: expression,
+            evalHeaderLang: language
+          }
+        };
     API.sendMessageWithAction(msg);
   },
 

@@ -10,14 +10,14 @@ export default {
     display: 'block',
     position: 'absolute',
     right: 0,
-    height: '32px',
+    height: '26px',
     zIndex: 100000
   },
 
   showAllLabel: {
     display: 'inline-block',
     color: '#ffffff',
-    lineHeight: '32px',
+    lineHeight: '26x',
     paddingRight: '10px'
   },
 
@@ -31,16 +31,16 @@ export default {
 
   },
 
-  thHeight: '32px',
+  thHeight: '26px',
   th: {
-    height: '32px',
+    height: '26px',
     backgroundColor: '#282828'
   },
 
   widths: ['250px', '150px', undefined],
 
   thd: {
-    height: '32px',
+    height: '26px',
     color: '#ffffff',
     fontSize: '10pt',
     fontWeight: '500'

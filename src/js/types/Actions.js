@@ -11,6 +11,7 @@ import type {
   ASExpression,
   ASValue,
   ASCompositeValue,
+  EvalResult,
   ASLanguage,
   RangeDescriptor,
   RangeKey
@@ -22,7 +23,8 @@ import type {
 
 import type {
   ASBackendWorkbookSheet,
-  ClientMessage
+  ClientMessage,
+  EvalHeader
 } from './Messages';
 
 import type {
@@ -42,7 +44,7 @@ export type ScrolledAction = {
 
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
-  expressions: Array<ASExpression>;
+  evalHeaders: Array<EvalHeader>;
 };
 
 export type GotSelectionAction = {
@@ -66,11 +68,6 @@ export type GotUpdatedBarsAction = {
   _type: 'GOT_UPDATED_BARS';
   newBars: Array<Bar>;
   oldBarLocs: Array<BarIndex>;
-};
-
-export type ImportAction = {
-  _type: 'GOT_IMPORT';
-  newCells: Array<ASCell>;
 };
 
 export type ClearedAction = {
@@ -101,7 +98,7 @@ export type GotUpdatedRulesAction = {
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
-  response: ASCompositeValue;
+  response: EvalResult;
 };
 
 export type GotFindAction = {
@@ -194,7 +191,6 @@ export type ASAction =
   | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
   | GotUpdatedBarsAction
-  | ImportAction
   | ClearedAction
   | ClearedSheetAction
   // | ReplLeftAction

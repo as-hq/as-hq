@@ -292,6 +292,11 @@ export type CellValue = {
 
 export type ASCompositeValue = Expanding | CellValue;
 
+export type EvalResult = {
+  resultValue: ASCompositeValue;
+  resultDisplay: ?string;
+}
+
 export type ASReplValue = {
   replValue: ASValue;
   replLang: ASLanguage;
@@ -355,6 +360,9 @@ export type ASCellObject = {
   // Indicates whether the cell belongs to a range, and if so, the dimensions of the range. This should only ever be used
   // in conjunction with the RangeKeyStore to determine expandingType, and should only exist transiently -- namely, when an updated
   // cell is passed from the server, and before its expandingType is set (by looking up the cellRangeKey in the RangeDescriptorStore)
+  cellDisplay?: string;
+  // the displayed output of the cell evaluation, exactly as it would show up in the terminal. This means print statements and detailed
+  // error messages that are not part of ASValue.
 };
 
 // backend actually has more fields than this, but this is all frontend needs

@@ -28,7 +28,7 @@ import type {
   ASIndexObject,
   ASSheet,
   ASValue,
-  ASCompositeValue,
+  EvalResult,
   ASExpression,
   ASWorkbook,
   ASCellProp,
@@ -220,7 +220,7 @@ export type PayloadFind = {
 
 export type PayloadValue = {
   tag: 'PayloadValue';
-  contents: [ASCompositeValue, ASLanguage];
+  contents: [EvalResult, ASLanguage];
 };
 
 export type PayloadCondFormatUpdate = {
@@ -356,9 +356,16 @@ export type Evaluate = {
   contents: Array<EvalInstruction>;
 };
 
+export type EvalHeader = {
+  tag: "EvalHeader";
+  evalHeaderSheetId: string; 
+  evalHeaderLang: ASLanguage; 
+  evalHeaderExpr: ASExpression; 
+};
+
 export type EvaluateHeader = {
   tag: "EvaluateHeader";
-  contents: ASExpression;
+  contents: EvalHeader;
 };
 
 export type Get = {
@@ -478,6 +485,7 @@ export type ClientAction =
   | ShowFailureMessage
   | UpdateSheet 
   | ClearSheet
+  | AskUserToOpen
   | MakeSelection
   | LoadImportedCells
   | ShowHeaderResult;
@@ -494,7 +502,7 @@ export type AskDecouple = {
 
 export type SetInitialProperties = { 
   tag: "SetInitialProperties"; 
-  contents: [SheetUpdate, Array<ASExpression>];
+  contents: [SheetUpdate, Array<EvalHeader>];
 }
 
 export type ShowFailureMessage = { 
@@ -512,6 +520,11 @@ export type ClearSheet = {
   contents: string; 
 }
 
+export type AskUserToOpen = { 
+  tag: "AskUserToOpen"; 
+  contents: string; 
+}
+
 export type MakeSelection = { 
   tag: "MakeSelection"; 
   contents: ASSelectionObject; 
@@ -524,5 +537,5 @@ export type LoadImportedCells = {
 
 export type ShowHeaderResult = { 
   tag: "ShowHeaderResult"; 
-  contents: ASCompositeValue;
+  contents: EvalResult;
 }
