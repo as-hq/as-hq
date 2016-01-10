@@ -1380,7 +1380,7 @@ describe('backend', () => {
           it ('should display $F:J properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J:F'),
+              python('A1', '$F:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1396,7 +1396,7 @@ describe('backend', () => {
           it ('should display J:$F properly', (done) => {
             _do([
               python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J:F'),
+              python('A1', 'J:$F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1405,7 +1405,7 @@ describe('backend', () => {
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
               shouldBe('E5', valueI(12)),
-              //expressionShouldBe('E5', "$F:J"),
+              //expressionShouldBe('E5', "J:$F"),
               exec(done)
               ]);
           });
