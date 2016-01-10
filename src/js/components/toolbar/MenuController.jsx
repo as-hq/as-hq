@@ -155,7 +155,6 @@ export default class MenuController
 */
 MenuController.propTypes =  {
   toolbarComponent: React.PropTypes.object.isRequired,
-  menuComponent: React.PropTypes.object.isRequired,
   setControlStateFromCell: React.PropTypes.func.isRequired,
   propagateControlStateChange: React.PropTypes.func.isRequired,
   toolbarWidth: React.PropTypes.number,
