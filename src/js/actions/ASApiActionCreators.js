@@ -623,7 +623,7 @@ const API = {
   getIndices(locs: Array<ASIndex>) {
     let msg = {
       tag: "Get",
-      contents: locs.map((loc) => loc.toNaked())
+      contents: locs.map((loc) => loc.obj())
     };
     API.sendMessageWithAction(msg);
   },
