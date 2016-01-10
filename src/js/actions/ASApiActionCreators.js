@@ -15,6 +15,10 @@ import type {
   ASValue,
   ASSheet,
   ASCellProp,
+  FormatType,
+  ValueFormat,
+  VAlign,
+  HAlign,
   VAlignType,
   HAlignType
 } from '../types/Eval';
@@ -524,7 +528,7 @@ const API = {
       tag: "TextColor",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   setFillColor(contents: string, rng: ASRange) {
@@ -532,23 +536,23 @@ const API = {
       tag: "FillColor",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   setVAlign(contents: VAlignType, rng: ASRange) {
-    let prop = {
+    let prop: VAlign = {
       tag: "VAlign",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   setHAlign(contents: HAlignType, rng: ASRange) {
-    let prop = {
+    let prop: HAlign = {
       tag: "HAlign",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   setFontSize(contents: number, rng: ASRange) {
@@ -556,7 +560,7 @@ const API = {
       tag: "FontSize",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   setFontName(contents: string, rng: ASRange) {
@@ -564,15 +568,15 @@ const API = {
       tag: "FontName",
       contents: contents
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
-  setFormat(formatType: string, rng: ASRange) {
-    let formatProp = {
+  setFormat(formatType: FormatType, rng: ASRange) {
+    let formatProp: ValueFormat = {
       tag: "ValueFormat",
       formatType: formatType
     };
-    this.setProp(formatProp, rng.obj());
+    API.setProp(formatProp, rng);
   },
 
   setUrl(urlLink: string, rng: ASRange) {
@@ -580,7 +584,7 @@ const API = {
       tag: "URL",
       urlLink: urlLink
     };
-    this.setProp(prop, rng.obj());
+    API.setProp(prop, rng);
   },
 
   drag(activeRng: ASRange, dragRng: ASRange) {

@@ -17,7 +17,7 @@ import type {
   VAlignType,
   HAlignType,
   BooleanCellTag,
-  FormatType,
+  FormatType
 } from '../types/Eval';
 
 import type {
@@ -338,7 +338,7 @@ export function setFontName(rng: string, contents: string): Prf {
   });
 }
 
-export function setFormat(rng: string, formatType: string): Prf {
+export function setFormat(rng: string, formatType: FormatType): Prf {
   return apiExec(() => {
     API.setFormat(formatType, asRange(rng));
   });
