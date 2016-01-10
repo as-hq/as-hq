@@ -226,13 +226,13 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     // go in this direction (shiftAmount)
       // find the first one that's a transition or an edge
 
-    let check = (p, c, n) => {
+    let checkWhetherCurrentIsBoundary = (p, c, n) => {
       return c && !(p && n);
     };
 
     while (!curIdx.equals(next)) { // while you still have a next, and you haven't reached boundary
       let [p, c, n] = [prev, curIdx, next].map(CellStore.isNonBlankCell);
-      if (check(p, c, n)) {
+      if (checkWhetherCurrentIsBoundary(p, c, n)) {
         break;
       }
       [prev, curIdx, next] = // move to the next window of 3 cells
