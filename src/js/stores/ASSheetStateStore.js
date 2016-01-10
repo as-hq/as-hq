@@ -219,21 +219,24 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     }
 
     const shiftAmount = { dr: dr, dc: dc };
-    const oppositeShiftAmount = { dr: -dr, dc: -dc };
-    let curIdx = start;
+    let prev = start;
+    let curIdx = start.shift(shiftAmount);
+    let next = curIdx.shift(shiftAmount);
 
-    while (curIdx.col < Constants.numCols && curIdx.row < Constants.numRows) {
-      curIdx = curIdx.shift(shiftAmount);
+    // go in this direction (shiftAmount)
+      // find the first one that's a transition or an edge
 
-      if (
-        CellStore.isNonBlankCell(curIdx)
-        && !(
-          CellStore.isNonBlankCell(curIdx.shift(shiftAmount))
-          && CellStore.isNonBlankCell(curIdx.shift(oppositeShiftAmount))
-        )
-      ) {
+    let check = (p, c, n) => {
+      return c && !(p && n);
+    };
+
+    while (!curIdx.equals(next)) { // while you still have a next, and you haven't reached boundary
+      let [p, c, n] = [prev, curIdx, next].map(CellStore.isNonBlankCell);
+      if (check(p, c, n)) {
         break;
       }
+      [prev, curIdx, next] = // move to the next window of 3 cells
+        [prev, curIdx, next].map((x) => x.shift(shiftAmount));
     }
 
     return curIdx;
