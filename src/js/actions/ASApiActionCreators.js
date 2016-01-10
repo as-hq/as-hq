@@ -248,9 +248,9 @@ wss.onopen = (evt) => {
 const API = {
   sendMessageWithAction(action: any) {
     let msg = {serverAction: action};
-    logDebug(`Queueing ${msg.serverAction} message`);
+    logDebug(`Queueing ${msg.serverAction.tag} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
-      logDebug(`Sending ${msg.serverAction} message`);
+      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
       logDebug(JSON.stringify(msg));
       innerClient.send(JSON.stringify(msg));
 
@@ -623,7 +623,7 @@ const API = {
   getIndices(locs: Array<ASIndex>) {
     let msg = {
       tag: "Get",
-      contents: locs.map((loc) => loc.toNaked)
+      contents: locs.map((loc) => loc.toNaked())
     };
     API.sendMessageWithAction(msg);
   },
