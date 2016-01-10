@@ -2,6 +2,7 @@
 
 import {stream} from 'nu-stream';
 import {parse, text} from 'bennu';
+import _ from 'lodash';
 
 import SheetStateStore from '../stores/ASSheetStateStore';
 
@@ -166,7 +167,12 @@ export default class ASExcelRef {
         return excelIndexToString(this._nakedRef.contents);
       } else {
         const {first, second} = this._nakedRef;
-        return [first, second].map(excelIndexToString).join(':');
+
+        if (_.isEqual(first, second)) {
+          return excelIndexToString(first);
+        } else {
+          return [first, second].map(excelIndexToString).join(':');
+        }
       }
     })();
 
