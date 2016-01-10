@@ -258,7 +258,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       default: throw "Invalid direction passed in";
     }
 
-    let bound = this.getDataBoundary(startLoc, direction);
+    let bound = ASSheetStateStore.getDataBoundary(ASIndex.fromNaked(startLoc), direction);
 
     // slight misnomers; these are the corners, but not necessarily top left or bottom right
     let newTl = {row: tl.row, col: tl.col};
