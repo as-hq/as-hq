@@ -686,8 +686,7 @@ export default class ASSpreadsheet
           logDebug("MANUALLY HANDLING NAV KEY");
           KeyUtils.killEvent(e);
 
-          let newOrigin = range.shiftByKey(e);
-          this.select(newOrigin.toSelection());
+          this.shiftSelectionArea(KeyUtils.keyShiftValue(e));
         }
         this.props.onNavKeyDown(e);
       });
