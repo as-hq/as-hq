@@ -1,9 +1,5 @@
 /* @flow */
 
-import type {
-  NakedRange
-} from '../../types/Eval';
-
 import U from '../../AS/Util';
 let {
   Conversion: TC
@@ -17,6 +13,7 @@ import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import ToolbarController from './ToolbarController.jsx';
@@ -51,7 +48,7 @@ export default class VaryPropButton
     };
   }
 
-  _propagateControlStateChange(nextState: VaryPropButtonState, rng: NakedRange) {
+  _propagateControlStateChange(nextState: VaryPropButtonState, rng: ASRange) {
     console.log("setting backend");
     // TODO: Not quite the right function to call here
     switch (this.props.propTag) {
@@ -64,7 +61,7 @@ export default class VaryPropButton
       default:
         // $FlowFixMe
         let prop = (({ tag: this.props.propTag, contents: []}));
-        API.toggleProp(prop,rng);
+        API.toggleProp(prop, rng);
     }
   }
 

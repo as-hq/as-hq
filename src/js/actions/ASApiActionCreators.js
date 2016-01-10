@@ -10,18 +10,15 @@ import type {
 } from '../types/Base';
 
 import type {
-  NakedRange,
-  NakedIndex,
-  ASIndexObject,
-  ASRangeObject,
-
-  ASSelectionObject,
   ASLanguage,
   ASExpression,
   ASValue,
   ASSheet,
   ASCellProp,
-  ASCellObject,
+  FormatType,
+  ValueFormat,
+  VAlign,
+  HAlign,
   VAlignType,
   HAlignType
 } from '../types/Eval';
@@ -38,18 +35,15 @@ import type {
   Delete,
   ToggleProp,
   Evaluate,
+  EvalHeader,
   EvalInstruction
 } from '../types/Messages';
 
 import type {
-  CondFormatRule,
-  CondFormatCondition
-} from '../types/CondFormat';
-
-import type {
   SheetUpdate,
   CondFormatRuleUpdate,
-  Update
+  Update,
+  UpdateTemplate
 } from '../types/Updates';
 
 import type {
@@ -69,6 +63,10 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 
 import ASCell from '../classes/ASCell';
+import ASCondFormatRule from '../classes/ASCondFormatRule';
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -161,7 +159,7 @@ wss.onmessage = (event: MessageEvent) => {
       dispatchSheetUpdate(action.contents[0]);
       Dispatcher.dispatch({
         _type: 'GOT_OPEN',
-        expressions: action.contents[1],
+        evalHeaders: action.contents[1],
       });
       break;
     case 'UpdateSheet':
@@ -173,10 +171,13 @@ wss.onmessage = (event: MessageEvent) => {
         sheetId: action.contents
       });
       break;
+    case 'AskUserToOpen':
+      alert("Please refresh, and load the sheet named " + action.contents);
+      break;
     case 'MakeSelection':
       Dispatcher.dispatch({
         _type: 'GOT_SELECTION',
-        newSelection: action.contents
+        newSelection: new ASSelection(action.contents)
       });
       break;
     case 'ShowHeaderResult':
@@ -198,16 +199,10 @@ wss.onmessage = (event: MessageEvent) => {
         findLocs:clientLocs
       }); */
       break;
-    case 'LoadImportedCells':
-      Dispatcher.dispatch({
-        _type: 'GOT_IMPORT',
-        newCells: ASCell.makeCells(action.contents)
-      });
-      break;
   }
 };
 
-function updateIsEmpty(update: Update) {
+function updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
   return update.newVals.length == 0 && update.oldKeys.length == 0;
 }
 
@@ -224,7 +219,7 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_CELLS',
       newCells: ASCell.makeCells(sheetUpdate.cellUpdates.newVals),
-      oldLocs: sheetUpdate.cellUpdates.oldKeys
+      oldLocs: U.Location.makeLocations(sheetUpdate.cellUpdates.oldKeys)
     });
   }
 
@@ -239,7 +234,10 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_RULES',
-      newRules: sheetUpdate.condFormatRulesUpdates.newVals,
+      newRules:
+        sheetUpdate.condFormatRulesUpdates.newVals.map(
+          (r) => new ASCondFormatRule(r)
+        ),
       oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
     });
   }
@@ -252,9 +250,9 @@ wss.onopen = (evt) => {
 const API = {
   sendMessageWithAction(action: any) {
     let msg = {serverAction: action};
-    logDebug(`Queueing ${msg.serverAction} message`);
+    logDebug(`Queueing ${msg.serverAction.tag} message`);
     wss.waitForConnection((innerClient: WebSocket) => {
-      logDebug(`Sending ${msg.serverAction} message`);
+      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
       logDebug(JSON.stringify(msg));
       innerClient.send(JSON.stringify(msg));
 
@@ -285,18 +283,20 @@ const API = {
   },
 
   reinitialize() {
-    this.initMessage();
-    this.openSheet();
-    this.updateViewingWindow(
-      U.Conversion.rangeToASWindow(SheetStateStore.getViewingWindow().range)
-    );
+    API.initMessage();
+    API.openSheet();
+
+    const vWindow = SheetStateStore.getViewingWindow();
+    if (vWindow) {
+      API.updateViewingWindow(vWindow);
+    }
   },
 
   initialize() {
-    wss.sendAck = this.ackMessage;
-    wss.beforereconnect = () => { this.reinitialize(); };
+    wss.sendAck = API.ackMessage;
+    wss.beforereconnect = () => { API.reinitialize(); };
 
-    this.initMessage();
+    API.initMessage();
   },
 
   /**************************************************************************************************************************/
@@ -326,11 +326,10 @@ const API = {
     wss.send(((file: any): string), {binary: true});
   },
 
-  importCSV(origin: NakedIndex, lang: ASLanguage, fileName: string) {
-    let asIndex = U.Conversion.simpleToASIndex(origin);
+  importCSV(origin: ASIndex, lang: ASLanguage, fileName: string) {
     let msg = {
       tag: "ImportCSV",
-      csvIndex: asIndex,
+      csvIndex: origin.obj(),
       csvLang: lang,
       csvFileName: fileName
     };
@@ -342,28 +341,29 @@ const API = {
   /* Sending an eval request to the server */
 
   /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin: NakedIndex, xp: ASClientExpression) {
-    let asIndex = U.Conversion.simpleToASIndex(origin),
-        msg: Evaluate = {
+  evaluate(origin: ASIndex, xp: ASClientExpression) {
+    let msg: Evaluate = {
           tag: "Evaluate",
           contents: [{
             tag: "EvalInstruction",
             evalXp: xp,
-            evalLoc: U.Conversion.simpleToASIndex(origin)
+            evalLoc: origin.obj()
           }]
         };
     API.sendMessageWithAction(msg);
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let msg = {
-      tag: "EvaluateHeader",
-      contents: {
-        tag: "ASExpression",
-        expression: expression,
-        language: language
-      }
-    };
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
+        msg = {
+          tag: "EvaluateHeader",
+          contents: {
+            tag: "EvalHeader",
+            evalHeaderSheetId: sid,
+            evalHeaderExpr: expression,
+            evalHeaderLang: language
+          }
+        };
     API.sendMessageWithAction(msg);
   },
 
@@ -429,7 +429,7 @@ const API = {
     // API.sendMessageWithAction(msg);
   },
 
-  jumpSelect(range: NakedRange, origin: NakedIndex, isShifted: boolean, direction: Direction) {
+  jumpSelect(range: ASRange, origin: ASIndex, isShifted: boolean, direction: Direction) {
     // Currently not supporting -- Alex. (12/29)
     // let msg = {
     //   tag: "JumpSelect",
@@ -453,10 +453,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  deleteRange(rng: NakedRange) {
+  deleteRange(rng: ASRange) {
     let msg: Delete = {
       tag: "Delete",
-      contents: U.Conversion.simpleToASRange(rng)
+      contents: rng.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -469,10 +469,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIsCoupled(ind: ASIndexObject) {
+  getIsCoupled(ind: ASIndex) {
     let msg = {
       tag: "GetIsCoupled",
-      contents: ind
+      contents: ind.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -503,10 +503,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  toggleProp(prop: ASCellProp, rng: NakedRange) {
+  toggleProp(prop: ASCellProp, rng: ASRange) {
     let msg: ToggleProp = {
       tag: "ToggleProp",
-      contents: [prop, U.Conversion.simpleToASRange(rng)]
+      contents: [prop, rng.obj()]
     };
 
     API.sendMessageWithAction(msg);
@@ -514,103 +514,103 @@ const API = {
 
   // #needsrefactor should privatize, and expose only the functions that construct the prop too,
   // e.g. setTextColor.
-  setProp(prop: ASCellProp, rng: NakedRange) {
+  setProp(prop: ASCellProp, rng: ASRange) {
     let msg: SetProp = {
       tag: "SetProp",
-      contents: [prop, U.Conversion.simpleToASRange(rng)]
+      contents: [prop, rng.obj()]
     };
 
     API.sendMessageWithAction(msg);
   },
 
-  setTextColor(contents: string, rng: NakedRange) {
+  setTextColor(contents: string, rng: ASRange) {
     let prop = {
       tag: "TextColor",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setFillColor(contents: string, rng: NakedRange) {
+  setFillColor(contents: string, rng: ASRange) {
     let prop = {
       tag: "FillColor",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setVAlign(contents: VAlignType, rng: NakedRange) {
-    let prop = {
+  setVAlign(contents: VAlignType, rng: ASRange) {
+    let prop: VAlign = {
       tag: "VAlign",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setHAlign(contents: HAlignType, rng: NakedRange) {
-    let prop = {
+  setHAlign(contents: HAlignType, rng: ASRange) {
+    let prop: HAlign = {
       tag: "HAlign",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setFontSize(contents: number, rng: NakedRange) {
+  setFontSize(contents: number, rng: ASRange) {
     let prop = {
       tag: "FontSize",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setFontName(contents: string, rng: NakedRange) {
+  setFontName(contents: string, rng: ASRange) {
     let prop = {
       tag: "FontName",
       contents: contents
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  setFormat(formatType: string, rng: NakedRange) {
-    let formatProp = {
+  setFormat(formatType: FormatType, rng: ASRange) {
+    let formatProp: ValueFormat = {
       tag: "ValueFormat",
       formatType: formatType
     };
-    this.setProp(formatProp, rng);
+    API.setProp(formatProp, rng);
   },
 
-  setUrl(urlLink: string, rng: NakedRange) {
+  setUrl(urlLink: string, rng: ASRange) {
     let prop = {
       tag: "URL",
       urlLink: urlLink
     };
-    this.setProp(prop, rng);
+    API.setProp(prop, rng);
   },
 
-  drag(activeRng: NakedRange, dragRng: NakedRange) {
+  drag(activeRng: ASRange, dragRng: ASRange) {
     let msg = {
       tag: "Drag",
-      initialRange: U.Conversion.simpleToASRange(activeRng),
-      dragRange: U.Conversion.simpleToASRange(dragRng)
+      initialRange: activeRng.obj(),
+      dragRange: dragRng.obj()
     };
 
     API.sendMessageWithAction(msg);
   },
 
-  copy(fromRng: ASRangeObject, toRng: ASRangeObject) {
+  copy(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Copy",
-      copyFrom: fromRng,
-      copyTo: toRng
+      copyFrom: fromRng.obj(),
+      copyTo: toRng.obj()
     };
     API.sendMessageWithAction(msg);
   },
 
-  cut(fromRng: ASRangeObject, toRng: ASRangeObject) {
+  cut(fromRng: ASRange, toRng: ASRange) {
     let msg = {
       tag: "Cut",
-      cutFrom: fromRng,
-      cutTo: toRng
+      cutFrom: fromRng.obj(),
+      cutTo: toRng.obj()
     };
     API.sendMessageWithAction(msg);
   },
@@ -624,15 +624,15 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getIndices(locs: Array<ASIndexObject>) {
+  getIndices(locs: Array<ASIndex>) {
     let msg = {
       tag: "Get",
-      contents: locs
+      contents: locs.map((loc) => loc.obj())
     };
     API.sendMessageWithAction(msg);
   },
 
-  repeat(sel: ASSelectionObject) {
+  repeat(sel: ASSelection) {
     // temporarily not maintaining (Alex 12/29)
     // let msg = {
     //   tag: "Repeat",
@@ -745,12 +745,12 @@ const API = {
     // API.sendMessageWithAction(msg);
   },
 
-  updateCondFormattingRule(rule: CondFormatRule) {
+  updateCondFormattingRule(rule: ASCondFormatRule) {
     let msg = {
       tag: "UpdateCondFormatRules",
       contents: {
         tag: "Update",
-        newVals: [rule],
+        newVals: [rule.obj()],
         oldKeys: []
       }
     };
@@ -769,10 +769,13 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  updateViewingWindow(vWindow: ASClientWindow) {
+  updateViewingWindow(vWindow: ASRange) {
     let msg: UpdateWindow = {
       tag: "UpdateWindow",
-      contents: vWindow
+      contents: {
+        window: vWindow.obj().range,
+        sheetId: vWindow.sheetId
+      }
     };
     API.sendMessageWithAction(msg);
   },

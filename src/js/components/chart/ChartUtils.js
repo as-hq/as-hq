@@ -1,10 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange
-} from '../../types/Eval';
-
-import type {
   ASChartType,
   ASCartesianChartType,
   ASPolarChartType,
@@ -12,6 +8,7 @@ import type {
 } from './types';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import Constants from '../../Constants';
 
@@ -88,9 +85,8 @@ const ChartUtils = {
     return isVVector || isHVector;
   },
 
-  isVectorReference(rng: NakedRange): boolean {
-    let {tl, br} = rng;
-    return (tl.row == br.row) || (tl.col == br.col);
+  isVectorReference(rng: ASRange): boolean {
+    return rng.isIndex();
   },
 
   reduceNestedArrayStr(arr: Array<Array<string>>): ?Array<string> {

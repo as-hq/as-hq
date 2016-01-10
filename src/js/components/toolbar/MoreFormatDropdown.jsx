@@ -9,15 +9,12 @@ import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import type {
   ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
-
-import type {
-  NakedRange
-} from '../../types/Eval';
 
 type MoreFormatDropdownDefaultProps = {};
 
@@ -67,7 +64,7 @@ export default class MoreFormatDropdown
     return "Number";
   }
 
-  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRange) {
     // TODO: case on value, call some API function
     console.log("Propagating state change to backend");
   }

@@ -3,8 +3,7 @@
 import type {
   ASValue,
   ASLanguage,
-  ASSheet,
-  ASSelectionObject
+  ASSheet
 } from '../types/Eval';
 
 import type {
@@ -40,7 +39,6 @@ import ExpActionCreator from '../actions/ASExpActionCreators';
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
 
-
 let {
   Shortcut: ShortcutUtils,
   Clipboard: ClipboardUtils,
@@ -48,6 +46,8 @@ let {
   Conversion: TC,
   Key: KeyUtils
 } = U;
+
+import ASSelection from '../classes/ASSelection';
 
 import Constants from '../Constants';
 import {Snackbar} from 'material-ui';
@@ -144,7 +144,7 @@ export default class ASEvalPane
   // Component getter methods
 
   _getSpreadsheet(): HGElement {
-    let ele: HGElement = (ReactDOM.findDOMNode(this.refs.spreadsheet.refs.hypergrid): any);
+    let ele: HGElement = (ReactDOM.findDOMNode(this.getASSpreadsheet().refs.hypergrid): any);
     return ele;
   }
 
@@ -170,11 +170,11 @@ export default class ASEvalPane
   }
 
   _getTextbox(): Textbox {
-    return this.refs.spreadsheet.refs.textbox;
+    return this.getASSpreadsheet().refs.textbox;
   }
 
   _getRawTextbox(): AERawClass {
-    return this.refs.spreadsheet.refs.textbox.getRawEditor();
+    return this.getASSpreadsheet().refs.textbox.getRawEditor();
   }
 
   /***************************************************************************************************************************/
@@ -215,7 +215,7 @@ export default class ASEvalPane
       return cell.location.sheetId == SheetStateStore.getCurrentSheet().sheetId;
     });
 
-    this.refs.spreadsheet.updateCellValues(updatedCellsOnSheet);
+    this.getASSpreadsheet().updateCellValues(updatedCellsOnSheet);
 
     // #needsrefactor error handlers should probably get their own store
     let err = SheetStateStore.getExternalError();
@@ -314,7 +314,7 @@ export default class ASEvalPane
       SheetStateStore.setClipboard(sel, isCut);
       let html = ClipboardUtils.valsToHtml(vals, sel.range),
           plain = ClipboardUtils.valsToPlain(vals);
-      this.refs.spreadsheet.repaint(); // render immediately
+      this.getASSpreadsheet().repaint(); // render immediately
       e.clipboardData.setData("text/html",html);
       e.clipboardData.setData("text/plain",plain);
     }
@@ -347,30 +347,30 @@ export default class ASEvalPane
     if (isAlphaSheets) { // From AS
       let clipboard = SheetStateStore.getClipboard(),
           sheetId = SheetStateStore.getCurrentSheet().sheetId,
-          {fromSheetId, fromRange} = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
-          toASRange = U.Conversion.simpleToASRange(sel.range);
+          fromRange = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
+          fromSheetId = sel.range.sheetId,
+          toASRange = sel.range;
 
       // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
       // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
       if (isTesting() || U.Browser.isMac()) {
         if (!! clipboard.area) {
           fromRange   = clipboard.area.range;
-          fromSheetId = SheetStateStore.getCurrentSheet().sheetId;
+          fromSheetId = SheetStateStore.getCurrentSheetId();
         }
       }
 
-      let fromASRange = U.Conversion.simpleToASRange(fromRange, fromSheetId);
       if (fromRange) {
         if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
-          API.cut(fromASRange, toASRange);
+          API.cut(fromRange, toASRange);
           SheetStateStore.setClipboard(null, false);
         } else {
-          API.copy(fromASRange, toASRange);
+          API.copy(fromRange, toASRange);
         }
       } else {
         this.setToast("Nothing in clipboard.", "Error");
       }
-      this.refs.spreadsheet.repaint(); // render immediately
+      this.getASSpreadsheet().repaint(); // render immediately
     } else { // Not from AS
       if (containsPlain) {
         let lang = ExpStore.getLanguage();
@@ -458,7 +458,7 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   // Deal with selection change from grid
 
-  _onSelectionChange(sel: ASSelectionObject) {
+  _onSelectionChange(sel: ASSelection) {
 
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
@@ -497,7 +497,7 @@ export default class ASEvalPane
     } else if (changeSelToNewCell) {
       logDebug("Selected empty cell to move to");
       SelectionStore.setActiveSelection(sel, "", null);
-      this.refs.spreadsheet.repaint();
+      this.getASSpreadsheet().repaint();
       ExpStore.setLanguage(ExpStore.getDefaultLanguage());
       ExpActionCreator.handleSelChange('');
       this.hideToast();
@@ -518,22 +518,20 @@ export default class ASEvalPane
          this.hideToast();
       }
     } else if (userIsTyping) {
+      let excelStr = range.toExcel().toString();
       if (editorCanInsertRef) { // insert cell ref in editor
         logDebug("Eval pane inserting cell ref in editor");
-        let excelStr = U.Conversion.rangeToExcel(range);
         this._getEditorComponent().insertRef(excelStr);
         let newStr = this._getRawEditor().getValue(); // new value
         ExpActionCreator.handlePartialRefEditor(newStr,excelStr);
       } else if (textBoxCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref in textbox");
         logDebug("Current value: " + this._getTextbox().editor.getValue());
-        let excelStr = U.Conversion.rangeToExcel(range);
         this._getTextbox().insertRef(excelStr);
         let newStr = this._getTextbox().editor.getValue();
         ExpActionCreator.handlePartialRefTextBox(newStr,excelStr);
       } else if (gridCanInsertRef) { // insert cell ref in textbox
         logDebug("Eval pane inserting cell ref originating from grid");
-        let excelStr = U.Conversion.rangeToExcel(range);
         ExpActionCreator.handlePartialRefGrid(excelStr);
       }
     } else {
@@ -559,17 +557,20 @@ export default class ASEvalPane
       return;
     }
 
-    this.refs.spreadsheet.refs.textbox.hideTextBox();
+    this.getASSpreadsheet().refs.textbox.hideTextBox();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.GRID);
     ExpStore.setUserIsTyping(false);
 
-    this.refs.spreadsheet.repaint();
+    this.getASSpreadsheet().repaint();
 
     let {origin} = selection;
 
-    if (moveCol !== null && moveRow !== null) {
+    if (moveCol != null && moveRow != null) {
       logDebug("Shifting selection area");
-      this.refs.spreadsheet.shiftSelectionArea(moveCol, moveRow);
+      this.getASSpreadsheet().shiftSelectionArea({
+        dc: moveCol,
+        dr: moveRow
+      });
     }
 
     // Only re-eval if the cell actually changed from before.
@@ -587,12 +588,6 @@ export default class ASEvalPane
     ExpStore.setDefaultLanguage(xpObj.language);
   }
 
-  openSheet(sheet: ASSheet) {
-    SheetStateStore.setCurrentSheet(sheet);
-    this.refs.spreadsheet.initializeBlank();
-    this.refs.spreadsheet.getInitialData();
-  }
-
   // /* When a REPl request is made, first update the store and then send the request to the backend */
   // handleReplRequest(xpObj) {
   //   ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
@@ -605,7 +600,7 @@ export default class ASEvalPane
   setFocus(elem: ASFocusType) {
     switch (elem) {
       case 'editor': this._getRawEditor().focus(); break;
-      case 'grid': this.refs.spreadsheet.setFocus(); break;
+      case 'grid': this.getASSpreadsheet().setFocus(); break;
       case 'textbox': this._getRawTextbox().focus(); break;
       default: throw "invalid argument passed into setFocus()";
     }
@@ -618,7 +613,7 @@ export default class ASEvalPane
   }
 
   _handleEditorFocus() { // need to remove blinking cursor from textbox
-    this.refs.spreadsheet.refs.textbox.editor.renderer.$cursorLayer.hideCursor();
+    this.getASSpreadsheet().refs.textbox.editor.renderer.$cursorLayer.hideCursor();
   }
 
   _getCodeEditorMaxLines(): number {
@@ -716,7 +711,7 @@ export default class ASEvalPane
     FindAction.decrementSelection();
   }
   _onFindChange() {
-    this.refs.spreadsheet.repaint();
+    this.getASSpreadsheet().repaint();
   }
 
   /**************************************************************************************************************************/

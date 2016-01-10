@@ -1,12 +1,6 @@
 /* @flow */
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject
-} from '../../types/Eval';
-
-import type {
   Style
 } from '../../types/Render';
 
@@ -29,15 +23,15 @@ import U from '../../AS/Util';
 import CU from './ChartUtils';
 
 import ASCell from '../../classes/ASCell';
-
-let {Location: {isContainedInLocs}} = U;
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
 
 let {ChartTypes} = Constants;
 
 type ASChartProps = {
   chartContext: ASChartContext;
   chartStyle: Style;
-  valueRange: NakedRange;
+  valueRange: ASRange;
   sheetId: string;
   redraw: boolean;
   showLegend: boolean;
@@ -77,10 +71,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     return this.refs.baseChart.getChart();
   }
 
-  _isListening(c: ASCell): boolean {
-    let {row, col, sheetId} = c.location;
-    return isContainedInLocs(col, row, [this.props.valueRange])
-        && sheetId == this.props.sheetId;
+  _isListening({location}: ASCell): boolean {
+    return this.props.valueRange.contains(location)
+      && location.sheetId === this.props.sheetId;
   }
 
   // data binding
@@ -89,21 +82,21 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     this._updateData(filteredCells);
   }
 
-  _getRelativeIndex(idx: NakedIndex): NakedIndex {
+  _getRelativeIndex({col, row}: ASIndex): ({ dr: number; dc: number; }) {
     let {tl} = this.props.valueRange;
-    return {col: idx.col - tl.col, row: idx.row - tl.row};
+    return {dc: col - tl.col, dr: row - tl.row};
   }
 
   _updateData(cs: Array<ASCell>) {
     let newData = this.state.data;
     cs.forEach((c) => {
-      let {col, row} = this._getRelativeIndex(c.location);
+      let {dc, dr} = this._getRelativeIndex(c.location);
       let val = CU.cellToChartVal(c);
       // update the datastructure depending on the chart type
       if (CU.isCartesian(this.props.chartContext.chartType) && newData.datasets) {
-        newData.datasets[col].data[row] = val;
+        newData.datasets[dc].data[dr] = val;
       } else {
-        let insertIdx = Math.max(col, row);
+        let insertIdx = Math.max(dc, dr);
         newData[insertIdx].value = val;
       }
     });

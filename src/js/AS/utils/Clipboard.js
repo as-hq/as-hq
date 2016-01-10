@@ -5,13 +5,10 @@ import type {
 } from '../../types/Clipboard';
 
 import type {
-	NakedIndex,
-	NakedRange,
-	ASLanguage,
-	ASCellObject
+	ASLanguage
 } from '../../types/Eval';
 
-import type { 
+import type {
   EvalInstruction
 } from '../../types/Messages';
 
@@ -23,14 +20,17 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 import Location from './Location';
 import TC from './Conversion';
 
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+
 const Clipboard = {
 
 	/* Generates AS-based html from a list of list of values */
-	valsToHtml(vals: Array<Array<string>>, rng: NakedRange): string {
+	valsToHtml(vals: Array<Array<string>>, rng: ASRange): string {
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
     table.setAttribute("data-sheet-id", SheetStateStore.getCurrentSheet().sheetId);
-    table.setAttribute("data-from-range", JSON.stringify(rng));
+    table.setAttribute("data-from-range", JSON.stringify(rng.obj().range)); // stringified NakedRange
 		let tableBody = document.createElement('tbody');
 		vals.forEach((rowVals) => {
 			let row = document.createElement('tr');
@@ -61,11 +61,11 @@ const Clipboard = {
 		// Simplest solution without creating the DOM element and checking for the tag
 	},
 
-  getAttrsFromHtmlString(s: string): ASClipboardAttrs {
+  getAttrsFromHtmlString(s: string): ASRange {
     // #needsrefactor should build better model of what causes various formats to show up, and handle them better
     if (s.indexOf("<!--StartFragment-->") == -1) {
       // I'm aware this is dumb, but it's sufficient for now
-      // assumes the format is something like: 
+      // assumes the format is something like:
       // <meta http-equiv="content-type" content="text/html; charset=utf-8"><table id="alphasheets" data-sheet-id="INIT_SHEET_ID" data-from-range="{&quot;tl&quot;:{&quot;row&quot;:6,&quot;col&quot;:2},&quot;br&quot;:{&quot;row&quot;:6,&quot;col&quot;:2}}"><tbody><tr><td>151515</td></tr></tbody></table>
       s += "</meta>"; // works in Chrome, which puts a single unclosed <meta> tag at the beginning of the paste string.
       let parser = new DOMParser(),
@@ -73,9 +73,9 @@ const Clipboard = {
           table = doc.firstChild.firstChild,
           fromSheetId = (table: any).getAttribute('data-sheet-id'),
           fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-      return {fromSheetId: fromSheetId, fromRange: fromRange};
-    } else { 
-      // assumes the format is something like 
+			return ASRange.fromNaked(fromRange, fromSheetId);
+    } else {
+      // assumes the format is something like
       // <html>
       // <body>
       // <!--StartFragment--><table id="alphasheets" data-sheet-id="Predictions" data-from-range="{&quot;tl&quot;:{&quot;row&quot;:7,&quot;col&quot;:1},&quot;br&quot;:{&quot;row&quot;:7,&quot;col&quot;:1}}"><tbody><tr><td>Critch uses on his own accord by 11/15</td></tr></tbody></table><!--EndFragment-->
@@ -83,10 +83,10 @@ const Clipboard = {
       // </html>
       let parser = new DOMParser(),
           doc = parser.parseFromString(s, "text/xml"),
-          table = (doc.firstChild: any).firstElementChild.firstElementChild, 
+          table = (doc.firstChild: any).firstElementChild.firstElementChild,
           fromSheetId = (table: any).getAttribute('data-sheet-id'),
           fromRange = JSON.parse((table: any).getAttribute('data-from-range'));
-      return {fromSheetId: fromSheetId, fromRange: fromRange};
+			return ASRange.fromNaked(fromRange, fromSheetId);
     }
   },
 
@@ -161,12 +161,12 @@ const Clipboard = {
     }
   },
 
-  _arrayToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+  _arrayToEvalInstructions(ind: ASIndex, language: ASLanguage):
 	 	(i: number) => (v: string, j: number) => EvalInstruction {
     let self = Clipboard;
      return (i) => {
        return (v, j) => {
-        let asIndex = TC.simpleToASIndex(Location.shiftIndex(ind, i, j)),
+        let asIndex = ind.shift({ dr: i, dc: j }),
             xpObj = { expression: self.externalStringToExpression(v, language),
                       language: language} ;
          return TC.makeEvalInstruction(asIndex, xpObj);
@@ -174,7 +174,7 @@ const Clipboard = {
      };
    },
 
-  _rowValuesToEvalInstructions(ind: NakedIndex, language: ASLanguage):
+  _rowValuesToEvalInstructions(ind: ASIndex, language: ASLanguage):
 	  (values: Array<string>, i: number) => Array<EvalInstruction> {
     var self = Clipboard;
     return (values, i) => {
@@ -183,7 +183,7 @@ const Clipboard = {
   },
 
   // takes in a set of locations and the values at those locations,
-  externalStringsToEvalInstructions(ind: NakedIndex, strs: Array<Array<string>>, language: ASLanguage):
+  externalStringsToEvalInstructions(ind: ASIndex, strs: Array<Array<string>>, language: ASLanguage):
 	 	Array<Array<EvalInstruction>> {
     return strs.map(Clipboard._rowValuesToEvalInstructions(ind, language));
   }

@@ -4,10 +4,6 @@ import type {
   Callback,
 } from '../../types/Base';
 
-import type {
-  NakedIndex,
-} from '../../types/Eval';
-
 import React from 'react';
 
 import {Paper} from 'material-ui';
@@ -18,6 +14,8 @@ import _Styles from '../../styles/ASOutputPane';
 import Ansi from 'ansi_up';
 
 import U from '../../AS/Util';
+
+import ASIndex from '../../classes/ASIndex';
 
 import CellStore from '../../stores/ASCellStore';
 import SelectionStore from '../../stores/ASSelectionStore';
@@ -87,8 +85,10 @@ export default class ASErrorPane
     let sel = SelectionStore.getActiveSelection();
     if (!!sel) {
       let {origin} = sel;
-      let rng = {tl: origin, br: origin};
-      this.setState({selection: U.Conversion.rangeToExcel(rng)});
+      let rng = origin.toRange();
+      this.setState({
+        selection: rng.toExcel().toString()
+      });
     }
   }
 

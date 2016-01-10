@@ -9,6 +9,7 @@ import type {
   ASClientWindow
 } from '../types/Messages';
 
+import Util from '../AS/Util';
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
@@ -48,6 +49,23 @@ export default class ASRange {
     this._sheetId = sheetId;
   }
 
+  static fromASIndices({ tl, br }: ({ tl: ASIndex, br: ASIndex })): ASRange {
+    if (tl.sheetId !== br.sheetId) {
+      throw new Error('Sheet IDs are not the same for tl and br');
+    }
+
+    const {sheetId} = tl;
+
+    return ASRange.fromNaked({
+      tl: tl.obj().index,
+      br: br.obj().index
+    }, sheetId);
+  }
+
+  static fromExcelString(excStr: string): ASRange {
+    return ASExcelRef.fromString(excStr).toRange();
+  }
+
   static fromNaked(naked: NakedRange, sheetId?: ?string): ASRange {
     sheetId = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASRange({
@@ -69,14 +87,16 @@ export default class ASRange {
     });
   }
 
-  toIndices(): Array<ASIndex> {
-    return _.flatten(
-      _.range(this.tl.row, this.br.row + 1).map((row) =>
-        _.range(this.tl.col, this.br.col + 1).map((col) =>
-          ASIndex.fromNaked({ row: row, col: col }, this.sheetId)
-        )
+  toIndices2d(): Array<Array<ASIndex>> {
+    return _.range(this.tl.row, this.br.row + 1).map((row) =>
+      _.range(this.tl.col, this.br.col + 1).map((col) =>
+        ASIndex.fromNaked({ row: row, col: col }, this.sheetId)
       )
     );
+  }
+
+  toIndices(): Array<ASIndex> {
+    return [].concat.apply([], this.toIndices2d());
   }
 
   toExcel(): ASExcelRef {
@@ -116,6 +136,26 @@ export default class ASRange {
     }, this.sheetId);
   }
 
+  getTopRow(): ASRange {
+    const {tl, br} = this;
+    return ASRange.fromASIndices({
+      tl: tl,
+      br: ASIndex.fromNaked({
+        row: tl.row, col: br.col
+      })
+    });
+  }
+
+  getLeftColumn(): ASRange {
+    const {tl, br} = this;
+    return ASRange.fromASIndices({
+      tl: tl,
+      br: ASIndex.fromNaked({
+        row: br.row, col: tl.col
+      })
+    });
+  }
+
   extendByCache(): ASRange {
     const {scrollCacheX, scrollCacheY} = Constants;
     return ASRange.fromNaked({
@@ -129,5 +169,13 @@ export default class ASRange {
       tl: this.tl.shift(delta),
       br: this.br.shift(delta)
     }, this.sheetId);
+  }
+
+  shiftByKey(e: SyntheticKeyboardEvent): ASRange {
+    return this.shift(Util.Key.keyShiftValue(e));
+  }
+
+  contains(idx: ASIndex): boolean {
+    return idx.isInRange(this);
   }
 }

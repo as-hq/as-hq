@@ -1,6 +1,7 @@
 /* @flow */
 
 import type ASCell from '../classes/ASCell';
+import type ASRange from '../classes/ASRange';
 import type ObjectDict from '../classes/ObjectDict';
 
 import type {
@@ -8,11 +9,7 @@ import type {
 } from './Base';
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
-  ASRangeObject,
-  ASLanguage,
+  ASLanguage
 } from './Eval';
 
 import type {
@@ -20,14 +17,12 @@ import type {
   Bar
 } from './Bar';
 
-export type ASViewingWindow = {
-  range: NakedRange;
-};
+export type ASViewingWindow = ASRange;
 
 export type ASFocusType = 'grid' | 'textbox' | 'editor';
 
 export type ASClientWindow = {
-  window: NakedRange;
+  window: ASRange;
   sheetId: string;
 };
 

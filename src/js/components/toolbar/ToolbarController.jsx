@@ -1,9 +1,5 @@
 /* @flow */
 
-import type {
-  NakedRange
-} from '../../types/Eval';
-
 import React, {PropTypes} from 'react';
 
 import API from '../../actions/ASApiActionCreators';
@@ -12,6 +8,7 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 import SelectionStore from '../../stores/ASSelectionStore';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 /*
 This component is a higher-order-component built for
@@ -20,7 +17,7 @@ easy communication between stores and controls that monitor cell state (props, l
 
 type ToolbarControllerProps = {
   setControlStateFromCell: (activeCell: ?ASCell) => void;
-  propagateControlStateChange: (nextState: any, activerange: NakedRange) => void;
+  propagateControlStateChange: (nextState: any, activerange: ASRange) => void;
   control: React.Element;
 };
 

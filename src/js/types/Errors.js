@@ -1,7 +1,8 @@
 /* @flow */
 
+import type ASIndex from '../classes/ASIndex';
+
 import type {
-  NakedIndex,
   ASLanguage
 } from './Eval';
 
@@ -16,7 +17,7 @@ export type ASExcelExecError = {
 };
 
 export type ASClientError = {
-  location: NakedIndex;
+  location: ASIndex;
   language: ?ASLanguage;
   msg: string;
 };

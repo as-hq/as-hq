@@ -1,8 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
-  ASIndexObject,
   BooleanCellTag,
   ASCellProp
 } from '../../types/Eval';
@@ -13,6 +11,10 @@ import ASCheckedButton from './ASCheckedButton.jsx';
 
 import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
+
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+
 import CellStore from '../../stores/ASCellStore';
 import SheetStateStore from '../../stores/ASSheetStateStore';
 import SelectionStore from '../../stores/ASSelectionStore';
@@ -40,7 +42,7 @@ export default React.createClass({
     });
   },
 
-  _setBackendCellProp(nextState: boolean, rng: NakedRange) {
+  _setBackendCellProp(nextState: boolean, rng: ASRange) {
     let prop = (({ tag: this.props.propTag, contents: []}): any);
     API.toggleProp(prop, rng);
     // TODO: make this reflect current state, rather than assuming that

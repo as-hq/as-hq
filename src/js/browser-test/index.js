@@ -61,6 +61,8 @@ import SelectionStore from '../stores/ASSelectionStore';
 import ASExpStore from '../stores/ASExpStore';
 import U from '../AS/Util';
 
+import {parse, text} from 'bennu';
+
 // import Promise from 'bluebird';
 
 let evalPane, window_, clipboard = {};

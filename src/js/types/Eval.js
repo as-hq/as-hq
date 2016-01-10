@@ -1,5 +1,8 @@
 /* @flow */
 
+import type ASIndex from '../classes/ASIndex';
+import type ASRange from '../classes/ASRange';
+
 import type {
   ASExcelExecError
 } from './Errors';
@@ -181,7 +184,7 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 export type ASExpression = {
   expression: string;
   language: ?ASLanguage;
-  dependencies?: Array<NakedRange>;
+  dependencies?: Array<ASRange>; // #mustrefactor TODO
 };
 
 export type ExpandingType = 'List' | 'RList' | 'RDataFrame' | 'NPArray' | 'NPMatrix' | 'PDataFrame' | 'PSeries';
@@ -289,6 +292,11 @@ export type CellValue = {
 
 export type ASCompositeValue = Expanding | CellValue;
 
+export type EvalResult = {
+  resultValue: ASCompositeValue;
+  resultDisplay: ?string;
+}
+
 export type ASReplValue = {
   replValue: ASValue;
   replLang: ASLanguage;
@@ -321,7 +329,9 @@ export type ASRangeObject = {
   range: NakedRange;
 };
 
-export type ASLocation = ASIndexObject | ASRangeObject;
+export type ASLocation = ASIndex | ASRange;
+
+export type ASLocationObject = ASIndexObject | ASRangeObject;
 
 export type ASSheet = {
   tag: 'Sheet';

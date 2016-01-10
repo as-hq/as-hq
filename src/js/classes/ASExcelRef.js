@@ -1,6 +1,10 @@
 /* @flow */
 
+import {stream} from 'nu-stream';
 import {parse, text} from 'bennu';
+import _ from 'lodash';
+
+import SheetStateStore from '../stores/ASSheetStateStore';
 
 import ASIndex from './ASIndex';
 import ASRange from './ASRange';
@@ -54,7 +58,7 @@ function excelIndexToString(exc: NakedExcelIndex): string {
     intToCol(col),
     dollarize(rowFixed),
     row.toString()
-  ].join();
+  ].join('');
 }
 
 function stringToNakedExcelIndex(str: string): NakedExcelIndex {
@@ -62,11 +66,11 @@ function stringToNakedExcelIndex(str: string): NakedExcelIndex {
   const maybeDollar = parse.optional(DEFAULT, text.character('$'));
   const letters: Parser<string> = // annotations for clarity
     parse.bind(parse.many1(text.letter),
-      (pl) => parse.always(pl.join())
+      (pl) => parse.always(stream.toArray(pl).join(''))
     );
   const number: Parser<number> =
     parse.bind(parse.many1(text.digit),
-      (digits) => parse.always(parseInt(digits.join()))
+      (digits) => parse.always(parseInt(stream.toArray(digits).join('')))
     );
   const excelParser: Parser<NakedExcelIndex> =
     parse.bind(maybeDollar,
@@ -102,7 +106,7 @@ export default class ASExcelRef {
     this._workbookId = _workbookId;
   }
 
-  fromString(str: string): ASExcelRef {
+  static fromString(str: string): ASExcelRef {
     const parts = str.split('!').reverse();
     // reverse so that ['A2:B2'] is subset of ['A2:B2', 'sheetid'] etc
 
@@ -163,17 +167,35 @@ export default class ASExcelRef {
         return excelIndexToString(this._nakedRef.contents);
       } else {
         const {first, second} = this._nakedRef;
-        return [first, second].map(excelIndexToString).join(':');
+
+        if (_.isEqual(first, second)) {
+          return excelIndexToString(first);
+        } else {
+          return [first, second].map(excelIndexToString).join(':');
+        }
       }
     })();
 
+    // TODO: figure out a better default for behavior of toString()
+    // in presence of sheet names.
+    // right now, we don't want to default-stringify A1:A4 into SHEET_ID!A1:A4
+    // unless it's another sheet
+
+    const globalSheetId = SheetStateStore.getCurrentSheetId();
+    if (globalSheetId === this._sheetId) {
+      return result;
+    } else {
+      return [this._sheetId, result].join('!');
+    }
+
+/*
     if (this._workbookId) {
       return [this._workbookId, this._sheetId, result].join('!');
     } else if (this._sheetId) {
       return [this._sheetId, result].join('!');
     } else {
       return result;
-    }
+    } */
   }
 
   toIndex(): ASIndex {

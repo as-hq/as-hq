@@ -9,6 +9,8 @@ import type {
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
+import Util from '../AS/Util';
+
 import ASExcelRef from './ASExcelRef';
 import ASRange from './ASRange';
 import ASSelection from './ASSelection';
@@ -32,7 +34,6 @@ function validateSheetId(sheetId: string): boolean {
 }
 
 export default class ASIndex {
-  _index: ASIndexObject;
   _row: number;
   _col: number;
   _sheetId: string;
@@ -52,6 +53,18 @@ export default class ASIndex {
     this._row = row;
     this._col = col;
     this._sheetId = sheetId;
+  }
+
+  static makeIndices(indexObjects: Array<ASIndexObject>): Array<ASIndex> {
+    return indexObjects.map((obj) => new ASIndex(obj));
+  }
+
+  static fromExcelString(excStr: string): ASIndex {
+    return ASExcelRef.fromString(excStr).toIndex();
+  }
+
+  static fromGridCell(gridCell: HGPoint): ASIndex {
+    return ASIndex.fromNaked({ row: gridCell.y, col: gridCell.x });
   }
 
   static fromNaked(naked: NakedIndex, sheetId?: ?string): ASIndex {
@@ -101,6 +114,10 @@ export default class ASIndex {
     });
   }
 
+  shiftByKey(e: SyntheticKeyboardEvent): ASIndex {
+    return this.shift(Util.Key.keyShiftValue(e));
+  }
+
   isAboveAndLeft(idx: ASIndex): boolean {
     return (this.row <= idx.row && this.col <= idx.col);
   }
@@ -110,6 +127,35 @@ export default class ASIndex {
       this.row === other.row &&
       this.col === other.col &&
       this.sheetId === other.sheetId
+    );
+  }
+
+  above(): ASIndex { return this.shift({ dr: -1, dc: 0 }); }
+  below(): ASIndex { return this.shift({ dr: 1, dc: 0 }); }
+  toRight(): ASIndex { return this.shift({ dr: 0, dc: 1 }); }
+  toLeft(): ASIndex { return this.shift({ dr: 0, dc: -1 }); }
+
+  getRowRange(): ASRange {
+    return new ASRange.fromNaked({
+      tl: { row: this.row, col: 1 },
+      br: { row: this.row, col: Infinity }
+    });
+  }
+
+  getColumnRange(): ASRange {
+    return new ASRange.fromNaked({
+      tl: { row: 1, col: this.col },
+      br: { row: Infinity, col: this.col }
+    });
+  }
+
+  isInRange(rng: ASRange): boolean {
+    const {row, col} = this;
+    const {tl, br} = rng;
+
+    return (
+      col >= tl.col && col <= br.col &&
+      row >= tl.row && row <= br.row
     );
   }
 }

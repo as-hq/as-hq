@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
   ASLanguage
 } from '../../types/Eval';
 
@@ -13,6 +12,9 @@ import StringU from './String';
 import Location from './Location';
 import Conversion from './Conversion';
 import KeyUtils from './Key';
+
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
 
 // Excel parsing
 
@@ -116,13 +118,13 @@ let Parsing = {
     }
   },
 
-  parseDependencies(str: string, lang: ?ASLanguage): Array<NakedRange> {
+  parseDependencies(str: string, lang: ?ASLanguage): Array<ASRange> {
     // logDebug("parsing dependencies of: " + str);
     if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
       return [];
     }
     let matches = Parsing.parseRefs(str),
-        parsed = matches.map((m) => Location.orientRange(Conversion.excelToRange(m)), Parsing);
+        parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
     logDebug("parsed deps: "+JSON.stringify(matches));
     return parsed;
   },

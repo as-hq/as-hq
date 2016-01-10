@@ -1,8 +1,6 @@
 /* @flow */
 
 import type {
-  NakedRange,
-  ASIndexObject,
   ASCellProp
 } from '../../types/Eval';
 
@@ -12,6 +10,9 @@ import U from '../../AS/Util';
 let {
   Conversion: TC
 } = U;
+
+import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
 
 import API from '../../actions/ASApiActionCreators';
 import CellStore from '../../stores/ASCellStore';
@@ -28,7 +29,7 @@ type ASCellPropControlProps<T> = {
   control: ReactElement;
   setControlStateFromCellProp: (prop: ?ASCellProp) => void;
   propTag: string;
-  setBackendCellProp: (nextState: T, rng: NakedRange) => void;
+  setBackendCellProp: (nextState: T, rng: ASRange) => void;
 };
 
 export default React.createClass({

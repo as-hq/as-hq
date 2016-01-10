@@ -3,6 +3,10 @@
 import _ from 'lodash';
 
 let ArrayUtils = {
+  map2d<T, U>(arr: Array<Array<T>>, f: (val: T) => U): Array<Array<U>> {
+    return arr.map((x) => x.map(f));
+  },
+
   sliceArray<T>(begin: number, end: number): ((arr: Array<T>) => Array<T>) {
     return (arr) => arr.slice(begin, end);
   },

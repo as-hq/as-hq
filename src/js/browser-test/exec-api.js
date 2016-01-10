@@ -1,10 +1,7 @@
 /* @flow */
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
-  ASRangeObject,
+  NakedRange, // for locToExcel, and nothing else
   ValueD,
   ValueI,
   ValueS,
@@ -20,7 +17,7 @@ import type {
   VAlignType,
   HAlignType,
   BooleanCellTag,
-  FormatType,
+  FormatType
 } from '../types/Eval';
 
 import type {
@@ -33,7 +30,6 @@ import type {
 } from '../types/Bar';
 
 import type {
-  CondFormatRule,
   CondFormatCondition,
   CustomCondition,
   GreaterThanCondition,
@@ -63,6 +59,11 @@ import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
 
+import ASCondFormatRule from '../classes/ASCondFormatRule';
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
+
 import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
 
@@ -84,16 +85,16 @@ export function actionAPIResponse(
   ]);
 }
 
-export function indFromExcel(exLoc: string): NakedIndex {
-  return U.Conversion.excelToIndex(exLoc);
+export function asIndex(exLoc: string): ASIndex {
+  return ASIndex.fromExcelString(exLoc);
 }
 
-export function rangeFromExcel(exLoc: string): NakedRange {
-  return U.Conversion.excelToRange(exLoc);
+export function asRange(exLoc: string): ASRange {
+  return ASRange.fromExcelString(exLoc);
 }
 
 export function locToExcel(loc: NakedRange): string {
-  return U.Conversion.rangeToExcel(loc);
+  return ASRange.fromNaked(loc).toExcel().toString();
 }
 
 export function numToAlpha(num: number): string {
@@ -107,14 +108,6 @@ export function colIndex(ind: number): BarIndex {
     barType: "ColumnType",
     barNumber: ind
   };
-}
-
-export function asIndex(loc: string): ASIndexObject {
-  return U.Conversion.simpleToASIndex(U.Conversion.excelToIndex(loc));
-}
-
-export function asRange(loc: string): ASRangeObject {
-  return U.Conversion.excelToASRange(loc);
 }
 
 export function apiExec(fn: () => void): Prf {
@@ -152,9 +145,8 @@ export function openSheet(): Prf {
 
 export function syncWindow(): Prf {
   return apiExec(() => {
-    let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }},
-      vWindow = U.Conversion.rangeToASWindow(range);
-    API.updateViewingWindow(vWindow);
+    let range = { tl: {col: 0, row: 0}, br: {col: 100, row: 100 }};
+    API.updateViewingWindow(ASRange.fromNaked(range));
   });
 }
 
@@ -177,7 +169,7 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
       'R': Constants.Languages.R,
       'excel': Constants.Languages.Excel
     };
-    let idx   = U.Conversion.excelToIndex(loc),
+    let idx   = asIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
     API.evaluate(idx, xpObj);
   });
@@ -212,7 +204,11 @@ export function rEvalHeader(xp: string): Prf {
 
 export function repeat(rng: string, origin: string): Prf {
   return apiExec(() => {
-    let sel = {origin: indFromExcel(origin), range: rangeFromExcel(rng)}
+    let sel = ASSelection.fromExcelStrings({
+      origin: origin,
+      range: rng
+    });
+
     API.repeat(sel);
   });
 }
@@ -255,7 +251,7 @@ export function dragRow(r1: number, r2: number): Prf {
 
 export function dragInference(rng1: string, rng2: string): Prf {
   return apiExec(() => {
-    let [nakedRng1, nakedRng2] = [rng1, rng2].map(rangeFromExcel);
+    let [nakedRng1, nakedRng2] = [rng1, rng2].map(asRange);
     API.drag(nakedRng1, nakedRng2);
   });
 }
@@ -295,66 +291,66 @@ export function decouple(): Prf {
 
 export function delete_(rng: string): Prf {
   return apiExec(() => {
-    API.deleteRange(rangeFromExcel(rng));
+    API.deleteRange(asRange(rng));
   });
 }
 
 export function toggleProp(rng: string, propName: BooleanCellTag): Prf {
   return apiExec(() => {
     // $FlowFixMe
-    API.toggleProp({tag: propName, contents: []}, rangeFromExcel(rng));
+    API.toggleProp({tag: propName, contents: []}, asRange(rng));
   });
 }
 
 export function setTextColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setTextColor(contents, rangeFromExcel(rng));
+    API.setTextColor(contents, asRange(rng));
   });
 }
 
 export function setFillColor(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setFillColor(contents, rangeFromExcel(rng));
+    API.setFillColor(contents, asRange(rng));
   });
 }
 
 export function setVAlign(rng: string, contents: VAlignType): Prf {
   return apiExec(() => {
-    API.setVAlign(contents, rangeFromExcel(rng));
+    API.setVAlign(contents, asRange(rng));
   });
 }
 
 export function setHAlign(rng: string, contents: HAlignType): Prf {
   return apiExec(() => {
-    API.setHAlign(contents, rangeFromExcel(rng));
+    API.setHAlign(contents, asRange(rng));
   });
 }
 
 export function setFontSize(rng: string, contents: number): Prf {
   return apiExec(() => {
-    API.setFontSize(contents, rangeFromExcel(rng));
+    API.setFontSize(contents, asRange(rng));
   });
 }
 
 export function setFontName(rng: string, contents: string): Prf {
   return apiExec(() => {
-    API.setFontName(contents, rangeFromExcel(rng));
+    API.setFontName(contents, asRange(rng));
   });
 }
 
-export function setFormat(rng: string, formatType: string): Prf {
+export function setFormat(rng: string, formatType: FormatType): Prf {
   return apiExec(() => {
-    API.setFormat(formatType, rangeFromExcel(rng));
+    API.setFormat(formatType, asRange(rng));
   });
 }
 
 export function setUrl(rng: string, urlLink: string): Prf {
   return apiExec(() => {
-    API.setUrl(urlLink, rangeFromExcel(rng));
+    API.setUrl(urlLink, asRange(rng));
   });
 }
 
-export function updateCondFormattingRule(rule: CondFormatRule): Prf {
+export function updateCondFormattingRule(rule: ASCondFormatRule): Prf {
   return apiExec(() => {
     API.updateCondFormattingRule(rule);
   });
@@ -366,18 +362,18 @@ export function removeCondFormattingRule(ruleId: string): Prf {
   });
 }
 
-function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag) {
-  return {
+function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag): ASCondFormatRule {
+  return new ASCondFormatRule({
     tag: "CondFormatRule",
     condFormatRuleId: U.Render.getUniqueId(),
     condition: cond,
-    cellLocs: [U.Conversion.simpleToASRange(rangeFromExcel(rng))],
+    cellLocs: [asRange(rng).obj()],
     condFormat: {
       // $FlowFixMe
       tag: prop,
       contents: []
     }
-  };
+  });
 }
 
 function makeExpressionExcel(rule: string) {
@@ -388,7 +384,7 @@ function makeExpressionExcel(rule: string) {
   };
 }
 
-export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): CondFormatRule {
+export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule: string): ASCondFormatRule {
   let cond = {
     tag: 'CustomCondition',
     contents: makeExpressionExcel(rule)
@@ -396,7 +392,7 @@ export function makeCustomCondFormattingFontRuleExcel(rng: string, prop: Boolean
   return makeCondFormattingRuleExcel(cond, rng, prop);;
 }
 
-export function makeGreaterThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeGreaterThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'GreaterThanCondition',
     contents: makeExpressionExcel(rule)
@@ -404,7 +400,7 @@ export function makeGreaterThanCondFormattingFontRuleExcel (rng: string, prop: B
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeLessThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeLessThanCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'LessThanCondition',
     contents: makeExpressionExcel(rule)
@@ -412,7 +408,7 @@ export function makeLessThanCondFormattingFontRuleExcel (rng: string, prop: Bool
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'EqualsCondition',
     contents: makeExpressionExcel(rule)
@@ -420,7 +416,7 @@ export function makeEqualsCondFormattingFontRuleExcel (rng: string, prop: Boolea
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeGeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeGeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'GeqCondition',
     contents: makeExpressionExcel(rule)
@@ -428,7 +424,7 @@ export function makeGeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCe
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeLeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeLeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'LeqCondition',
     contents: makeExpressionExcel(rule)
@@ -436,7 +432,7 @@ export function makeLeqCondFormattingFontRuleExcel (rng: string, prop: BooleanCe
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeNotEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : CondFormatRule {
+export function makeNotEqualsCondFormattingFontRuleExcel (rng: string, prop: BooleanCellTag, rule:  string) : ASCondFormatRule {
   let cond = {
     tag: 'NotEqualsCondition',
     contents: makeExpressionExcel(rule)
@@ -444,7 +440,7 @@ export function makeNotEqualsCondFormattingFontRuleExcel (rng: string, prop: Boo
   return makeCondFormattingRuleExcel(cond, rng, prop)
 }
 
-export function makeIsEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): CondFormatRule {
+export function makeIsEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): ASCondFormatRule {
   let cond = {
     tag: 'IsEmptyCondition',
     contents: []
@@ -452,7 +448,7 @@ export function makeIsEmptyCondFormattingFontRuleExcel(rng: string, prop: Boolea
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function makeIsNotEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): CondFormatRule {
+export function makeIsNotEmptyCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag): ASCondFormatRule {
   let cond = {
     tag: 'IsNotEmptyCondition',
     contents: []
@@ -460,7 +456,7 @@ export function makeIsNotEmptyCondFormattingFontRuleExcel(rng: string, prop: Boo
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function makeIsBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): CondFormatRule {
+export function makeIsBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): ASCondFormatRule {
   let cond = {
     tag: 'IsBetweenCondition',
     contents: [makeExpressionExcel(rule1), makeExpressionExcel(rule2)]
@@ -468,7 +464,7 @@ export function makeIsBetweenCondFormattingFontRuleExcel(rng: string, prop: Bool
   return makeCondFormattingRuleExcel(cond, rng, prop);
 }
 
-export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): CondFormatRule {
+export function makeIsNotBetweenCondFormattingFontRuleExcel(rng: string, prop: BooleanCellTag, rule1: string, rule2: string): ASCondFormatRule {
   let cond = {
     tag: 'IsNotBetweenCondition',
     contents: [makeExpressionExcel(rule1), makeExpressionExcel(rule2)]

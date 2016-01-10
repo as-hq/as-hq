@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
@@ -18,8 +19,7 @@ import type {
 } from '../../types/Toolbar';
 
 import type {
-  ASLanguage,
-  NakedRange
+  ASLanguage
 } from '../../types/Eval';
 
 type LanguageMenuOption = {
@@ -108,7 +108,7 @@ export default class LanguagePicker
     }
   }
 
-  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRange) {
     console.log("Propagating language change: " + nextValue);
     ExpActionCreator.handleToggleLanguage(nextValue);
   }

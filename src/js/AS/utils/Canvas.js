@@ -1,12 +1,10 @@
 /* @flow */
 
 import type {
-  NakedRange
-} from '../../types/Eval';
-
-import type {
   PXRectangle
 } from '../../types/Render';
+
+import ASRange from '../../classes/ASRange';
 
 export default {
   // The below two methods draw three sides of the rectangle
@@ -46,7 +44,7 @@ export default {
     gc.stroke();
   },
 
-  drawRect (rng: NakedRange, renderer: HGRendererElement, gc: GraphicsContext): ?PXRectangle {
+  drawRect (rng: ASRange, renderer: HGRendererElement, gc: GraphicsContext): ?PXRectangle {
     let grid = renderer.getGrid(),
         fixedColCount = grid.getFixedColumnCount(),
         fixedRowCount = grid.getFixedRowCount(),

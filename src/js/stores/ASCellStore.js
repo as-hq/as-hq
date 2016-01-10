@@ -5,14 +5,9 @@ import type {
 } from '../types/Errors';
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
-  ASRangeObject,
   ASLocation,
   ASSheet,
   ASLanguage,
-  ASSelectionObject,
   RangeDescriptor
 } from '../types/Eval';
 
@@ -37,6 +32,8 @@ import U from '../AS/Util';
 
 import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
 
 import Render from '../AS/Renderers';
 import SheetStateStore from './ASSheetStateStore.js';
@@ -132,23 +129,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
         }
 
         break;
-      case 'GOT_IMPORT':
-        _data.lastUpdatedCells = [];
-        let sheetId = action.newCells[0].location.sheetId; // assumes all imported cells are within the same sheet, which should be true.
-        // first, remove cells in current sheet
-        var cellsToRemove = [];
-        _data.allCells[sheetId].forEach((colArray) => {
-          colArray.forEach((cell) => {
-            cellsToRemove.push(cell);
-          });
-        });
-        cellsToRemove = cellsToRemove.filter((cell) => !!cell); // remove nulls
-        ASCellStore.removeCells(cellsToRemove);
-        _data.allCells[sheetId] = [];
-        // then, update with the imported cells
-        ASCellStore.updateCells(action.newCells);
-        ASCellStore.emitChange();
-        break;
     }
   }),
 
@@ -189,7 +169,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     }
   },
 
-  getParentList(loc: NakedIndex) {
+  getParentList(loc: ASIndex): ?ASRange {
     let cell = ASCellStore.getCell(loc);
     if (cell) {
       let cProps = cell.props;
@@ -200,12 +180,13 @@ const ASCellStore = Object.assign({}, BaseStore, {
           let {listKey} = listKeyTag;
           let listHead = U.Conversion.listKeyToListHead(listKey);
           let listDimensions = U.Conversion.listKeyToListDimensions(listKey);
-          return {
+
+          return ASRange.fromNaked({
             tl: {row: listHead.snd,
                  col: listHead.fst} ,
             br: {row: listHead.snd + listDimensions.fst - 1,
                  col: listHead.fst + listDimensions.snd - 1}
-          }
+          });
         }
       }
     }
@@ -226,7 +207,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
   /* Copy paste helpers */
 
   // Converts a range to a row major list of lists of values, represented by their underlying strings.
-  getRowMajorCellValues(rng): Array<Array<string>> {
+  getRowMajorCellValues(rng: ASRange): Array<Array<string>> {
     let {tl, br} = rng,
         height = br.row - tl.row + 1,
         length = br.col - tl.col + 1,
@@ -236,7 +217,9 @@ const ASCellStore = Object.assign({}, BaseStore, {
       let currentRow = tl.row + i;
       rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
           let currentColumn = tl.col + index,
-              cell = self.getCell({col: currentColumn, row: currentRow});
+              cell = self.getCell(ASIndex.fromNaked({
+                col: currentColumn, row: currentRow
+              }));
           if (cell != null) {
             return String(U.Render.showValue(cell.value));
           } else {
@@ -289,7 +272,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
     switch (cv.tag) {
       case 'ValueError':
         _data.allErrors.push({
-          location: cl.obj().index,
+          location: cl,
           language: cxp.language,
           msg: cv.errorMsg
         });
@@ -318,16 +301,15 @@ const ASCellStore = Object.assign({}, BaseStore, {
   // Replace cells with empty ones
   removeCells(cells: Array<ASCell>) {
     cells.forEach((cell) => {
-      ASCellStore.removeIndex(cell.location.obj());
+      ASCellStore.removeIndex(cell.location);
     });
   },
 
   // Remove a cell at an ASIndex
-  removeIndex(loc: ASIndexObject) { //error here
-    let sheetId = loc.sheetId,
-        emptyCell = ASCell.emptyCellAt(new ASIndex(loc));
-    if (ASCellStore.locationExists(loc.index.col, loc.index.row, sheetId)) {
-      delete _data.allCells[sheetId][loc.index.col][loc.index.row];
+  removeIndex(loc: ASIndex) { //error here
+    let emptyCell = ASCell.emptyCellAt(loc);
+    if (ASCellStore.locationExists(loc)) {
+      delete _data.allCells[loc.sheetId][loc.col][loc.row];
     }
 
     _data.lastUpdatedCells.push(emptyCell);
@@ -337,7 +319,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   // Remove cells at a list of ASLocation's.
   removeLocations(locs: Array<ASLocation>) {
-    U.Conversion.asLocsToASIndices(locs).forEach((i) => ASCellStore.removeIndex(i), ASCellStore);
+    U.Location.asLocsToASIndices(locs).forEach((i) => ASCellStore.removeIndex(i), ASCellStore);
   },
 
   clearSheetCacheById(sheetId) {
@@ -345,36 +327,29 @@ const ASCellStore = Object.assign({}, BaseStore, {
   },
 
   // @optional mySheetId
-  locationExists(col, row, sheetId) {
+  locationExists({col, row, sheetId}: ASIndex) {
     return !!(_data.allCells[sheetId]
       && _data.allCells[sheetId][col]
       && _data.allCells[sheetId][col][row]);
   },
 
-  isNonBlankCell(col, row, mySheetId?: string) {
-    let sheetId = mySheetId || SheetStateStore.getCurrentSheet().sheetId;
-    return ASCellStore.locationExists(col, row, sheetId) && _data.allCells[sheetId][col][row].expression.expression != "";
+  isNonBlankCell(idx: ASIndex) {
+    const {col, row, sheetId} = idx;
+
+    return ASCellStore.locationExists(idx) && _data.allCells[sheetId][col][row].expression.expression != "";
   },
 
   // @optional mySheetId
-  getCell({col, row}: NakedIndex): ?ASCell {
-    let sheetId = SheetStateStore.getCurrentSheetId();
-    if (ASCellStore.locationExists(col, row, sheetId))
-      return _data.allCells[sheetId][col][row];
+  getCell(loc: ASIndex): ?ASCell {
+    if (ASCellStore.locationExists(loc))
+      return _data.allCells[loc.sheetId][loc.col][loc.row];
     else {
       return null;
     }
   },
 
-  getCells({tl, br}: NakedRange): Array<Array<?ASCell>> {
-    let sheetId = SheetStateStore.getCurrentSheet().sheetId;
-    return _.range(tl.col, br.col+1).map((c) => {
-      return _.range(tl.row, br.row+1).map((r) => {
-        return (ASCellStore.locationExists(c, r, sheetId)) ?
-                _data.allCells[sheetId][c][r] :
-                null;
-      });
-    });
+  getCells(rng: ASRange): Array<Array<?ASCell>> {
+    return U.Array.map2d(rng.toIndices2d(), ASCellStore.getCell);
   },
 
   cellToJSVal(c: ASCell): ?(string|number) {

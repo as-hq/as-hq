@@ -1,27 +1,8 @@
 /* @flow */
 
-import {logDebug} from '../AS/Logger';
-
-import React from 'react';
-import Dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
-import Constants from '../Constants';
-
-import U from '../AS/Util';
-
-import Render from '../AS/Renderers';
-import ReplStore from  './ASReplStore';
-import API from '../actions/ASApiActionCreators';
-import CellStore from './ASCellStore';
-
 import type {
-  NakedIndex,
-  NakedRange,
-  ASIndexObject,
-  ASRangeObject,
   ASSheet,
-  ASLanguage,
-  ASSelectionObject
+  ASLanguage
 } from '../types/Eval';
 
 import type {
@@ -33,6 +14,24 @@ import type {
   ASUserId
 } from '../types/User';
 
+import {logDebug} from '../AS/Logger';
+
+import React from 'react';
+import Dispatcher from '../Dispatcher';
+import BaseStore from './BaseStore';
+import Constants from '../Constants';
+
+import U from '../AS/Util';
+
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
+
+import Render from '../AS/Renderers';
+import ReplStore from  './ASReplStore';
+import API from '../actions/ASApiActionCreators';
+import CellStore from './ASCellStore';
+
 type SheetStateStoreData = {
   userId: ASUserId;
   decoupleAttempt: boolean;
@@ -43,11 +42,11 @@ type SheetStateStoreData = {
   activeFocus: ASFocusType;
   lastActiveFocus: ASFocusType;
   clipboard: {
-    area: ?ASSelectionObject;
+    area: ?ASSelection;
     isCut: boolean;
   };
   externalError: ?string;
-  viewingWindow: { range: NakedRange };
+  viewingWindow: ?ASRange;
 };
 
 let _data: SheetStateStoreData = {
@@ -72,12 +71,7 @@ let _data: SheetStateStoreData = {
     isCut: false
   },
   externalError: null,
-  viewingWindow: {
-    range: {
-      tl: { col: 0, row: 0},
-      br: { col: 100, row: 100}
-    }
-  }
+  viewingWindow: null
 };
 
 const ASSheetStateStore = Object.assign({}, BaseStore, {
@@ -100,10 +94,9 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
       */
       case 'SCROLLED':
-        let extendedRange = U.Location.extendRangeByCache(action.vWindow.range),
-            extendedWindow = U.Conversion.rangeToASWindow(extendedRange);
-        _data.viewingWindow = action.vWindow;
-        API.updateViewingWindow(extendedWindow);
+        const {vWindow} = action;
+        _data.viewingWindow = vWindow.extendByCache();
+        API.updateViewingWindow(vWindow);
         break;
       case 'GOT_FAILURE':
         ASSheetStateStore.setExternalError(action.errorMsg);
@@ -215,7 +208,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   /* Data boundaries */
-  getDataBoundary(start, direction) {
+  getDataBoundary(start: ASIndex, direction): ASIndex {
     let dr = 0, dc = 0;
 
     switch (direction) {
@@ -225,27 +218,33 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       case "Up": dr = -1; break;
     }
 
-    let c = start.col, r = start.row;
-    while (c >= 1 && r >= 1 && c <= Constants.numCols && r <= Constants.numRows) {
-      c += dc;
-      r += dr;
-      if (CellStore.isNonBlankCell(c, r)
-       && !(CellStore.isNonBlankCell(c + dc, r + dr) && CellStore.isNonBlankCell(c - dc, r - dr))) {
+    const shiftAmount = { dr: dr, dc: dc };
+    let prev = start;
+    let curIdx = start.shift(shiftAmount);
+    let next = curIdx.shift(shiftAmount);
+
+    // go in this direction (shiftAmount)
+      // find the first one that's a transition or an edge
+
+    let checkWhetherCurrentIsBoundary = (p, c, n) => {
+      return c && !(p && n);
+    };
+
+    while (!curIdx.equals(next)) { // while you still have a next, and you haven't reached boundary
+      let [p, c, n] = [prev, curIdx, next].map(CellStore.isNonBlankCell);
+      if (checkWhetherCurrentIsBoundary(p, c, n)) {
         break;
       }
+      [prev, curIdx, next] = // move to the next window of 3 cells
+        [prev, curIdx, next].map((x) => x.shift(shiftAmount));
     }
 
-    if (c < 1) c = 1;
-    if (r < 1) r = 1;
-    if (c > Constants.numCols) c = Constants.numCols;
-    if (r > Constants.numRows) r = Constants.numRows;
-
-    return {col: c, row: r};
+    return curIdx;
   },
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
   //If shift is not held down,
-  getDataBoundSelection(selection, direction) {
+  getDataBoundSelection(selection: ASSelection, direction): ASSelection {
     let rng = selection.range,
         {tl, br} = rng,
         origin = selection.origin;
@@ -259,7 +258,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       default: throw "Invalid direction passed in";
     }
 
-    let bound = this.getDataBoundary(startLoc, direction);
+    let bound = ASSheetStateStore.getDataBoundary(ASIndex.fromNaked(startLoc), direction);
 
     // slight misnomers; these are the corners, but not necessarily top left or bottom right
     let newTl = {row: tl.row, col: tl.col};
@@ -277,7 +276,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     }
     // I haven't actually figured out why the above code works, it seems like it sort of just does.
 
-    return { range: U.Location.orientRange({tl: newTl, br: newBr}), origin: origin };
+    return new ASSelection({ range: {tl: newTl, br: newBr}, origin: origin });
   },
 
   // TODO actually get the data boundaries by iterating, or something
@@ -288,7 +287,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
                   row: Constants.LARGE_SEARCH_BOUND} };
   },
 
-  getViewingWindow() {
+  getViewingWindow(): ?ASRange {
     return _data.viewingWindow;
   }
 });

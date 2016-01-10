@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
 
 import ASCell from '../../classes/ASCell';
+import ASRange from '../../classes/ASRange';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
@@ -13,10 +14,6 @@ import type {
   ToolbarControlProps,
   MenuProps
 } from '../../types/Toolbar';
-
-import type {
-  NakedRange
-} from '../../types/Eval';
 
 type VAlignPickerDefaultProps = {};
 
@@ -71,7 +68,7 @@ export default class VAlignPicker
     return 'bottom'; // TODO: eventually cell.cellProps.valign
   }
 
-  _propagateControlStateChange(nextValue: string, rng: NakedRange) {
+  _propagateControlStateChange(nextValue: string, rng: ASRange) {
     console.log("Propagating language change: " + nextValue);
     return; // TODO: eventually some API call
   }

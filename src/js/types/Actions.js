@@ -1,15 +1,17 @@
 /* @flow */
 
 import type ASCell from '../classes/ASCell';
+import type ASCondFormatRule from '../classes/ASCondFormatRule';
+import type ASIndex from '../classes/ASIndex';
+import type ASRange from '../classes/ASRange';
+import type ASSelection from '../classes/ASSelection';
 
 import type {
-  ASIndexObject,
   ASLocation,
-  ASRangeObject,
   ASExpression,
   ASValue,
   ASCompositeValue,
-  ASSelectionObject,
+  EvalResult,
   ASLanguage,
   RangeDescriptor,
   RangeKey
@@ -20,12 +22,9 @@ import type {
 } from './State';
 
 import type {
-  CondFormatRule
-} from './CondFormat';
-
-import type {
   ASBackendWorkbookSheet,
-  ClientMessage
+  ClientMessage,
+  EvalHeader
 } from './Messages';
 
 import type {
@@ -45,12 +44,12 @@ export type ScrolledAction = {
 
 export type GotOpenAction = {
   _type: 'GOT_OPEN';
-  expressions: Array<ASExpression>;
+  evalHeaders: Array<EvalHeader>;
 };
 
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
-  newSelection: ASSelectionObject;
+  newSelection: ASSelection;
 };
 
 export type GotUpdatedCellsAction = {
@@ -71,11 +70,6 @@ export type GotUpdatedBarsAction = {
   oldBarLocs: Array<BarIndex>;
 };
 
-export type ImportAction = {
-  _type: 'GOT_IMPORT';
-  newCells: Array<ASCell>;
-};
-
 export type ClearedAction = {
   _type: 'CLEARED';
 };
@@ -92,7 +86,7 @@ export type GotUpdatedWorkbooksAction = {
 
 export type GotUpdatedRulesAction = {
   _type: 'GOT_UPDATED_RULES';
-  newRules: Array<CondFormatRule>;
+  newRules: Array<ASCondFormatRule>;
   oldRuleIds: Array<string>;
 };
 
@@ -104,12 +98,12 @@ export type GotUpdatedRulesAction = {
 
 export type GotEvalHeaderResponseAction = {
   _type: 'GOT_EVAL_HEADER_RESPONSE';
-  response: ASCompositeValue;
+  response: EvalResult;
 };
 
 export type GotFindAction = {
   _type: 'GOT_FIND';
-  findLocs: Array<ASIndexObject>;
+  findLocs: Array<ASIndex>;
 };
 
 export type GotNewWorkbooksAction = {
@@ -197,7 +191,6 @@ export type ASAction =
   | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
   | GotUpdatedBarsAction
-  | ImportAction
   | ClearedAction
   | ClearedSheetAction
   // | ReplLeftAction

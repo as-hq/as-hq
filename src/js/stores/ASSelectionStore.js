@@ -9,6 +9,8 @@ import Dispatcher from '../Dispatcher';
 
 import U from '../AS/Util';
 
+import ASSelection from '../classes/ASSelection';
+
 import {logDebug} from '../AS/Logger';
 import Render from '../AS/Renderers';
 
@@ -19,8 +21,7 @@ import CellStore from './ASCellStore';
 import {Just} from '../AS/Maybe';
 
 import type {
-  ASLanguage,
-  ASSelectionObject
+  ASLanguage
 } from '../types/Eval';
 
 import type {
@@ -28,7 +29,7 @@ import type {
 } from '../types/Base';
 
 type SelectionStoreData = {
-  activeSelection: ?ASSelectionObject;
+  activeSelection: ?ASSelection;
 };
 
 let _data: SelectionStoreData = {
@@ -47,7 +48,7 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* getter and setter methods */
 
-  setActiveSelection(sel, xp, lang: ?ASLanguage) {
+  setActiveSelection(sel: ASSelection, xp: string, lang: ?ASLanguage) {
     // Render.setSelection() is for speed purposes only. Ideally we would be
     // getting the selection from this store during render, but getting the
     // variable from the store is empirically much slower than just setting
@@ -57,18 +58,18 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
         activeCellDependencies = U.Parsing.parseDependencies(xp, lang),
         listDep = CellStore.getParentList(origin);
     _data.activeSelection = sel;
-    if (listDep !== null) {
+    if (listDep != null) {
       activeCellDependencies.push(listDep);
     }
     CellStore.setActiveCellDependencies(activeCellDependencies);
     ASSelectionStore.emitChange();
   },
 
-  getActiveSelection(): ?ASSelectionObject {
+  getActiveSelection(): ?ASSelection {
     return _data.activeSelection;
   },
 
-  withActiveSelection<T>(cb: (sel: ASSelectionObject) => T): ?T {
+  withActiveSelection<T>(cb: (sel: ASSelection) => T): ?T {
     return Just(ASSelectionStore.getActiveSelection()).fmap(cb).out();
   },
 });

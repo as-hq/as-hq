@@ -1,14 +1,6 @@
 /* @flow */
 
 import type {
-  NakedIndex,
-  NakedRange,
-  ASRangeObject,
-  ASIndexObject,
-  ASSelectionObject
-} from '../types/Eval';
-
-import type {
   ASOverlaySpec
 } from '../types/Hypergrid';
 
@@ -47,6 +39,9 @@ let {
 } = U;
 
 import ASCell from '../classes/ASCell';
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
 
 import Constants from '../Constants';
 import Render from '../AS/Renderers';
@@ -73,7 +68,7 @@ type ASSpreadsheetProps = {
   onReady: () => void;
   onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
   onFileDrop: (files: Array<File>) => void;
-  onSelectionChange: (sel: ASSelectionObject) => void;
+  onSelectionChange: (sel: ASSelection) => void;
   onNavKeyDown: (e: SyntheticKeyboardEvent) => void;
   behavior: string;
   width?: string;
@@ -85,7 +80,6 @@ type ASSpreadsheetState = {
   scrollPixels: HGPoint;
   overlays: Array<ASOverlaySpec>;
   cursorStyle: ASCursorStyle;
-  selectionDraggable: boolean;
 };
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
@@ -97,7 +91,7 @@ export default class ASSpreadsheet
 
   mousePosition: ?HGPoint;
   mouseDownInBox: boolean;
-  dragSelectionOrigin: ?NakedIndex;
+  dragSelectionOrigin: ?ASIndex;
 
   draggingCol: boolean;
   draggingRow: boolean;
@@ -142,8 +136,7 @@ export default class ASSpreadsheet
       scroll: { x: 0, y: 0 },
       scrollPixels: { x: 0, y: 0},
       overlays: [],
-      cursorStyle: 'auto',
-      selectionDraggable: false
+      cursorStyle: 'auto'
     };
   }
 
@@ -164,12 +157,12 @@ export default class ASSpreadsheet
   initHypergrid() {
     hgPatches.forEach((patch) => { patch(this); });
 
-    let ind = {row: 1, col: 1};
+    const ind = ASIndex.fromNaked({ row: 1, col: 1 });
 
     // This will make the first selection have properties of a click
     // Namely, the blue box will show up
     ExpStore.setClickType(Constants.ClickType.CLICK);
-    this.select({origin: ind, range: {tl: ind, br: ind}}, false);
+    this.selectIndex(ind, false);
   }
 
   componentWillUnmount() {
@@ -188,10 +181,10 @@ export default class ASSpreadsheet
     return {x: pX, y: pY};
   }
 
-  drawDraggedSelection(dragOrigin: NakedIndex, selRange: NakedRange, targetX: number, targetY: number) {
+  drawDraggedSelection(dragOrigin: ASIndex, selRange: ASRange, targetX: number, targetY: number) {
     let dX = targetX - dragOrigin.col,
         dY = targetY - dragOrigin.row;
-    let range = U.Location.offsetRange(selRange, dY, dX);
+    let range = selRange.shift({ dr: dY, dc: dX });
     Render.setDragRect(range);
   }
 
@@ -254,21 +247,22 @@ export default class ASSpreadsheet
     return this._getHypergrid().getBehavior();
   }
 
-  getSelectionArea(): ASSelectionObject {
+  getSelectionArea(): ASSelection {
     let hg = this._getHypergrid(),
         selection = hg.getSelectionModel().getSelections()[0],
         ul = selection.origin,
-        range = U.Location.orientRange({
+
+        range = {
                   tl: {row:  ul.y + 1,
                        col:  ul.x + 1},
                   br: {row: ul.y + selection.height() + 1,
                        col: ul.x + selection.width() + 1}
-                }),
+                },
         sel = {
           range: range,
           origin: {row: ul.y + 1, col: ul.x + 1}
         };
-    return sel;
+    return new ASSelection(sel);
   }
 
   getScroll(): HGPoint {
@@ -285,8 +279,16 @@ export default class ASSpreadsheet
         // getVisibleRows() might return nothing, ergo the below hack.
         if (colLength == 0) colLength = 20;
         if (rowLength == 0) rowLength = 30;
-    return { range: {tl: {row: vs+1, col: hs+1},
-                     br: {row: vs + rowLength - 1, col: hs + colLength - 1}} };
+    return ASRange.fromNaked({
+      tl: {
+        row: vs + 1,
+        col: hs + 1
+      },
+      br: {
+        row: vs + rowLength - 1,
+        col: hs + colLength - 1
+      }
+    });
     // getVisibleColumns and getVisibleRows were manually modified to show one more
     // column/row than what hypergrid says is visible (...since they're actually visible)
     // but that messed with the boundaries shown here, which is why we're subtracting 1
@@ -352,8 +354,8 @@ export default class ASSpreadsheet
     return (clickedCell.x <= 0 && clickedCell.y >= 1); // == 0? ==-1? not entirely sure
   }
 
-  _isLeftClick(e: HGMouseEvent): boolean { 
-    return e.primitiveEvent.detail.primitiveEvent.which == 1; 
+  _isLeftClick(e: HGMouseEvent): boolean {
+    return e.primitiveEvent.detail.primitiveEvent.which == 1;
   }
 
   // expects that the current sheet has already been set
@@ -429,7 +431,7 @@ export default class ASSpreadsheet
         offsetY: imageOffsetY,
         left: point.x,
         top:  point.y,
-        loc: cell.location.obj()
+        loc: cell.location
       };
     }
   }
@@ -452,8 +454,8 @@ export default class ASSpreadsheet
 
     locs.forEach((loc, i) => {
       if (cell !== null && cell !== undefined) {
-        if (U.Render.locEquals(loc, cell.location.obj())) {
-          overlays.splice(i,1);
+        if (loc.equals(cell.location)) {
+          overlays.splice(i, 1);
         }
       }
     });
@@ -482,18 +484,18 @@ export default class ASSpreadsheet
   }
 
   // do not call before polymer is ready.
-  select(unsafeSelection: ASSelectionObject, shouldScroll: boolean = true) {
+  select(selection: ASSelection, shouldScroll: boolean = true) {
     logDebug("Spreadsheet select start");
 
-    // unsafe if it references values <= 0.
-    let safeSelection = U.Location.getSafeSelection(unsafeSelection);
-    let {tl, br} = safeSelection.range;
-    let {col, row} = safeSelection.origin;
+    const {
+      range: {tl, br},
+      origin: {col, row}
+    } = selection;
 
     let oldSel = SelectionStore.getActiveSelection();
     // make selection
     let hg = this._getHypergrid(),
-        originIsCorner = U.Location.originIsCornerOfSelection(safeSelection),
+        originIsCorner = selection.originIsCorner(),
         c, r, dC, dR;
 
     if (originIsCorner) {
@@ -524,30 +526,38 @@ export default class ASSpreadsheet
     hg.setMouseDown(myDown);
     hg.setDragExtent(myExtent);
 
-    let win = this.getViewingWindow().range;
+    let win = this.getViewingWindow();
     // set scroll
     if (shouldScroll) {
-      let scroll = this._getNewScroll(oldSel, safeSelection);
+      let scroll = this._getNewScroll(oldSel, selection);
       this.scrollTo(scroll.x, scroll.y);
     }
     this.repaint();
-    this.props.onSelectionChange(safeSelection);
+    this.props.onSelectionChange(selection);
   }
 
-  rowVisible(loc: NakedIndex): boolean {
-    let vWindow = this.getViewingWindow();
-    return (vWindow.range.tl.row <= loc.row && loc.row <= vWindow.range.br.row);
+  selectIndex(idx: ASIndex, shouldScroll: boolean = true) {
+    this.select(idx.toSelection(), shouldScroll);
   }
 
-  columnVisible(loc: NakedIndex): boolean {
+  selectRange(rng: ASRange, shouldScroll: boolean = true) {
+    this.select(rng.toSelection(), shouldScroll);
+  }
+
+  rowVisible(loc: ASIndex): boolean {
     let vWindow = this.getViewingWindow();
-    return (vWindow.range.tl.col <= loc.col && loc.col <= vWindow.range.br.col);
+    return (vWindow.tl.row <= loc.row && loc.row <= vWindow.br.row);
+  }
+
+  columnVisible(loc: ASIndex): boolean {
+    let vWindow = this.getViewingWindow();
+    return (vWindow.tl.col <= loc.col && loc.col <= vWindow.br.col);
   }
 
   scrollVForBottomEdge(row: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
-    return hg.getVScrollValue() + row - vWindow.range.br.row + 2;
+    return hg.getVScrollValue() + row - vWindow.br.row + 2;
   }
 
   scrollVForTopEdge(row: number): number {
@@ -557,14 +567,14 @@ export default class ASSpreadsheet
   scrollHForRightEdge(col: number): number {
     let hg = this._getHypergrid();
     let vWindow = this.getViewingWindow();
-    return hg.getHScrollValue() + col - vWindow.range.br.col;
+    return hg.getHScrollValue() + col - vWindow.br.col;
   }
 
   scrollHForLeftEdge(col: number): number {
     return col - 1;
   }
 
-  _getNewScroll(oldSel: ?ASSelectionObject, newSel: ASSelectionObject): HGPoint {
+  _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
     let hg = this._getHypergrid();
     let {
       range: {tl, br},
@@ -583,7 +593,7 @@ export default class ASSpreadsheet
       // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
 
       if (oldOrigin) {
-        if (U.Render.simpleIndexEquals(oldOrigin, newSel.origin)) {
+        if (oldOrigin.equals(newSel.origin)) {
           if (this.rowVisible(oldTl) && !this.rowVisible(tl)) {
             scrollV = this.scrollVForTopEdge(tl.row);
           } else if (this.rowVisible(oldBr) && !this.rowVisible(br)) {
@@ -596,15 +606,15 @@ export default class ASSpreadsheet
             scrollH = this.scrollHForRightEdge(br.col);
           }
         } else {
-          if (col < win.range.tl.col) {
+          if (col < win.tl.col) {
             scrollH = this.scrollHForLeftEdge(col)
-          } else if (col > win.range.br.col) {
+          } else if (col > win.br.col) {
             scrollH = this.scrollHForRightEdge(col);
           }
 
-          if (row < win.range.tl.row) {
+          if (row < win.tl.row) {
             scrollV = this.scrollVForTopEdge(row);
-          } else if (row > win.range.br.row) {
+          } else if (row > win.br.row) {
             scrollV = this.scrollVForBottomEdge(row);
           }
         }
@@ -614,16 +624,12 @@ export default class ASSpreadsheet
     return {x: scrollH, y: scrollV};
   }
 
-  shiftSelectionArea(dc: number, dr: number) {
-    let sel = SelectionStore.getActiveSelection();
-    if (! sel) {
-      logError('Trying to shift null selection');
-      return;
-    }
-
-    let origin = {row: sel.origin.row + dr, col: sel.origin.col + dc};
-    let range = {tl: origin, br: origin};
-    this.select({range: range, origin: origin});
+  // when you press enter etc after eval, the selection shifts and gets
+  // reset to a single cell
+  shiftSelectionArea(byCoords: ({ dr: number; dc: number; })) {
+    SelectionStore.withActiveSelection(({origin}) => {
+      this.selectIndex(origin.shift(byCoords));
+    });
   }
 
   scrollTo(x: number, y: number) {
@@ -669,21 +675,19 @@ export default class ASSpreadsheet
         ShortcutUtils.tryGridShortcut(e);
       }
     } else if (KeyUtils.isNavKey(e)) { // nav key from grid
-      let activeSelection = SelectionStore.getActiveSelection();
-      if (!activeSelection) {
-        logDebug('No selection');
-        return;
-      }
+      SelectionStore.withActiveSelection((sel) => {
+        let {range, origin} = sel;
 
-      let {range, origin} = activeSelection;
-      logDebug("ACTIVE SEL AFTER NAV KEY", origin);
-      if (KeyUtils.isPureArrowKey(e) && !U.Location.isIndex(range)) {
-        logDebug("MANUALLY HANDLING NAV KEY");
-        KeyUtils.killEvent(e);
-        let newOrigin = KeyUtils.shiftIndexByKey(e, origin);
-        this.select({range: {tl: newOrigin, br: newOrigin}, origin: newOrigin});
-      }
-      this.props.onNavKeyDown(e);
+        logDebug("ACTIVE SEL AFTER NAV KEY", origin);
+
+        if (KeyUtils.isPureArrowKey(e) && !range.isIndex()) {
+          logDebug("MANUALLY HANDLING NAV KEY");
+          KeyUtils.killEvent(e);
+
+          this.shiftSelectionArea(KeyUtils.keyShiftValue(e));
+        }
+        this.props.onNavKeyDown(e);
+      });
     }
   }
 
@@ -707,7 +711,7 @@ export default class ASSpreadsheet
   }
 
   _restoreFocus() {
-      this.props.setFocus(SheetStateStore.getFocus());
+    this.props.setFocus(SheetStateStore.getFocus());
   }
 
   /*************************************************************************************************************************/

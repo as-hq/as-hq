@@ -132,7 +132,17 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
                   condFormattingOpen: true
                 });
               }
-            })
+            }),
+
+            simple({
+              title: 'Clear sheet',
+              callback() {
+                let shouldClear = confirm("Are you sure you want to clear the sheet?");
+                if (shouldClear) { 
+                  API.clearSheet();
+                }
+              }
+            }),
           ]},
 
           {title: 'Insert', menuItems: [

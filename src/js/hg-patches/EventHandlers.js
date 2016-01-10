@@ -17,6 +17,10 @@ import ASSpreadsheet from '../components/ASSpreadsheet.jsx';
 import rowHeaderMenuItems from '../components/menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from '../components/menus/ColumnHeaderMenuItems.jsx';
 
+import ASIndex from '../classes/ASIndex';
+import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
+
 import _ from 'lodash';
 
 import {convert} from './helpers';
@@ -114,9 +118,16 @@ const callbacks: Array<InitCallback> = [
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = spreadsheet.getSelectionArea(),
-            newBr = {col: evt.gridCell.x, row: evt.gridCell.y},
-            newSel = {origin: origin, range: U.Location.orientRange({tl: origin, br: newBr})};
-        spreadsheet.select(newSel, false);
+            newBr = {col: evt.gridCell.x, row: evt.gridCell.y};
+        spreadsheet.select(
+          ASSelection.fromASLocations({
+            origin: origin,
+            range: ASRange.fromASIndices({
+              tl: origin,
+              br: ASIndex.fromNaked(newBr)
+            })
+          }),
+        false);
       } else {
         let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
         if (spreadsheet.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
@@ -138,7 +149,7 @@ const callbacks: Array<InitCallback> = [
                 initialized upon app initialization
             */
           // dragging selections
-          spreadsheet.dragSelectionOrigin = {col: evt.gridCell.x, row: evt.gridCell.y};
+          spreadsheet.dragSelectionOrigin = ASIndex.fromGridCell(evt.gridCell);
         } else if (model.featureChain) {
           let clickedCell = evt.gridCell;
           // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
@@ -253,12 +264,10 @@ const callbacks: Array<InitCallback> = [
           }
           let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
           let sel = spreadsheet.getSelectionArea();
-          let newSelRange = Render.getDragRect(),
-              fromRange = U.Conversion.simpleToASRange(sel.range);
-          if (newSelRange != null) {
-            let toRange = U.Conversion.simpleToASRange(newSelRange),
-                newSel = {range: newSelRange, origin: newSelRange.tl};
-            spreadsheet.select(newSel, false);
+          let toRange = Render.getDragRect(),
+              fromRange = sel.range;
+          if (toRange != null) {
+            spreadsheet.selectRange(toRange, false);
             Render.setDragRect(null);
             spreadsheet.repaint();
             API.cut(fromRange, toRange);
@@ -286,11 +295,11 @@ const callbacks: Array<InitCallback> = [
           if (spreadsheet.draggingCol) {
             let destColNum = Math.max(1, evt.gridCell.x); // evt.gridCell.x can go negative...
             if (spreadsheet.clickedColNum != null && spreadsheet.clickedColNum != destColNum) {
-              API.dragCol(spreadsheet.clickedColNum, destColNum); 
+              API.dragCol(spreadsheet.clickedColNum, destColNum);
             }
           } else if (spreadsheet.draggingRow) {
-            let destRowNum = Math.max(1, evt.gridCell.y); 
-            if (spreadsheet.clickedRowNum != destRowNum && spreadsheet.clickedRowNum != null) { 
+            let destRowNum = Math.max(1, evt.gridCell.y);
+            if (spreadsheet.clickedRowNum != destRowNum && spreadsheet.clickedRowNum != null) {
               API.dragRow(spreadsheet.clickedRowNum, destRowNum);
             }
           }
