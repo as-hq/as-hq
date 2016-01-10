@@ -1,6 +1,7 @@
 /* @flow */
 
 import type {
+  NakedRange, // for locToExcel, and nothing else
   ValueD,
   ValueI,
   ValueS,
@@ -92,8 +93,8 @@ export function asRange(exLoc: string): ASRange {
   return ASRange.fromExcelString(exLoc);
 }
 
-export function locToExcel(loc: ASRange): string {
-  return loc.toExcel().toString();
+export function locToExcel(loc: NakedRange): string {
+  return ASRange.fromNaked(loc).toExcel().toString();
 }
 
 export function numToAlpha(num: number): string {
