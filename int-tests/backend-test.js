@@ -59,7 +59,6 @@ describe('backend', () => {
 
     python,
     r,
-    ocaml,
     excel,
 
     evalHeader,
@@ -662,8 +661,8 @@ describe('backend', () => {
               _do([
                 python('A1', 'oneDim("hello")'),
                 python('A2', 'oneDim(5)'),
-                shouldBeError('A1'), 
-                shouldBeError('A2'), 
+                shouldBeError('A1'),
+                shouldBeError('A2'),
                 exec(done),
               ]);
             });
@@ -2312,6 +2311,7 @@ describe('backend', () => {
           ]);
         });
 
+        /* NOTE: AS OF CLASSES REFACTOR, this range cannot be instantiated! Nullifed this test by type system!
         it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
@@ -2324,7 +2324,7 @@ describe('backend', () => {
             shouldBeNothing('B0'),
             exec(done)
           ]);
-        });
+        }); */
 
         it ('should copy expressions with both a list and a dependency to the list', (done) => {
           _do([
@@ -2597,6 +2597,7 @@ describe('backend', () => {
           ]);
         });
 
+        /* NOTE: AS OF CLASSES REFACTOR, type system catches this problem!
         it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
@@ -2609,7 +2610,7 @@ describe('backend', () => {
             shouldBeNothing('B0'),
             exec(done)
           ]);
-        });
+        }); */
       });
 
       // Currently not supporting (Alex 12/29)
