@@ -257,7 +257,7 @@ export default class ASEvalPane
   }
 
   getASSpreadsheet(): ASSpreadsheet {
-    return this.getASSpreadsheet();
+    return this.refs.spreadsheet;
   }
 
 
