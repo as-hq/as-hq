@@ -30,7 +30,7 @@ const Clipboard = {
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
     table.setAttribute("data-sheet-id", SheetStateStore.getCurrentSheet().sheetId);
-    table.setAttribute("data-from-range", JSON.stringify(rng));
+    table.setAttribute("data-from-range", JSON.stringify(rng.obj().range)); // stringified NakedRange
 		let tableBody = document.createElement('tbody');
 		vals.forEach((rowVals) => {
 			let row = document.createElement('tr');
