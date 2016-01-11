@@ -284,7 +284,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
 
   unsetErrors(c: ASCell) {
     _data.allErrors = _data.allErrors.filter(
-      ({ location }) => ! _.isEqual(c.location.obj().index, location)
+      ({ location }) => ! c.location.equals(location)
     );
   },
 
