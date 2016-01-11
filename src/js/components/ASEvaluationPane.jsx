@@ -180,6 +180,7 @@ export default class ASEvalPane
   /***************************************************************************************************************************/
   // Some basic on change handlers
 
+  // currently is never used
   _onSetVarName(name: string) {
     logDebug('var name set to', name);
     this.setState({ varName: name });
@@ -287,6 +288,7 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   /* Copy paste handling */
 
+  // cut or copy
   handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean) {
     KeyUtils.killEvent(e);
     // For now, the killEvent doesn't kill fin-hypergrid's default copy handler, since
