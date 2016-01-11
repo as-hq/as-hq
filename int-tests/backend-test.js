@@ -180,6 +180,30 @@ describe('backend', () => {
         });
       });
 
+      describe('= detection', () => {
+        it ('should ignore the = in expressions that start with = when in non-Excel', (done) => {
+          _do([
+            python('A1', '=range(3)'),
+            r('B1', '=c(1,2,3)'),
+            excel('C1', '=SUM(A1:B3)'),
+            shouldBe('C1', valueI(9)),
+            expressionShouldBe('A1', 'range(3)'),
+            expressionShouldBe('B1', 'c(1,2,3)'),
+            exec(done)
+          ]);
+        });
+
+        it ('should ignore plain = expressions when in non-Excel', (done) => {
+          _do([
+            python('A1', '='),
+            r('B1', '='),
+            shouldBeNothing('A1'), 
+            shouldBeNothing('B1'), 
+            exec(done)
+          ]);
+        });
+      });
+
       describe('decoupling', () => {
 
         it ('should decouple a single value and send message', (done) => {
