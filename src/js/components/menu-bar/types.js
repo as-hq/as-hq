@@ -16,7 +16,13 @@ export type SimpleItemSpec = {
   callback: Callback;
 };
 
-export type MenuItemSpec = NestedMenuSpec | SimpleItemSpec;
+export type FileItemSpec = {
+  tag: 'FileItemSpec';
+  title: string;
+  callback: Callback;
+};
+
+export type MenuItemSpec = NestedMenuSpec | SimpleItemSpec | FileItemSpec;
 
 export type MenuSpec = {
   title: string;

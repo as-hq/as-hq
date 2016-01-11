@@ -7,6 +7,7 @@ import type {
 import type {
   SimpleItemSpec,
   MenuItemSpec,
+  FileItemSpec,
   ASMenuProps,
   ASMenuState
 } from './types';
@@ -91,6 +92,37 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
             primaryText={menuItem.title}
             onTouchTap={this._handleMenuItemClick(menuItem).bind(this)} />
         );
+      case 'FileItemSpec':
+        // clickjack by covering the menu item in this transparent file input
+        // TODO(joel): this covers up the underlying menu item, causing it to
+        // not highlight on hover
+        const inputStyle = {
+          opacity: 0,
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          zIndex: 1,
+          cursor: 'pointer',
+        };
+
+        return (
+          <div style={{position: 'relative'}}>
+            <input
+              type='file'
+              style={inputStyle}
+              ref={elem => this._fileInput = elem}
+              onChange={() => this._handleFileItemClick(menuItem)}
+            />
+            <MenuItem
+              primaryText={menuItem.title}
+              // set desktop here so this renders the same size as the other
+              // menu items. not sure exactly how material-ui detects its
+              // context and renders differently if it's in a div. anyway, this
+              // fixes it.
+              desktop
+            />
+          </div>
+        );
       default:
         throw new Error('Invalid menu item tag');
     }
@@ -121,6 +153,11 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
       menuItem.callback();
       this._handleMenuRequestClose();
     };
+  }
+
+  _handleFileItemClick(fileItem: FileItemSpec) {
+    fileItem.callback(this._fileInput.files);
+    this._handleMenuRequestClose();
   }
 
   _handleMenuRequestClose() {

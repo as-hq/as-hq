@@ -7,7 +7,8 @@ import type {
 import type {
   NestedMenuSpec,
   SimpleItemSpec,
-  MenuItemSpec
+  MenuItemSpec,
+  FileItemSpec,
 } from './menu-bar/types';
 
 import React from 'react';
@@ -44,6 +45,14 @@ function simple({callback, title}): SimpleItemSpec {
     tag: 'SimpleItemSpec',
     title: title,
     callback: callback
+  });
+}
+
+function file({callback, title}): FileItemSpec {
+  return ({
+    tag: 'FileItemSpec',
+    title: title,
+    callback: callback,
   });
 }
 
@@ -109,11 +118,13 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
               }
             }),
 
-            simple({
+            file({
               title: 'Import CSV',
-              callback() {
-                FileImportDialog.openFileDialog(false, FileImportDialog.importCSVCallback);
-              }
+              callback(files) {
+                for (let i = 0; i < files.length; i++) {
+                  FileImportDialog.importCSVCallback(files[i]);
+                }
+              },
             }),
 
             simple({
@@ -138,7 +149,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
               title: 'Clear sheet',
               callback() {
                 let shouldClear = confirm("Are you sure you want to clear the sheet?");
-                if (shouldClear) { 
+                if (shouldClear) {
                   API.clearSheet();
                 }
               }

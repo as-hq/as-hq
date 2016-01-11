@@ -28,7 +28,7 @@ type ToolbarButtonDefaultProps = {
   onClick: (e: SyntheticMouseEvent, state: any) => void;
   iconName: string;
   iconElement: ?React.Element;
-  tooltip: string; 
+  tooltip: string;
   usePushState: boolean;
   showTooltip: boolean;
   includeDropdownArrow: boolean;

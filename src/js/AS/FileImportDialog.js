@@ -25,7 +25,7 @@ const FileImportDialog = {
   // Given a file, get the index and language, and send a message to backend
   importCSVCallback(file: File) {
     let sel = SelectionStore.getActiveSelection();
-    if (sel == null){
+    if (sel == null) {
       return;
     } else {
       let simpleIndex = sel.origin,
@@ -38,47 +38,6 @@ const FileImportDialog = {
       }
     }
   },
-
-  /*
-  Given a boolean to allow multiple files, and a callback function to call if the POST file is successful (on each file),
-  create a fileSelector HTML element that has an input file, and simulate a click on that element.
-  We want an onchange to fire, which is why we create and dispatch a change event
-  In the onchange after the click and the files are selected, send them via HTTP to a Python file server.
-  Note that having the callback here guarantees that it is called only after a successful POST
-  */
-  openFileDialog(allowMultiple: boolean, callbackAfterSuccess: ((file: File) => void)): ?FileList {
-    let fileSelector = document.createElement('input');
-    fileSelector.setAttribute('type', 'file');
-    if (allowMultiple) {
-      fileSelector.setAttribute('multiple', 'multiple');
-    }
-    fileSelector.addEventListener("change", (evt) => {
-      // DO NOT REMOVE THE BELOW CONSOLE.LOG. THIS DIALOG BOX FAILS TO OPERATE IF IT IS
-      // REMOVED. IF YOU UNDERSTAND WHY PLEASE LET ME KNOW. (--ALEX 1/5)
-      console.log(fileSelector);
-      evt.preventDefault();
-      let files = evt.target.files;
-      let req = request.post(FileImportDialog.url);
-      for (var i = 0; i < files.length; i++) {
-        let file = files[i];
-        req.attach(file.name, file);
-      }
-      req.end((err, res) => {
-        // Upon failure, do nothing, upon success, execute callback
-        if (err || !res.ok) {
-          alert("Could not import files");
-        } else {
-          // Upon success, call the callback function for each file
-          for (var i = 0; i < files.length; i++) {
-            callbackAfterSuccess(files[i]);
-          }
-        }
-      });
-    });
-    fileSelector.click();
-    let event = new Event('change');
-    fileSelector.dispatchEvent(event);
-  }
 
 };
 
