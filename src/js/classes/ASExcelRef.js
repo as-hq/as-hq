@@ -37,14 +37,6 @@ function intToCol(i: number): string {
   return code;
 }
 
-function intToRow(i: number): string {
-  if (i === Infinity) {
-    return '';
-  } else {
-    return i.toString();
-  }
-}
-
 function letterToInt(letter: string): number {
   return letter.charCodeAt(0) - 'A'.charCodeAt(0) + 1;
 }
@@ -59,13 +51,23 @@ function dollarize(b: boolean): string {
   return b ? '$' : '';
 }
 
+function rowParamsToRowString({row, rowFixed}: ({
+  row: number;
+  rowFixed: boolean;
+})): string {
+  if (row === Infinity) {
+    return '';
+  } else {
+    return [dollarize(rowFixed), row.toString()].join('');
+  }
+}
+
 function excelIndexToString(exc: NakedExcelIndex): string {
   const {row, col, rowFixed, colFixed} = exc;
   return [
     dollarize(colFixed),
     intToCol(col),
-    dollarize(rowFixed),
-    intToRow(row)
+    rowParamsToRowString({ row: row, rowFixed: rowFixed })
   ].join('');
 }
 
@@ -210,8 +212,15 @@ export default class ASExcelRef {
       case 2:
         _sheetId = parts[1];
       case 1:
-        _nakedRef = parseExcelRef(parts[0]);
-        return new ASExcelRef(_nakedRef, _sheetId, _workbookId);
+        const strRef = parts[0];
+        _nakedRef = parseExcelRef(strRef);
+        const ret = new ASExcelRef(_nakedRef, _sheetId, _workbookId);
+
+        if (ret.toLocalRefString() !== strRef) {
+          throw new Error('Excel toString isomorphism invariant broken.');
+        }
+
+        return ret;
 
       default:
         throw new Error('Can\'t be more than 3 parts');
@@ -239,20 +248,22 @@ export default class ASExcelRef {
     }, rng.sheetId);
   }
 
-  toString(): string {
-    const result = (() => {
-      if (this._nakedRef.tag === 'index') {
-        return excelIndexToString(this._nakedRef.contents);
-      } else {
-        const {first, second} = this._nakedRef;
+  toLocalRefString(): string {
+    if (this._nakedRef.tag === 'index') {
+      return excelIndexToString(this._nakedRef.contents);
+    } else {
+      const {first, second} = this._nakedRef;
 
-        if (_.isEqual(first, second)) {
-          return excelIndexToString(first);
-        } else {
-          return [first, second].map(excelIndexToString).join(':');
-        }
+      if (_.isEqual(first, second)) {
+        return excelIndexToString(first);
+      } else {
+        return [first, second].map(excelIndexToString).join(':');
       }
-    })();
+    }
+  }
+
+  toString(): string {
+    const result = this.toLocalRefString();
 
     // TODO: figure out a better default for behavior of toString()
     // in presence of sheet names.
