@@ -37,6 +37,14 @@ function intToCol(i: number): string {
   return code;
 }
 
+function intToRow(i: number): string {
+  if (i === Infinity) {
+    return '';
+  } else {
+    return i.toString();
+  }
+}
+
 function letterToInt(letter: string): number {
   return letter.charCodeAt(0) - 'A'.charCodeAt(0) + 1;
 }
@@ -57,42 +65,127 @@ function excelIndexToString(exc: NakedExcelIndex): string {
     dollarize(colFixed),
     intToCol(col),
     dollarize(rowFixed),
-    row.toString()
+    intToRow(row)
   ].join('');
 }
 
-function stringToNakedExcelIndex(str: string): NakedExcelIndex {
-  const DEFAULT = 'default';
-  const maybeDollar = parse.optional(DEFAULT, text.character('$'));
-  const letters: Parser<string> = // annotations for clarity
-    parse.bind(parse.many1(text.letter),
-      (pl) => parse.always(stream.toArray(pl).join(''))
-    );
-  const number: Parser<number> =
-    parse.bind(parse.many1(text.digit),
-      (digits) => parse.always(parseInt(stream.toArray(digits).join('')))
-    );
-  const excelParser: Parser<NakedExcelIndex> =
-    parse.bind(maybeDollar,
-      (colDollar) => parse.bind(letters,
-        (parsedLetters) => {
-          const col = colToInt(parsedLetters);
-          return parse.bind(maybeDollar,
-            (rowDollar) => parse.bind(number,
-              (row) => {
-                return parse.always({
-                  row: row,
-                  rowFixed: rowDollar === '$',
-                  col: col,
-                  colFixed: colDollar === '$'
-                });
-              }
-            )
-          )
+const DEFAULT = 'default';
+const pMaybeDollar = parse.optional(DEFAULT, text.character('$'));
+const pLetters: Parser<string> = // annotations for clarity
+  parse.bind(parse.many1(text.letter),
+    (pl) => parse.always(stream.toArray(pl).join(''))
+  );
+const pNumber: Parser<number> =
+  parse.bind(parse.many1(text.digit),
+    (digits) => parse.always(parseInt(stream.toArray(digits).join('')))
+  );
+const pEmptyString: Parser<string> = text.string('');
+const pColon: Parser<string> = text.character(':');
+
+const pColumn: Parser<{
+  col: number;
+  colFixed: boolean;
+}> =
+  parse.bind(pMaybeDollar,
+    (colDollar) => parse.bind(pLetters,
+      (parsedLetters) => {
+        const col = colToInt(parsedLetters);
+        return parse.always({
+          col: col,
+          colFixed: colDollar === '$'
+        });
+      }
+    )
+  );
+
+const pRow: Parser<{
+  row: number;
+  rowFixed: boolean;
+}> =
+  parse.bind(pMaybeDollar,
+    (rowDollar) => parse.bind(pNumber,
+      (row) => {
+        return parse.always({
+          row: row,
+          rowFixed: rowDollar === '$'
+        });
+      }
+    )
+  );
+
+const nakedExcelIndex: Parser<NakedExcelIndex> =
+  parse.bind(pColumn, (colObj) =>
+    parse.bind(pRow, (rowObj) =>
+      parse.always({
+        ...colObj, ...rowObj
+      })
+    )
+  );
+
+const a2aRef: Parser<NakedExcelRef> =
+  parse.bind(pColumn, (start) =>
+    parse.next(pColon, parse.bind(pColumn, (end) =>
+      parse.always({
+        tag: 'range',
+        first: {
+          row: 1, rowFixed: true,
+          ...start
+        },
+        second: {
+          row: Infinity, rowFixed: true,
+          ...end
         }
+      })
+    ))
+  );
+
+const a12aRef: Parser<NakedExcelRef> =
+  parse.bind(nakedExcelIndex, (idx1) =>
+    parse.next(pColon, parse.bind(pColumn, (endCol) =>
+      parse.always({
+        tag: 'range',
+        first: idx1,
+        second: {
+          row: Infinity, rowFixed: true,
+          ...endCol
+        }
+      })
+    ))
+  );
+
+const rangeRef: Parser<NakedExcelRef> =
+  parse.bind(nakedExcelIndex, (idx1) =>
+    parse.next(pColon, parse.bind(nakedExcelIndex, (idx2) =>
+      parse.always({
+        tag: 'range',
+        first: idx1,
+        second: idx2
+      })
+    ))
+  );
+
+const indexRef: Parser<NakedExcelRef> =
+  parse.bind(nakedExcelIndex, (idx) =>
+    parse.always({
+      tag: 'index',
+      contents: idx
+    })
+  );
+
+const nakedExcelRef: Parser<NakedExcelRef> =
+  parse.either(
+    parse.attempt(rangeRef),
+    parse.either(
+      parse.attempt(a2aRef),
+      parse.either(
+        parse.attempt(a12aRef),
+        indexRef
       )
-    );
-  return parse.run(excelParser, str);
+    )
+  );
+
+function parseExcelRef(ref: string): NakedExcelRef {
+  return parse.run(nakedExcelRef, ref);
 }
 
 export default class ASExcelRef {
@@ -117,22 +210,7 @@ export default class ASExcelRef {
       case 2:
         _sheetId = parts[1];
       case 1:
-        const refParts = parts[0].split(':').map(stringToNakedExcelIndex);
-        if (refParts.length === 1) {
-          _nakedRef = {
-            tag: 'index',
-            contents: refParts[0]
-          };
-        } else if (refParts.length === 2) {
-          _nakedRef = {
-            tag: 'range',
-            first: refParts[0],
-            second: refParts[1]
-          };
-        } else {
-          throw new Error('Malformed Excel reference');
-        }
-
+        _nakedRef = parseExcelRef(parts[0]);
         return new ASExcelRef(_nakedRef, _sheetId, _workbookId);
 
       default:

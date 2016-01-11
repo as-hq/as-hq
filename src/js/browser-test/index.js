@@ -62,6 +62,7 @@ import ASExpStore from '../stores/ASExpStore';
 import U from '../AS/Util';
 
 import {parse, text} from 'bennu';
+import {stream} from 'nu-stream';
 
 // import Promise from 'bluebird';
 
@@ -739,6 +740,11 @@ export function install(w, ep) {
 
   /* only do this with bluebird */
   // Promise.config({ longStackTraces: true, warnings: true });
+
+  /*
+  w.parse = parse; w.text = text;
+  w.stream = stream;
+  */
 
   /* needed for test success count */
   Promise.prototype.finally = function (callback) {
