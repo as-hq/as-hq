@@ -286,11 +286,11 @@ export default {
     });
     SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
       let dY = self.getASSpreadsheet().getVisibleRows();
-      self.getASSpreadsheet().shiftSelectionArea({ dc: 0, dr: -dY });
+      self.getASSpreadsheet().shiftAndResetSelection({ dc: 0, dr: -dY });
     });
     SU.add('grid', 'move_vwindow_above', 'PageDown', (wildcard: string) => {
       let dY = self.getASSpreadsheet().getVisibleRows();
-      self.getASSpreadsheet().shiftSelectionArea({ dc: 0, dr: dY });
+      self.getASSpreadsheet().shiftAndResetSelection({ dc: 0, dr: dY });
     });
     SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {

@@ -194,7 +194,9 @@ const callbacks: Array<InitCallback> = [
       // for now, double-clicking rows doesn't size it automatically
 
       if (spreadsheet._clickedCellIsInColumnHeader(evt.gridCell) && spreadsheet._isLeftClick(evt)) {
-        spreadsheet.resizedColNum = evt.gridCell.x;
+        // gridCell is 1-indexed, column indices in HG are 0-indexed, and we're using that
+        // index as a reference in finishColumnResize(). 
+        spreadsheet.resizedColNum = evt.gridCell.x - 1;
         spreadsheet.finishColumnResize();
       }
     };
@@ -203,7 +205,7 @@ const callbacks: Array<InitCallback> = [
   ({ spreadsheet, model }) => {
     model.onMouseDrag = (grid, evt) => {
       let selOrigin = spreadsheet.dragSelectionOrigin;
-      if (!! selOrigin) {
+      if (selOrigin != null) {
         // range dragging
         let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
         let {range} = spreadsheet.getSelectionArea();
@@ -223,7 +225,6 @@ const callbacks: Array<InitCallback> = [
       } else if (model.featureChain) {
         // If we've mouse down'ed on a column header, we're now dragging a column
         if (spreadsheet.clickedColNum !== null && spreadsheet._isLeftClick(evt)) {
-          debugger;
           spreadsheet.draggingCol = true;
         } else if (spreadsheet.clickedRowNum !== null && spreadsheet._isLeftClick(evt)) {
           spreadsheet.draggingRow = true;

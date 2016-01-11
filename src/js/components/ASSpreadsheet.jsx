@@ -150,7 +150,7 @@ export default class ASSpreadsheet
     document.addEventListener('polymer-ready', () => {
       this.props.onReady();
       this.initHypergrid();
-      this.getInitialData();
+      this.pullInitialData();
     });
   }
 
@@ -359,7 +359,7 @@ export default class ASSpreadsheet
   }
 
   // expects that the current sheet has already been set
-  getInitialData() {
+  pullInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheet());
     ActionCreator.scroll(this.getViewingWindow());
   }
@@ -529,7 +529,7 @@ export default class ASSpreadsheet
     let win = this.getViewingWindow();
     // set scroll
     if (shouldScroll) {
-      let scroll = this._getNewScroll(oldSel, selection);
+      let scroll = this._getViewingWindowFromOldAndNewSelections(oldSel, selection);
       this.scrollTo(scroll.x, scroll.y);
     }
     this.repaint();
@@ -574,7 +574,7 @@ export default class ASSpreadsheet
     return col - 1;
   }
 
-  _getNewScroll(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
+  _getViewingWindowFromOldAndNewSelections(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
     let hg = this._getHypergrid();
     let {
       range: {tl, br},
@@ -624,9 +624,9 @@ export default class ASSpreadsheet
     return {x: scrollH, y: scrollV};
   }
 
-  // when you press enter etc after eval, the selection shifts and gets
-  // reset to a single cell
-  shiftSelectionArea(byCoords: ({ dr: number; dc: number; })) {
+  // when you press enter etc after eval, the selection origin shifts and the
+  // rest of the selection gets reset to a single cell
+  shiftAndResetSelection(byCoords: ({ dr: number; dc: number; })) {
     SelectionStore.withActiveSelection(({origin}) => {
       this.selectIndex(origin.shift(byCoords));
     });
@@ -684,7 +684,7 @@ export default class ASSpreadsheet
           logDebug("MANUALLY HANDLING NAV KEY");
           KeyUtils.killEvent(e);
 
-          this.shiftSelectionArea(KeyUtils.keyShiftValue(e));
+          this.shiftAndResetSelection(KeyUtils.keyShiftValue(e));
         }
         this.props.onNavKeyDown(e);
       });
