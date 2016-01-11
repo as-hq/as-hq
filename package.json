@@ -96,7 +96,7 @@
     "keymirror": "^0.1.1",
     "lodash": "^3.9.3",
     "main-bower-files": "^2.9.0",
-    "material-ui": "^0.14.0-rc2",
+    "material-ui": "0.14.0",
     "material-ui-sass": "^0.7.5",
     "nu-stream": "^3.3.1",
     "papaparse": "^4.1.2",
