@@ -23,13 +23,13 @@ if __name__ == '__main__':
     print("No environment specified, falling back on defaults\n")
     kernel = ASKernel()
 
-  # while True:
-  #     kernel.handle_incoming()
+  while True:
+      kernel.handle_incoming()
 
 # debugging cruft
 # pls leave
 
-  shell = ASShell(user_ns=kernel.get_initial_ns())
+  # shell = ASShell(user_ns=kernel.get_initial_ns())
 #   print shell.run_header('print "hi"; a=1; a', 'sheetid2')
 #   print shell.run_cell('a+2', 'sheetid')
 #   print shell.run_cell('print "fuck you"', 'sheetid')
@@ -44,5 +44,5 @@ if __name__ == '__main__':
 #   print shell.run_cell('a=1\na', 'sheetid')
 #   print shell.run_cell('a', 'sheetid2')
 
-  print shell.run_cell('plt.plot([1,2,3],[4,5,6])', 'sheetid')
+  # print shell.run_cell('plt.plot([1,2,3],[4,5,6])', 'sheetid')
 

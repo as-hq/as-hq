@@ -3,26 +3,40 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 
-import matplotlib._pylab_helpers
+import matplotlib._pylab_helpers as mpl
 
+import os
 import sys
 import json
 import cPickle
 import base64
+import uuid
+
+imageSavePath = os.path.dirname(os.getcwd()) + '/server/static/images/'
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
 #-- Serialization
 
-def wrap_value(val):
-  if isImageInScope() && shouldShowImage(val):
+def wrapValue(val):
+  if isImageInScope() and shouldShowImage(val):
     print("DETECTED IMAGE", file=sys.__stdout__)
+    figures = [manager.canvas.figure for manager in mpl.Gcf.get_all_fig_managers()]
+    uid = uuid.uuid4().hex + '.png'
+    savePath = imageSavePath + uid
+    figures[-1].savefig(savePath)
+    mpl.Gcf.destroy_all()
+    return json.dumps({'tag': 'CellValue',
+                       'cellValueType': 'Image',
+                       'imagePath': uid})
+  else:
+    return serialize(val)
 
 def shouldShowImage(val):
-  # TODO: in the future, we want to check if the value is actually a matplotlib instance
-  return val is None 
+  # TODO: in the future, we want to also check if the value is actually a matplotlib instance
+  return True
 
 def isImageInScope():
-  return len(matplotlib._pylab_helpers.Gcf.get_all_fig_managers()) > 0
+  return len(mpl.Gcf.get_all_fig_managers()) > 0
 
 def serialize(val):
   if isinstance(val, list):
