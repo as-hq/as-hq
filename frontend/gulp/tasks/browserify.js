@@ -4,7 +4,6 @@ var source = require('vinyl-source-stream');
 var browserify = require('browserify');
 var watchify = require('watchify');
 var babel = require('babelify');
-var connect = require('gulp-connect');
 var config = require('../config').browserify;
 
 watchify.args.debug = config.debug;
@@ -21,6 +20,5 @@ function bundle() {
   // log errors if they happen
   .on('error', gutil.log.bind(gutil, 'Browserify Error'))
   .pipe(source(config.outputName))
-  .pipe(gulp.dest(config.dest))
-  .pipe(connect.reload());
+  .pipe(gulp.dest(config.dest));
 }
