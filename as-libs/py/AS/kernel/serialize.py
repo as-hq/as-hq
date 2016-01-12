@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 
+from AS.hidden import Hidden
+
 import matplotlib._pylab_helpers as mpl
 
 import os
