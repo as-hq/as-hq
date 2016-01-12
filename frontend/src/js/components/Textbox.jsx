@@ -15,7 +15,8 @@ import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import ExpStore from '../stores/ASExpStore';
-import ExpActionCreator from '../actions/ASExpActionCreators.js';
+import ExpActionCreator from '../actions/ASExpActionCreators';
+import FocusStore from '../stores/ASFocusStore';
 import {textbox as zIndex} from '../styles/zIndex';
 
 import type {
@@ -194,6 +195,7 @@ export default class Textbox
   _onFocus(e: SyntheticKeyboardEvent) {
     this.props.hideToast();
     this.props.setFocus('textbox');
+    FocusStore.refocus();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);
     this.showCursor();

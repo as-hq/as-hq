@@ -7,7 +7,6 @@ import type {
 
 import type {
   ASCellGrid,
-  ASFocusType
 } from '../types/State';
 
 import type {
@@ -39,8 +38,6 @@ type SheetStateStoreData = {
   yscroll: number;
   openSheets: Array<ASSheet>;
   currentSheet: ASSheet;
-  activeFocus: ASFocusType;
-  lastActiveFocus: ASFocusType;
   clipboard: {
     area: ?ASSelection;
     isCut: boolean;
@@ -64,8 +61,6 @@ let _data: SheetStateStoreData = {
       contents: []
     }
   },
-  activeFocus: 'grid',
-  lastActiveFocus: 'textbox',
   clipboard: {
     area: null,
     isCut: false
@@ -169,34 +164,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   getExternalError() {
     return _data.externalError;
-  },
-
-  /**************************************************************************************************************************/
-  /* Focus */
-
-  setFocus(elem) {
-    logDebug("FOCUS", elem);
-    _data.lastActiveFocus = _data.activeFocus;
-    _data.activeFocus = elem;
-  },
-
-  getFocus() { return _data.activeFocus; },
-
-  toggleFocusF2() {
-    logDebug("last focus: ", _data.activeFocus);
-    let temp = _data.activeFocus;
-    if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'grid')
-      _data.activeFocus = 'textbox';
-    else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'textbox')
-      _data.activeFocus = 'textbox';
-    else if (_data.activeFocus === 'grid' && _data.lastActiveFocus === 'editor')
-      _data.activeFocus = 'editor';
-    else if (_data.activeFocus === 'textbox')
-      _data.activeFocus = 'grid';
-    else if (_data.activeFocus === 'editor')
-      _data.activeFocus = 'grid';
-    _data.lastActiveFocus = temp;
-    logDebug("new focus: ", _data.activeFocus);
   },
 
   /**************************************************************************************************************************/

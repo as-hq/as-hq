@@ -30,6 +30,8 @@ import ASEvalPane from '../components/ASEvaluationPane.jsx';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
+import FocusStore from '../stores/ASFocusStore';
+import FocusActionCreators from '../actions/ASFocusActionCreators';
 
 export default {
   addShortcuts(evalPane: ASEvalPane) {
@@ -40,9 +42,9 @@ export default {
     // evalPane shortcuts -------------------------------------------------------------------------------
     SU.add('evalPane', 'toggle_focus', 'F2', (wildcard: string) => {
       logDebug('F2 PRESSED ');
-      SheetStateStore.toggleFocusF2();
+      FocusActionCreators.toggleFocusF2();
       self.getASSpreadsheet().refs.textbox.updateTextBox(ExpStore.getExpression());
-      self.setFocus(SheetStateStore.getFocus());
+      FocusStore.refocus();
     });
     SU.add('evalPane', 'new_sheet', 'Shift+F11', (wildcard: string) => {
       // TODO
@@ -187,7 +189,7 @@ export default {
 
     // editor shortcuts -------------------------------------------------------------------------------
     SU.add('evalPane', 'toggle_reference', 'F4', (wildcard: string) => {
-      let focus = SheetStateStore.getFocus(),
+      let focus = FocusStore.getFocus(),
           xp = ExpStore.getExpression();
 
       if (focus === 'grid') {

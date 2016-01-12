@@ -30,6 +30,7 @@ import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import BarStore from '../stores/ASBarStore.js';
 import OverlayStore from '../stores/ASOverlayStore';
+import FocusStore from '../stores/ASFindStore';
 
 import U from '../AS/Util';
 let {
@@ -713,7 +714,7 @@ export default class ASSpreadsheet
   }
 
   _restoreFocus() {
-    this.props.setFocus(SheetStateStore.getFocus());
+    this.props.setFocus(FocusStore.getFocus());
   }
 
   /*************************************************************************************************************************/

@@ -5,21 +5,22 @@ import AceEditor from './AceEditor.jsx';
 import ActionCreator from '../actions/ASCodeEditorActionCreators';
 import ExpStore from '../stores/ASExpStore';
 import Constants from '../Constants';
+import FocusStore from '../stores/ASFocusStore';
 
 import type {
   ASFocusType
 } from '../types/State';
 
-type ASCodeEditorProps = { 
-  handleEditorFocus: () => void; 
-  hideToast: () => void; 
-  setFocus: (elem: ASFocusType) => void; 
-  onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
-  maxLines: number; 
-  theme: string; 
-  value: string; 
-  width: string; 
-  height: string; 
+type ASCodeEditorProps = {
+  handleEditorFocus: () => void;
+  hideToast: () => void;
+  setFocus: (elem: ASFocusType) => void;
+  onDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  maxLines: number;
+  theme: string;
+  value: string;
+  width: string;
+  height: string;
 }
 
 type ASCodeEditorDefaultProps = {
@@ -31,6 +32,14 @@ export default class ASCodeEditor
 {
   constructor(props: ASCodeEditorProps) {
     super(props);
+  }
+
+  handleEditorFocus() {
+    FocusStore.refocus();
+
+    if (this.props.handleEditorFocus()) {
+      this.props.handleEditorFocus();
+    }
   }
 
   render(): React.Element {
@@ -47,7 +56,7 @@ export default class ASCodeEditor
       <div style={outerStyle}>
         <AceEditor
           ref="editor"
-          handleEditorFocus={this.props.handleEditorFocus}
+          handleEditorFocus={() => this.handleEditorFocus()}
           hideToast={this.props.hideToast}
           theme={theme}
           width="100%"
@@ -61,7 +70,8 @@ export default class ASCodeEditor
 }
 
 ASCodeEditor.propTypes = {
-  onDeferredKey: React.PropTypes.func.isRequired
+  onDeferredKey: React.PropTypes.func.isRequired,
+  handleEditorFocus: React.PropTypes.func,
 };
 
 ASCodeEditor.defaultProps = {

@@ -11,6 +11,7 @@ import {Styles} from 'material-ui';
 
 import Util from '../../AS/Util';
 import API from '../../actions/ASApiActionCreators';
+import FocusStore from '../../stores/ASFocusStore';
 
 import ASCell from '../../classes/ASCell';
 import ASRange from '../../classes/ASRange';
@@ -87,6 +88,7 @@ export default class VaryPropButton
   /* Method that the child control will call after updating its internal state */
   _onClick(e: SyntheticMouseEvent, nextState: VaryPropButtonState) {
     this.refs.controller.onControlStateChange(nextState);
+    FocusStore.refocus();
   }
 
   render() {

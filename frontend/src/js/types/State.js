@@ -19,6 +19,12 @@ import type {
 
 export type ASViewingWindow = ASRange;
 
+export type FocusStoreCallbacks = {
+  editor: () => void;
+  grid: () => void;
+  textbox: () => void;
+};
+
 export type ASFocusType = 'grid' | 'textbox' | 'editor';
 
 export type ASClientWindow = {

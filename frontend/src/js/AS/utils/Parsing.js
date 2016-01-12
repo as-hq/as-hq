@@ -132,7 +132,7 @@ let Parsing = {
   // TODO: make this actually correct?
   canInsertCellRefInXp(xp: string): boolean {
     let infix = ["+","-","*","/","(",",","&","="];
-    return (infix.indexOf(xp.substring(xp.length-1, xp.length)) > -1);
+    return infix.includes(xp.substring(xp.length-1, xp.length));
   },
 
   // NOTE: do not modify editor

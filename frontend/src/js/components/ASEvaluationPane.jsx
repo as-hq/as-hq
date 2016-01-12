@@ -29,10 +29,11 @@ import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import ToolbarStore from '../stores/ASToolbarStore';
+import FocusStore from '../stores/ASFocusStore';
 
 import API from '../actions/ASApiActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
-import HeaderActions from '../actions/ASHeaderActionCreators';
+import FocusActionCreators from '../actions/ASFocusActionCreators';
 
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
@@ -136,6 +137,13 @@ export default class ASEvalPane
     ExpStore.addChangeListener(this._boundOnExpChange);
 
     Shortcuts.addShortcuts(this);
+
+    FocusActionCreators.setCallbacks({
+      editor: () => { this._getRawEditor().focus(); },
+      grid: () => { this.getASSpreadsheet().setFocus(); },
+      textbox: () => { this._getRawTextbox().focus(); },
+    });
+
     BrowserTests.install(window, this);
   }
 
@@ -239,7 +247,7 @@ export default class ASEvalPane
     }
     // If the language was toggled (shortcut or dropdown) then set focus correctly
     if (ExpStore.getXpChangeOrigin() === 'LANGUAGE_CHANGED'){
-      this.setFocus(SheetStateStore.getFocus());
+      this.setFocus(FocusStore.getFocus());
     }
   }
 
@@ -513,7 +521,7 @@ export default class ASEvalPane
          SelectionStore.setActiveSelection(sel, "", null);
          this.hideToast();
       }
-      
+
     } else if (userIsTyping) {
       let excelStr = range.toExcel().toString();
       if (editorCanInsertRef) { // insert cell ref in editor
@@ -571,14 +579,14 @@ export default class ASEvalPane
     }
 
     // Only eval if the expression is not empty, and the cell is not part of an expanding cell with
-    // a different expression. 
+    // a different expression.
     // #incomplete this is still slightly wrong. If we're pressing ctrl+enter on the head cell (or maybe
     // any cell in the list) we might want the list to update (e.g. if it's range(a), where a is a constant
-    // defined in the header. This is a detail that feels nontrivial to fix now -- the current 
+    // defined in the header. This is a detail that feels nontrivial to fix now -- the current
     // solution is probably good enough. (Alex 1/25)
     if (xpObj.expression != "") {
       const curCell = CellStore.getCell(origin);
-      if (curCell == null || curCell.expandingType == null || curCell.expression.expression != xpObj.expression) { 
+      if (curCell == null || curCell.expandingType == null || curCell.expression.expression != xpObj.expression) {
         API.evaluate(origin, xpObj);
       }
     }
@@ -595,18 +603,23 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   /* Focus */
 
-  setFocus(elem: ASFocusType) {
-    switch (elem) {
-      case 'editor': this._getRawEditor().focus(); break;
-      case 'grid': this.getASSpreadsheet().setFocus(); break;
-      case 'textbox': this._getRawTextbox().focus(); break;
-      default: throw "invalid argument passed into setFocus()";
-    }
+  // TODO(joel) - Figure out where to put this.
+  // * Right now it's part of a component and called directly mostly when
+  //   shortcuts are triggered.
+  // * Ideally the focus store can just react to events and set focus directly
+  //   using its callbacks.
+  // * What do we use this.state.focus for? Do we need it? Does the focus store
+  //   obviate it?
+  setFocus(focus: ASFocusType) {
+    FocusStore._setFocus(focus);
 
-    SheetStateStore.setFocus(elem);
+    // TODO(joel) / TODO(anand): "I'm pretty sure this sort of thing won't be
+    // necessary anymore, but I think Anand knows about the original
+    // motivations for this better than me." -- Ritesh
+    //
     // so that we don't unnecessarily rerender
-    if (elem != this.state.focus) {
-      this.setState({focus: elem});
+    if (focus != this.state.focus) {
+      this.setState({focus});
     }
   }
 

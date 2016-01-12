@@ -22,7 +22,9 @@ import type {
 } from './Hypergrid';
 
 import type {
-  ASViewingWindow
+  ASViewingWindow,
+  ASFocusType,
+  FocusStoreCallbacks,
 } from './State';
 
 import type {
@@ -265,6 +267,20 @@ export type WorkbookAction =
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction;
 
+export type FocusedAction = {
+  _type: 'FOCUSED';
+  focus: ASFocusType;
+};
+
+export type SetFocusCallbacksAction = {
+  _type: 'SET_FOCUS_CALLBACKS';
+  callbacks: FocusStoreCallbacks;
+};
+
+export type ToggledFocusF2Action = {
+  _type: 'TOGGLED_FOCUS_F2';
+};
+
 export type ASAction =
   AddOverlayAction
   | GotFailureAction
@@ -309,4 +325,7 @@ export type ASAction =
   | AddNotificationAction
   | DismissNotificationAction
   | RemoveNotificationAction
-  | SetConnectingStateAction;
+  | SetConnectingStateAction
+  | FocusedAction
+  | SetFocusCallbacksAction
+  | ToggledFocusF2Action;
