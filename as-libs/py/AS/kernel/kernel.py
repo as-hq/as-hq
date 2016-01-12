@@ -26,7 +26,9 @@ class ASKernel(object):
 
   def get_initial_ns(self):
     from AS.stdlib import *
+    from AS.kernel.serialize import wrap_value # this is imported for serialization code injection
     import matplotlib._pylab_helpers
+    import matplotlib.pyplot as plt
     return locals()
 
   def handle_incoming(self):

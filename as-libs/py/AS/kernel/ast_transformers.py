@@ -12,7 +12,7 @@ def wrap_serialize(node):
     # print(ast.dump(node), file=sys.__stdout__)
     if isinstance(node, ast.Expr):
         # 'serialize' is expected to exist in the origin namespace
-        call = ast.Call(func=ast.Name(id='serialize', ctx=ast.Load()),
+        call = ast.Call(func=ast.Name(id='wrap_value', ctx=ast.Load()),
                         args=[node.value],
                         keywords=[])
         newnode = ast.Expr(value=call)
