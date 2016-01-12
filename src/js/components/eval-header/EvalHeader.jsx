@@ -61,9 +61,9 @@ export default class EvalHeader
   render(): React.Element {
     let languageInd = languages.map((l) => l.text).indexOf(this.props.evalHeaderLanguage);
     return (
-      <div style={{width:"100%",height:"100%",marginLeft:"6px"}}>
+      <div style={{width: '100%', height: '100%', marginLeft: '6px'}}>
         <Toolbar
-          style={{backgroundColor:Styles.Colors.grey900}}
+          style={{backgroundColor: Styles.Colors.grey900}}
           showMenuIconButton={false}>
           <DropDownMenu
             menuItems={languages}
@@ -73,10 +73,7 @@ export default class EvalHeader
           <FlatButton 
             label="Save"
             style={{
-                position: 'relative',
-                left: '55px',
-                top: '-10px',
-                fontFamily: '"Lucida Console", Monaco, monospace'
+              fontFamily: '"Lucida Console", Monaco, monospace'
             }}
             onClick={this.props.onSubmitEvalHeader} />
         </Toolbar>

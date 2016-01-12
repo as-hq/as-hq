@@ -71,52 +71,49 @@ export default React.createClass({
   /* Core render method for the whole app */
 
   render() {
-    let {errorPaneOpen, outputPaneOpen} = this.state;
+    // TODO: these heights should be in a config file, not here
+    let {errorPaneOpen, outputPaneOpen} = this.state,
+        bottomBarHeight = 24,
+        topBarHeight = 60,
+        toolbarHeight = 50,
+        fullStyle = {width: '100%', height: '100%'};
 
-    // 100% doesn't account for the heights of topbar or toolbar??
-    let evalPaneOverflowCorrection = 85;
-    let paneHeight = 150;
-    let bottomBarHeight = 24;
-    let evalPaneOffset = evalPaneOverflowCorrection
-                        + ((errorPaneOpen || outputPaneOpen) ? paneHeight : 0)
-                        + bottomBarHeight;
-
-    let paneStyle = {width: '100%',
-                      height: `${paneHeight}px`};
+    // Note: it's OK to give things inside ResizablePanel height 100% because ResizablePanel uses it's own height as reference. 
+    // Here, the height of the resizable panel is everything except top and bottom parts, so all percents in fullStyle are relative to that
+    // Also, it's essential to keep the outputPane component in the layout, and to make it invisible if necessary, rather than null
+    let evalPane =  
+      <div style={fullStyle}>
+        <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
+      </div>;
+    let errorAndOutputPane = 
+      <div style={fullStyle}>
+        <div style={{
+          ...fullStyle,
+          ...(errorPaneOpen ? { } : {'display': 'none'})}}>
+          <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect.bind(this)} />
+        </div>
+        <div style={{
+          ...fullStyle,
+          ...(outputPaneOpen ? { } : {'display': 'none'})}}>
+          <ASOutputPane open={outputPaneOpen} />
+        </div>
+      </div>;
 
     return (
-      <div style={{width:"100%",height:"100%"}} >
+      <div style={{width: '100%',height: '100%'}} >
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
-
         <Toolbar />
-
-        <div style={{width: '100%', height: `calc(100% - ${evalPaneOffset}px)`}}>
-          <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />;
+        <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight}px)`}}>
+          <ResizablePanel content={evalPane} sidebar={errorAndOutputPane} sidebarVisible={true} side="bottom" />
         </div>
-
-        <div style={{
-          ...paneStyle,
-          ...(errorPaneOpen ? { } : {'display': 'none'})}}>
-          <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect.bind(this)}/>;
-        </div>
-
-        <div style={{
-          ...paneStyle,
-          ...(outputPaneOpen ? { } : {'display': 'none'})}}>
-          <ASOutputPane open={outputPaneOpen} />;
-        </div>
-
-        <div style={{height: `${bottomBarHeight}px`, width: '100%'}}>
+        <div style={{width: '100%', height: `${bottomBarHeight}px`}}>
           <ASBottomBar
             toggleErrorPane={this._toggleErrorPane.bind(this)}
             toggleOutputPane={this._toggleOutputPane.bind(this)} />
         </div>
       </div>
     );
-    // This ResizablePanel isn't currently working
-    // <div style={{width: '100%', height: 'calc(100% - 110px)'}}> {/* supposed to be calc(100%-72px)*/}
-    //   <ResizablePanel content={evalPane} sidebar={errorPane} sidebarVisible={errorPaneOpen} side="bottom" />
-    // </div>
+    
   },
 
 
