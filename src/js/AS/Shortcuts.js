@@ -327,7 +327,7 @@ export default {
           self.getASSpreadsheet().select(ASSelection.fromASLocations({
             range: origin.getRowRange(),
             origin: origin
-          }));
+          }), false); // don't scroll to end upon selecting everything
         });
       }
     });
@@ -337,7 +337,7 @@ export default {
         self.getASSpreadsheet().select(ASSelection.fromASLocations({
           range: origin.getColumnRange(),
           origin: origin
-        }));
+        }), false); // don't scroll to end upon selecting everything
       });
     });
     SU.add('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
