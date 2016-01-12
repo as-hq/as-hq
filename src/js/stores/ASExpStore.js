@@ -312,8 +312,8 @@ const ASExpStore = Object.assign({}, BaseStore, {
     // Needed bc eval broadcasts to all users, but we don't want to do these things (like changing the expression) for all users
     if (!ASExpStore.getUserIsTyping()) {
       if (cell != null) {
-        if (cell.cellExpression != null) {
-          ASExpStore.setExpression(cell.cellExpression.expression);
+        if (cell.expression != null) {
+          ASExpStore.setExpression(cell.expression.expression);
         }
       } else {
         ASExpStore.setExpression('');
