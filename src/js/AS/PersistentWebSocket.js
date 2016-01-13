@@ -29,14 +29,17 @@ class PersistentWebSocket {
   _intervalCounter: number;
   _heartbeat: IntervalId;
   _messagePump: IntervalId;
+  _isDisconnected: boolean;
 
   constructor(url: string) {
     this._url = url;
     this._callbackQueue = [];
     this._client = new ws(url);
     this._intervalCounter = 0;
+    this._isDisconnected = false;
 
     this._onreconnect = () => {
+      this._isDisconnected = false;
       logDebug('Reconnected WS automatically after failure');
     };
 
@@ -77,9 +80,13 @@ class PersistentWebSocket {
         && (this._intervalCounter < HEARTBEAT_TIMEOUT);
   }
 
+  _connecting(): boolean {
+    return (this._client.readyState <= 1)
+        && (this._intervalCounter < HEARTBEAT_TIMEOUT);
+  }
+
   _checkAliveAndPossiblyReconnect() {
-    console.warn("Checking alive: " + this._intervalCounter);
-    if (this._client.readyState <= 1) {
+    if (this._connecting()) {
       this._intervalCounter++;
     } else {
       this.possiblyReconnect();
@@ -97,7 +104,6 @@ class PersistentWebSocket {
         cb(this._client);
       }
     } else {
-      // logDebug('TIMING OUT DUE TO CLOSED WS');
       logDebug('Closed WS state:', this._client.readyState);
     }
   }
@@ -122,7 +128,12 @@ class PersistentWebSocket {
     if (Constants.shouldReconnect) {
       let {onmessage, onopen} = this._client;
       logDebug('Reconnecting...');
-      this._beforereconnect();
+      // only execute _beforereconnect the first time
+      // we realize we're disconnected
+      if (!this._isDisconnected) {  
+        this._beforereconnect();
+        this._isDisconnected = true;
+      }
 
       this._client = new ws(this._url);
       this._client.onmessage = onmessage;

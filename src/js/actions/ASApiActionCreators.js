@@ -100,7 +100,10 @@ let refreshDialogShown: boolean = false;
 */
 
 pws.onmessage = (event: MessageEvent) => {
-  if (event.data === 'ACK') return;
+  if (event.data === 'ACK' || event.data === 'PING') {
+    console.warn("Got heartbeat: " + event.data);
+    return;
+  }
 
   logDebug("Client received data from server: " + event.data.toString());
 
