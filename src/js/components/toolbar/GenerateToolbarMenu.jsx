@@ -141,7 +141,10 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
         let menuVisible = !this.state.menuVisible;
         let {toolbarControlProps, menuValue} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
-        this.setState({menuVisible: menuVisible, toolbarControlProps: newToolbarControlProps});
+        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
+        if (this.state.menuVisible !== menuVisible || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
+          this.setState({menuVisible: menuVisible, toolbarControlProps: newToolbarControlProps});
+        }
       },
 
       /*************************************************************************************************************************/
@@ -153,7 +156,10 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
         let menuValue = this.props.getMenuValueFromCell(cell);
         let {toolbarControlProps, menuVisible} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
-        // this.setState({menuValue: menuValue, toolbarControlProps: newToolbarControlProps});
+        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
+        if (this.state.menuValue !== menuValue || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
+          this.setState({menuValue: menuValue, toolbarControlProps: newToolbarControlProps});
+        }
       },
 
       /*************************************************************************************************************************/
