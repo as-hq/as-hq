@@ -1,4 +1,4 @@
-module AS.Eval.Middleware where
+module AS.Eval.Middleware (evalMiddleware) where
 
 import Prelude()
 import AS.Prelude
@@ -8,22 +8,32 @@ import Database.Redis (Connection)
 import Data.Maybe
 
 import AS.Types.Cell
-import AS.Types.Eval (isFatCellHead)
+import Safe (headMay)
+
+import Control.Lens 
 
 import AS.Eval.Core as R
 import AS.Util as U
 import AS.DB.API as DB
 import AS.DB.Internal as DI
 
-{-
-    Middlewares take a message (cells, etc) pushed to server, and process them before handing them off (to eval, etc)
-    Here we apply a stack of middlewares
--}
-
 -- | This is middleware for evaluation; we take a cell recieved with the "Evaluate" action tag and preprocess it
 -- Add tags 
 evalMiddleware :: [ASCell] -> IO [ASCell]
-evalMiddleware = return
+evalMiddleware = return . cleanPossiblyExtaneousEqualSignsFromCells
+
+cleanPossiblyExtaneousEqualSignsFromCells :: [ASCell] -> [ASCell]
+cleanPossiblyExtaneousEqualSignsFromCells = map $ cellExpression %~ cleanPossiblyExtaneousEqualSign
+
+-- | If the first char in your expression is an =, and your language isn't Excel, you
+-- *probably* didn't intend to put it there. 
+cleanPossiblyExtaneousEqualSign :: ASExpression -> ASExpression
+cleanPossiblyExtaneousEqualSign xp = 
+  case xp^.language of 
+    Excel     -> xp
+    otherwise -> case headMay $ xp^.expression of 
+      Just '='  -> xp & expression .~ (tail $ xp^.expression)
+      otherwise -> xp
 
 -- addBackTags :: [ASCell] -> IO [ASCell]
 -- addBackTags cells = do 

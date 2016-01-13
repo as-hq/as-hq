@@ -30,9 +30,9 @@ if __name__ == '__main__':
 # pls leave
 
   # shell = ASShell(user_ns=kernel.get_initial_ns())
-  # print shell.run_header('print "hi"; a=1; a', 'sheetid2')
-  # print shell.run_cell('a+2', 'sheetid')
-  # print shell.run_cell('print "fuck you"', 'sheetid')
+#   print shell.run_header('print "hi"; a=1; a', 'sheetid2')
+#   print shell.run_cell('a+2', 'sheetid')
+#   print shell.run_cell('print "fuck you"', 'sheetid')
 #   expr = """
 # class A(object):
 #   def __init__(self):
@@ -41,5 +41,8 @@ if __name__ == '__main__':
 # """
 #   print shell.run_cell(expr, 'sheetid')
 #   print shell.run_cell(expr, 'sheetid2')
-  # print shell.run_cell('a=1\na', 'sheetid')
-  # print shell.run_cell('a', 'sheetid2')
+#   print shell.run_cell('a=1\na', 'sheetid')
+#   print shell.run_cell('a', 'sheetid2')
+
+  # print shell.run_cell('plt.plot([1,2,3],[4,5,6])', 'sheetid')
+

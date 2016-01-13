@@ -96,7 +96,7 @@ runDispatchCycle mstate cs descSetting src updateTransform = do
   rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
   errOrUpdate <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
-    let initialEvalMap = M.fromList $ zip (mapCellLocation cs) cs
+    let initialEvalMap = M.fromList $ zip (mapCellLocation roots) roots
         initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 

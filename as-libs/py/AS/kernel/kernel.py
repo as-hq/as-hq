@@ -1,8 +1,9 @@
 import zmq
 import json
 
-from AS.stdlib import serialize
 from .shell import ASShell
+
+from IPython.core.pylabtools import import_pylab
 
 
 class ASKernel(object):
@@ -14,8 +15,6 @@ class ASKernel(object):
   def init_shell(self):
     init_ns = self.get_initial_ns()
     self.shell = ASShell(user_ns=init_ns)
-    self.shell.serializer = serialize
-    self.shell.serialize_post_execute = True
 
   def init_zmq(self, address):
     context = zmq.Context()
@@ -26,8 +25,12 @@ class ASKernel(object):
 
   def get_initial_ns(self):
     from AS.stdlib import *
+    from AS.kernel.serialize import wrapValue # this is imported for serialization code injection
     import matplotlib._pylab_helpers
-    return locals()
+    import matplotlib.pyplot as plt
+    ns = locals()
+    import_pylab(ns)
+    return ns
 
   def handle_incoming(self):
     recvMsg = json.loads(self.socket.recv())
