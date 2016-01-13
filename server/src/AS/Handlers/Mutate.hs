@@ -283,19 +283,14 @@ condFormattingRulesMutate :: MutateType -> CondFormatRule -> Maybe CondFormatRul
 condFormattingRulesMutate mt cfr = cfr'
   where
     cellLocs' = concatMap (rangeMutate mt) (cellLocs cfr)
-    condition' = condFormatConditionMutate mt (condition cfr)
-    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condition = condition' }
+    condFormatMapping' = condFormatConditionMutate mt (condFormatMapping cfr)
+    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condFormatMapping = condFormatMapping' }
 
--- #lens
-condFormatConditionMutate :: MutateType -> CondFormatCondition -> CondFormatCondition
-condFormatConditionMutate mt (CustomCondition (Custom xp)) = CustomCondition $ Custom (expressionMutate mt xp)
-condFormatConditionMutate mt (IsEmptyCondition IsEmpty) = IsEmptyCondition IsEmpty
-condFormatConditionMutate mt (IsNotEmptyCondition IsNotEmpty) = IsNotEmptyCondition IsNotEmpty
-condFormatConditionMutate mt (GreaterThanCondition (GreaterThan xp)) = GreaterThanCondition $ GreaterThan (expressionMutate mt xp)
-condFormatConditionMutate mt (LessThanCondition (LessThan xp)) = LessThanCondition $ LessThan (expressionMutate mt xp)
-condFormatConditionMutate mt (GeqCondition (Geq xp)) = GeqCondition $ Geq (expressionMutate mt xp)
-condFormatConditionMutate mt (LeqCondition (Leq xp)) = LeqCondition $ Leq (expressionMutate mt xp)
-condFormatConditionMutate mt (EqualsCondition (Equals xp)) = EqualsCondition $ Equals (expressionMutate mt xp)
-condFormatConditionMutate mt (NotEqualsCondition (NotEquals xp)) = NotEqualsCondition $ NotEquals (expressionMutate mt xp)
-condFormatConditionMutate mt (IsBetweenCondition (IsBetween xp1 xp2)) = IsBetweenCondition $ IsBetween (expressionMutate mt xp1) (expressionMutate mt xp2)
-condFormatConditionMutate mt (IsNotBetweenCondition (IsNotBetween xp1 xp2)) = IsNotBetweenCondition $ IsNotBetween (expressionMutate mt xp1) (expressionMutate mt xp2)
+condFormatConditionMutate :: MutateType -> CondFormatMapping -> CondFormatMapping
+condFormatConditionMutate mt (BoolMapping boolCond prop) = BoolMapping (boolCondFormatConditionMutate mt boolCond) prop
+
+boolCondFormatConditionMutate :: MutateType -> BoolCondition -> BoolCondition
+boolCondFormatConditionMutate mt (CustomBoolCond xp) = CustomBoolCond (expressionMutate mt xp)
+boolCondFormatConditionMutate mt (NoExprBoolCond typ) = NoExprBoolCond typ
+boolCondFormatConditionMutate mt (OneExprBoolCond typ xp) = OneExprBoolCond typ (expressionMutate mt xp)
+boolCondFormatConditionMutate mt (TwoExprBoolCond typ xp1 xp2) = TwoExprBoolCond typ (expressionMutate mt xp1) (expressionMutate mt xp2)
