@@ -21,11 +21,11 @@ imageSavePath = os.path.dirname(os.getcwd()) + '/server/static/images/'
 
 def wrapValue(val):
   if isImageInScope() and shouldShowImage(val):
-    print("DETECTED IMAGE", file=sys.__stdout__)
     figures = [manager.canvas.figure for manager in mpl.Gcf.get_all_fig_managers()]
     uid = uuid.uuid4().hex + '.png'
     savePath = imageSavePath + uid
     figures[-1].savefig(savePath)
+    print("DETECTED IMAGE, SAVING TO: " + savePath, file=sys.__stdout__)
     mpl.Gcf.destroy_all()
     return json.dumps({'tag': 'CellValue',
                        'cellValueType': 'Image',

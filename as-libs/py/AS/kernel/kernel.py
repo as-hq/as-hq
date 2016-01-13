@@ -24,6 +24,8 @@ class ASKernel(object):
     self.socket.bind(self.address)
 
   def get_initial_ns(self):
+    import matplotlib
+    matplotlib.use('Agg')
     from AS.stdlib import *
     from AS.kernel.serialize import * # this is imported for serialization code injection
     import matplotlib._pylab_helpers
