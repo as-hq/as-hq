@@ -12,6 +12,7 @@ import FormatU from './utils/Format';
 import KeyU from './utils/Key';
 import LocationU from './utils/Location';
 import ParsingU from './utils/Parsing';
+import ReactU from './utils/React';
 import RenderU from './utils/Render';
 import ShortcutU from './utils/Shortcut';
 import StringU from './utils/String';
@@ -30,6 +31,7 @@ export default {
   Key: KeyU,
   Location: LocationU,
   Parsing: ParsingU,
+  React: ReactU,
   Render: RenderU,
   Shortcut: ShortcutU,
   String: StringU,

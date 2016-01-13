@@ -30,7 +30,8 @@ import type {
 } from '../types/Bar';
 
 import type {
-  CondFormatCondition,
+  FormatMapConstructor,
+  BoolCondition,
   CustomCondition,
   GreaterThanCondition,
   LessThanCondition,
@@ -362,17 +363,33 @@ export function removeCondFormattingRule(ruleId: string): Prf {
   });
 }
 
-function makeCondFormattingRuleExcel(cond: CondFormatCondition, rng: string, prop: BooleanCellTag): ASCondFormatRule {
+export function makeLambdaRule(rng: string, lambda: string): ASCondFormatRule {
   return new ASCondFormatRule({
     tag: "CondFormatRule",
     condFormatRuleId: U.Render.getUniqueId(),
-    condition: cond,
-    cellLocs: [asRange(rng).obj()],
-    condFormat: {
-      // $FlowFixMe
-      tag: prop,
-      contents: []
-    }
+    formatMapConstructor: { 
+      tag: "LambdaFormatMapConstructor",
+      contents: lambda
+    },
+    cellLocs: [asRange(rng).obj()]
+  });
+}
+
+
+function makeCondFormattingRuleExcel(cond: BoolCondition, rng: string, prop: BooleanCellTag): ASCondFormatRule {
+  return new ASCondFormatRule({
+    tag: "CondFormatRule",
+    condFormatRuleId: U.Render.getUniqueId(),
+    formatMapConstructor: { 
+      tag: "BoolFormatMapConstructor",
+      boolFormatMapCondition: cond, 
+      boolFormatMapProps: [{
+        // $FlowFixMe
+        tag: prop, 
+        contents: []
+      }]
+    },
+    cellLocs: [asRange(rng).obj()]
   });
 }
 

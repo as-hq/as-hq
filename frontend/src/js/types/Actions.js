@@ -18,6 +18,10 @@ import type {
 } from './Eval';
 
 import type {
+  ASOverlaySpec
+} from './Hypergrid';
+
+import type {
   ASViewingWindow
 } from './State';
 
@@ -31,6 +35,11 @@ import type {
   Bar,
   BarIndex
 } from './Bar';
+
+export type AddOverlayAction = {
+  _type: 'ADD_OVERLAY';
+  overlay: ASOverlaySpec;
+};
 
 export type GotFailureAction = {
   _type: 'GOT_FAILURE';
@@ -174,13 +183,30 @@ export type EvalTriedToDecoupleAction = {
   _type: 'EVAL_TRIED_TO_DECOUPLE';
 };
 
+export type OpenCondFormattingDialogAction = {
+  _type: 'OPEN_COND_FORMATTING_DIALOG';
+};
+
+export type CloseCondFormattingDialogAction = {
+  _type: 'CLOSE_COND_FORMATTING_DIALOG';
+};
+
+export type OpenChartingDialogAction = {
+  _type: 'OPEN_CHARTING_DIALOG';
+};
+
+export type CloseChartingDialogAction = {
+  _type: 'CLOSE_CHARTING_DIALOG';
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction;
 
 export type ASAction =
-  GotFailureAction
+  AddOverlayAction
+  | GotFailureAction
   | GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
   | DeletedWorkbooksAction
@@ -209,4 +235,8 @@ export type ASAction =
   | PartialRefChangeWithTextboxAction
   | EscPressedAction
   | BackendUpdatedAndCellsChangedAction
-  | EvalTriedToDecoupleAction;
+  | EvalTriedToDecoupleAction
+  | OpenCondFormattingDialogAction
+  | CloseCondFormattingDialogAction
+  | OpenChartingDialogAction
+  | CloseChartingDialogAction;

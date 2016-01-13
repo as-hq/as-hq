@@ -4,6 +4,15 @@ import type {
   Callback
 } from '../../types/Base';
 
+import type {
+  FormatMapConstructor,
+  BoolFormatMapConstructor
+} from '../../types/CondFormat';
+
+import type {
+  StoreLink
+} from '../../types/React';
+
 import React from 'react';
 
 import {Dialog, FlatButton} from 'material-ui';
@@ -14,6 +23,7 @@ import Contents from './ASCondFormattingDialogContents.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
+import SelectionStore from '../../stores/ASSelectionStore';
 
 import Util from '../../AS/Util';
 
@@ -27,46 +37,77 @@ type ASCondFormattingDialogProps = {
 };
 
 type ASCondFormattingDialogState = {
-  rules: Array<ASCondFormatRule>;
-  openRule: string;
+  dialogMode: 'closed' | 'create' | 'edit';
+  currentFormatter: ?FormatMapConstructor;
+  currentRange: ?string;
 };
 
 export default class ASCondFormattingDialog
   extends React.Component<{}, ASCondFormattingDialogProps, ASCondFormattingDialogState>
 {
+  $storeLinks: Array<StoreLink>;
+
   constructor(props: ASCondFormattingDialogProps) {
     super(props);
 
     this.state = {
-      rules: [],
-      openRule: "closed"
+      dialogMode: 'closed',
+      currentFormatter: null,
+      currentRange: null
     };
   }
 
   componentDidMount() {
-    CFStore.addChangeListener(this._onRulesChange.bind(this));
+    Util.React.addStoreLinks(this, [
+      { store: CFStore },
+      { store: SelectionStore }
+    ]);
   }
 
   componentWillUnmount() {
-    CFStore.removeChangeListener(this._onRulesChange.bind(this));
+    Util.React.removeStoreLinks(this);
+  }
+
+  componentWillReceiveProps(nextProps: ASCondFormattingDialogProps) {
+    if (nextProps.open && !this.props.open) {
+      // if this dialog is useless, just jump to new rule
+      const rules = this._getRules();
+      if (rules.length === 0) { // no current rules, so let's open the dialog
+        this._openCreateRuleDialog();
+      }
+    }
+  }
+
+  getValueLink(name: $Keys<ASCondFormattingDialogState>): ReactLink {
+    const self = this;
+
+    return ({
+      value: self.state[name],
+      requestChange(val) {
+        self.setState({ ...self.state, [name]: val });
+      }
+    });
   }
 
   render(): React.Element {
-    let {open, onRequestClose} = this.props;
-    let {rules, openRule} = this.state;
+    const {open, onRequestClose} = this.props;
+    const {currentFormatter, currentRange, dialogMode} = this.state;
 
-    let newRuleAction =
+    const rules = this._getRules();
+
+    const newRuleAction =
       <FlatButton
         label="New rule"
         secondary={true}
-        onTouchTap={this._onCreateRule.bind(this)} />;
+        onTouchTap={() => this._openCreateRuleDialog()} />;
 
-    let doneAction =
+    const doneAction =
       <FlatButton
         label="Done"
         secondary={true}
         onTouchTap={this.props.onRequestClose} />;
 
+    // NOTE: open prop is there to enable animating in / out
     return (
       <div>
         <Dialog
@@ -80,58 +121,77 @@ export default class ASCondFormattingDialog
             onDeleteRule={this._onDeleteRule.bind(this)} />
         </Dialog>
         <RuleDialog
-          variantRange={true}
-          onSubmitRule={this._onSubmitRule("create").bind(this)}
-          open={openRule === "create"}
-          onRequestClose={this._onCloseRule("create").bind(this)}/>
-        {rules.map((rule) =>
-          <RuleDialog
-            initialRule={rule}
-            onSubmitRule={this._onSubmitRule(rule.condFormatRuleId).bind(this)}
-            open={openRule === rule.condFormatRuleId}
-            onRequestClose={this._onCloseRule(rule.condFormatRuleId).bind(this)}
-          />
-        )}
+          onSubmitRule={(rule) => this._onSubmitRule(rule)}
+          open={dialogMode !== 'closed'}
+          onRequestClose={() => this._onCloseRule()}
+          formatterValueLink={this.getValueLink('currentFormatter')}
+          rangeValueLink={this.getValueLink('currentRange')}
+        />
       </div>
     );
   }
 
-  _onCreateRule() {
-    this.setState({ openRule: "create" });
+  _getRules(): Array<ASCondFormatRule> {
+    return SelectionStore.withActiveSelection(({range}) => {
+      return CFStore.getRulesApplyingToRange(range);
+    }) || [];
   }
 
-  _onEditRule(ruleId: string): Callback {
-    return () => {
+  _openCreateRuleDialog() {
+    const defaultRangeStr = SelectionStore.withActiveSelection(
+      (x) => x.range.toExcel().toString()
+    ) || '';
+
+    const defaultFormatter: BoolFormatMapConstructor = {
+      tag: 'BoolFormatMapConstructor',
+      // $FlowFixMe: union error
+      boolFormatMapCondition: {
+        tag: 'GreaterThanCondition',
+        contents: {
+          tag: 'Expression',
+          expression: ''
+        }
+      },
+      boolFormatMapProps: [{
+        tag: 'TextColor', contents: '#000000'
+      }]
+    };
+
+    this.setState({
+      dialogMode: "create",
+      currentFormatter: defaultFormatter,
+      currentRange: defaultRangeStr
+    });
+  }
+
+  _onEditRule(ruleId: string) {
+    CFStore.withRuleById(ruleId, (rule) => {
       this.setState({
-        openRule: ruleId
+        currentFormatter: rule.formatMapConstructor, // xcxc
+        currentRange: rule.cellLocs[0].toExcel().toString(),
+        dialogMode: 'edit'
       });
-    };
+    });
   }
 
-  _onDeleteRule(ruleId: string): Callback {
-    return () => {
-      API.removeCondFormattingRule(ruleId);
-    };
+  _onDeleteRule(ruleId: string) {
+    API.removeCondFormattingRule(ruleId);
   }
 
-  _onSubmitRule(ruleId: string): Callback<ASCondFormatRule> {
-    if (ruleId === "create") {
-      return (newRule) => {
-        this._createRule(newRule);
-      };
+  _onSubmitRule(rule: ASCondFormatRule) {
+    const {dialogMode} = this.state;
+
+    if (dialogMode === "create") {
+      this._createRule(rule);
     } else {
-      return (newRule) => {
-        this._updateRule(newRule);
-      };
+      this._updateRule(rule);
     }
   }
 
-  _onCloseRule(ruleId: string): Callback {
-    return () => {
-      this.setState({
-        openRule: "closed"
-      });
-    };
+  _onCloseRule() {
+    this.setState({
+      dialogMode: "closed"
+    });
   }
 
   _updateRule(newRule: ASCondFormatRule) {
@@ -140,11 +200,5 @@ export default class ASCondFormattingDialog
 
   _createRule(newRule: ASCondFormatRule) {
     API.updateCondFormattingRule(newRule);
-  }
-
-  _onRulesChange() {
-    this.setState({
-      rules: CFStore.getRules()
-    });
   }
 }

@@ -178,4 +178,14 @@ export default class ASRange {
   contains(idx: ASIndex): boolean {
     return idx.isInRange(this);
   }
+
+  intersectsWith(other: ASRange): boolean {
+    const {tl, br} = this;
+    return (
+      tl.col <= other.br.col
+      && br.col >= other.tl.col
+      && tl.row <= other.br.row
+      && br.row >= other.tl.row
+    );
+  }
 }

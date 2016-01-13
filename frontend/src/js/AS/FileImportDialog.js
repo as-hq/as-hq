@@ -37,8 +37,7 @@ const FileImportDialog = {
         API.importCSV(simpleIndex, 'Excel', file.name);
       }
     }
-  },
-
+  }
 };
 
 export default FileImportDialog;

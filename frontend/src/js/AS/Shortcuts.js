@@ -8,6 +8,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import API from '../actions/ASApiActionCreators';
+import DialogActions from '../actions/DialogActionCreators';
 import U from './Util';
 
 import ASIndex from '../classes/ASIndex';
@@ -232,6 +233,11 @@ export default {
     //    let {range, origin} = SelectionStore.getActiveSelection();
     //    API.jumpSelect(range, origin, true, wildcard: string);
     //  });
+
+    SU.add('grid', 'conditional_formatting', 'Ctrl+Shift+F', () => {
+      DialogActions.openCondFormattingDialog();
+    });
+
     SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (dir) => {
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.

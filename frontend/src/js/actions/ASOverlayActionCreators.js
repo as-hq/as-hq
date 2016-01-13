@@ -1,3 +1,9 @@
+/* @flow */
+
+import type {
+  ASOverlaySpec
+} from '../types/Hypergrid';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 
@@ -5,9 +11,9 @@ import Constants from '../Constants';
 
 export default {
 
-  add(ovl) {
+  add(ovl: ASOverlaySpec) {
     Dispatcher.dispatch({
-     _type: Constants.ActionTypes.ADD_OVERLAY,
+     _type: 'ADD_OVERLAY',
       overlay: ovl
     });
   }
