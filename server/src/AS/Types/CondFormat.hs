@@ -20,7 +20,7 @@ type CondFormatRuleId = T.Text
 
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
-                                     , condFormatCondition :: CondFormatCondition }  
+                                     , condition :: CondFormatCondition }  
                                        deriving (Show, Read, Generic, Eq)
                                        -- condFormatCondition :: CondFormatCondition }
 

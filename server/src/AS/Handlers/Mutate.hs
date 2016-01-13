@@ -282,8 +282,8 @@ condFormattingRulesMutate :: MutateType -> CondFormatRule -> Maybe CondFormatRul
 condFormattingRulesMutate mt cfr = cfr'
   where
     cellLocs' = concatMap (rangeMutate mt) (cellLocs cfr)
-    condFormatCondition' = condFormatConditionMutate mt (condFormatCondition cfr)
-    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condFormatCondition = condFormatCondition' }
+    condition' = condFormatConditionMutate mt (condition cfr)
+    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condition = condition' }
 
 condFormatConditionMutate :: MutateType -> CondFormatCondition -> CondFormatCondition
 condFormatConditionMutate mt (BoolCondition boolCond prop) = BoolCondition (boolCondFormatConditionMutate mt boolCond) prop
