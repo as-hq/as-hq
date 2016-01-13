@@ -122,22 +122,52 @@ deriveSafeCopy 1 'base ''NoExprBoolCondType
 deriveSafeCopy 1 'base ''OneExprBoolCondType
 deriveSafeCopy 1 'base ''TwoExprBoolCondType
 
+-- This type exists *solely* to make conditional formatting rules easier to convert to 
+-- JSON's in a format that's friendly to the frontend. 
+data BoolCondition' =
+  CustomCondition ASExpression
+  | IsEmptyCondition
+  | IsNotEmptyCondition
+  | GreaterThanCondition ASExpression
+  | LessThanCondition ASExpression
+  | GeqCondition ASExpression
+  | LeqCondition ASExpression
+  | EqualsCondition ASExpression
+  | NotEqualsCondition ASExpression
+  | IsBetweenCondition ASExpression ASExpression
+  | IsNotBetweenCondition ASExpression ASExpression
+  deriving (Show, Read, Generic, Eq)
 
+boolConditionToBoolCondition' :: BoolCondition -> BoolCondition'
+boolConditionToBoolCondition' (CustomBoolCond xp) = CustomCondition xp
+boolConditionToBoolCondition' (NoExprBoolCond IsEmpty) = IsEmptyCondition
+boolConditionToBoolCondition' (NoExprBoolCond IsNotEmpty) = IsNotEmptyCondition
+boolConditionToBoolCondition' (OneExprBoolCond GreaterThan xp) = GreaterThanCondition xp
+boolConditionToBoolCondition' (OneExprBoolCond LessThan xp) = LessThanCondition xp
+boolConditionToBoolCondition' (OneExprBoolCond Geq xp) = GeqCondition xp
+boolConditionToBoolCondition' (OneExprBoolCond Leq xp) = LeqCondition xp
+boolConditionToBoolCondition' (OneExprBoolCond Equals xp) = EqualsCondition xp
+boolConditionToBoolCondition' (OneExprBoolCond NotEquals xp) = NotEqualsCondition xp
+boolConditionToBoolCondition' (TwoExprBoolCond IsBetween xp1 xp2) = IsBetweenCondition xp1 xp2
+boolConditionToBoolCondition' (TwoExprBoolCond IsNotBetween xp1 xp2) = IsNotBetweenCondition xp1 xp2
+
+boolCondition'ToBoolCondition :: BoolCondition' -> BoolCondition
+boolCondition'ToBoolCondition (CustomCondition xp) = CustomBoolCond xp
+boolCondition'ToBoolCondition (IsEmptyCondition) = NoExprBoolCond IsEmpty
+boolCondition'ToBoolCondition (IsNotEmptyCondition) = NoExprBoolCond IsNotEmpty
+boolCondition'ToBoolCondition (GreaterThanCondition xp) = OneExprBoolCond GreaterThan xp
+boolCondition'ToBoolCondition (LessThanCondition xp) = OneExprBoolCond LessThan xp
+boolCondition'ToBoolCondition (GeqCondition xp) = OneExprBoolCond Geq xp
+boolCondition'ToBoolCondition (LeqCondition xp) = OneExprBoolCond Leq xp
+boolCondition'ToBoolCondition (EqualsCondition xp) = OneExprBoolCond Equals xp
+boolCondition'ToBoolCondition (NotEqualsCondition xp) = OneExprBoolCond NotEquals xp
+boolCondition'ToBoolCondition (IsBetweenCondition xp1 xp2) = TwoExprBoolCond IsBetween xp1 xp2
+boolCondition'ToBoolCondition (IsNotBetweenCondition xp1 xp2) = TwoExprBoolCond IsNotBetween xp1 xp2
+
+
+asToFromJSON ''BoolCondition'
 instance ToJSON BoolCondition where
-  toJSON boolCondition = case boolCondition of 
-    CustomBoolCond xp           -> object [ "tag" .= ("CustomBoolCond" :: String), 
-                                            "contents" .= xp ] 
-    NoExprBoolCond typ          -> object [ "tag" .= typ ]
-    OneExprBoolCond typ xp1     -> object [ "tag" .= typ, 
-                                            "contents" .= xp1 ]
-    TwoExprBoolCond typ xp1 xp2 -> object [ "tag" .= typ, 
-                                            "contents" .= [xp1, xp2] ]
+  toJSON = toJSON . boolConditionToBoolCondition'
 
-instance FromJSON BoolCondition
-  parseJSON (Object v) = do
-    contents <- v .: "contents" :: (Parser String)
-    case length contents of 
-      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
-      "get_status" -> return GetStatusReply -- TODO
-      "autocomplete" -> return AutocompleteReply -- TODO
-      "clear" -> ClearReply <$> v .: "success"
+instance FromJSON BoolCondition where 
+  parseJSON obj = boolCondition'ToBoolCondition <$> (parseJSON obj :: Parser BoolCondition')
