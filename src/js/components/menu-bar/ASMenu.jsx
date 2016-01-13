@@ -32,6 +32,8 @@ const CONST_PROPS = {
 };
 
 export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState> {
+  _fileInput: HTMLInputElement;
+
   constructor(props: ASMenuProps) {
     super(props);
 
@@ -104,6 +106,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
           zIndex: 1,
           cursor: 'pointer',
         };
+        const fileItem: FileItemSpec = menuItem;
 
         return (
           <div style={{position: 'relative'}}>
@@ -111,7 +114,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
               type='file'
               style={inputStyle}
               ref={elem => this._fileInput = elem}
-              onChange={() => this._handleFileItemClick(menuItem)}
+              onChange={() => this._handleFileItemClick(fileItem)}
             />
             <MenuItem
               primaryText={menuItem.title}

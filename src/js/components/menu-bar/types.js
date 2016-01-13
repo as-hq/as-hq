@@ -19,7 +19,7 @@ export type SimpleItemSpec = {
 export type FileItemSpec = {
   tag: 'FileItemSpec';
   title: string;
-  callback: Callback;
+  callback: (files: FileList) => void;
 };
 
 export type MenuItemSpec = NestedMenuSpec | SimpleItemSpec | FileItemSpec;
