@@ -195,7 +195,7 @@ const callbacks: Array<InitCallback> = [
 
       if (spreadsheet._clickedCellIsInColumnHeader(evt.gridCell) && spreadsheet._isLeftClick(evt)) {
         // gridCell is 1-indexed, column indices in HG are 0-indexed, and we're using that
-        // index as a reference in finishColumnResize(). 
+        // index as a reference in finishColumnResize().
         spreadsheet.resizedColNum = evt.gridCell.x - 1;
         spreadsheet.finishColumnResize();
       }

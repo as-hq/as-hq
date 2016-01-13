@@ -167,7 +167,9 @@ const Menu = React.createClass({
         //Nested div bacause the List scales x faster than
         //it scales y
         transition: animated ? Transitions.easeOut('250ms', 'transform') : null,
-        zIndex: rawTheme.zIndex.menu,
+        // Note(joel): this used to be `rawTheme.zIndex.menu`, but apparently
+        // the material-ui api changed. 0 works, though.
+        zIndex: 0,
         top: openDown ? 0 : null,
         bottom: !openDown ? 0 : null,
         left: !openLeft ? 0 : null,

@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactTransitionGroup from 'react-addons-transition-group';
 
 import Menu from './ASUnselectedMenu.jsx';
 import MenuItem from 'material-ui/lib/menus/menu-item';
@@ -20,7 +19,6 @@ export default React.createClass({
     return {
       x: 0,
       y: 0,
-      clickAwayBuffer: false,
       expanded: false,
       menuItems: []
     };
@@ -33,27 +31,24 @@ export default React.createClass({
   },
 
   componentClickAway() {
-    if (this.state.clickAwayBuffer) {
-      this.setState({ clickAwayBuffer: false });
-    } else if (this.state.expanded) {
+    if (this.state.expanded) {
       this.close();
     }
   },
 
   openAt(x, y, menuItems) {
     this.setState({
-      x: x,
-      y: y,
-      clickAwayBuffer: true,
+      x,
+      y,
       expanded: true,
-      menuItems: menuItems
+      menuItems,
     });
   },
 
   close() {
     if (this.state.expanded) {
       this.props.restoreFocus(); // so the focus goes back to spreadsheet after menu closes
-      this.setState({ clickAwayBuffer: false, expanded: false });
+      this.setState({expanded: false});
     }
   },
 
@@ -71,7 +66,7 @@ export default React.createClass({
         zIndex: 100,
         position: 'absolute',
         left: x,
-        top: y
+        top: y,
       },
 
       menu: {
@@ -103,7 +98,7 @@ export default React.createClass({
         <Menu
           {...other}
           style={mergedMenuStyles}
-          animated={true}
+          animated={false}
           openDirection="bottom-right"
           onItemTouchTap={this._handleItemTouchTap}>
           {menuChildren}
@@ -112,15 +107,13 @@ export default React.createClass({
 
     return (
       <div style={mergedRootStyles}>
-        <ReactTransitionGroup>
-          {menu}
-        </ReactTransitionGroup>
+        {menu}
       </div>
     );
   },
 
   // timeout is here because some guy on the internet who was probably more
-  // experienced put a timeout here. 
+  // experienced put a timeout here.
   _handleItemTouchTap(e, child) {
     this._timeout = setTimeout(() => {
       this.close();
