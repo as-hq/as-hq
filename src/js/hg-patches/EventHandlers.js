@@ -249,13 +249,21 @@ const callbacks: Array<InitCallback> = [
           primitiveEvent: {detail: {primitiveEvent: {offsetX: x, offsetY: y}}}
         } = evt;
         if (relCol !== 0 || relRow !== 0) { // right click on a row header
-          let [col, row] =
+          const [col, row] =
             [relCol + hg.getHScrollValue(), relRow + hg.getVScrollValue()];
-          spreadsheet.refs.rightClickMenu.openAt(x, y,
-            (col != 0)
-              ? columnHeaderMenuItems(col)
-              : rowHeaderMenuItems(row)
-          );
+          if (col === 0 && row !== 0) {
+            spreadsheet.refs.rightClickMenu.openAt(
+              x,
+              y,
+              rowHeaderMenuItems(row)
+            );
+          } else if (row === 0 && col !== 0) {
+            spreadsheet.refs.rightClickMenu.openAt(
+              x,
+              y,
+              columnHeaderMenuItems(row)
+            );
+          }
         }
       } else { // something is being dragged
         if (spreadsheet.dragSelectionOrigin !== null) { // draggable box case
