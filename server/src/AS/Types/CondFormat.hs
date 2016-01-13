@@ -111,7 +111,6 @@ asToFromJSON ''CondFormatRule
 asToFromJSON ''CondFormatRuleDiff
 asToFromJSON ''CondFormatRuleUpdate
 asToFromJSON ''CondFormatCondition
-asToFromJSON ''BoolCondition
 asToFromJSON ''NoExprBoolCondType
 asToFromJSON ''OneExprBoolCondType
 asToFromJSON ''TwoExprBoolCondType
@@ -122,3 +121,23 @@ deriveSafeCopy 1 'base ''BoolCondition
 deriveSafeCopy 1 'base ''NoExprBoolCondType
 deriveSafeCopy 1 'base ''OneExprBoolCondType
 deriveSafeCopy 1 'base ''TwoExprBoolCondType
+
+
+instance ToJSON BoolCondition where
+  toJSON boolCondition = case boolCondition of 
+    CustomBoolCond xp           -> object [ "tag" .= ("CustomBoolCond" :: String), 
+                                            "contents" .= xp ] 
+    NoExprBoolCond typ          -> object [ "tag" .= typ ]
+    OneExprBoolCond typ xp1     -> object [ "tag" .= typ, 
+                                            "contents" .= xp1 ]
+    TwoExprBoolCond typ xp1 xp2 -> object [ "tag" .= typ, 
+                                            "contents" .= [xp1, xp2] ]
+
+instance FromJSON BoolCondition
+  parseJSON (Object v) = do
+    contents <- v .: "contents" :: (Parser String)
+    case length contents of 
+      "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
+      "get_status" -> return GetStatusReply -- TODO
+      "autocomplete" -> return AutocompleteReply -- TODO
+      "clear" -> ClearReply <$> v .: "success"
