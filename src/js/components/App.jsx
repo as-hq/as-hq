@@ -104,7 +104,7 @@ export default React.createClass({
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
         <Toolbar />
         <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight}px)`}}>
-          <ResizablePanel content={evalPane} sidebar={errorAndOutputPane} sidebarVisible={true} side="bottom" />
+          <ResizablePanel content={evalPane} sidebar={errorAndOutputPane} sidebarVisible={errorPaneOpen || outputPaneOpen} side="bottom" />
         </div>
         <div style={{width: '100%', height: `${bottomBarHeight}px`}}>
           <ASBottomBar
