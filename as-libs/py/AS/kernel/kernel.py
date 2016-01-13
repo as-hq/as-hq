@@ -52,6 +52,10 @@ class ASKernel(object):
         raise NotImplementedError
       return self.exec_result_to_msg(result, msg)
 
+    elif msg['type'] == 'evaluate_format':
+      result = self.shell.run_raw(msg['code'], msg['sheet_id'])
+      return self.exec_result_to_msg(result, msg)
+
     elif msg['type'] == 'get_status':
       raise NotImplementedError
 

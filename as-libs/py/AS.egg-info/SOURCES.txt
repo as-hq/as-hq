@@ -39,6 +39,7 @@ AS/kernel/ast_transformers.py
 AS/kernel/compiler.py
 AS/kernel/displayhook.py
 AS/kernel/kernel.py
+AS/kernel/serialize.py
 AS/kernel/shell.py
 AS/tests/__init__.py
 AS/tests/main.py

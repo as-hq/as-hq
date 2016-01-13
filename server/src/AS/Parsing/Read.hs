@@ -34,6 +34,9 @@ parseValue lang = readOutput . (parse (value lang) "")
     readOutput (Right v)  = Right v
     readOutput (Left e)   = Left ParseError
 
+-- TODO alex fill this in
+parseFormatValue = undefined
+
 value :: ASLanguage -> Parser CompositeValue
 value lang = 
       CellValue <$> try (asValue lang)
