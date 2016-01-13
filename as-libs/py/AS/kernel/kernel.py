@@ -24,6 +24,8 @@ class ASKernel(object):
     self.socket.bind(self.address)
 
   def get_initial_ns(self):
+    import matplotlib
+    matplotlib.use('Agg')
     from AS.stdlib import *
     from AS.kernel.serialize import * # this is imported for serialization code injection
     import matplotlib._pylab_helpers
@@ -50,6 +52,10 @@ class ASKernel(object):
         result = self.shell.run_cell(msg['code'], msg['sheet_id'])
       else:
         raise NotImplementedError
+      return self.exec_result_to_msg(result, msg)
+
+    elif msg['type'] == 'evaluate_format':
+      result = self.shell.run_raw(msg['code'], msg['sheet_id'])
       return self.exec_result_to_msg(result, msg)
 
     elif msg['type'] == 'get_status':

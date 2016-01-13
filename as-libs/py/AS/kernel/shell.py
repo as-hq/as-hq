@@ -131,7 +131,7 @@ class ASShell(InteractiveShell):
     self.sheet_nss[sheet_id] = copy.copy(self.user_global_ns)
 
 #-----------------------------------------------------------------------------
-#  Evaluation
+#  Evaluation API
 #-----------------------------------------------------------------------------
   
   def run_header(self, raw_header, sheet_id):
@@ -141,7 +141,15 @@ class ASShell(InteractiveShell):
   def run_cell(self, raw_cell, sheet_id):
     return self.run_block(raw_cell, sheet_id, isolated=True)
 
-  def run_block(self, raw_cell, sheet_id, store_history=False, silent=False, shell_futures=True, isolated=False):
+# an evaluation that applies no transformation/serialization to the output
+  def run_raw(self, raw_code, sheet_id):
+    return self.run_block(raw_code, sheet_id, last_node_tf=(lambda x: x), isolated=True)
+
+#-----------------------------------------------------------------------------
+#  Evaluation helpers
+#-----------------------------------------------------------------------------
+
+  def run_block(self, raw_cell, sheet_id, store_history=False, silent=False, shell_futures=True, last_node_tf=wrap_serialize, isolated=False):
     """
     Run a complete code block.
 
@@ -163,6 +171,10 @@ class ASShell(InteractiveShell):
       shell. It will both be affected by previous __future__ imports, and
       any __future__ imports in the code will affect the shell. If False,
       __future__ imports are not shared in either direction.
+    last_node_tf : Callable (taking AST Node -> AST Node)
+      The AST transformer that will be executed on the last node of a code
+      block. The default use-case is to wrap the return value in a call to 
+      'wrap_serialize', to serialize the value to an output backend can parse.
     isolated: bool
       If True, run code in the user namespace without adding to it.
 
@@ -276,6 +288,7 @@ class ASShell(InteractiveShell):
             self.run_ast_nodes(code_ast.body, 
                                 cell_name,
                                 sheet_id,
+                                last_node_tf,
                                 interactivity=interactivity, 
                                 compiler=compiler, 
                                 result=result,
@@ -301,7 +314,7 @@ class ASShell(InteractiveShell):
 
     return result
 
-  def run_ast_nodes(self, nodelist, cell_name, sheet_id, interactivity='last_expr',
+  def run_ast_nodes(self, nodelist, cell_name, sheet_id, last_node_tf, interactivity='last_expr',
                     compiler=compile, result=None, isolated=False):
     """Run a sequence of AST nodes. The execution mode depends on the
     interactivity parameter.
@@ -344,7 +357,7 @@ class ASShell(InteractiveShell):
     if interactivity == 'none':
         to_run_exec, to_run_interactive = nodelist, []
     elif interactivity == 'last':
-        to_run_exec, to_run_interactive = nodelist[:-1], [wrap_serialize(nodelist[-1])]
+        to_run_exec, to_run_interactive = nodelist[:-1], [last_node_tf(nodelist[-1])]
     elif interactivity == 'all':
         to_run_exec, to_run_interactive = [], nodelist
     else:

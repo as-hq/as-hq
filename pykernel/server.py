@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
   # shell = ASShell(user_ns=kernel.get_initial_ns())
 #   print shell.run_header('print "hi"; a=1; a', 'sheetid2')
-#   print shell.run_cell('a+2', 'sheetid')
+  # print shell.run_raw('{"a":1}', 'sheetid')
 #   print shell.run_cell('print "fuck you"', 'sheetid')
 #   expr = """
 # class A(object):
