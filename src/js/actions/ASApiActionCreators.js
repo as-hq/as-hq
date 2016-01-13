@@ -74,7 +74,7 @@ import ws from '../AS/PersistentWebSocket';
 
 let ActionTypes = Constants.ActionTypes;
 console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
-let wss: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 
 let currentCbs: ?ASAPICallbackPair = undefined;
 let uiTestMode: boolean = false;
@@ -97,8 +97,11 @@ let refreshDialogShown: boolean = false;
   Converts server to client types before going further
 */
 
-wss.onmessage = (event: MessageEvent) => {
-  if (event.data === 'ACK') return;
+pws.onmessage = (event: MessageEvent) => {
+  if (event.data === 'ACK' || event.data === 'PING') {
+    console.warn("Got heartbeat: " + event.data);
+    return;
+  }
 
   logDebug("Client received data from server: " + event.data.toString());
 
@@ -243,7 +246,7 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   }
 }
 
-wss.onopen = (evt) => {
+pws.onopen = (evt) => {
   logDebug('WebSockets open');
 };
 
@@ -251,9 +254,9 @@ const API = {
   sendMessageWithAction(action: any) {
     let msg = {serverAction: action};
     logDebug(`Queueing ${msg.serverAction.tag} message`);
-    wss.waitForConnection((innerClient: WebSocket) => {
-      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
+    pws.waitForConnection((innerClient: WebSocket) => {
       logDebug(JSON.stringify(msg));
+      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
       innerClient.send(JSON.stringify(msg));
 
       /* for testing */
@@ -293,8 +296,8 @@ const API = {
   },
 
   initialize() {
-    wss.sendAck = API.ackMessage;
-    wss.beforereconnect = () => { API.reinitialize(); };
+    pws.sendAck = API.ackMessage;
+    pws.beforereconnect = () => { API.reinitialize(); };
 
     API.initMessage();
   },
@@ -310,7 +313,7 @@ const API = {
 
   close() {
     logDebug('Sending close message');
-    wss.close();
+    pws.close();
   },
 
   export(sheet: ASSheet) {
@@ -322,8 +325,8 @@ const API = {
   },
 
   import(file: File) {
-    // any typecast necessary because wss.send is an overloaded, untyped function...
-    wss.send(((file: any): string), {binary: true});
+    // any typecast necessary because pws.send is an overloaded, untyped function...
+    pws.send(((file: any): string), {binary: true});
   },
 
   importCSV(origin: ASIndex, lang: ASLanguage, fileName: string) {
@@ -784,8 +787,8 @@ const API = {
   /**************************************************************************************************************************/
   /* Testing */
 
-  withWS<A>(fn: (pws: ws) => A): A {
-    return fn(wss);
+  withWS<A>(fn: (givenPws: ws) => A): A {
+    return fn(pws);
   },
 
   test(f: Callback, cbs: ASAPICallbackPair) {
