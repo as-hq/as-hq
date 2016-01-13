@@ -84,6 +84,9 @@ var Constants = Object.assign({
     FIND_INCREMENTED:null,
     FIND_DECREMENTED:null,
 
+    MARK_RECEIVED: null,
+    MARK_SENT: null,
+
     // Three-way data integration actions
     GRID_KEY_PRESSED: null,
     EDITOR_CHANGED:null,

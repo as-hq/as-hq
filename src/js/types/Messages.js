@@ -5,17 +5,17 @@ import type {
   ASExcelExecError
 } from './Errors';
 
-import type { 
-  SheetUpdate, 
-  CellUpdate, 
-  BarUpdate, 
+import type {
+  SheetUpdate,
+  CellUpdate,
+  BarUpdate,
   CondFormatRuleUpdate
 } from './Updates';
 
-import type { 
-  Bar, 
-  BarIndex, 
-  BarType, 
+import type {
+  Bar,
+  BarIndex,
+  BarType,
   BarProp
 } from './Bar';
 
@@ -288,9 +288,10 @@ export type ASClientWindow = {
 
 export type ServerMessage = {
   serverAction: ServerAction;
+  messageId: string;
 };
 
-export type ServerAction = 
+export type ServerAction =
     Initialize
   | InitializeDaemon
   | Open
@@ -320,24 +321,24 @@ export type ServerAction =
 
 export type Initialize = {
   tag: "Initialize";
-  connUserId: string; 
-  connSheetId: string; 
+  connUserId: string;
+  connSheetId: string;
 };
 
 export type InitializeDaemon = {
   tag: "InitializeDaemon";
-  parentUserId: string; 
-  parentLoc: ASIndexObject; 
+  parentUserId: string;
+  parentLoc: ASIndexObject;
 };
 
 export type Open = {
   tag: "Open";
-  contents: string; 
+  contents: string;
 };
 
 export type UpdateWindow = {
   tag: "UpdateWindow";
-  contents: ASClientWindow; 
+  contents: ASClientWindow;
 };
 
 export type Export = {
@@ -347,8 +348,8 @@ export type Export = {
 
 export type EvalInstruction = {
   tag: "EvalInstruction";
-  evalXp:  ASClientExpression; 
-  evalLoc: ASIndexObject; 
+  evalXp:  ASClientExpression;
+  evalLoc: ASIndexObject;
 };
 
 export type Evaluate = {
@@ -358,9 +359,9 @@ export type Evaluate = {
 
 export type EvalHeader = {
   tag: "EvalHeader";
-  evalHeaderSheetId: string; 
-  evalHeaderLang: ASLanguage; 
-  evalHeaderExpr: ASExpression; 
+  evalHeaderSheetId: string;
+  evalHeaderLang: ASLanguage;
+  evalHeaderExpr: ASExpression;
 };
 
 export type EvaluateHeader = {
@@ -385,44 +386,44 @@ export type GetIsCoupled = {
 
 export type Delete = {
   tag: "Delete";
-  contents: ASRangeObject; 
+  contents: ASRangeObject;
 };
 
 export type ClearSheetServer = {
   tag: "ClearSheetServer";
-  contents: string; 
+  contents: string;
 };
 
 export type Undo = {
   tag: "Undo";
-  contents: Array<any>; // really want a type for [], but don't know how to 
+  contents: Array<any>; // really want a type for [], but don't know how to
 };
 
 export type Redo = {
   tag: "Redo";
-  contents: Array<any>; // really want a type for [], but don't know how to 
+  contents: Array<any>; // really want a type for [], but don't know how to
 };
 
 export type Copy = {
   tag: "Copy";
-  copyFrom: ASRangeObject; 
-  copyTo: ASRangeObject; 
+  copyFrom: ASRangeObject;
+  copyTo: ASRangeObject;
 };
 
 export type Cut = {
   tag: "Cut";
-  cutFrom: ASRangeObject; 
-  cutTo: ASRangeObject; 
+  cutFrom: ASRangeObject;
+  cutTo: ASRangeObject;
 };
 
 export type ToggleProp = {
   tag: "ToggleProp";
-  contents: [ASCellProp, ASRangeObject]; 
+  contents: [ASCellProp, ASRangeObject];
 };
 
 export type SetProp = {
   tag: "SetProp";
-  contents: [ASCellProp, ASRangeObject]; 
+  contents: [ASCellProp, ASRangeObject];
 };
 
 export type Repeat = {
@@ -432,28 +433,28 @@ export type Repeat = {
 
 export type BugReport = {
   tag: "BugReport";
-  contents: string; 
+  contents: string;
 };
 
 export type MutateSheet = {
   tag: "MutateSheet";
-  contents: MutateType; 
+  contents: MutateType;
 };
 
 export type Drag = {
   tag: "Drag";
-  initialRange: ASRangeObject;  
-  dragRange: ASRangeObject; 
+  initialRange: ASRangeObject;
+  dragRange: ASRangeObject;
 };
 
 export type Decouple = {
   tag: "Decouple";
-  contents: Array<any>; // really want a type for [], but don't know how to 
+  contents: Array<any>; // really want a type for [], but don't know how to
 };
 
 export type UpdateCondFormatRules = {
   tag: "UpdateCondFormatRules";
-  contents: CondFormatRuleUpdate; 
+  contents: CondFormatRuleUpdate;
 };
 
 export type SetBarProp = {
@@ -463,9 +464,9 @@ export type SetBarProp = {
 
 export type ImportCSV = {
   tag: "ImportCSV";
-  csvIndex: ASIndexObject; 
-  csvLang: ASLanguage; 
-  csvFileName: string; 
+  csvIndex: ASIndexObject;
+  csvLang: ASLanguage;
+  csvFileName: string;
 };
 
 export type ASAPICallbackPair = {
@@ -473,69 +474,70 @@ export type ASAPICallbackPair = {
   reject: (msg: ?ClientMessage) => void;
 };
 
-export type ClientMessage = { 
-  tag: "ClientMessage"; 
-  clientAction: ClientAction; 
+export type ClientMessage = {
+  tag: "ClientMessage";
+  clientAction: ClientAction;
+  messageId: string;
 }
 
-export type ClientAction = 
+export type ClientAction =
     NoAction
   | AskDecouple
   | SetInitialProperties
   | ShowFailureMessage
-  | UpdateSheet 
+  | UpdateSheet
   | ClearSheet
   | AskUserToOpen
   | MakeSelection
   | LoadImportedCells
   | ShowHeaderResult;
 
-export type NoAction = { 
-  tag: "NoAction"; 
-  contents: Array<any>; // really want a type for [], but don't know how to 
+export type NoAction = {
+  tag: "NoAction";
+  contents: Array<any>; // really want a type for [], but don't know how to
 }
 
-export type AskDecouple = { 
-  tag: "AskDecouple"; 
-  contents: Array<any>; // really want a type for [], but don't know how to 
+export type AskDecouple = {
+  tag: "AskDecouple";
+  contents: Array<any>; // really want a type for [], but don't know how to
 }
 
-export type SetInitialProperties = { 
-  tag: "SetInitialProperties"; 
+export type SetInitialProperties = {
+  tag: "SetInitialProperties";
   contents: [SheetUpdate, Array<EvalHeader>];
 }
 
-export type ShowFailureMessage = { 
-  tag: "ShowFailureMessage"; 
-  contents: string; 
+export type ShowFailureMessage = {
+  tag: "ShowFailureMessage";
+  contents: string;
 }
 
-export type UpdateSheet = { 
-  tag: "UpdateSheet"; 
-  contents: SheetUpdate; 
+export type UpdateSheet = {
+  tag: "UpdateSheet";
+  contents: SheetUpdate;
 }
 
-export type ClearSheet = { 
-  tag: "ClearSheet"; 
-  contents: string; 
+export type ClearSheet = {
+  tag: "ClearSheet";
+  contents: string;
 }
 
-export type AskUserToOpen = { 
-  tag: "AskUserToOpen"; 
-  contents: string; 
+export type AskUserToOpen = {
+  tag: "AskUserToOpen";
+  contents: string;
 }
 
-export type MakeSelection = { 
-  tag: "MakeSelection"; 
-  contents: ASSelectionObject; 
+export type MakeSelection = {
+  tag: "MakeSelection";
+  contents: ASSelectionObject;
 }
 
-export type LoadImportedCells = { 
-  tag: "LoadImportedCells"; 
+export type LoadImportedCells = {
+  tag: "LoadImportedCells";
   contents: Array<ASCellObject>;
 }
 
-export type ShowHeaderResult = { 
-  tag: "ShowHeaderResult"; 
+export type ShowHeaderResult = {
+  tag: "ShowHeaderResult";
   contents: EvalResult;
 }

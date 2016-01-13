@@ -55,6 +55,8 @@ import type {
   ASClientExpression
 } from '../types/State';
 
+import shortid from 'shortid';
+
 import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
@@ -71,6 +73,7 @@ import ASSelection from '../classes/ASSelection';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ws from '../AS/PersistentWebSocket';
+import * as ProgressActionCreators from '../actions/ASProgressActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
 
@@ -122,8 +125,11 @@ pws.onmessage = (event: MessageEvent) => {
     return;
   }
 
-  let msg: ClientMessage = JSON.parse(event.data),
-      action = msg.clientAction;
+  const msg: ClientMessage = JSON.parse(event.data);
+  const {clientAction: action} = msg;
+
+  ProgressActionCreators.markReceived(msg);
+
   if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
       _type: 'GOT_FAILURE',
@@ -260,9 +266,15 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
 
 const API = {
   sendMessageWithAction(action: any) {
-    let msg = {serverAction: action};
-    logDebug(`Queueing ${msg.serverAction.tag} message`);
+    const messageId = shortid.generate();
+    const msg = {
+      serverAction: action,
+      messageId,
+    };
+    ProgressActionCreators.markSent(msg);
+    logDebug(`Queueing ${msg.serverAction.tag} message, id ${messageId}`);
     pws.waitForConnection((innerClient: WebSocket) => {
+      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message, id ${messageId}`);
       logDebug(JSON.stringify(msg));
       logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
       innerClient.send(JSON.stringify(msg));
@@ -345,14 +357,14 @@ const API = {
 
   /* This function is called by handleEvalRequest in the eval pane */
   evaluate(origin: ASIndex, xp: ASClientExpression) {
-    let msg: Evaluate = {
-          tag: "Evaluate",
-          contents: [{
-            tag: "EvalInstruction",
-            evalXp: xp,
-            evalLoc: origin.obj()
-          }]
-        };
+    const msg: Evaluate = {
+      tag: "Evaluate",
+      contents: [{
+        tag: "EvalInstruction",
+        evalXp: xp,
+        evalLoc: origin.obj()
+      }],
+    };
     API.sendMessageWithAction(msg);
   },
 

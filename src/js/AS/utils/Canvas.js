@@ -1,5 +1,7 @@
 /* @flow */
 
+import type ASIndex from '../../classes/ASIndex';
+
 import type {
   PXRectangle
 } from '../../types/Render';
@@ -72,6 +74,41 @@ export default {
     }
     gc.rect(oX, oY, eX, eY);
     return {origin: {x: oX, y: oY}, extent: {x: eX, y: eY}};
+  },
+
+  drawProgress(
+    index: ASIndex,
+    progress: number,
+    renderer: HGRendererElement,
+    gc: GraphicsContext
+  ) {
+    let grid = renderer.getGrid(),
+        fixedColCount = grid.getFixedColumnCount(),
+        fixedRowCount = grid.getFixedRowCount(),
+        scrollX = grid.getHScrollValue(),
+        scrollY = grid.getVScrollValue(),
+        firstVisibleColumn = renderer.getVisibleColumns()[0],
+        firstVisibleRow = renderer.getVisibleRows()[0],
+        lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
+        lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
+
+    const {col, row} = index;
+    const x = col - 1 + fixedColCount;
+    const y = row - 1 + fixedRowCount;
+    const shape = renderer._getBoundsOfCell(x - scrollX, y - scrollY);
+    const oX = shape.origin.x;
+    const oY = shape.origin.y;
+    const eX = shape.extent.x;
+    const eY = shape.extent.y;
+
+    if (x < firstVisibleColumn || x > lastVisibleColumn ||
+        y < firstVisibleRow || y > lastVisibleRow) {
+        return;
+    }
+
+    // TODO(joel) figure out coloring
+    gc.fillStyle = 'rgb(87, 171, 255)';
+    gc.fillRect(oX, oY, eX * progress, eY);
   },
 
   wrapText(

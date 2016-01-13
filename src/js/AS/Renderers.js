@@ -12,6 +12,7 @@ import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
+import ProgressStore from '../stores/ASProgressStore';
 
 let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
@@ -430,7 +431,17 @@ const Renderers = {
         gc.fill();
       }
     }
-  }
+  },
+
+  inProgressRenderer(gc: GraphicsContext) {
+    const locs = ProgressStore.getLocationsInProgress();
+    const now = Date.now();
+    for (const [index, { messageTimestamp }] of locs) {
+      // TEMP(joel): figure out how we want to style this
+      const progress = .5; // now - messageTimestamp
+      Util.Canvas.drawProgress(index, progress, this, gc);
+    }
+  },
 };
 
 export default Renderers;
