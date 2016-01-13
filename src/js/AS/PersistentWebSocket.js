@@ -78,7 +78,8 @@ class PersistentWebSocket {
   }
 
   _checkAliveAndPossiblyReconnect() {
-    if (this._alive()) {
+    console.warn("Checking alive: " + this._intervalCounter);
+    if (this._client.readyState <= 1) {
       this._intervalCounter++;
     } else {
       this.possiblyReconnect();
