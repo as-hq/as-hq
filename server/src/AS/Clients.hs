@@ -42,6 +42,7 @@ shouldPrintMessage (ServerMessage Acknowledge) = False
 shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
+  clientType uc = User
   conn = userConn
   clientId = sessionId
   ownerName = userId
@@ -101,6 +102,7 @@ instance Client ASUserClient where
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where
+  clientType uc = Daemon
   conn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell, ViewPatterns #-}
 
 module Main where
   
@@ -144,6 +144,8 @@ preprocess conn state = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  -- here, we fork a heartbeat thread for users
+  possiblyStartHeartbeat client heartbeat_interval
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
@@ -158,6 +160,19 @@ talk client state = forever $ do
                                ++ (show msg) 
                                ++ "\n\n due to parse error: " 
                                ++ s)
+
+possiblyStartHeartbeat :: (Client c) => c -> Milliseconds -> IO ()
+possiblyStartHeartbeat c interval = case c of 
+  (clientType -> User) -> forkIO (dieSilently `handle` go 1) >> return ()
+    where
+      go i = do
+        threadDelay (interval * 1000)
+        WS.sendTextData (conn c) ("PING" :: T.Text)
+        go (i+1)
+      dieSilently e = case fromException e of 
+        Just asyncErr -> throwIO (asyncErr :: AsyncException) >> return ()
+        Nothing       -> return ()
+  _ -> return ()
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
