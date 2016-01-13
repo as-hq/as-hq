@@ -16,44 +16,17 @@ import Data.Aeson.Types
 import Data.SafeCopy
 import qualified Data.Text as T
 
--- Timchu, 12/21/15. The types have been refactored from the previous types from 12/16/15.
--- Each BoolCond, GreaterThanCondition, IsBetweenCondition, ... is part of an ADT called BoolCond
--- Each BoolCond is currently an instance of
--- CustomBoolCond or OneExpressionCondition or NoExpressionCondition or TwoExpressionCondition
-
--- Each data type in typeclass OneExpressionCondition has a symbolTableLookup1 function
--- , which takes a value of that type to a (ASValue -> ASValue -> EitherTExec ASCell).
--- For example, GreaterThanCondition goes to >=.
--- Analagously, each data type in typeclass NoExpressionCondition has a symbolTableLookup0
---, which takes a value of that type to a (ASValue -> EitherTExec ASCell)
--- For example, IsEmptyCondition goes to (NoValue ==)
---
--- Each data type in OneExpressionCondition has a checkerOne function based on the symbolTableLookup
--- and the expressions entered into the conditional formatting criterion that takes in a
---    - ASValue -> EitherTExec Bool (an eval function that is passed in),
---    - Value (value of the cell that is being checked with the condition)
---    - A member of that data type (e.g. GreaterThan (Expression "=A1+1" Excel))
---    These give enough information to check whether Value satisfies the 
--- conditional formatting condition in question, given the eval funtion passed in.
--- Likewise for NoExpressionCondition and  TwoExpressionCondition.
--- BoolCond is an instance of BoolCond, which has a checker
--- that evaluates to CheckerNone or CheckerOne or CheckerTwo, depending on the BoolCond.
-
--- Note: This is MVP, text expressions and date expressions have not yet been implemented.
--- TODO: timchu, rectify names of the Custom, GreaterThan, ... constructors.
-
--- ::ALEX:: xcxc update comments
 type CondFormatRuleId = T.Text
 
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
-                                     , condFormatMapping :: CondFormatMapping }  
+                                     , condFormatCondition :: CondFormatCondition }  
                                        deriving (Show, Read, Generic, Eq)
-                                       -- condFormatMapping :: CondFormatMapping }
+                                       -- condFormatCondition :: CondFormatCondition }
 
-type CustomCondFormatMapExpr = String
+type LambdaConditionExpr = String
 
-data CondFormatMapping = BoolMapping BoolCondition CellProp | CustomMapping CustomCondFormatMapExpr
+data CondFormatCondition = BoolCondition BoolCondition CellProp | LambdaCondition LambdaConditionExpr
   deriving (Show, Read, Generic, Eq)
 
 data BoolCondition = 
@@ -137,14 +110,14 @@ instance HasKey CondFormatRule where
 asToFromJSON ''CondFormatRule
 asToFromJSON ''CondFormatRuleDiff
 asToFromJSON ''CondFormatRuleUpdate
-asToFromJSON ''CondFormatMapping
+asToFromJSON ''CondFormatCondition
 asToFromJSON ''BoolCondition
 asToFromJSON ''NoExprBoolCondType
 asToFromJSON ''OneExprBoolCondType
 asToFromJSON ''TwoExprBoolCondType
 
 deriveSafeCopy 1 'base ''CondFormatRule
-deriveSafeCopy 1 'base ''CondFormatMapping
+deriveSafeCopy 1 'base ''CondFormatCondition
 deriveSafeCopy 1 'base ''BoolCondition
 deriveSafeCopy 1 'base ''NoExprBoolCondType
 deriveSafeCopy 1 'base ''OneExprBoolCondType

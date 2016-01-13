@@ -278,16 +278,15 @@ rangeMutate' mt (Range sid (c1, c2)) = [orientRange $ Range sid (c1', c2')]
     Just (Index _ c2') = indexMutate mt (Index sid c2)
 
 
--- #lens
 condFormattingRulesMutate :: MutateType -> CondFormatRule -> Maybe CondFormatRule
 condFormattingRulesMutate mt cfr = cfr'
   where
     cellLocs' = concatMap (rangeMutate mt) (cellLocs cfr)
-    condFormatMapping' = condFormatConditionMutate mt (condFormatMapping cfr)
-    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condFormatMapping = condFormatMapping' }
+    condFormatCondition' = condFormatConditionMutate mt (condFormatCondition cfr)
+    cfr' = if null cellLocs' then Nothing else Just $ cfr { cellLocs = cellLocs', condFormatCondition = condFormatCondition' }
 
-condFormatConditionMutate :: MutateType -> CondFormatMapping -> CondFormatMapping
-condFormatConditionMutate mt (BoolMapping boolCond prop) = BoolMapping (boolCondFormatConditionMutate mt boolCond) prop
+condFormatConditionMutate :: MutateType -> CondFormatCondition -> CondFormatCondition
+condFormatConditionMutate mt (BoolCondition boolCond prop) = BoolCondition (boolCondFormatConditionMutate mt boolCond) prop
 
 boolCondFormatConditionMutate :: MutateType -> BoolCondition -> BoolCondition
 boolCondFormatConditionMutate mt (CustomBoolCond xp) = CustomBoolCond (expressionMutate mt xp)
