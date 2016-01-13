@@ -25,9 +25,11 @@ class ASKernel(object):
 
   def get_initial_ns(self):
     from AS.stdlib import *
-    from AS.kernel.serialize import wrapValue # this is imported for serialization code injection
+    from AS.kernel.serialize import * # this is imported for serialization code injection
     import matplotlib._pylab_helpers
     import matplotlib.pyplot as plt
+    import cPickle
+    import base64
     ns = locals()
     import_pylab(ns)
     return ns
