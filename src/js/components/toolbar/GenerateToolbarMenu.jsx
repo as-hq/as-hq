@@ -2,6 +2,7 @@ import React from 'react';
 import Menu from 'material-ui/lib/menus/menu';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import Divider from 'material-ui/lib/divider';
+import _ from 'lodash';
 
 import ToolbarController from './ToolbarController.jsx';
 import MenuController from './MenuController.jsx';
@@ -115,7 +116,10 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
       _onMenuClose() {
         let {toolbarControlProps, menuValue} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(false, menuValue, toolbarControlProps);
-        this.setState({menuVisible: false, toolbarControlProps: newToolbarControlProps});
+        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
+        if (this.state.menuVisible || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
+          this.setState({menuVisible: false, toolbarControlProps: newToolbarControlProps});
+        }
       },
 
       /*************************************************************************************************************************/
@@ -149,7 +153,7 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
         let menuValue = this.props.getMenuValueFromCell(cell);
         let {toolbarControlProps, menuVisible} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
-        this.setState({menuValue: menuValue, toolbarControlProps: newToolbarControlProps});
+        // this.setState({menuValue: menuValue, toolbarControlProps: newToolbarControlProps});
       },
 
       /*************************************************************************************************************************/

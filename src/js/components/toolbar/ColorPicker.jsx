@@ -70,7 +70,10 @@ export default React.createClass({
     if (prop != null) {
       newColor = prop.contents;
     }
-    this.setState({ color: newColor });
+    // Only update state if something changed. Should eventually use PureRenderMixin + immutability
+    if (this.state.color !== newColor) {
+      this.setState({ color: newColor });
+    }
   },
 
   _propagateControlStateChange(nextState, rng) {

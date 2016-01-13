@@ -71,10 +71,15 @@ export default class VaryPropButton
     this.refs.button.setPushState(prop != null);
     // We want the bold button's icon to be black upon a bold cell, default color otherwise
     if (this.props.propTag === "Bold"){
+      // Only update state if something changed. Should eventually use PureRenderMixin + immutability
       if (prop != null) {
-        this.setState({iconColor: Styles.Colors.grey900});
+        if (this.state.iconColor !== Styles.Colors.grey900) {
+          this.setState({iconColor: Styles.Colors.grey900});
+        }
       } else {
-        this.setState({iconColor: Styles.Colors.grey500});
+        if (this.state.iconColor !== Styles.Colors.grey500) {
+          this.setState({iconColor: Styles.Colors.grey500});
+        }
       }
     }
   }
