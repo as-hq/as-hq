@@ -86,9 +86,11 @@ handleOpen uc state sid = do
   condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
   -- get column props
   bars <- DB.getBarsInSheet conn sid
+  -- get cells
+  cells <- DB.getCellsInSheet conn sid
   -- get rangeDescriptors
   rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
-  let sheetUpdate = SheetUpdate emptyUpdate (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
+  let sheetUpdate = SheetUpdate (Update cells []) (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
   sendToOriginal uc $ ClientMessage $ SetInitialProperties sheetUpdate headers
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
@@ -97,17 +99,21 @@ handleOpen uc state sid = do
 -- frontend store the moment they get deleted.
 -- 
 -- Also, might want to eventually send back things besides cells as well. 
+
+-- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
+-- speed bottleneck, but adds a ton of complexity to the UX. 
 handleUpdateWindow :: ClientId -> MVar ServerState -> ASWindow -> IO ()
-handleUpdateWindow cid mstate w = do
-  state <- readMVar mstate
-  let conn = state^.dbConn
-  let (Just user') = US.getUserByClientId cid state -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
-  let oldWindow = userWindow user'
-  (flip catch) (badCellsHandler state user') (do
-    let newLocs = getScrolledLocs oldWindow w
-    mcells <- DB.getCells conn $ concatMap rangeToIndices newLocs
-    sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
-    US.modifyUser (updateWindow w) user' mstate)
+handleUpdateWindow cid mstate w = return ()
+-- handleUpdateWindow cid mstate w = do
+--   state <- readMVar mstate
+--   let conn = state^.dbConn
+--   let (Just user') = US.getUserByClientId cid state -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
+--   let oldWindow = userWindow user'
+--   (flip catch) (badCellsHandler state user') (do
+--     let newLocs = getScrolledLocs oldWindow w
+--     mcells <- DB.getCells conn $ concatMap rangeToIndices newLocs
+--     sendSheetUpdate user' $ sheetUpdateFromCells $ catMaybes mcells
+--     US.modifyUser (updateWindow w) user' mstate)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
 -- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
