@@ -46,7 +46,7 @@ conditionallyFormatCells state origSid cells rules ctx = do
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
 ruleToCellTransform :: ServerState -> ASSheetId -> EvalContext -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform state sid ctx (CondFormatRule _ rngs condFormatCondition) c = 
+ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c = 
   let l = c^.cellLocation in 
   case find (flip rangeContainsIndex l) rngs of 
     Nothing -> return c
@@ -56,8 +56,8 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condFormatCondition) c 
           offset = getIndicesOffset tl l
           shiftXp = shiftExpression offset
           shiftAndEvaluateExpression = eval . shiftXp
-          determineFormat v = case condFormatCondition of 
-            BoolCondition boolCond prop -> do 
+          determineFormat v = case condMapConstructor of 
+            BoolFormatMapConstructor boolCond prop -> do 
               let shiftAndEvalExpr = (evaluateExpression state sid ctx) . shiftXp 
               shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
               return $ if shouldFormat then Just prop else Nothing

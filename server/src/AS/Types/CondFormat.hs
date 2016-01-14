@@ -20,14 +20,16 @@ type CondFormatRuleId = T.Text
 
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
-                                     , condition :: CondFormatCondition }  
+                                     , formatMapConstructor :: FormatMapConstructor }  
                                        deriving (Show, Read, Generic, Eq)
                                        -- condFormatCondition :: CondFormatCondition }
 
 type LambdaConditionExpr = String
 
-data CondFormatCondition = BoolCondition BoolCondition CellProp | LambdaCondition LambdaConditionExpr
-  deriving (Show, Read, Generic, Eq)
+data FormatMapConstructor = BoolFormatMapConstructor { boolFormatMapCondition :: BoolCondition
+                                                     , boolFormatMapProp :: CellProp }
+                          | LambdaFormatMapConstructor LambdaConditionExpr
+                          deriving (Show, Read, Generic, Eq)
 
 data BoolCondition = 
     CustomBoolCond ASExpression
@@ -110,13 +112,13 @@ instance HasKey CondFormatRule where
 asToFromJSON ''CondFormatRule
 asToFromJSON ''CondFormatRuleDiff
 asToFromJSON ''CondFormatRuleUpdate
-asToFromJSON ''CondFormatCondition
+asToFromJSON ''FormatMapConstructor
 asToFromJSON ''NoExprBoolCondType
 asToFromJSON ''OneExprBoolCondType
 asToFromJSON ''TwoExprBoolCondType
 
 deriveSafeCopy 1 'base ''CondFormatRule
-deriveSafeCopy 1 'base ''CondFormatCondition
+deriveSafeCopy 1 'base ''FormatMapConstructor
 deriveSafeCopy 1 'base ''BoolCondition
 deriveSafeCopy 1 'base ''NoExprBoolCondType
 deriveSafeCopy 1 'base ''OneExprBoolCondType

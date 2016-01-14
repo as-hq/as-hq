@@ -1,0 +1,6 @@
+AS.egg-info/PKG-INFO
+AS.egg-info/SOURCES.txt
+AS.egg-info/dependency_links.txt
+AS.egg-info/not-zip-safe
+AS.egg-info/requires.txt
+AS.egg-info/top_level.txt
