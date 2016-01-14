@@ -27,4 +27,4 @@ getSettings :: IO AppSettings
 getSettings = I.getSettings
 
 heartbeat_interval :: Milliseconds
-heartbeat_interval = 1500
+heartbeat_interval = 1000

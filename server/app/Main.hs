@@ -144,6 +144,7 @@ preprocess conn state = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  putStrLn "Client connected!"
   -- here, we fork a heartbeat thread for users
   possiblyStartHeartbeat client heartbeat_interval
   finally (talk client state) (onDisconnect client state)
