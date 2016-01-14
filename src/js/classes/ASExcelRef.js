@@ -25,16 +25,18 @@ type NakedExcelRef = {
   second: NakedExcelIndex;
 };
 
-function intToCol(i: number): string {
-  i--;
-  const quo = Math.floor((i) / 26);
-  const rem = (i) % 26;
-  let code = '';
-  if (quo > 0) {
-      code += String.fromCharCode('A'.charCodeAt(0) + quo - 1);
-  }
-  code += String.fromCharCode('A'.charCodeAt(0) + rem);
-  return code;
+// Converts an integer (0 - 25) to the corresponding letter  
+function intToLetter(i : number): string { 
+  return String.fromCharCode('A'.charCodeAt(0) + i); 
+} 
+
+function intToCol(i: number): string { 
+  if (i <= 26) { return intToLetter(i - 1); 
+  } else { 
+    const quo = Math.floor((i - 1) / 26); 
+    const rem = (i - 1) % 26; 
+    return intToCol(quo) + intToLetter(rem); 
+  } 
 }
 
 function letterToInt(letter: string): number {
@@ -216,7 +218,7 @@ export default class ASExcelRef {
         _nakedRef = parseExcelRef(strRef);
         const ret = new ASExcelRef(_nakedRef, _sheetId, _workbookId);
 
-        if (ret.toLocalRefString() !== strRef) {
+        if (ret.toLocalRefString().toLowerCase() !== strRef.toLowerCase()) {
           throw new Error('Excel toString isomorphism invariant broken.');
         }
 
