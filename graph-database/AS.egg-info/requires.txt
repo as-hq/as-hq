@@ -1,7 +1,0 @@
-numpy
-matplotlib
-pandas
-wget
-statistics
-ipython
-zmq
