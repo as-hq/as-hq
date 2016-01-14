@@ -1,9 +1,11 @@
 module AS.Logging 
   ( printWithTime
+  , printWithTimeForced
   , printWithTimeT
   , printList2
   , printListT2
   , printObj
+  , printObjForced
   , printObjT
   , printDebug
   , printDebugT
@@ -22,6 +24,7 @@ import qualified Data.Text as T
 import Control.Monad.Trans.Class (lift)
 import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
+import Control.Monad (when)
 
 truncateLength :: Int
 truncateLength = 2000
@@ -43,13 +46,14 @@ appendFile' :: String -> String -> IO ()
 appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
 
 printWithTime :: String -> IO ()
-printWithTime str = if shouldWritetoConsole 
-  then do
-    time <- getTime
-    date <- getDate
-    let disp = "[" ++ time ++ "] " ++ str
-    putStrLn ((truncated disp) ++ "\n")
-  else return ()
+printWithTime = when shouldWritetoConsole . printWithTimeForced
+
+printWithTimeForced :: String -> IO ()
+printWithTimeForced str = do
+  time <- getTime
+  date <- getDate
+  let disp = "[" ++ time ++ "] " ++ str
+  putStrLn ((truncated disp) ++ "\n")
 
 printWithTimeT :: String -> EitherTExec ()
 printWithTimeT = lift . printWithTime
@@ -93,7 +97,10 @@ logError err (CommitSource sid uid) = do
   printWithTime logMsg
 
 printObj :: (Show a) => String -> a -> IO ()
-printObj disp obj = printWithTime (disp ++ ": " ++ (show $ seq () obj))
+printObj = (when shouldWritetoConsole .) . printObjForced
+
+printObjForced :: (Show a) => String -> a -> IO ()
+printObjForced disp obj = printWithTimeForced (disp ++ ": " ++ (show $ seq () obj))
 -- the seq is necessary so that the object gets evaluated before the time does in printWithTime. 
 
 printList2 :: (Show2 a) => String -> [a] -> IO ()

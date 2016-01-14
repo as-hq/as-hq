@@ -58,7 +58,7 @@ instance Client ASUserClient where
     when (shouldLogMessage message) $ logServerMessage (show message) (userCommitSource user)
     when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
-      printObj "Message" (show message)
+      printObjForced "Server received message" message
     curState <- readMVar state
     storeLastMessage (curState^.dbConn) message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them

@@ -11,6 +11,7 @@ import AS.Util
 import AS.Window
 
 import Control.Concurrent
+import Control.Lens
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)
@@ -40,7 +41,8 @@ filterSheetUpdate :: SheetUpdate -> ASWindow -> SheetUpdate
 filterSheetUpdate (SheetUpdate (Update cs locs) rcs ds cfrs) win = update
   where 
     sid    = windowSheetId win
-    cells' = intersectViewingWindow cs win
+    -- cells' = intersectViewingWindow cs win -- only filtering by sheet now. no more viewing window bs
+    cells' = filter ((==) sid . view (cellLocation.locSheetId)) cs
     locs'  = filter ((==) sid . refSheetId) locs 
     update = SheetUpdate (Update cells' locs') rcs ds cfrs
 
