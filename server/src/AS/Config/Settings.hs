@@ -25,3 +25,6 @@ headerLangs = [Python, R]
 
 getSettings :: IO AppSettings
 getSettings = I.getSettings
+
+heartbeat_interval :: Milliseconds
+heartbeat_interval = 1000

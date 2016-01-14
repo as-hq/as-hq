@@ -24,6 +24,8 @@ class ASKernel(object):
     self.socket.bind(self.address)
 
   def get_initial_ns(self):
+    import matplotlib
+    matplotlib.use('Agg')
     from AS.stdlib import *
     from AS.kernel.serialize import * # this is imported for serialization code injection
     import matplotlib._pylab_helpers
@@ -36,9 +38,13 @@ class ASKernel(object):
 
   def handle_incoming(self):
     recvMsg = json.loads(self.socket.recv())
-    replyMsg = self.process_message(recvMsg)
-    # print "sending reply:", replyMsg
-    self.socket.send(json.dumps(replyMsg))
+    try:
+      replyMsg = self.process_message(recvMsg)
+      self.socket.send(json.dumps(replyMsg))
+    except Exception as e:
+      replyMsg = {'type': 'error', 'error': repr(e)}
+      print "Kernel error: ", e
+      self.socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
     print 'processing', msg['type']
@@ -50,6 +56,10 @@ class ASKernel(object):
         result = self.shell.run_cell(msg['code'], msg['sheet_id'])
       else:
         raise NotImplementedError
+      return self.exec_result_to_msg(result, msg)
+
+    elif msg['type'] == 'evaluate_format':
+      result = self.shell.run_raw(msg['code'], msg['sheet_id'])
       return self.exec_result_to_msg(result, msg)
 
     elif msg['type'] == 'get_status':

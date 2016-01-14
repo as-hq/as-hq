@@ -16,6 +16,8 @@ import Data.Aeson.Types
 import Data.SafeCopy
 import qualified Data.Text as T
 
+data FormatResult = FormatSuccess String | FormatError String deriving (Show)
+
 type CondFormatRuleId = T.Text
 
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId

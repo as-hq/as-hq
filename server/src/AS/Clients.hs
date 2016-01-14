@@ -1,5 +1,8 @@
 module AS.Clients where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Network
 import AS.Types.Cell
 import AS.Types.Messages
@@ -42,6 +45,7 @@ shouldPrintMessage (ServerMessage Acknowledge) = False
 shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
+  clientType uc = User
   conn = userConn
   clientId = sessionId
   ownerName = userId
@@ -57,7 +61,7 @@ instance Client ASUserClient where
     when (shouldLogMessage message) $ logServerMessage (show message) (userCommitSource user)
     when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
-      printObj "Message" (show message)
+      printObjForced "Server received message" message
     curState <- readMVar state
     storeLastMessage (curState^.dbConn) message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
@@ -68,7 +72,7 @@ instance Client ASUserClient where
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen user state sid
       -- Close                 -> handleClose user state payload
-      UpdateWindow win            -> handleUpdateWindow (sessionId user) state win
+      UpdateWindow win            -> handleUpdateWindow user state win
       -- Import                -> handleImport user state payload
       Export sid                  -> handleExport user state sid
       Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
@@ -94,13 +98,14 @@ instance Client ASUserClient where
       GetBar bInd                 -> handleGetBar user state bInd
       SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
-      -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
+      --Undo         -> $error "Simulated crash"
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where
+  clientType uc = Daemon
   conn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner

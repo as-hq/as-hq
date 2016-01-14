@@ -36,6 +36,7 @@ data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _pyKernelAddress :: KernelAddress
                                 , _redisPort :: Port
                                 , _shouldPrint :: Bool}
+                                deriving (Show)
 
 type Port = Int
 type GraphAddress = String
@@ -59,6 +60,7 @@ instance FromJSON AppSettings where
 type ClientId = Text
 
 class Client c where
+  clientType :: c -> ClientType
   conn :: c -> WS.Connection
   ownerName :: c -> ASUserId
   clientId :: c -> ClientId
@@ -68,8 +70,12 @@ class Client c where
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 
+type Milliseconds = Int
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- User client
+
+data ClientType = User | Daemon
 
 data ASUserClient = UserClient { userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId }
 

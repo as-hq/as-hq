@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell, ViewPatterns #-}
 
 module Main where
   
@@ -23,10 +23,13 @@ import AS.Handlers.Misc (handleImportBinary)
 import AS.Types.Locations
 import qualified AS.Kernels.Python.Eval as KP
 
+import System.Posix.Signals
 import Control.Exception
 import Control.Monad (forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Either
+import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)
 import Data.Maybe hiding (fromJust)
@@ -34,23 +37,30 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
 import Data.List.Split (chunksOf)
+import Data.String (fromString)
+
+import Data.FileEmbed (embedDir)
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
 -- import Text.ParserCombinators.Parsec (parse)
 
 import qualified Network.WebSockets as WS
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Handler.WebSockets as WaiWS
+import qualified Network.Wai.Application.Static as Static
 
 import Language.R.Instance as R
 import Language.R.QQ
 
-import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
 main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
+  blockSignals $ addSignal sigPIPE emptySignalSet
   -- initializations
   putStrLn "STARTING APP"
   state <- initApp
@@ -65,7 +75,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
   putStrLn "RECOMPUTED DAG"
 
   putStrLn $ "server started on port " ++ (show $ settings^.backendWsPort)
-  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
+  runServer state
   putStrLn $ "DONE WITH MAIN"
 
 initApp :: IO (MVar ServerState)
@@ -91,17 +101,34 @@ initApp = do
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
-initDebug _ = do
+initDebug mstate = do
   putStrLn "\n\nEvaluating debug statements..."
   putStrLn "\nDone."
   return ()
 
-application :: MVar ServerState -> WS.ServerApp
-application state pending = do
-  conn <- WS.acceptRequest pending -- initialize connection
-  msg <- WS.receiveData conn -- waits until it receives data
-  when (isDebug && shouldPreprocess) $ preprocess conn state
-  handleFirstMessage state conn msg
+runServer :: MVar ServerState -> IO ()
+runServer mstate = do
+  state <- readMVar mstate
+  Warp.runSettings
+    (Warp.setHost (fromString $ state^.appSettings.backendWsAddress)
+      . Warp.setPort (state^.appSettings.backendWsPort)
+      $ Warp.defaultSettings)
+    $ application mstate
+
+application :: MVar ServerState -> Wai.Application
+application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticApp
+  where
+    wsApp :: WS.ServerApp
+    wsApp pendingConn = do
+      conn <- WS.acceptRequest pendingConn 
+      printWithTime "Client connected!"
+      -- fork a heartbeat thread, to immediately signal to the client that the connection is alive
+      forkHeartbeat conn heartbeat_interval
+      msg <- WS.receiveData conn -- waits until it receives data
+      when (isDebug && shouldPreprocess) $ preprocess conn state
+      handleFirstMessage state conn msg
+    staticApp :: Wai.Application
+    staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
@@ -144,6 +171,7 @@ preprocess conn state = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  printWithTime "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
@@ -159,6 +187,19 @@ talk client state = forever $ do
                                ++ "\n\n due to parse error: " 
                                ++ s)
 
+forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
+forkHeartbeat conn interval = forkIO (go 1 `catch` dieSilently) >> return ()
+  where
+    go i = do
+      threadDelay (interval * 1000)
+      WS.sendTextData conn ("PING" :: T.Text)
+      go (i+1)
+    dieSilently e = case fromException e of 
+      Just asyncErr -> putStrLn ("Heartbeat error: " ++ show asyncErr) >> 
+                        throwIO (asyncErr :: AsyncException) >> 
+                        return ()
+      Nothing       -> return ()
+
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
   let logMsg = "Runtime error caught: " ++ (show e)
@@ -166,7 +207,7 @@ handleRuntimeException user state e = do
   logError logMsg (userCommitSource user)
   settings <- view appSettings <$> readMVar state
   purgeZombies state
-  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
+  runServer state
 
 -- | Sometimes, onDisconnect gets interrupted. (Not sure exactly what.) At any rate, 
 -- when this happens, a client that's disconnected is still stored in the state. 

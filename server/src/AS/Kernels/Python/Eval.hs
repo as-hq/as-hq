@@ -16,6 +16,7 @@ import AS.Types.Eval
 import AS.Types.EvalHeader
 import AS.Types.Errors
 import AS.Types.Sheets
+import AS.Types.CondFormat
 import AS.Types.Network
 
 import qualified AS.DB.API as DB
@@ -51,6 +52,15 @@ evaluate addr = evaluateWithScope addr Cell
 evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader addr = evaluateWithScope addr Header
 
+evaluateFormat :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec FormatResult
+evaluateFormat addr sid code = do
+  (EvaluateFormatReply v e) <- sendMessage addr $ EvaluateFormatRequest sid code
+  return $ case v of 
+    Just val -> FormatSuccess $ R.parseFormatValue val
+    Nothing  -> case e of 
+      Just err -> FormatError err
+      Nothing  -> FormatError "Formatting returned neither value nor error."
+
 clear :: KernelAddress -> ASSheetId -> IO ()
 clear addr = (sendMessage_ addr) . ClearRequest
 
@@ -78,16 +88,19 @@ testHeader addr sid code = printObj "Test evaluate python header: " =<< (runEith
 data EvalScope = Header | Cell deriving (Generic)
 data KernelMessage = 
     EvaluateRequest { scope :: EvalScope, envSheetId :: ASSheetId, code :: String } 
+  | EvaluateFormatRequest { envSheetId :: ASSheetId, code :: String }
   | GetStatusRequest ASSheetId
   | AutocompleteRequest { envSheetId' :: ASSheetId, completeString :: String }
   | ClearRequest ASSheetId
   deriving (Generic)
 
 data KernelResponse = 
-    EvaluateReply { value :: Maybe String, eval_error :: Maybe String, display :: Maybe String } 
+    EvaluateReply { value :: Maybe String, evalError :: Maybe String, display :: Maybe String } 
+  | EvaluateFormatReply { formatValue :: Maybe String, formatError :: Maybe String }
   | GetStatusReply -- TODO
   | AutocompleteReply -- TODO
   | ClearReply Bool
+  | ErrorReply String
   deriving (Generic)
 
 instance ToJSON EvalScope
@@ -98,11 +111,18 @@ instance ToJSON KernelMessage where
                                               , "scope" .= scope
                                               , "sheet_id" .= sid
                                               , "code" .= code]
+
+    EvaluateFormatRequest sid code -> object  [ "type" .= ("evaluate_format" :: String)
+                                              , "sheet_id" .= sid
+                                              , "code" .= code]
+
     GetStatusRequest sid -> object  [ "type" .= ("get_status" :: String)
                                     , "sheet_id" .= sid]
+
     AutocompleteRequest sid str -> object [ "type" .= ("autocomplete" :: String)
                                           , "sheet_id" .= sid
                                           , "complete_str" .= str]
+
     ClearRequest sid -> object [ "type" .= ("clear" :: String)
                                , "sheet_id" .= sid]
 
@@ -111,9 +131,11 @@ instance FromJSON KernelResponse where
     val <- v .: "type" :: (Parser String)
     case val of 
       "evaluate" -> EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
+      "evaluate_format" -> EvaluateFormatReply <$> v .:? "value" <*> v .:? "error"
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
       "clear" -> ClearReply <$> v .: "success"
+      "error" -> ErrorReply <$> v .: "error"
 
 evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateWithScope _ _ _ "" = return emptyResult
@@ -134,7 +156,10 @@ sendMessage addr msg = do
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
   case resp of 
-    Left e -> left $ EvaluationError e
+    Left e -> left $ KernelError e
+    -- this is a top-level kernel error that should throw a "left"
+    -- i.e. an API error, network error, or other non-evaluation-related error
+    Right (ErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
 sendMessage_ :: KernelAddress -> KernelMessage -> IO ()
