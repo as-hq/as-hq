@@ -19,6 +19,8 @@ import AS.Types.Sheets
 import AS.Types.CondFormat
 import AS.Types.Network
 
+import AS.Parsing.Show
+
 import qualified AS.DB.API as DB
 
 import Data.Maybe (fromJust)
@@ -52,11 +54,16 @@ evaluate addr = evaluateWithScope addr Cell
 evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader addr = evaluateWithScope addr Header
 
-evaluateFormat :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec FormatResult
-evaluateFormat addr sid code = do
-  (EvaluateFormatReply v e) <- sendMessage addr $ EvaluateFormatRequest sid code
-  return $ case v of 
-    Just val -> FormatSuccess $ R.parseFormatValue val
+evaluateLambdaFormat :: KernelAddress -> ASSheetId -> LambdaConditionExpr -> ASValue -> EitherTExec FormatResult
+evaluateLambdaFormat addr sid lambdaExpr val = do 
+  let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ (showValue Python (CellValue val)) ++ ")"
+  (EvaluateFormatReply format e) <- sendMessage addr $ EvaluateFormatRequest sid evalExpr
+  printDebugT "format" format
+  printDebugT "e" e
+  return $ case format of 
+    Just format -> case R.parseFormatValue format of 
+      Nothing -> FormatError "Failed to interpret Python result as string." -- #needsrefactor should not hard-code
+      Just format -> FormatSuccess format
     Nothing  -> case e of 
       Just err -> FormatError err
       Nothing  -> FormatError "Formatting returned neither value nor error."

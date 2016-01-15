@@ -4,6 +4,7 @@ import random
 # from AS.iterable import ASIterable
 from AS.hidden import Hidden
 from AS.errors import *
+from AS.formats import *
 
 # def arr(lst):
 #   return ASIterable(lst)

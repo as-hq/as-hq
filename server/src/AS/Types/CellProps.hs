@@ -13,7 +13,9 @@ module AS.Types.CellProps
     hasProp, 
     isEmpty, 
     setProp, 
-    setCondFormatProp, 
+    setProps,
+    setCondFormatProp,
+    setCondFormatProps, 
     clearCondFormatProps, 
     removeProp, 
     emptyProps,
@@ -33,6 +35,7 @@ import Data.SafeCopy
 
 import Data.Aeson.Types (Parser)
 import Data.Maybe
+import Data.List (foldl')
 import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad (liftM, ap)
@@ -73,7 +76,7 @@ data CellProp =
   | Tracking
   deriving (Show, Read, Eq, Generic)
 
-type Color = String
+type Color = String -- represents hex color
 data HAlignType = LeftAlign | HCenterAlign | RightAlign deriving (Show, Read, Eq, Generic)
 data VAlignType = TopAlign | VCenterAlign | BottomAlign deriving (Show, Read, Eq, Generic)
 
@@ -116,8 +119,16 @@ isEmpty = liftA2 (&&) (null . underlyingProps) (null . condFormatProps)
 setProp :: CellProp -> ASCellProps -> ASCellProps
 setProp cp (ASCellProps m cm) = ASCellProps (M.insert (propType cp) cp m) cm
 
+-- #needsrefactor pointless pointfree
+setProps :: [CellProp] -> ASCellProps -> ASCellProps
+setProps = foldl' (.) id . map setProp
+
 setCondFormatProp :: CellProp -> ASCellProps -> ASCellProps
 setCondFormatProp cp (ASCellProps m cm) = ASCellProps m (M.insert (propType cp) cp cm)
+
+-- #needsrefactor pointless pointfree
+setCondFormatProps :: [CellProp] -> ASCellProps -> ASCellProps
+setCondFormatProps = foldl' (.) id . map setCondFormatProp
 
 clearCondFormatProps :: ASCellProps -> ASCellProps
 clearCondFormatProps (ASCellProps m _) = ASCellProps m M.empty

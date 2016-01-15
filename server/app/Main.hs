@@ -28,7 +28,6 @@ import Control.Exception
 import Control.Monad (forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Either
 import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)
@@ -101,7 +100,7 @@ initApp = do
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
-initDebug mstate = do
+initDebug _ = do
   putStrLn "\n\nEvaluating debug statements..."
   putStrLn "\nDone."
   return ()

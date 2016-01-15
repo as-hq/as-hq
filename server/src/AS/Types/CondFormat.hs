@@ -16,7 +16,7 @@ import Data.Aeson.Types
 import Data.SafeCopy
 import qualified Data.Text as T
 
-data FormatResult = FormatSuccess String | FormatError String deriving (Show)
+data FormatResult = FormatSuccess [CellProp] | FormatError String deriving (Show)
 
 type CondFormatRuleId = T.Text
 
@@ -24,12 +24,11 @@ data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
                                      , formatMapConstructor :: FormatMapConstructor }  
                                        deriving (Show, Read, Generic, Eq)
-                                       -- condFormatCondition :: CondFormatCondition }
 
 type LambdaConditionExpr = String
 
 data FormatMapConstructor = BoolFormatMapConstructor { boolFormatMapCondition :: BoolCondition
-                                                     , boolFormatMapProp :: CellProp }
+                                                     , boolFormatMapProps :: [CellProp] }
                           | LambdaFormatMapConstructor LambdaConditionExpr
                           deriving (Show, Read, Generic, Eq)
 

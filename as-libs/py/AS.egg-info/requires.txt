@@ -5,3 +5,4 @@ wget
 statistics
 ipython
 zmq
+colour

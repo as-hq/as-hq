@@ -60,6 +60,10 @@ class ASKernel(object):
 
     elif msg['type'] == 'evaluate_format':
       result = self.shell.run_raw(msg['code'], msg['sheet_id'])
+      # result.value can be any python datatype; we assume any call to "run_raw"
+      # expects a string in response. So, invoke repr.
+      if result.result:
+        result.result = repr(result.result) 
       return self.exec_result_to_msg(result, msg)
 
     elif msg['type'] == 'get_status':

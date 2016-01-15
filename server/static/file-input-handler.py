@@ -4,7 +4,7 @@ import cgi
 
 # If connected to the server, address = ip address of server
 # localhost configs: change host to localhost
-host = '18.102.225.27'
+host = 'localhost'
 defaultFrontendPort = 8080
 defaultFileHandlingPort = 9000
 

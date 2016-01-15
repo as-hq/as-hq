@@ -20,7 +20,10 @@ import qualified Text.Parsec.Language as Lang (haskellDef)
 import Control.Applicative hiding ((<|>), many)
 
 import AS.Types.Cell
+import AS.Types.CellProps
 import AS.Types.Eval
+
+import Safe (readMay)
 
 import AS.Parsing.Common as C
 import qualified AS.LanguageDefs as LD
@@ -34,8 +37,8 @@ parseValue lang = readOutput . (parse (value lang) "")
     readOutput (Right v)  = Right v
     readOutput (Left e)   = Left ParseError
 
--- TODO alex fill this in
-parseFormatValue = undefined
+parseFormatValue :: String -> Maybe [CellProp]
+parseFormatValue = readMay
 
 value :: ASLanguage -> Parser CompositeValue
 value lang = 

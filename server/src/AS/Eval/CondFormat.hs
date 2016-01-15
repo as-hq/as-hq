@@ -13,6 +13,8 @@ import AS.Types.Errors
 import AS.Types.CondFormat
 import AS.Types.Network
 
+import AS.Kernels.Python.Eval
+
 import AS.Eval.Core
 import AS.Parsing.Substitutions
 import AS.Util (insertMultiple)
@@ -52,19 +54,21 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
     Nothing -> return c
     Just rng -> do
       let tl = getTopLeft rng
-          eval = evaluateExpression state sid ctx
           offset = getIndicesOffset tl l
           shiftXp = shiftExpression offset
-          shiftAndEvaluateExpression = eval . shiftXp
-          determineFormat v = case condMapConstructor of 
-            BoolFormatMapConstructor boolCond prop -> do 
+          determineFormats v = case condMapConstructor of 
+            BoolFormatMapConstructor boolCond props -> do 
               let shiftAndEvalExpr = (evaluateExpression state sid ctx) . shiftXp 
               shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
-              return $ if shouldFormat then Just prop else Nothing
-      conditionalFormat <- determineFormat $ c^.cellValue
-      return $ case conditionalFormat of
-        Nothing -> c
-        Just format -> c & cellProps %~ setCondFormatProp format
+              return $ if shouldFormat then props else []
+            LambdaFormatMapConstructor lambdaExpr -> do 
+              let kerAddr = state^.appSettings.pyKernelAddress -- should abstract
+              formatResult <- evaluateLambdaFormat kerAddr sid lambdaExpr v
+              return $ case formatResult of 
+                FormatSuccess props -> props
+                _                   -> []
+      conditionalFormats <- determineFormats $ c^.cellValue
+      return $ c & cellProps %~ setCondFormatProps conditionalFormats
 
 evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evaluateExpression state sid ctx xp@(Expression str lang) = do
