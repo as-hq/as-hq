@@ -19,7 +19,7 @@ export default {
 
   tooltip: {
     top: 0,
-    zIndex: 10 // to be visible on top of spreadsheet when closed
+    zIndex: 1000 // to be visible on top of spreadsheet when closed
   }
 
   
