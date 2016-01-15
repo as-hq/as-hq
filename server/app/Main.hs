@@ -102,6 +102,8 @@ initDebug mstate = do
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending -- initialize connection
+  -- here, we fork a heartbeat thread, to signal to the client that the connection is alive
+  forkHeartbeat conn heartbeat_interval
   msg <- WS.receiveData conn -- waits until it receives data
   when (isDebug && shouldPreprocess) $ preprocess conn state
   handleFirstMessage state conn msg
@@ -148,8 +150,6 @@ initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
   putStrLn "Client connected!"
-  -- here, we fork a heartbeat thread for users
-  possiblyStartHeartbeat client heartbeat_interval
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
@@ -165,18 +165,16 @@ talk client state = forever $ do
                                ++ "\n\n due to parse error: " 
                                ++ s)
 
-possiblyStartHeartbeat :: (Client c) => c -> Milliseconds -> IO ()
-possiblyStartHeartbeat c interval = case c of 
-  (clientType -> User) -> forkIO (dieSilently `handle` go 1) >> return ()
-    where
-      go i = do
-        threadDelay (interval * 1000)
-        WS.sendTextData (conn c) ("PING" :: T.Text)
-        go (i+1)
-      dieSilently e = case fromException e of 
-        Just asyncErr -> throwIO (asyncErr :: AsyncException) >> return ()
-        Nothing       -> return ()
-  _ -> return ()
+forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
+forkHeartbeat conn interval = forkIO (dieSilently `handle` go 1) >> return ()
+  where
+    go i = do
+      threadDelay (interval * 1000)
+      WS.sendTextData conn ("PING" :: T.Text)
+      go (i+1)
+    dieSilently e = case fromException e of 
+      Just asyncErr -> throwIO (asyncErr :: AsyncException) >> return ()
+      Nothing       -> return ()
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do

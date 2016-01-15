@@ -1,5 +1,8 @@
 module AS.Clients where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Network
 import AS.Types.Cell
 import AS.Types.Messages
@@ -95,7 +98,7 @@ instance Client ASUserClient where
       GetBar bInd                 -> handleGetBar user state bInd
       SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
-      -- Undo         -> handleToggleProp user state (PayloadTags [StreamTag (Stream NoSource 1000)] (Index (T.pack "TEST_SHEET_ID2") (1,1)))
+      --Undo         -> $error "Simulated crash"
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
