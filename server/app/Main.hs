@@ -37,12 +37,19 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
 import Data.List.Split (chunksOf)
+import Data.String (fromString)
+
+import Data.FileEmbed (embedDir)
 
 -- often want to use these while debugging
 -- import Text.Read (readMaybe)
 -- import Text.ParserCombinators.Parsec (parse)
 
 import qualified Network.WebSockets as WS
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Handler.WebSockets as WaiWS
+import qualified Network.Wai.Application.Static as Static
 
 import Language.R.Instance as R
 import Language.R.QQ
@@ -68,7 +75,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
   putStrLn "RECOMPUTED DAG"
 
   putStrLn $ "server started on port " ++ (show $ settings^.backendWsPort)
-  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
+  runServer state
   putStrLn $ "DONE WITH MAIN"
 
 initApp :: IO (MVar ServerState)
@@ -99,15 +106,29 @@ initDebug mstate = do
   putStrLn "\nDone."
   return ()
 
-application :: MVar ServerState -> WS.ServerApp
-application state pending = do
-  conn <- WS.acceptRequest pending -- initialize connection
-  printWithTime "Client connected!"
-  -- here, we fork a heartbeat thread, to signal to the client that the connection is alive
-  forkHeartbeat conn heartbeat_interval
-  msg <- WS.receiveData conn -- waits until it receives data
-  when (isDebug && shouldPreprocess) $ preprocess conn state
-  handleFirstMessage state conn msg
+runServer :: MVar ServerState -> IO ()
+runServer mstate = do
+  state <- readMVar mstate
+  Warp.runSettings
+    (Warp.setHost (fromString $ state^.appSettings.backendWsAddress)
+      . Warp.setPort (state^.appSettings.backendWsPort)
+      $ Warp.defaultSettings)
+    $ application mstate
+
+application :: MVar ServerState -> Wai.Application
+application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticApp
+  where
+    wsApp :: WS.ServerApp
+    wsApp pendingConn = do
+      conn <- WS.acceptRequest pendingConn 
+      printWithTime "Client connected!"
+      -- fork a heartbeat thread, to immediately signal to the client that the connection is alive
+      forkHeartbeat conn heartbeat_interval
+      msg <- WS.receiveData conn -- waits until it receives data
+      when (isDebug && shouldPreprocess) $ preprocess conn state
+      handleFirstMessage state conn msg
+    staticApp :: Wai.Application
+    staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
@@ -186,7 +207,7 @@ handleRuntimeException user state e = do
   logError logMsg (userCommitSource user)
   settings <- view appSettings <$> readMVar state
   purgeZombies state
-  WS.runServer (settings^.backendWsAddress) (settings^.backendWsPort) $ application state
+  runServer state
 
 -- | Sometimes, onDisconnect gets interrupted. (Not sure exactly what.) At any rate, 
 -- when this happens, a client that's disconnected is still stored in the state. 
