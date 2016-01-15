@@ -100,12 +100,12 @@ let refreshDialogShown: boolean = false;
 */
 
 pws.ondisconnect = () => {
+  API.reinitialize(); // queue our handshake for the next time we reconnect
   setConnectedState(false);
 };
 
 pws.onreconnect = () => {
   setConnectedState(true);
-  API.reinitialize();
 };
 
 pws.onmessage = (event: MessageEvent) => {

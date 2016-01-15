@@ -54,6 +54,7 @@ class PersistentWebSocket {
       this._resetCounter();
     }
     this._onOpenInternal = (evt) => {
+      this._resetCounter();
       if (this._isDisconnected) {
         this._isDisconnected = false;
         this._onreconnect();
@@ -150,8 +151,15 @@ class PersistentWebSocket {
   }
 
   _connecting(): boolean {
-    return (this._client.readyState <= 1)
-        && (this._timeoutCounter < HEARTBEAT_TIMEOUT);
+    const {readyState} = this._client;
+    // if the readyState is 1, we can only trust that the socket is properly bound
+    // and backend is simply taking a long time to initialize (this is empirically
+    // true when connecting remotely). Otherwise, there is the possibility that
+    // the client will prematurely close the connection. If the readyState is 0
+    // (in connecting phase), then we will timeout for the heartbeat, since the
+    // very first thing backend does upon connection is start a heartbeat.
+    return (readyState === 1)
+        || (readyState === 0 && this._timeoutCounter < HEARTBEAT_TIMEOUT);
   }
 
   _checkHeartbeat() {
@@ -181,8 +189,6 @@ class PersistentWebSocket {
         let cb = this._callbackQueue.shift();
         cb(this._client);
       }
-    } else {
-      logDebug('Closed WS state:', this._client.readyState);
     }
   }
 
@@ -191,9 +197,8 @@ class PersistentWebSocket {
   }
 
   _attemptReconnect() {
+    console.log("attempting reconnect");
     let {onmessage, onopen} = this._client;
-    logDebug('Reconnecting with existing queue: ', this._callbackQueue);
-
     this._client = new ws(this._url);
     this._client.onmessage = onmessage;
     this._client.onopen = onopen;
