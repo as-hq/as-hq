@@ -100,6 +100,7 @@ data KernelResponse =
   | GetStatusReply -- TODO
   | AutocompleteReply -- TODO
   | ClearReply Bool
+  | ErrorReply String
   deriving (Generic)
 
 instance ToJSON EvalScope
@@ -134,6 +135,7 @@ instance FromJSON KernelResponse where
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
       "clear" -> ClearReply <$> v .: "success"
+      "error" -> ErrorReply <$> v .: "error"
 
 evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateWithScope _ _ _ "" = return emptyResult
@@ -154,7 +156,10 @@ sendMessage addr msg = do
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
   case resp of 
-    Left e -> left $ EvaluationError e
+    Left e -> left $ KernelError e
+    -- this is a top-level kernel error that should throw a "left"
+    -- i.e. an API error, network error, or other non-evaluation-related error
+    Right (ErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
 sendMessage_ :: KernelAddress -> KernelMessage -> IO ()

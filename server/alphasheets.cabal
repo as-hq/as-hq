@@ -172,6 +172,12 @@ executable alphasheets-exe
                      , unordered-containers
                      , lens
                      , split
+                     , unix
+                     , wai
+                     , warp
+                     , wai-websockets
+                     , wai-app-static
+                     , file-embed
   PkgConfig-Depends:   python
   c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010
