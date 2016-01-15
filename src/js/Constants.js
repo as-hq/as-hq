@@ -97,7 +97,8 @@ var Constants = Object.assign({
     EVAL_TRIED_TO_DECOUPLE: null,
     DROPDOWN_CLICKED: null,
     LANGUAGE_TOGGLED: null,
-    ADD_OVERLAY: null
+    ADD_OVERLAY: null,
+    SET_CONNECTING_STATE: null
   }),
 
   ActionSources: keyMirror({

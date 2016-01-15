@@ -72,15 +72,9 @@ import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ws from '../AS/PersistentWebSocket';
 
-let ActionTypes = Constants.ActionTypes;
-console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
-let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+import {setConnectedState} from '../actions/ASConnectionActionCreators';
 
-let currentCbs: ?ASAPICallbackPair = undefined;
-let uiTestMode: boolean = false;
-let isRunningTest: boolean = false;
-let isRunningSyncTest: boolean = false;
-let refreshDialogShown: boolean = false;
+let ActionTypes = Constants.ActionTypes;
 
 /**************************************************************************************************************************/
 
@@ -90,19 +84,31 @@ let refreshDialogShown: boolean = false;
   2) Take messages received from the server and send them to dispatch
 */
 
+console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
+
+let currentCbs: ?ASAPICallbackPair = undefined;
+let uiTestMode: boolean = false;
+let isRunningTest: boolean = false;
+let isRunningSyncTest: boolean = false;
+let refreshDialogShown: boolean = false;
+
+
 /**************************************************************************************************************************/
 /*
-  Called whenever the server returns a message
-  Depending on the action type of the message, calls dispatcher differently to propagate to stores
-  Converts server to client types before going further
+  Set PersistentWebSocket callbacks.
 */
 
-pws.onmessage = (event: MessageEvent) => {
-  if (event.data === 'ACK' || event.data === 'PING') {
-    console.warn("Got heartbeat: " + event.data);
-    return;
-  }
+pws.ondisconnect = () => {
+  setConnectedState(false);
+};
 
+pws.onreconnect = () => {
+  setConnectedState(true);
+  API.reinitialize();
+};
+
+pws.onmessage = (event: MessageEvent) => {
   logDebug("Client received data from server: " + event.data.toString());
 
   if (event.data instanceof Blob) {
@@ -205,6 +211,9 @@ pws.onmessage = (event: MessageEvent) => {
   }
 };
 
+/**************************************************************************************************************************/
+/* Helpers */
+
 function updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
   return update.newVals.length == 0 && update.oldKeys.length == 0;
 }
@@ -246,9 +255,8 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
   }
 }
 
-pws.onopen = (evt) => {
-  logDebug('WebSockets open');
-};
+/**************************************************************************************************************************/
+/* API */
 
 const API = {
   sendMessageWithAction(action: any) {
@@ -280,11 +288,6 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  ackMessage(innerClient: WebSocket) {
-    let msg = { serverAction: { tag: "Acknowledge", contents: [] } };
-    innerClient.send(JSON.stringify(msg));
-  },
-
   reinitialize() {
     API.initMessage();
     API.openSheet();
@@ -296,9 +299,6 @@ const API = {
   },
 
   initialize() {
-    pws.sendAck = API.ackMessage;
-    pws.beforereconnect = () => { API.reinitialize(); };
-
     API.initMessage();
   },
 

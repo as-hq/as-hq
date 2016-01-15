@@ -4,6 +4,7 @@ import React, {PropTypes} from 'react';
 import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
+import ASConnectionBar from './ASConnectionBar.jsx';
 import ASBottomBar from './ASBottomBar.jsx';
 import ResizablePanel from './ResizablePanel.jsx'
 import Toolbar from './toolbar/Toolbar.jsx';
@@ -20,6 +21,7 @@ import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
 import API from '../actions/ASApiActionCreators';
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import ConnectionStore from '../stores/ASConnectionStore';
 
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
 import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
@@ -40,6 +42,7 @@ export default React.createClass({
 
     SheetStateStore.setCurrentSheetById(sheetId);
     SheetStateStore.setUserId(userId);
+    ConnectionStore.addChangeListener(() => this._onConnectionStateChange());
     API.initialize();
   },
 
@@ -49,7 +52,8 @@ export default React.createClass({
       // object passed from splash pane specifying initial params: opened sheet, etc
       initEvalInfo: {},
       errorPaneOpen: true,
-      outputPaneOpen: false
+      outputPaneOpen: false,
+      isConnected: true
     }
   },
 
@@ -72,20 +76,29 @@ export default React.createClass({
 
   render() {
     // TODO: these heights should be in a config file, not here
-    let {errorPaneOpen, outputPaneOpen} = this.state,
-        bottomBarHeight = 24,
-        topBarHeight = 60,
-        toolbarHeight = 50,
-        fullStyle = {width: '100%', height: '100%'};
+    const {errorPaneOpen, outputPaneOpen, isConnected} = this.state;
+    const bottomBarHeight = 24;
+    const topBarHeight = 60;
+    const toolbarHeight = 50;
+    const connectionBarHeight = isConnected ? 0 : 24; // #needsrefactor would be better to use flexbox than a conditional height.
+    const fullStyle = {width: '100%', height: '100%'};
 
-    // Note: it's OK to give things inside ResizablePanel height 100% because ResizablePanel uses it's own height as reference. 
+    const connectionBarStyle = {
+      width: '100%',
+      height: connectionBarHeight,
+      display: isConnected ? 'none' : 'block'
+    };
+
+    // Note: it's OK to give things inside ResizablePanel height 100% because ResizablePanel uses it's own height as reference.
     // Here, the height of the resizable panel is everything except top and bottom parts, so all percents in fullStyle are relative to that
     // Also, it's essential to keep the outputPane component in the layout, and to make it invisible if necessary, rather than null
-    let evalPane =  
+
+    let evalPane =
       <div style={fullStyle}>
         <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
       </div>;
-    let errorAndOutputPane = 
+
+    let errorAndOutputPane =
       <div style={fullStyle}>
         <div style={{
           ...fullStyle,
@@ -101,19 +114,28 @@ export default React.createClass({
 
     return (
       <div style={{width: '100%',height: '100%'}} >
+
+        <div style={connectionBarStyle}>
+          <ASConnectionBar />
+        </div>
+
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
+
         <Toolbar />
-        <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight}px)`}}>
+
+        <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight + connectionBarHeight}px)`}}>
           <ResizablePanel content={evalPane} sidebar={errorAndOutputPane} sidebarVisible={errorPaneOpen || outputPaneOpen} side="bottom" />
         </div>
+
         <div style={{width: '100%', height: `${bottomBarHeight}px`}}>
           <ASBottomBar
             toggleErrorPane={this._toggleErrorPane.bind(this)}
             toggleOutputPane={this._toggleOutputPane.bind(this)} />
         </div>
+
       </div>
     );
-    
+
   },
 
 
@@ -143,5 +165,10 @@ export default React.createClass({
     let rng = TC.indexToRange(idx);
     let sel = { origin: idx, range: rng };
     this.refs.evalPane.getASSpreadsheet().select(sel);
+  },
+
+  _onConnectionStateChange() {
+    let isConnected = ConnectionStore.getIsConnected();
+    this.setState({isConnected: isConnected});
   }
 });
