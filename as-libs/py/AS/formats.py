@@ -1,12 +1,17 @@
 from colour import Color
 
 class Format:
-    def __init__(self, bold=None, italic=None, underline=None, url=None, 
-                 textColor=None, fillColor=None): # color types are assumed to be of class Color
-        self.italic = italic
+    def __init__(self, 
+                 bold=None, italic=None, underline=None, 
+                 url=None, 
+                 textColor=None, fillColor=None): 
+        # must all be either True, False, or None
         self.bold = bold
+        self.italic = italic
         self.underline = underline
+        # must be a string or None
         self.url = url
+        # must be of type Color or None
         self.textColor = textColor
         self.fillColor = fillColor
 

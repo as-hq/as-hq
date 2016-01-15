@@ -14,6 +14,7 @@ import AS.Types.CondFormat
 import AS.Types.Network
 
 import AS.Kernels.Python.Eval
+import AS.Kernels.LanguageUtils
 
 import AS.Eval.Core
 import AS.Parsing.Substitutions
@@ -62,26 +63,38 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
               shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
               return $ if shouldFormat then props else []
             LambdaFormatMapConstructor lambdaExpr -> do 
-              let kerAddr = state^.appSettings.pyKernelAddress -- should abstract
-              formatResult <- evaluateLambdaFormat kerAddr sid lambdaExpr v
+              -- The logic here should probably be abstracted somewhere else. 
+              let shiftedLambdaExpr = shiftXp (Expression lambdaExpr Python)
+              formatResult <- evaluateFormatExpression state sid ctx shiftedLambdaExpr v
               return $ case formatResult of 
                 FormatSuccess props -> props
                 _                   -> []
       conditionalFormats <- determineFormats $ c^.cellValue
       return $ c & cellProps %~ setCondFormatProps conditionalFormats
 
-evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
-evaluateExpression state sid ctx xp@(Expression str lang) = do
-  let dummyLoc = Index sid (Coord (-1) (-1)) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
-      valMap = virtualCellsMap ctx
+
+
+-- #needsrefactor this may not be the right place to put the below three functions.
+
+-- Also, there are probably a ton of redundant calls to the DB -- we might be inserting 
+-- into the EvalContext the same cell, pulled from the DB, over and over again in 
+-- different calls to updatedContextForEval.
+updatedContextForEval :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec EvalContext
+updatedContextForEval state sid ctx xp = do 
+  let valMap = virtualCellsMap ctx
       deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
       conn = state^.dbConn
   depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-      ctx' = ctx { virtualCellsMap = valMap' }
+  return ctx { virtualCellsMap = valMap' } -- #lens
+
+evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
+evaluateExpression state sid ctx xp@(Expression str lang) = do
+  ctx' <- updatedContextForEval state sid ctx xp
   -- we don't care about the display string produced by evaluateLanguage
+  let dummyLoc = Index sid (Coord (-1) (-1)) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
   (Formatted (EvalResult res _) _) <- evaluateLanguage state dummyLoc ctx' xp
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)
@@ -89,3 +102,11 @@ evaluateExpression state sid ctx xp@(Expression str lang) = do
       let errMsg = "Tried to apply conditional formatting rule " ++ str ++ " but got error" ++ (show msg) ++ ". "
       left $ CondFormattingError errMsg
     CellValue v -> return v
+
+evaluateFormatExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EitherTExec FormatResult
+evaluateFormatExpression state sid ctx lambdaExpr v = do
+  let kerAddr = state^.appSettings.pyKernelAddress 
+      conn    = state^.dbConn
+  ctx' <- updatedContextForEval state sid ctx lambdaExpr
+  lambdaExpr' <- lift $ insertValues conn sid ctx' lambdaExpr
+  evaluateLambdaFormat kerAddr sid lambdaExpr' v
