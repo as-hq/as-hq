@@ -69,7 +69,7 @@ instance Client ASUserClient where
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen user state sid
       -- Close                 -> handleClose user state payload
-      UpdateWindow win            -> handleUpdateWindow (sessionId user) state win
+      UpdateWindow win            -> handleUpdateWindow user state win
       -- Import                -> handleImport user state payload
       Export sid                  -> handleExport user state sid
       Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
