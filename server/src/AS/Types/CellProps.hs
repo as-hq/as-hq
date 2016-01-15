@@ -17,6 +17,9 @@ module AS.Types.CellProps
     clearCondFormatProps, 
     removeProp, 
     emptyProps,
+    upsertProp,
+    filterOutBadFormats,
+    Format(..),
     FormatType(..), 
     Formatted(..), 
     Bloomberg(..), 
@@ -63,7 +66,7 @@ data CellProp =
   | HAlign HAlignType
   | FontSize Int
   | FontName String
-  | ValueFormat {formatType :: FormatType}
+  | ValueFormat {valFormat :: Format}
   | StreamInfo Stream
   | ImageData {imageWidth :: Int, imageHeight :: Int, imageOffsetX :: Int, imageOffsetY :: Int}
   | ReadOnly [ASUserId]
@@ -128,11 +131,27 @@ removeProp pt (ASCellProps m cm) = ASCellProps (M.delete pt m) cm
 emptyProps :: ASCellProps
 emptyProps = ASCellProps M.empty M.empty
 
+-- Given a default prop, and a prop transform, insert the default prop if its corresponding propType doesn't exist. 
+-- Otherwise, map the prop transform over the ASCellProps. 
+upsertProp :: CellProp -> (CellProp -> CellProp) -> (ASCellProps -> ASCellProps)
+upsertProp defaultProp transformProp cp@(ASCellProps m cm) = if (hasPropType (propType defaultProp) cp)
+  then ASCellProps (M.map transformProp m) cm
+  else setProp defaultProp cp
+
+-- In the delete handlers, you may want to removeFormats from some cells and not others, this is a helper function for that. 
+-- It filters over one of the maps in ASCellProps.
+filterOutBadFormats :: (CellProp -> Bool) -> ASCellProps -> ASCellProps
+filterOutBadFormats f (ASCellProps up cp) = ASCellProps (M.filter f up) cp
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Formats
 
 data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
-data Formatted a = Formatted { orig :: a, format :: Maybe FormatType }
+-- A format must have a FormatType, and possibly keeps track of num decimal offset (if applicable, not so for Date)
+-- An offset of +1 means that there's one more decimal place; 1.22 -> 1.220
+data Format = Format {formatType :: FormatType, numDecimalOffset :: Maybe Int} deriving (Show, Read, Eq, Generic)
+-- The Formatted monad possibly gives formatting to an original value
+data Formatted a = Formatted { orig :: a, format :: Maybe Format}
 
 instance Functor Formatted where
   fmap = liftM
@@ -144,11 +163,11 @@ instance Applicative Formatted where
 -- Always retain the format of the first argument, unless there was none
 instance Monad Formatted where
   return x                   = Formatted x Nothing
-  Formatted x Nothing >>= f  = f x
-  Formatted x y >>= f        = (f x) { format = y }
-
+  Formatted x Nothing >>= f = f x
+  Formatted x (Just y) >>= f = (f x) {format = (Just y)}
+  
 instance (Eq a) => Eq (Formatted a) where
-  (==) (Formatted x _) (Formatted y _)  = x==y
+  (==) (Formatted x _) (Formatted y _)  = x == y
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
@@ -170,6 +189,7 @@ deriveSafeCopy 1 'base ''StreamSource
 deriveSafeCopy 1 'base ''HAlignType
 deriveSafeCopy 1 'base ''Bloomberg
 deriveSafeCopy 1 'base ''FormatType
+deriveSafeCopy 1 'base ''Format
 deriveSafeCopy 1 'base ''ASCellProps
 
 
@@ -185,6 +205,7 @@ asToFromJSON ''CellProp
 asToFromJSON ''CellPropType
 asToFromJSON ''VAlignType
 asToFromJSON ''HAlignType
+asToFromJSON ''Format
 asToFromJSON ''FormatType
 asToFromJSON ''Bloomberg
 asToFromJSON ''Stream
