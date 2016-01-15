@@ -102,6 +102,7 @@ initDebug mstate = do
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   conn <- WS.acceptRequest pending -- initialize connection
+  printWithTime "Client connected!"
   -- here, we fork a heartbeat thread, to signal to the client that the connection is alive
   forkHeartbeat conn heartbeat_interval
   msg <- WS.receiveData conn -- waits until it receives data
@@ -149,7 +150,7 @@ preprocess conn state = do
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
   liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
-  putStrLn "Client connected!"
+  printWithTime "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
@@ -166,10 +167,9 @@ talk client state = forever $ do
                                ++ s)
 
 forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
-forkHeartbeat conn interval = forkIO (dieSilently `handle` go 1) >> return ()
+forkHeartbeat conn interval = forkIO (go 1 `catch` dieSilently) >> return ()
   where
     go i = do
-      putStrLn "PING"
       threadDelay (interval * 1000)
       WS.sendTextData conn ("PING" :: T.Text)
       go (i+1)
