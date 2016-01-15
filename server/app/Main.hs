@@ -96,9 +96,6 @@ initApp = do
 initDebug :: MVar ServerState -> IO ()
 initDebug mstate = do
   putStrLn "\n\nEvaluating debug statements..."
-  state <- readMVar mstate
-  result <- runEitherT $ KP.evaluateFormat (state^.appSettings.pyKernelAddress) "sheet" "class A(object):\n\tpass\nA()"
-  putStrLn . show $ result
   putStrLn "\nDone."
   return ()
 
