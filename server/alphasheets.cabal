@@ -172,6 +172,7 @@ executable alphasheets-exe
                      , unordered-containers
                      , lens
                      , split
+                     , unix
   PkgConfig-Depends:   python
   c-sources:           src/AS/Kernels/Python/cdefs.c
   default-language:    Haskell2010

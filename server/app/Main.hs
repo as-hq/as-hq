@@ -23,10 +23,13 @@ import AS.Handlers.Misc (handleImportBinary)
 import AS.Types.Locations
 import qualified AS.Kernels.Python.Eval as KP
 
+import System.Posix.Signals
 import Control.Exception
 import Control.Monad (forever, when)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Either
+import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)
 import Data.Maybe hiding (fromJust)
@@ -44,13 +47,13 @@ import qualified Network.WebSockets as WS
 import Language.R.Instance as R
 import Language.R.QQ
 
-import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
 main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
+  blockSignals $ addSignal sigPIPE emptySignalSet
   -- initializations
   putStrLn "STARTING APP"
   state <- initApp
@@ -91,8 +94,11 @@ initApp = do
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
-initDebug _ = do
+initDebug mstate = do
   putStrLn "\n\nEvaluating debug statements..."
+  state <- readMVar mstate
+  result <- runEitherT $ KP.evaluateFormat (state^.appSettings.pyKernelAddress) "sheet" "class A(object):\n\tpass\nA()"
+  putStrLn . show $ result
   putStrLn "\nDone."
   return ()
 

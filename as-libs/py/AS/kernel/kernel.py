@@ -38,9 +38,13 @@ class ASKernel(object):
 
   def handle_incoming(self):
     recvMsg = json.loads(self.socket.recv())
-    replyMsg = self.process_message(recvMsg)
-    # print "sending reply:", replyMsg
-    self.socket.send(json.dumps(replyMsg))
+    try:
+      replyMsg = self.process_message(recvMsg)
+      self.socket.send(json.dumps(replyMsg))
+    except Exception as e:
+      replyMsg = {'type': 'error', 'error': repr(e)}
+      print "Kernel error: ", e
+      self.socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
     print 'processing', msg['type']
