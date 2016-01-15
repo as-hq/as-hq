@@ -169,11 +169,14 @@ forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
 forkHeartbeat conn interval = forkIO (dieSilently `handle` go 1) >> return ()
   where
     go i = do
+      putStrLn "PING"
       threadDelay (interval * 1000)
       WS.sendTextData conn ("PING" :: T.Text)
       go (i+1)
     dieSilently e = case fromException e of 
-      Just asyncErr -> throwIO (asyncErr :: AsyncException) >> return ()
+      Just asyncErr -> putStrLn ("Heartbeat error: " ++ show asyncErr) >> 
+                        throwIO (asyncErr :: AsyncException) >> 
+                        return ()
       Nothing       -> return ()
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
