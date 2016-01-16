@@ -780,36 +780,11 @@ export default class ASSpreadsheet
   // Render
 
   render(): ReactElement {
-    let {behavior, width, height} = this.props; //should also have onReady
-
-    const outerStyle = {
-      position: 'relative',
-      display: 'flex',
-      overflow: 'hidden',
-      cursor: this.state.cursorStyle,
-      flexGrow: 1,
-      flexShrink: 1,
-      flexBasis: 'auto'
-    };
-
-    const sheetContainerStyle = {
-      display: 'flex',
-      flexDirection: 'column',
-      flexGrow: 1,
-      flexShrink: 1,
-      flexBasis: 'auto'
-    };
-
-    const sheetStyle = {
-      flexGrow: 1,
-      flexShrink: 1,
-      width: '100%',
-      height: '100%',
-      cursor: 'auto'
-    };
+    const {behavior, width, height} = this.props; //should also have onReady
+    const {onTextBoxDeferredKey, setFocus, hideToast, onFileDrop} = this.props;
+    const {scrollPixels, scroll, overlays, cursorStyle} = this.state;
 
     let behaviorElement;
-    let self = this;
     switch (behavior) {
       case 'json':
         behaviorElement = <fin-hypergrid-behavior-json />;
@@ -820,41 +795,71 @@ export default class ASSpreadsheet
     }
 
     return (
-      // NOTE: the 50px is for the scrollbar to show up.
-      <Dropzone onDrop={this.props.onFileDrop} disableClick={true} style={outerStyle}>
-        <div ref="sheet" style={sheetContainerStyle} >
+      <Dropzone onDrop={onFileDrop}
+                disableClick={true}
+                style={{cursor: cursorStyle, ...styles.root}}>
+
+        <div ref="sheet" style={styles.sheetContainer} >
+
           <fin-hypergrid
-            style={sheetStyle}
+            style={styles.sheet}
             ref="hypergrid"
-            onKeyDown={this._onKeyDown.bind(this)}
-            onKeyUp={this._onKeyUp.bind(this)}
-            onFocus={this._onFocus.bind(this)}>
+            onKeyDown={(evt) => this._onKeyDown(evt)}
+            onKeyUp={(evt) => this._onKeyUp(evt)}
+            onFocus={(evt) => this._onFocus(evt)}>
               {behaviorElement}
           </fin-hypergrid>
 
-          {this.state.overlays.map((overlay) =>
+          {overlays.map((overlay) =>
             <ASOverlay key={overlay.id}
                        overlay={overlay}
-                       scrollPixels={self.state.scrollPixels}
-                       isVisible={self.isVisible} />
+                       scrollPixels={scrollPixels}
+                       isVisible={(col, row) =>
+                         this.isVisible(col, row)} />
           )}
 
           <ASRightClickMenu ref="rightClickMenu"
-                            restoreFocus={this._restoreFocus.bind(this)}/>
+                            restoreFocus={() => this._restoreFocus()} />
 
-          <Textbox
-            ref="textbox"
-            scroll={self.state.scroll}
-            onDeferredKey={this.props.onTextBoxDeferredKey}
-            hideToast={this.props.hideToast}
-            position={this.getTextboxPosition.bind(this)}
-            setFocus={this.props.setFocus} />
+          <Textbox ref="textbox"
+                   scroll={scroll}
+                   onDeferredKey={onTextBoxDeferredKey}
+                   hideToast={hideToast}
+                   position={() => this.getTextboxPosition()}
+                   setFocus={setFocus} />
 
         </div>
       </Dropzone>
     );
   }
 }
+
+const styles = {
+    root: {
+      position: 'relative',
+      display: 'flex',
+      overflow: 'hidden',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    },
+
+    sheetContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 'auto'
+    },
+
+    sheet: {
+      flexGrow: 1,
+      flexShrink: 1,
+      width: '100%',
+      height: '100%',
+      cursor: 'auto'
+    }
+};
 
 // TODO: is behavior actually needed?
 ASSpreadsheet.defaultProps = {
