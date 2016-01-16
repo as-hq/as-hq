@@ -60,7 +60,7 @@ import Language.R.QQ
 
 main :: IO ()
 main = R.withEmbeddedR R.defaultConfig $ do
-  blockSignals $ addSignal sigPIPE emptySignalSet
+  _ <- installHandler sigPIPE Ignore Nothing
   -- initializations
   putStrLn "STARTING APP"
   state <- initApp
