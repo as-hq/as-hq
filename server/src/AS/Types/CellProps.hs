@@ -151,7 +151,7 @@ data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq,
 -- An offset of +1 means that there's one more decimal place; 1.22 -> 1.220
 data Format = Format {formatType :: FormatType, numDecimalOffset :: Maybe Int} deriving (Show, Read, Eq, Generic)
 -- The Formatted monad possibly gives formatting to an original value
-data Formatted a = Formatted { orig :: a, format :: Maybe Format}
+data Formatted a = Formatted { orig :: a, format :: Maybe Format }
 
 instance Functor Formatted where
   fmap = liftM

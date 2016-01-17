@@ -73,12 +73,12 @@ handleTransformProp f uc state rng = do
   errOrUpdate <- DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) id
   broadcastErrOrUpdate state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
-handleSetProp :: CellProp -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
-handleSetProp prop = handleTransformProp (setProp prop)
+handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleSetProp uc state prop rng = handleTransformProp (setProp prop) uc state rng
 
 -- Change the decimal precision of all the values in a range
-handleChangeDecimalPrecision :: Int -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
-handleChangeDecimalPrecision i = handleTransformProp (upsertProp defaultDecProp updateDecPrecision)
+handleChangeDecimalPrecision :: ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
+handleChangeDecimalPrecision uc state i rng = handleTransformProp (upsertProp defaultDecProp updateDecPrecision) uc state rng
   where
     defaultDecProp = ValueFormat (Format NoFormat (Just i))
     updateDecPrecision (ValueFormat (Format fType Nothing)) = ValueFormat $ Format fType $ Just i
