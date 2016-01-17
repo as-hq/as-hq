@@ -1,7 +1,6 @@
 /* @flow */
 
 import React from 'react';
-let request = require('superagent');
 
 import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';

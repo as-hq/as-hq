@@ -12,6 +12,7 @@ import type {
 } from './menu-bar/types';
 
 import React from 'react';
+import request from 'superagent';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -108,9 +109,23 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
             file({
               title: 'Import CSV',
               callback(files) {
+                // TODO(joel): this should be part of the api, not done inline
+                const req = request.post(FileImportDialog.url);
                 for (let i = 0; i < files.length; i++) {
-                  FileImportDialog.importCSVCallback(files[i]);
+                  const file = files[i];
+                  req.attach(file.name, file);
                 }
+
+                req.end((err, res) => {
+                  if (err || !res.ok) {
+                    console.error(err);
+                    alert('Could not import files');
+                  } else {
+                    for (let i = 0; i < files.length; i++) {
+                      FileImportDialog.importCSVCallback(files[i]);
+                    }
+                  }
+                });
               },
             }),
 
