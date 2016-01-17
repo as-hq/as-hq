@@ -182,7 +182,7 @@ talk client state = forever $ do
     WS.Binary b -> handleImportBinary client state b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processMessage client state m
-      Left s -> printWithTime ("SERVER ERROR: unable to decode message " 
+      Left s -> printWithTimeForced ("SERVER ERROR: unable to decode message " 
                                ++ (show msg) 
                                ++ "\n\n due to parse error: " 
                                ++ s)
