@@ -58,6 +58,8 @@ removePropEndware _ _ _ = return ()
 -- We want to run a dispatch cycle so that the possibly new formats can propagate; if A1 is now a percent and B1 depended on A1, 
 -- then B1 may now have a percent format as well. This isn't necessary for many props, however, (bold doesn't propagate)
 -- so a future refactor of props should address this. 
+-- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
+-- to update when you change their precision. 
 handleTransformProp :: (ASCellProps -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleTransformProp f uc state rng = do
   let locs = rangeToIndices rng
@@ -65,8 +67,11 @@ handleTransformProp f uc state rng = do
   cells <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 
   let cells' = map (cellProps %~ f) cells
-  errOrUpdate <- DP.runDispatchCycle state cells' DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate state uc errOrUpdate
+  -- Update the DB with the new cells, these won't be re-evaluated
+  setCells conn cells'
+  -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
+  errOrUpdate <- DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) id
+  broadcastErrOrUpdate state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
 handleSetProp :: CellProp -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleSetProp prop = handleTransformProp (setProp prop)

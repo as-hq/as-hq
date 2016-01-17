@@ -18,7 +18,7 @@ module AS.Types.CellProps
     removeProp, 
     emptyProps,
     upsertProp,
-    filterOutBadFormats,
+    filterProps,
     Format(..),
     FormatType(..), 
     Formatted(..), 
@@ -139,9 +139,9 @@ upsertProp defaultProp transformProp cp@(ASCellProps m cm) = if (hasPropType (pr
   else setProp defaultProp cp
 
 -- In the delete handlers, you may want to removeFormats from some cells and not others, this is a helper function for that. 
--- It filters over one of the maps in ASCellProps.
-filterOutBadFormats :: (CellProp -> Bool) -> ASCellProps -> ASCellProps
-filterOutBadFormats f (ASCellProps up cp) = ASCellProps (M.filter f up) cp
+-- It filters over one of the maps in ASCellProps
+filterProps :: (CellProp -> Bool) -> ASCellProps -> ASCellProps
+filterProps f (ASCellProps up cp) = ASCellProps (M.filter f up) cp
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Formats

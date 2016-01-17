@@ -67,6 +67,10 @@ sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
 sheetUpdateFromCells :: [ASCell] -> SheetUpdate
 sheetUpdateFromCells cs = SheetUpdate (Update cs []) emptyUpdate emptyUpdate emptyUpdate
 
+-- This would be better written using lenses, but this seems OK for now. 
+addCellsToUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
+addCellsToUpdate cs (SheetUpdate (Update a b) x y z) = SheetUpdate (Update (a ++ cs) b) x y z
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 

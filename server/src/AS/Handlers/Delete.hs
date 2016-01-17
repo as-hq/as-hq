@@ -22,13 +22,13 @@ import AS.Config.Settings as CS
 import AS.Reply
 
 -- Deleting a cell keeps some of the formats but deletes others. This is the current predicate for formats
--- to remove upon deletion. 
-isBadFormat :: CellProp -> Bool
-isBadFormat (ValueFormat (Format Date _)) = True
-isBadFormat _ = False
+-- to keep upon deletion. 
+shouldKeepFormatAfterDelete :: CellProp -> Bool
+shouldKeepFormatAfterDelete (ValueFormat (Format Date _)) = False
+shouldKeepFormatAfterDelete _ = True
 
 removeBadFormats :: ASCell -> ASCell
-removeBadFormats = cellProps %~ filterOutBadFormats isBadFormat
+removeBadFormats = cellProps %~ filterProps shouldKeepFormatAfterDelete
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleDelete uc state rng = do
