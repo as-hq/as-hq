@@ -19,7 +19,7 @@ class Format:
         attrNames = ['bold', 'italic', 'underline', 'url', 'textColor', 'fillColor']
         shownAttrs = [self.__showAttribute(attrName) for attrName in attrNames]
         nonEmptyShownAttrs = [x for x in shownAttrs if x != None]
-        return "[" + ','.join(nonEmptyShownAttrs) + "]"
+        return repr(nonEmptyShownAttrs)
 
     def __showBold(self):
       if self.bold == True: 

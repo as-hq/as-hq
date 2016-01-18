@@ -58,8 +58,6 @@ evaluateLambdaFormat :: KernelAddress -> ASSheetId -> LambdaConditionExpr -> ASV
 evaluateLambdaFormat addr sid lambdaExpr val = do 
   let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ (showValue Python (CellValue val)) ++ ")"
   (EvaluateFormatReply format e) <- sendMessage addr $ EvaluateFormatRequest sid evalExpr
-  printDebugT "format" format
-  printDebugT "e" e
   return $ case format of 
     Just format -> case R.parseFormatValue format of 
       Nothing -> FormatError "Failed to interpret Python result as string." -- #needsrefactor should not hard-code
