@@ -1,0 +1,12 @@
+/bower_components/
+/dist/
+/node_modules/
+**/npm-debug.*
+**/.DS_Store
+**/*.swp
+/.idea/
+/src/js/Environment.js
+/flow-src/
+!/flow-src/declarations
+/flow/
+/flow

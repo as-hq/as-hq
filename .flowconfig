@@ -1,0 +1,12 @@
+[ignore]
+.*/node_modules/.*
+node_modules/shortid
+
+[include]
+
+[libs]
+./declarations
+
+[options]
+unsafe.enable_getters_and_setters=true
+suppress_comment= \\(.\\|\n\\)*\\$FlowFixMe
