@@ -11,7 +11,7 @@ kill_existing()
 
 kill_existing || true
 
-tmux new -s "backend" -d "./start_backend.sh"
+tmux new -s "backend" -d "./start_backend.sh $1"
 tmux new -s "graph_db" -d "cd ../backend/graph-database; ./server"
 tmux new -s "python_kernel" -d "cd ../backend/pykernel; python server.py"
 tmux new -s "static_server" -d "cd ../backend/server/static; python -m SimpleHTTPServer"
