@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cd ../server
+cd ../backend/server
 until stack exec alphasheets-exe; do
     if [ $? -eq 137 ]
         then exit
