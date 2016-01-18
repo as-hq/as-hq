@@ -14,27 +14,27 @@ let Tooltip = require("react-tooltip");
 
 
 type ToolbarTextFieldDefaultProps = {
-  width: number; 
-  height: number; 
-  spacing: number; 
-  onClick: (e: SyntheticMouseEvent) => void; 
-  showTooltip: boolean; 
-  arrowSize: number; 
+  width: number;
+  height: number;
+  spacing: number;
+  onClick: (e: SyntheticMouseEvent) => void;
+  showTooltip: boolean;
+  arrowSize: number;
 };
 
 type ToolbarTextFieldProps = {
-  displayValue: string; 
-  onClick: (e: SyntheticMouseEvent) => void; 
-  width: number; 
-  height: number; 
-  spacing: number; 
-  tooltip: string; 
-  showTooltip: boolean; 
-  arrowSize: number; 
+  displayValue: string;
+  onClick: (e: SyntheticMouseEvent) => void;
+  width: number;
+  height: number;
+  spacing: number;
+  tooltip: string;
+  showTooltip: boolean;
+  arrowSize: number;
 };
 
 type ToolbarTextFieldState = {
-  cursor: string; 
+  cursor: string;
 };
 
 export default class ToolbarTextField
@@ -43,7 +43,7 @@ export default class ToolbarTextField
   constructor(props: ToolbarTextFieldProps) {
     super(props);
 
-    this.state = { 
+    this.state = {
       cursor: 'auto'
     };
   }
@@ -54,7 +54,7 @@ export default class ToolbarTextField
   /*************************************************************************************************************************/
   // Responding to events
 
-  _onMouseOver(e: SyntheticMouseEvent) {
+  _onMouseOver() {
     this.setState({cursor: 'pointer'});
   }
 
@@ -65,13 +65,13 @@ export default class ToolbarTextField
     return {
       outer: {
         display: 'inline-block', // should stack horizontally with other toolbar components
-        position: 'relative', 
-        top: '50%', 
-        transform: 'translateY(-50%)', 
-        width: this.props.width, 
+        position: 'relative',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        width: this.props.width,
         height: this.props.height,
         cursor: this.state.cursor,
-        marginLeft: this.props.spacing, // spacing 
+        marginLeft: this.props.spacing, // spacing
       },
       arrow: { // arrow should be towards the right
         position: 'absolute',
@@ -101,41 +101,51 @@ export default class ToolbarTextField
   // Return a component with underline, arrow, and text, and a tooltip if applicable
   // There's some redundancy that can probably be eliminated with React helpers
   render(): React.Element {
-    let styles = this.getStyles(); 
-    // We have an outer div, possibly with tooltip info, inside which is the displayValue, arrow, and underline, each styled
-    // All of the children are absolutely positioned with respect to the outer div
+    let styles = this.getStyles();
+    // We have an outer div, possibly with tooltip info, inside which is the
+    // displayValue, arrow, and underline, each styled
+    //
+    // All of the children are absolutely positioned with respect to the outer
+    // div
+    //
     // The tooltip itself uses the tooltip as a uid an implements a delay
-    if (this.props.showTooltip) {
-      return (
-        <span style={styles.span} onMouseOver={this._onMouseOver.bind(this)}>
-          <div style={styles.outer} onClick={this.props.onClick} data-for={this.props.tooltip} data-tip={this.props.tooltip} >
-            <div style={styles.label}>
-              {this.props.displayValue}
-            </div>
-            <DropDownArrow style={styles.arrow} />
-            <div style={styles.underline}/>
-          </div>
-          <Tooltip 
-            id={this.props.tooltip}
-            delayHide={50}
-            delayShow={300}
-            place="bottom"
-            type="info"
-            effect="solid"          
-            offset={{'top': 10, 'left': 0}} />
-        </span>
-      );
-    } else {
-      return (
-        <div style={styles.outer} onClick={this.props.onClick} >
-          <div style={styles.label}>
-            {this.props.displayValue}
-          </div>
-          <DropDownArrow style={styles.arrow}/>
-          <div style={styles.underline}/>
+
+    const inner = (
+      <div
+        style={styles.outer}
+        onClick={this.props.onClick}
+        data-for={this.props.tooltip}
+        data-tip={this.props.tooltip}
+      >
+        <div style={styles.label}>
+          {this.props.displayValue}
         </div>
-      );
-    }
+        <DropDownArrow style={styles.arrow} />
+        <div style={styles.underline} />
+      </div>
+    );
+
+    const tip = (
+      <Tooltip
+        id={this.props.tooltip}
+        delayHide={50}
+        delayShow={300}
+        place="bottom"
+        type="info"
+        effect="solid"
+        offset={{'top': 10, 'left': 0}}
+      />
+    );
+
+    return (
+      <span
+        style={styles.span}
+        onMouseOver={() => this._onMouseOver()}
+      >
+        {inner}
+        {this.props.showTooltip && tip}
+      </span>
+    );
   }
 }
 

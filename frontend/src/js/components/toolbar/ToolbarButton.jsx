@@ -116,11 +116,11 @@ export default class ToolbarButton
     }
   }
 
-  _onMouseEnter(e: SyntheticMouseEvent) {
+  _onMouseEnter() {
     this.setState({hovered: true});
   }
 
-  _onMouseLeave(e: SyntheticMouseEvent) {
+  _onMouseLeave() {
     this.setState({hovered: false});
   }
 
@@ -177,39 +177,43 @@ export default class ToolbarButton
       arrowElement = <DropDownArrow style={arrowStyle} />;
     }
 
-    // Display the tooltip only if the user says so, and if the control isn't visible.
-    // Note that we use tooltip for the tooltipId, so this technically assumes (reasonably) that tooltips are different
-    let buttonElement = (this.props.showTooltip) ?
-      <span>
-        <FlatButton
-          data-for={this.props.tooltip}
-          data-tip={this.props.tooltip}
-          style={buttonStyle}
-          onClick={this._onClick.bind(this)}
-          onMouseLeave={this._onMouseLeave.bind(this)}
-          onMouseEnter={this._onMouseEnter.bind(this)}>
-          {iconElement}
-          {arrowElement}
-        </FlatButton>
-        <Tooltip
-          id={this.props.tooltip}
-          delayHide={50}
-          delayShow={300}
-          place="bottom"
-          type="info"
-          effect="solid"
-          offset={{'top': 10, 'left': 0}} />
-      </span>
-    : <FlatButton
+    // Display the tooltip only if the user says so, and if the control isn't
+    // visible.
+    //
+    // Note that we use tooltip for the tooltipId, so this technically assumes
+    // (reasonably) that tooltips are different
+    const button = (
+      <FlatButton
+        data-for={this.props.tooltip}
+        data-tip={this.props.tooltip}
         style={buttonStyle}
-        onClick={this._onClick.bind(this)}
-        onMouseLeave={this._onMouseLeave.bind(this)}
-        onMouseEnter={this._onMouseEnter.bind(this)}>
+        onClick={e => this._onClick(e)}
+        onMouseLeave={() => this._onMouseLeave()}
+        onMouseEnter={() => this._onMouseEnter()}
+      >
         {iconElement}
         {arrowElement}
-      </FlatButton>;
+      </FlatButton>
+    );
 
-    return buttonElement;
+    const tip = (
+      <Tooltip
+        id={this.props.tooltip}
+        delayHide={50}
+        delayShow={300}
+        place="bottom"
+        type="info"
+        effect="solid"
+        offset={{'top': 10, 'left': 0}}
+      />
+    );
+
+    return (
+      <span>
+        {button}
+        {this.props.showTooltip && tip}
+      </span>
+    );
   }
 
 
