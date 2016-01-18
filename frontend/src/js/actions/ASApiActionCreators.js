@@ -32,6 +32,7 @@ import type {
   ClearSheetServer,
   UpdateWindow,
   SetProp,
+  ChangeDecimalPrecision,
   Delete,
   ToggleProp,
   Evaluate,
@@ -588,10 +589,18 @@ const API = {
 
   setFormat(formatType: FormatType, rng: ASRange) {
     let formatProp: ValueFormat = {
-      tag: "ValueFormat",
-      formatType: formatType
+      tag: 'ValueFormat',
+      valFormat: {tag: 'Format', formatType: formatType, numDecimalOffset: null}
     };
     API.setProp(formatProp, rng);
+  },
+
+  handleChangeDecimalPrecision(i: number, rng: ASRange) {
+    let msg: ChangeDecimalPrecision = {
+      tag: "ChangeDecimalPrecision",
+      contents: [i, rng.obj()]
+    };
+    API.sendMessageWithAction(msg);
   },
 
   setUrl(urlLink: string, rng: ASRange) {

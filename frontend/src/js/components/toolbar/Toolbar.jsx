@@ -9,6 +9,8 @@ import {IconMenu, MenuItem, IconButton} from 'material-ui';
 import API from '../../actions/ASApiActionCreators';
 import Constants from '../../Constants';
 
+import SelectionStore from '../../stores/ASSelectionStore';
+
 import ToolbarButton from './ToolbarButton.jsx';
 import VaryPropButton from './VaryPropButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
@@ -84,6 +86,11 @@ export default class ASToolbar
 
     let {toolbarStyle, separatorStyle} = this.getStyles();
     let shiftRight = <div style={{display: 'inline-block', marginLeft: 50, position: 'relative'}} />;
+    let handleDecimalChange = (i) => {
+      SelectionStore.withActiveSelection( ({range: rng}) => {
+        API.handleChangeDecimalPrecision(i, rng);
+      });
+    };
 
     return (
       <div style={toolbarStyle} >
@@ -93,9 +100,9 @@ export default class ASToolbar
         <ToolbarButton iconName="print" tooltip="Print (Ctrl+P)" usePushState={false}
           onClick={() => {}} />
         <ToolbarButton iconName="undo" tooltip="Undo (Ctrl+Z)" usePushState={false}
-          onClick={(state) => {API.undo()}} />
+          onClick={(e) => {API.undo();}} />
         <ToolbarButton iconName="redo" tooltip="Redo (Ctrl+Y)" usePushState={false}
-          onClick={(state) => {API.redo()}} />
+          onClick={(e) => {API.redo();}} />
         <ToolbarButton iconName="format_paint" tooltip="Paint format" usePushState={false}
           onClick={() => {}} />
 
@@ -109,10 +116,10 @@ export default class ASToolbar
           propTag="Percentage"
           tooltip="Format as percent"
           iconName="create" />
-        <ToolbarButton iconName="zoom_in" tooltip="Decrease decimal places" usePushState={false}
-          onClick={() => {}}/>
-        <ToolbarButton iconName="zoom_out" tooltip="Increase decimal places" usePushState={false}
-          onClick={() => {}}/>
+        <ToolbarButton iconName="zoom_out" tooltip="Decrease decimal places" usePushState={false}
+          onClick={(e) => {handleDecimalChange(-1);}} />
+        <ToolbarButton iconName="zoom_in" tooltip="Increase decimal places" usePushState={false}
+          onClick={(e) => {handleDecimalChange(1);}} />
         <MoreFormatDropdown />
 
         <div style={separatorStyle} />
