@@ -72,6 +72,15 @@ read' errorReporter str = case (readEither str) of
   Left e -> errorReporter $ "Read failed, because: " ++ e
   Right a -> a
 
+--get :: Q Exp
+--get = appE [|get'|] error
+
+--infix 9 get'
+--get' :: (Ord k, Show k, Show a) => (String -> a) -> M.Map k a -> k -> a
+--get' errorReporter mp key = case M.lookup key mp of
+--  Nothing -> errorReporter $ "Map lookup (get) failed because the key " ++ (show key) ++ "was not found in the map: " ++ (show map)
+--  Just x -> x
+
 -------------------------------------------------------------------------------------------------------------------------
 -- other standard functions we want
 

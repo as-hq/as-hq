@@ -99,10 +99,10 @@ toEValue (Formatted (NoValue)  _) = Just EBlank
 toEValue v = Nothing
 
 cellToFormattedVal :: Maybe ASCell -> Formatted ASValue
-cellToFormattedVal (Just c) = Formatted cv ft 
+cellToFormattedVal (Just c) = Formatted cv f
   where 
     cv = c^.cellValue
-    ft = getCellFormatType c
+    f = getCellFormat c
 cellToFormattedVal Nothing = return NoValue
 
 -- | The use of unsafePerformIO is temporary. Eventually a lot of this code may move into IO because of

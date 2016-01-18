@@ -87,7 +87,8 @@ instance Client ASUserClient where
       Copy from to                -> handleCopy user state from to
       Cut from to                 -> handleCut user state from to
       ToggleProp prop rng         -> handleToggleProp user state prop rng
-      SetProp prop rng            -> handleSetProp (curState^.dbConn) user prop rng
+      SetProp prop rng            -> handleSetProp user state prop rng
+      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision user state i rng
       Repeat sel                  -> handleRepeat user state sel
       BugReport report            -> handleBugReport user report
       -- JumpSelect            -> handleJumpSelect user state payload

@@ -187,7 +187,7 @@ retrieveValue c = case c of
   Just (Fat fcell) -> DE.recomposeCompositeValue fcell
   Nothing -> CellValue NoValue
 
-formatCell :: Maybe FormatType -> ASCell -> ASCell
+formatCell :: Maybe Format -> ASCell -> ASCell
 formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -222,7 +222,7 @@ evalChain' state (c@(Cell loc xp val ps rk disp):cs) ctx = do
   printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
   res <- if (isEvaluable c)
     then getEvalResult xp
-    else return $ Formatted (EvalResult (CellValue val) disp) (formatType <$> getProp ValueFormatProp ps) 
+    else return $ Formatted (EvalResult (CellValue val) disp) (valFormat <$> getProp ValueFormatProp ps) 
   newContext <- contextInsert state c res ctx
   evalChain state cs newContext
     where 

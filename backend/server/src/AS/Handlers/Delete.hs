@@ -1,5 +1,11 @@
 module AS.Handlers.Delete (handleDelete) where
 
+import Data.List
+import Control.Concurrent
+import Control.Applicative
+import Control.Lens
+import qualified Data.Map as M
+
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Network
@@ -12,15 +18,17 @@ import AS.Types.Updates
 import AS.Util
 import AS.Dispatch.Core
 import AS.DB.API
-
 import AS.Config.Settings as CS
 import AS.Reply
 
-import Data.List
+-- Deleting a cell keeps some of the formats but deletes others. This is the current predicate for formats
+-- to keep upon deletion. 
+shouldKeepFormatAfterDelete :: CellProp -> Bool
+shouldKeepFormatAfterDelete (ValueFormat (Format Date _)) = False
+shouldKeepFormatAfterDelete _ = True
 
-import Control.Concurrent
-import Control.Applicative
-import Control.Lens
+removeBadFormats :: ASCell -> ASCell
+removeBadFormats = cellProps %~ filterProps shouldKeepFormatAfterDelete
 
 handleDelete :: ASUserClient -> MVar ServerState -> ASRange -> IO ()
 handleDelete uc state rng = do
@@ -29,20 +37,6 @@ handleDelete uc state rng = do
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
   errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
   broadcastErrOrUpdate state uc errOrUpdate
-
--- Deleting a cell keeps some of the formats but deletes others. This is the current list of formats
--- to remove upon deletion. 
-badFormats :: [CellProp]
-badFormats = [ValueFormat Date]
-
-removeFormat :: CellProp -> ASCell -> ASCell
-removeFormat p c = if cellHasProp p c then removeCellProp (propType p) c else c
-
-removeFormats :: [CellProp] -> ASCell -> ASCell
-removeFormats ps = foldl' (.) id (map removeFormat ps)
-
-removeBadFormats :: ASCell -> ASCell
-removeBadFormats = removeFormats badFormats
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 -- #lens

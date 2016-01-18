@@ -84,6 +84,7 @@ data ServerAction =
   | UpdateCondFormatRules CondFormatRuleUpdate
   | SetBarProp BarIndex BarProp
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
+  | ChangeDecimalPrecision Int ASRange
   deriving (Show, Read, Eq, Generic)
 
 -- for open, close dialogs
