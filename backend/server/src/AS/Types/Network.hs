@@ -61,7 +61,7 @@ type ClientId = Text
 
 class Client c where
   clientType :: c -> ClientType
-  conn :: c -> WS.Connection
+  clientConn :: c -> WS.Connection
   ownerName :: c -> ASUserId
   clientId :: c -> ClientId
   addClient :: c -> ServerState -> ServerState

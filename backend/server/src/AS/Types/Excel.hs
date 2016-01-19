@@ -310,6 +310,9 @@ instance EType String where
 instance EType ERef where
   extractType (EntityRef r) = Just r
   extractType _ = Nothing
+  getRequired = getRequired' "referenece"
+  getOptional = getOptional' "reference"
+  getOptionalMaybe = getOptionalMaybe' "reference"
 
 instance EType Integer where
   extractType (EntityMatrix (EMatrix 1 1 v)) = extractType $ EntityVal $ V.head v

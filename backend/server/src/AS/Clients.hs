@@ -46,7 +46,7 @@ shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
   clientType uc = User
-  conn = userConn
+  clientConn = userConn
   clientId = sessionId
   ownerName = userId
   addClient uc s@(State ucs dcs dbc port)
@@ -107,7 +107,7 @@ instance Client ASUserClient where
 
 instance Client ASDaemonClient where
   clientType uc = Daemon
-  conn = daemonConn
+  clientConn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
   addClient dc s@(State ucs dcs dbc port)

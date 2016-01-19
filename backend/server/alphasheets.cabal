@@ -154,6 +154,7 @@ executable alphasheets-exe
                        -threaded
                        -with-rtsopts=-N
                        -W
+                       -Werror
   build-depends:       base
                      , alphasheets
                      , aeson

@@ -290,11 +290,11 @@ handleImportBinary c mstate bin = do
   case (S.decodeLazy bin :: Either String ExportData) of
     Left s ->
       let msg = failureMessage $ "could not process binary file, decode error: " ++ s
-      in U.sendMessage msg (conn c)
+      in U.sendMessage msg (clientConn c)
     Right exportedData -> do
       DX.importSheetData (state^.appSettings) (state^.dbConn) exportedData
       let msg = ClientMessage $ AskUserToOpen $ exportDataSheetId exportedData
-      U.sendMessage msg (conn c)
+      U.sendMessage msg (clientConn c)
 
 handleExport :: ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
 handleExport uc state sid = do

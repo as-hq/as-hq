@@ -25,7 +25,7 @@ import qualified AS.Kernels.Python.Eval as KP
 
 import System.Posix.Signals
 import Control.Exception
-import Control.Monad (forever, when)
+import Control.Monad (forever, when, void)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 import Control.Lens hiding ((.=))
@@ -65,17 +65,15 @@ main = R.withEmbeddedR R.defaultConfig $ do
   state <- initApp
   curState <- readMVar state
   let settings = curState^.appSettings
-
-  if isDebug -- set in Settings.hs
-    then initDebug state
-    else return ()
+   -- set in Settings.hs
+  when isDebug $ initDebug state
 
   G.recompute (settings^.graphDbAddress) (curState^.dbConn)
   putStrLn "RECOMPUTED DAG"
 
-  putStrLn $ "server started on port " ++ (show $ settings^.backendWsPort)
+  putStrLn $ "server started on port " ++ show (settings^.backendWsPort)
   runServer state
-  putStrLn $ "DONE WITH MAIN"
+  putStrLn "DONE WITH MAIN"
 
 initApp :: IO (MVar ServerState)
 initApp = do
@@ -135,8 +133,8 @@ handleFirstMessage state conn msg =
     Just (ServerMessage (Initialize cuid csid)) -> do -- first mesage is user init
       user <- initUser conn cuid csid
       catch (initClient user state) (handleRuntimeException user state)
-    Just (ServerMessage (InitializeDaemon parentId parentLoc)) -> do -- first message is daemon init
-      let daemon = initDaemonFromMessageAndConn conn parentId parentLoc
+    Just (ServerMessage (InitializeDaemon pid pLoc)) -> do -- first message is daemon init
+      let daemon = initDaemonFromMessageAndConn conn pid pLoc
       initClient daemon state
     _ -> do -- first message is neither
       putStrLn "First message not an initialization message"
@@ -154,57 +152,58 @@ preprocess conn state = do
   logDir <- getServerLogDir
   fileContents <- AS.Prelude.readFile (logDir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && ($head l) /= '#') fileLinesWithNumbers
+      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && $head l /= '#') fileLinesWithNumbers
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
-    putStrLn ("PROCESSING LINE " ++ (show i) ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
+    putStrLn ("PROCESSING LINE " ++ show i ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
     let win = Window (T.pack sid) (Coord (-1) (-1)) (Coord (-1) (-1))
         cid = T.pack uid
         mockUc = UserClient cid conn win (T.pack "")
     curState <- readMVar state
-    when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (\s -> return $ addClient mockUc s)
+    when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
     processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
-  liftIO $ modifyMVar_ state (\s -> return $ addClient client s) -- add client to state
+  liftIO $ modifyMVar_ state (return . addClient client) -- add client to state
   printWithTime "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
 talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
-  dmsg <- WS.receiveDataMessage (conn client)
+  dmsg <- WS.receiveDataMessage (clientConn client)
   case dmsg of 
     WS.Binary b -> handleImportBinary client state b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processMessage client state m
       Left s -> printWithTimeForced ("SERVER ERROR: unable to decode message " 
-                               ++ (show msg) 
+                               ++ show msg
                                ++ "\n\n due to parse error: " 
                                ++ s)
 
 forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
-forkHeartbeat conn interval = forkIO (go 1 `catch` dieSilently) >> return ()
+forkHeartbeat conn interval = void $ forkIO (go 1 `catch` dieSilently)
   where
     go i = do
       threadDelay (interval * 1000)
       WS.sendTextData conn ("PING" :: T.Text)
       go (i+1)
     dieSilently e = case fromException e of 
-      Just asyncErr -> putStrLn ("Heartbeat error: " ++ show asyncErr) >> 
-                        throwIO (asyncErr :: AsyncException) >> 
-                        return ()
+      Just asyncErr -> do
+        putStrLn ("Heartbeat error: " ++ show asyncErr)
+        throwIO (asyncErr :: AsyncException)
+        return ()
       Nothing       -> return ()
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
-  let logMsg = "Runtime error caught: " ++ (show e)
+  let logMsg = "Runtime error caught: " ++ show e
   putStrLn logMsg
   logError logMsg (userCommitSource user)
-  settings <- view appSettings <$> readMVar state
+  -- settings <- view appSettings <$> readMVar state
   purgeZombies state
   runServer state
 
@@ -215,8 +214,8 @@ handleRuntimeException user state e = do
 purgeZombies :: MVar ServerState -> IO ()
 purgeZombies state = do 
   ucs <- view userClients <$> readMVar state
-  (flip mapM_) ucs (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
-                                 (onDisconnect' uc state))
+  mapM_ (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
+                      (onDisconnect' uc state)) ucs
 
 -- There's gotta be a cleaner way to do this... but for some reason even typecasting 
 -- (\e -> onDisconnect uc state) :: (SomeException -> IO()) didn't work...
@@ -229,11 +228,11 @@ processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processMessage client state message = do
   dbConnection <- view dbConn <$> readMVar state -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
-  if (isPermissible || isDebug)
+  if isPermissible || isDebug
     then handleServerMessage client state message
-    else sendMessage (failureMessage "Insufficient permissions") (conn client)
+    else sendMessage (failureMessage "Insufficient permissions") (clientConn client)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do
   printWithTime "Client disconnected"
-  liftIO $ modifyMVar_ state (\s -> return $ removeClient user s) -- remove client from server
+  liftIO $ modifyMVar_ state (return . removeClient user) -- remove client from server
