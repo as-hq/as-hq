@@ -20,8 +20,9 @@ var Constants = Object.assign({
   // network parameters
   getBackendUrl(protocol: string, port: string): string {
     // note: "procotol" is "ws", "http", etc.
-    return protocol + '://' + (Constants.isRemote ? '18.102.225.27' : 'localhost') + ':' + port;
+    return protocol + '://' + (Constants.isRemote ? Constants.BACKEND_REMOTE_HOST : 'localhost') + ':' + port;
   },
+  BACKEND_REMOTE_HOST: '18.102.225.27',
   BACKEND_WS_PORT: '5000',
   BACKEND_STATIC_PORT: '8000',
   BACKEND_IMPORT_PORT: '9000',
