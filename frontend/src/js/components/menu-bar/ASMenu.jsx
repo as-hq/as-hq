@@ -59,13 +59,15 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
         <FlatButton
           label={title}
           style={_Styles.menu}
-          onTouchTap={this._handleMenuClick.bind(this)}
-          onMouseEnter={this._handleMenuHover.bind(this)} />
+          onTouchTap={() => this._handleMenuClick()}
+          onMouseEnter={() => this._handleMenuHover()}
+        />
         <Popover
           anchorOrigin={CONST_PROPS.anchorOrigin}
           anchorEl={anchor}
           open={open}
-          onRequestClose={this._handleMenuRequestClose.bind(this)} >
+          onRequestClose={() => this._handleMenuRequestClose()}
+        >
           <Menu
             style={_Styles.menuDropRoot}
             {...CONST_PROPS.menuProps} >
@@ -77,7 +79,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
   }
 
   _getMenuItems(): Array<React.Element> {
-    return this.props.menuItems.map(this._getMenuItem.bind(this));
+    return this.props.menuItems.map(item => this._getMenuItem(item));
   }
 
   _getMenuItem(menuItem: MenuItemSpec): React.Element {
@@ -85,14 +87,16 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
       case 'NestedMenuSpec':
         return (
           <MenuItem primaryText={menuItem.title}>
-            {menuItem.menuItems.map(this._getMenuItem.bind(this))}
+            {menuItem.menuItems.map(item => this._getMenuItem(item))}
           </MenuItem>
         );
       case 'SimpleItemSpec':
+        const simpleItem : SimpleItemSpec = menuItem;
         return (
           <MenuItem
             primaryText={menuItem.title}
-            onTouchTap={this._handleMenuItemClick(menuItem).bind(this)} />
+            onTouchTap={() => this._handleMenuItemClick(simpleItem)}
+          />
         );
       case 'FileItemSpec':
         // clickjack by covering the menu item in this transparent file input
@@ -151,11 +155,9 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
     this.props.onHover();
   }
 
-  _handleMenuItemClick(menuItem: SimpleItemSpec): Callback {
-    return () => {
-      menuItem.callback();
-      this._handleMenuRequestClose();
-    };
+  _handleMenuItemClick(menuItem: SimpleItemSpec) {
+    menuItem.callback();
+    this._handleMenuRequestClose();
   }
 
   _handleFileItemClick(fileItem: FileItemSpec) {

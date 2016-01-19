@@ -33,18 +33,21 @@ export default class ToolbarController
   extends React.Component<ToolbarControllerDefaultProps, ToolbarControllerProps, ToolbarControllerState>
 {
 
+  _boundCellChangeListener: () => void;
+
   constructor(props: ToolbarController) {
     super(props);
   }
 
   componentDidMount() {
-    SelectionStore.addChangeListener(this._onActiveCellChange.bind(this));
-    CellStore.addChangeListener(this._onActiveCellChange.bind(this));
+    this._boundCellChangeListener = () => this._onActiveCellChange();
+    SelectionStore.addChangeListener(this._boundCellChangeListener);
+    CellStore.addChangeListener(this._boundCellChangeListener);
   }
 
   componentWillUnmount() {
-    SelectionStore.removeChangeListener(this._onActiveCellChange.bind(this));
-    CellStore.removeChangeListener(this._onActiveCellChange.bind(this));
+    SelectionStore.removeChangeListener(this._boundCellChangeListener);
+    CellStore.removeChangeListener(this._boundCellChangeListener);
   }
 
   /*

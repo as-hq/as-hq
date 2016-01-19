@@ -1,5 +1,6 @@
-let React = require('react/addons');
-let ReactTransitionGroup = React.addons.TransitionGroup;
+import React from 'react';
+import {findDOMNode} from 'react-dom';
+import ReactTransitionGroup from 'react-addons-transition-group';
 
 import {Mixins, Utils} from 'material-ui';
 import Menu from 'material-ui/lib/menus/menu';
@@ -145,7 +146,7 @@ export default React.createClass({
         //Set focus on the icon button when the menu close
         if (isKeyboard) {
           let iconButton = this.refs[this.state.iconButtonRef];
-          React.findDOMNode(iconButton).focus();
+          findDOMNode(iconButton).focus();
           iconButton.setKeyboardFocus();
         }
       });

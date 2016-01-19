@@ -107,7 +107,6 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
   }
 
   _getSourceValues(): ?(ASCartesianValues | ASPolarValues) {
-    console.log("valuerange in _getSourceValues:" + JSON.stringify(this.state.valueRange));
     let {valueRange, chartType} = this.state;
     if (valueRange) {
       let vals = CellStore.getCells(valueRange)
@@ -140,7 +139,6 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
 
       return CU.reduceNestedArrayStr(plotLabels);
     } else if (valueRange) {
-      console.log("Generating plot labels");
       let {tl, br} = valueRange;
       return CU.generatePlotLabels(br.col - tl.col + 1);
     } else { return null; }
@@ -154,7 +152,6 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
       plotLabels: this._getPlotLabels(),
       options: {} // no options for now
     };
-    console.log("Generate context: \n\n" + JSON.stringify(ctx));
     return ctx;
   }
 
@@ -198,23 +195,23 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
     this.setState({chartType: chartType});
   }
 
-  _onRangeInputChange(ref: ChartDialogRef, stateField: string): Callback {
-    return () => {
-      if (this.refs[ref]) {
-        let str = this.refs[ref].getValue();
-        let newState = {};
-        if (U.Parsing.isFiniteExcelRef(str)) { // doesn't work with A:A right now, because that's not doable on frontend.
-          let rng = ASRange.fromExcelString(str);
-          newState[stateField] = rng;
-        } else {
-          newState[stateField] = null;
-        }
-        this.setState(newState);
+  _onRangeInputChange(ref: ChartDialogRef, stateField: string) {
+    if (this.refs[ref]) {
+      let str = this.refs[ref].getValue();
+      let newState = {};
+      if (U.Parsing.isFiniteExcelRef(str)) { // doesn't work with A:A right now, because that's not doable on frontend.
+        let rng = ASRange.fromExcelString(str);
+        newState[stateField] = rng;
+      } else {
+        newState[stateField] = null;
       }
-    };
+      this.setState(newState);
+    }
   }
 
-  _onToggleLegend(e: SyntheticEvent, value: boolean) { this.setState({showLegend: value}); }
+  _onToggleLegend(value: boolean) {
+    this.setState({showLegend: value});
+  }
 
   _checkConfigurationErrors(): ErrorMessages {
     let {valueRange, chartType} = this.state;
@@ -245,14 +242,13 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
     let errorMessages = this._checkConfigurationErrors();
     let shouldRenderPreview = Object.keys(errorMessages).length == 0;
     // let ChartLegend = this.refs.generatedChart ? this.refs.generatedChart.generateLegend() : <div />;
-    console.log("Chart config errors: " + JSON.stringify(errorMessages));
 
     return (
       <Dialog
         title="Chart Editor"
         actions={[
           {text: 'Cancel'},
-          {text: 'Create', onTouchTap: this._onSubmitCreate.bind(this)}
+          {text: 'Create', onTouchTap: () => this._onSubmitCreate()}
         ]}
         open={open}
         onRequestClose={onRequestClose} >
@@ -263,7 +259,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
             defaultValue={this._getInitialRangeExpression()}
             hintText="Data Range"
             errorText={errorMessages.valueRangeInput || ''}
-            onChange={this._onRangeInputChange("valueRangeInput", "valueRange").bind(this)}
+            onChange={() => this._onRangeInputChange("valueRangeInput", "valueRange")}
             style={_Styles.inputs} />
           <br />
 
@@ -272,7 +268,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
             hintText="Dataset Label Range"
             errorText={errorMessages.plotLabelRangeInput || ''}
             errorStyle={{color:'orange'}}
-            onChange={this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange").bind(this)}
+            onChange={() => this._onRangeInputChange("plotLabelRangeInput", "plotLabelRange")}
             style={_Styles.inputs} />
 
           <br />
@@ -284,7 +280,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
                 hintText="X-axis Label Range"
                 errorText={errorMessages.xLabelRangeInput || ''}
                 errorStyle={{color:'orange'}}
-                onChange={this._onRangeInputChange("xLabelRangeInput", "xLabelRange").bind(this)}
+                onChange={() => this._onRangeInputChange("xLabelRangeInput", "xLabelRange")}
                 style={_Styles.inputs} />,
               <br />
             ]
@@ -295,13 +291,17 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
           <Toggle
             label="Show legend"
             defaultToggled={true}
-            onToggled={this._onToggleLegend.bind(this)}
+            onToggled={value => this._onToggleLegend(value)}
             labelStyle={_Styles.toggles} />
 
           <br />
 
           <SelectableList
-            valueLink={{value: chartType, requestChange: this._onChartTypeChange.bind(this)}}
+            valueLink={{
+              value: chartType,
+              requestChange: (event, chartType) =>
+                  this._onChartTypeChange(event, chartType)
+            }}
             style={_Styles.inputs} >
             {LIST_ITEMS.map((item) => {
               return ([

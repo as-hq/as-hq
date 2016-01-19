@@ -49,7 +49,6 @@ export default class VaryPropButton
   }
 
   _propagateControlStateChange(nextState: VaryPropButtonState, rng: ASRange) {
-    console.log("setting backend");
     // TODO: Not quite the right function to call here
     switch (this.props.propTag) {
       case "Money":
@@ -86,7 +85,6 @@ export default class VaryPropButton
 
   /* Method that the child control will call after updating its internal state */
   _onClick(e: SyntheticMouseEvent, nextState: VaryPropButtonState) {
-    console.log("in on click in toggle");
     this.refs.controller.onControlStateChange(nextState);
   }
 

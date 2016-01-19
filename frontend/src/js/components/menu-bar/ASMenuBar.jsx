@@ -37,38 +37,27 @@ export default class ASMenuBar extends React.Component<{}, ASMenuBarProps, ASMen
             open={currentMenuIdx === idx}
             title={menu.title}
             menuItems={menu.menuItems}
-            onClick={this._handleMenuClick(idx).bind(this)}
-            onHover={this._handleMenuHover(idx).bind(this)}
-            onRequestClose={this._handleMenuRequestClose(idx).bind(this)} />
+            onClick={() => this._handleMenuClick(idx)}
+            onHover={() => this._handleMenuHover(idx)}
+            onRequestClose={() => this._handleMenuRequestClose()}
+          />
         )}
       </div>
     );
   }
 
   //handlers
-  _handleMenuClick(idx: number): Callback {
-    return () => {
-      this.setState({
-        currentMenuIdx: idx
-      });
-    };
+  _handleMenuClick(currentMenuIdx: number) {
+    this.setState({ currentMenuIdx });
   }
 
-  _handleMenuHover(idx: number): Callback {
-    return () => {
-      if (this.state.currentMenuIdx !== -1) {
-        this.setState({
-          currentMenuIdx: idx
-        });
-      }
-    };
+  _handleMenuHover(currentMenuIdx: number) {
+    if (this.state.currentMenuIdx !== -1) {
+      this.setState({ currentMenuIdx });
+    }
   }
 
-  _handleMenuRequestClose(idx: number): Callback {
-    return () => {
-      this.setState({
-        currentMenuIdx: -1
-      });
-    };
+  _handleMenuRequestClose() {
+    this.setState({ currentMenuIdx: -1 });
   }
 }

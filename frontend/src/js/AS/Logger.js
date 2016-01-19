@@ -1,4 +1,4 @@
-let logLevel = 0;
+let logLevel = 1;
 
 function arrayize(args) {
   let ret = new Array(args.length);
@@ -63,7 +63,7 @@ export function setLogLevel(level) {
 }
 
 export function isTesting() {
-  return logLevel > 0; 
+  return logLevel > 0;
 }
 
 export function setTestMode() {
