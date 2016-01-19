@@ -38,6 +38,7 @@ type ASCondFormattingDialogProps = {
 
 type ASCondFormattingDialogState = {
   dialogMode: 'closed' | 'create' | 'edit';
+  currentId: ?string;
   currentFormatter: ?FormatMapConstructor;
   currentRange: ?string;
 };
@@ -52,6 +53,7 @@ export default class ASCondFormattingDialog
 
     this.state = {
       dialogMode: 'closed',
+      currentId: null,
       currentFormatter: null,
       currentRange: null
     };
@@ -91,7 +93,12 @@ export default class ASCondFormattingDialog
 
   render(): React.Element {
     const {open, onRequestClose} = this.props;
-    const {currentFormatter, currentRange, dialogMode} = this.state;
+    const {
+      currentId,
+      currentFormatter,
+      currentRange,
+      dialogMode
+    } = this.state;
 
     const rules = this._getRules();
 
@@ -121,6 +128,7 @@ export default class ASCondFormattingDialog
             onDeleteRule={this._onDeleteRule.bind(this)} />
         </Dialog>
         <RuleDialog
+          id={currentId}
           onSubmitRule={(rule) => this._onSubmitRule(rule)}
           open={dialogMode !== 'closed'}
           onRequestClose={() => this._onCloseRule()}
@@ -159,6 +167,7 @@ export default class ASCondFormattingDialog
 
     this.setState({
       dialogMode: "create",
+      currentId: null,
       currentFormatter: defaultFormatter,
       currentRange: defaultRangeStr
     });
@@ -167,6 +176,7 @@ export default class ASCondFormattingDialog
   _onEditRule(ruleId: string) {
     CFStore.withRuleById(ruleId, (rule) => {
       this.setState({
+        currentId: ruleId,
         currentFormatter: rule.formatMapConstructor, // xcxc
         currentRange: rule.cellLocs[0].toExcel().toString(),
         dialogMode: 'edit'
