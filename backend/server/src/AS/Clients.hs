@@ -97,7 +97,7 @@ instance Client ASUserClient where
       Decouple                    -> handleDecouple user state
       UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules user state cfru
       GetBar bInd                 -> handleGetBar user state bInd
-      SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
+      SetBarProp bInd prop        -> handleSetBarProp user curState bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test streaming when frontend hasn't been implemented yet
