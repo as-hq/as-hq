@@ -23,7 +23,7 @@ broadcastTo state sids message = do
       affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sids) ucsSheetIds
   (flip mapM_) affectedUsers $ \(UserClient _ conn _ _) -> sendMessage message conn
 
--- | Given a message that's either a failure or updatea message, only send (to each user) the cells in their viewing window. 
+-- Given a message that's either a failure or updatea message, only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 
 broadcastErrOrUpdate :: MVar ServerState -> ASUserClient -> Either ASExecError SheetUpdate -> IO ()
 broadcastErrOrUpdate _ orig (Left err) = sendToOriginal orig $ makeErrorMessage err

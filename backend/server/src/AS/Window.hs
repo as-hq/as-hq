@@ -71,7 +71,6 @@ getScrolledLocs w1@(Window _ tl br) w2@(Window sheetid tl' br')
   | windowsIntersect w1 w2 = getUncoveredLocs sheetid overlapping (tl', br')
   | otherwise = [(Range sheetid (tl', br'))]
     where 
-      -- #Question: timchu, why is y the col? The code was implemented this way though before I touched it.
       y  = view col tl ; x  = view row tl ; y2  = view col br ; x2  = view row br
       y' = view col tl'; x' = view row tl'; y2' = view col br'; x2' = view row br'
       overlapping = (Coord (max y y') (max x x'), Coord (min y2 y2')  (min x2 x2'))

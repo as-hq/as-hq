@@ -70,7 +70,7 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
         header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
         return <$> execEvalInLang (state^.appSettings) header xpWithValuesSubstituted 
-        -- ^ didn't short-circuit, proceed with eval as usual
+        -- didn't short-circuit, proceed with eval as usual
 
 -- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
 -- DEPRECATED for now

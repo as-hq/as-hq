@@ -54,6 +54,7 @@ evaluate addr = evaluateWithScope addr Cell
 evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader addr = evaluateWithScope addr Header
 
+-- #needsrefactor Should not hard core errors
 evaluateLambdaFormat :: KernelAddress -> ASSheetId -> LambdaConditionExpr -> ASValue -> EitherTExec FormatResult
 evaluateLambdaFormat addr sid lambdaExpr val = do 
   let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ (showValue Python (CellValue val)) ++ ")"
@@ -62,7 +63,7 @@ evaluateLambdaFormat addr sid lambdaExpr val = do
   printDebugT "e" e
   return $ case format of 
     Just format -> case R.parseFormatValue format of 
-      Nothing -> FormatError "Failed to interpret Python result as string." -- #needsrefactor should not hard-code
+      Nothing -> FormatError "Failed to interpret Python result as string." 
       Just format -> FormatSuccess format
     Nothing  -> case e of 
       Just err -> FormatError err

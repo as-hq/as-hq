@@ -92,8 +92,9 @@ decomposeCompositeValue c (Expanding (VPSeries indices vals)) = Just $ FatCell c
     desc      = RangeDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
     cells     = decomposeCells desc c (A vals)
 
+-- #lens
 decomposeCells :: RangeDescriptor -> ASCell -> Collection -> [ASCell]
-decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet coord) xp _ ps _ disp) coll = case coll of -- #lens
+decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet coord) xp _ ps _ disp) coll = case coll of 
   A arr -> unpack $ zip [r..] arr
       where
         r = coord^.row

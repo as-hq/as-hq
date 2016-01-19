@@ -254,7 +254,7 @@ class EType a where
     -- getRequired is getRequired' with the type passed in as the first argument.
     -- It gets implemented for each instance of EType.
   getRequired :: ExtractArg a
-    -- | If the argument exists and is of the right type, return that type. Else return an error.
+    --  If the argument exists and is of the right type, return that type. Else return an error.
   getRequired' :: String -> ExtractArg a
   getRequired' typeName f i entities
     | length entities < i = Left $ RequiredArgMissing f i
@@ -266,12 +266,12 @@ class EType a where
   getOptional' :: String -> a -> ExtractArg a
   getOptional' typeName defaultVal f i entities
     | length entities < i = Right defaultVal
-    -- | If the value is missing, return default
-    -- | Must be the correct type if it exists as an argument
+    -- If the value is missing, return default
+    -- Must be the correct type if it exists as an argument
     | otherwise = case (entities!!(i-1)) of
       EntityVal EMissing -> Right defaultVal
       otherwise -> getRequired' typeName f i entities
-  -- | Same as above, but no default value (just return Nothing if the argument doesn't exist)
+  -- Same as above, but no default value (just return Nothing if the argument doesn't exist)
   getOptionalMaybe :: ExtractArg (Maybe a)
   getOptionalMaybe' :: String -> ExtractArg (Maybe a)
   getOptionalMaybe' typeName f i entities

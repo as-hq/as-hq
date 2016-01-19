@@ -99,7 +99,7 @@ instance Client ASUserClient where
       SetBarProp bInd prop        -> handleSetBarProp user state bInd prop
       ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
       --Undo         -> $error "Simulated crash"
-      -- ^^ above is to test streaming when frontend hasn't been implemented yet
+      -- above is to test streaming when frontend hasn't been implemented yet
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client

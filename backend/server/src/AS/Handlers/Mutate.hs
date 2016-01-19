@@ -255,7 +255,7 @@ fatCellGotMutated (DragRow r1 r2) (RangeKey (Index _ coord) dims) = case (height
 -- #ExposedConstructor : Coord
 rangeMutate :: MutateType -> (ASRange -> [ASRange])
 rangeMutate mt@(DeleteCol c) rng@(Range sid (Coord tlCol tlRow, Coord blCol blRow))
--- #Question, timchu, 12/29/15. We seem to allow improperly oriented ranges!
+-- Question, timchu, 12/29/15. We seem to allow improperly oriented ranges!
   | tlCol > blCol            = error "improperly oriented range passed into rangeMutate"
   | tlCol == c && blCol == c = []
   | tlCol == c             = [Range sid (Coord tlCol tlRow, Coord (blCol-1) blRow)] -- not (Coord tlCol+1 tlRow, Coord blCol blRow) since the cols gets shifted

@@ -79,16 +79,17 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
 -- Also, there are probably a ton of redundant calls to the DB -- we might be inserting 
 -- into the EvalContext the same cell, pulled from the DB, over and over again in 
 -- different calls to updatedContextForEval.
+-- #lens
 updatedContextForEval :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec EvalContext
 updatedContextForEval state sid ctx xp = do 
   let valMap = virtualCellsMap ctx
-      deps = getDependencies sid xp -- #needsrefactor will compress these all to indices
+      deps = getDependencies sid xp 
       conn = state^.dbConn
   depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-  return ctx { virtualCellsMap = valMap' } -- #lens
+  return ctx { virtualCellsMap = valMap' } 
 
 evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
 evaluateExpression state sid ctx xp@(Expression str lang) = do

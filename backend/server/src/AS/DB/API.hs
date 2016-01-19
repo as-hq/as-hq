@@ -333,9 +333,10 @@ setChunkVolatileCells cells = do
   sadd (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 
+-- #lens
 deleteChunkVolatileCells :: [ASCell] -> Redis ()
 deleteChunkVolatileCells cells = do
-  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells -- #lens
+  let vLocs = mapCellLocation $ filter (hasPropType VolatileProp . view cellProps) cells 
   srem (toRedisFormat VolatileLocsKey) (map S.encode vLocs)
   return ()
 

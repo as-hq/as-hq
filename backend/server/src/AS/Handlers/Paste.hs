@@ -102,7 +102,7 @@ shiftExpressionForCut from offset xp = xp'
     xp'         = replaceRefs (show . shiftFunc) xp
 
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
-shiftRangeKey offset c = case c^.cellRangeKey of -- #lens
+shiftRangeKey offset c = case c^.cellRangeKey of 
   Nothing -> Just c
   Just (RangeKey ind dims) -> ((c &) . set cellRangeKey . Just . flip RangeKey dims) <$> shiftInd offset ind
 

@@ -170,8 +170,8 @@ setRelations addr rels = do
   let relStrs = L.map (L.intercalate relationDelimiter . showRel) rels
   let elements = (show SetRelations):relStrs
   let msg = BS.show $ L.intercalate msgPartDelimiter elements
-  -- ^ You can have multiple relations sent per "batch message", intercalated with a msgPartDelimiter
-  -- ^ Each separate relation is separated by a relationDelimiter
+  -- You can have multiple relations sent per "batch message", intercalated with a msgPartDelimiter
+  -- Each separate relation is separated by a relationDelimiter
   reply <- liftIO $ execGraphQuery addr msg
   -- Map Right [] to Right () and keep error messages the same as usual
   bimapEitherT id (\_ -> ()) $ ((processGraphReply reply) :: EitherTExec [ASIndex])

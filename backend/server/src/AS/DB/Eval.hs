@@ -39,7 +39,8 @@ getCellsWithContext conn EvalContext { virtualCellsMap = mp } locs = map replace
 -- Reference conversions/lookups
 
 -- used by lookUpRef
--- #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
+--  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
+--  #mustrefactor why isn't this left IndexOfPointerNonExistant
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
 referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . view cellValue $ mp M.! i 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
@@ -47,7 +48,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
   let mp = virtualCellsMap ctx
   let cell = mp M.! idx
   case cell^.cellRangeKey of 
-    Nothing -> $error "Pointer to normal expression!" -- #mustrefactor why isn't this left IndexOfPointerNonExistant
+    Nothing -> $error "Pointer to normal expression!" 
     Just rKey -> do 
       case virtualRangeDescriptorAt ctx rKey of
         Nothing -> $error "Couldn't find range descriptor of coupled expression!"
@@ -95,11 +96,12 @@ refToIndices conn (PointerRef p) = do
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
 -- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
 -- TODO: timchu. Only used in shortCircuitDuringEval. This could be renamed to be more clear.
+--  #record after PointerRef
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextDuringEval conn ctx (ColRangeRef cr) = lift $ colRangeWithDBAndContextToIndices conn ctx cr
-refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
+refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do 
   let index = pointerIndex p
   case (M.lookup index mp) of
     Just c -> maybe (left PointerToNormalCell) (return . rangeKeyToIndices) $ c^.cellRangeKey
@@ -112,11 +114,12 @@ refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (P
 -- This is the function we use to convert ref to indices for updating the map PRIOR TO eval. There are some cases where we don't flip a shit. 
 -- For example, if the map currently has A1 as a normal expression, and we have @A1 somewhere downstream, we won't flip a shit, and instead expect that
 -- by the time the pointer is evalled, A1 will have a coupled expression due to toposort. We flip a shit if it's not the case then. 
+--  #record after PointerRef
 refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference -> IO [ASIndex]
 refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextBeforeEval conn ctx (ColRangeRef r) = colRangeWithDBAndContextToIndices conn ctx r
-refToIndicesWithContextBeforeEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do -- #record
+refToIndicesWithContextBeforeEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do 
   let index = pointerIndex p
   case (M.lookup index mp) of 
     Just c -> return $ maybe [] rangeKeyToIndices $ c^.cellRangeKey

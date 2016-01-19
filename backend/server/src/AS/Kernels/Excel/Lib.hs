@@ -134,39 +134,39 @@ functions =  M.fromList $
     ("&"              , infixD eAmpersand),
     (" "              , FuncDescriptor [1,2] [1,2] [] [] (Just 2) (transform eSpace)), -- don't replace refs
 
-    -- | Excel information functions
+    --  Excel information functions
     ("isblank"        , cellType eIsBlank),
     ("iserror"        , cellType eIsError), -- efuncresult
     ("islogical"      , cellType eIsLogical),
     ("isnumber"       , cellType eIsNumber),
 
-    -- | Excel logical functions
+    --  Excel logical functions
     ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
     ("if"             , normalD 3 eIf),
     ("and"            , vectorD eAnd),
     ("or"             , vectorD eOr),
     ("not"            , normalD 1 eNot),
 
-    -- | Excel lookup and reference functions
-      -- | Address(A1:A2,B1:B2) is an Excel valerror in normal mode, but ArrForm works mapping over all args
+    --  Excel lookup and reference functions
+    --  Address(A1:A2,B1:B2) is an Excel valerror in normal mode, but ArrForm works mapping over all args
     ("address"        , FuncDescriptor [] [1..argNumLimit] [] [1..argNumLimit] (Just 5) (transform eAddress)),
-      -- | Column(A1:A2) returns topleft, don't scalarize (func will return matrix, top level takes top left)
-      -- the function will handle ranges (don't map over AF), don't replace refs obv
+    -- Column(A1:A2) returns topleft, don't scalarize (func will return matrix, top level takes top left)
+    -- the function will handle ranges (don't map over AF), don't replace refs obv
     ("column"         , FuncDescriptor [] [] [] [] (Just 1) (transform eColumn)),
     ("row"            , FuncDescriptor [] [] [] [] (Just 1) (transform eRow)),
-      -- | Indirect(array) = error; don't scalarize, replace refs because arg1 = string, arg2 = bool
+    -- Indirect(array) = error; don't scalarize, replace refs because arg1 = string, arg2 = bool
     ("indirect"       , FuncDescriptor [] [1..argNumLimit] [] [1..argNumLimit] (Just 2) (transform eIndirect)),
-      -- | First arg = ref, no array formula (returns reference)
+    -- First arg = ref, no array formula (returns reference)
     ("offset"         , FuncDescriptor [2..argNumLimit] [] [] [2..argNumLimit] (Just 5) (transform eOffset)),
-      -- | Array mode is normal in 2nd, 3rd args, replace all args
+    -- Array mode is normal in 2nd, 3rd args, replace all args
     ("index"          , normalD' 3 [2,3] eIndex),
-      -- | Normal in first and third, second is a matrix
+    -- Normal in first and third, second is a matrix
     ("match"          , normalD' 3 [1,3] eMatch),
-      -- | Don't scalarize; tranpose(arr) is error in normal mode
+    -- Don't scalarize; tranpose(arr) is error in normal mode
     ("transpose"      , FuncDescriptor [] [] [] [1] (Just 1) (transform eTranspose)),
     ("vlookup"        , FuncDescriptor [1,3,4] [1,3,4] [] [1..argNumLimit] (Just 4) (transform eVlookup)),
 
-    -- | Excel math and trig functions
+    -- Excel math and trig functions
     ("product"        , vectorD eProduct),
     ("abs"            , normalD 1 eAbs),
     ("exp"            , normalD 1 eExp),
@@ -174,7 +174,7 @@ functions =  M.fromList $
     ("sqrt"           , normalD 1 eSqrt),
     ("sqrtpi"         , normalD 1 eSqrtPi),
     ("sum"            , vectorD eSum),
-    -- | Don't replace refs for ranges (resizing)
+    -- Don't replace refs for ranges (resizing)
     ("sumif"          , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eSumIf)),
     ("sumifs"         , FuncDescriptor [3,5..argNumLimit] [3,5..argNumLimit] [] [1..argNumLimit] Nothing (transform eSumIfs)),
     ("sumsq"          , vectorD eSumSq),
@@ -183,33 +183,33 @@ functions =  M.fromList $
     ("sumxmy2"        , vector2 eSumxmy2),
     ("sumproduct"     , vector2 eSumProduct),
 
-    -- | Excel statistical functions
+    -- Excel statistical functions
     ("avedev"         , vectorD eAvedev),
     ("average"        , vectorD eAverage),
-    -- | Don't replace refs (resizing)
+    -- Don't replace refs (resizing)
     ("averageif"      , FuncDescriptor [2] [2] [] [2] (Just 3) (transform eAverageIf)),
     ("averageifs"     , FuncDescriptor [3,5..argNumLimit] [3,5..argNumLimit] [] [1..argNumLimit] Nothing (transform eAverageIfs)),
     ("binom.dist"     , normalD 4 eBinomDist),
     ("correl"         , vector2 eCorrel),
     ("count"          , vectorD eCount),
-    -- | Similar to averageif, but only two args
+    -- Similar to averageif, but only two args
     ("countif"        , FuncDescriptor [2] [2] [] [2] (Just 2) (transform eCountIf)),
-    -- | Similar to averageifs but no "sum range" argument shifts the criteria arguments
+    -- Similar to averageifs but no "sum range" argument shifts the criteria arguments
     ("countifs"       , FuncDescriptor [2,4..argNumLimit] [2,4..argNumLimit] [] [1..argNumLimit] Nothing (transform eCountIfs)),
-      -- | 2nd argument is a range; only map and scalarize over the first
+    -- 2nd argument is a range; only map and scalarize over the first
     ("large"          , normalD' 2 [1] eLarge),
     ("min"            , vectorD eMin),
     ("max"            , vectorD eMax),
     ("median"         , vectorD eMedian),
     ("mode.mult"      , vectorAFD [1] eModeMult),
     ("mode.sngl"      , vectorAFD [1] eModeSngl),
-    --  Excel has multiple versions of functions for compatibility
+    -- Excel has multiple versions of functions for compatibility
     ("norm.dist"      , normalD 4 eNormDist),
     ("normdist"      , normalD 4 eNormDist),
     ("norm.inv"       , normalD 4 eNormInv),
     ("norminv"       , normalD 4 eNormInv),
     ("pearson"        , vector2 ePearson),
-      -- | 2nd argument is a range, only map and scalarize over the first (for rank)
+    -- 2nd argument is a range, only map and scalarize over the first (for rank)
     ("rank.eq"        , normalD' 3 [1,3] eRankEq),
     ("rank.avg"       , normalD' 3 [1,3] eRankAvg),
     ("slope"          , vector2 eSlope),
@@ -219,11 +219,11 @@ functions =  M.fromList $
     ("var.p"          , vectorD eVarP),
     ("covar"          , vector2 eCoVar),
 
-    -- | Excel text functions
+    -- Excel text functions
     ("find"           , normalD 3 eFind),
     ("len"            , normalD 1 eLen),
     ("rept"           , normalD 2 eRept),
-      -- | Right function has a "number of bytes" optional 3rd argument that I'm ignoring bc wtf
+    -- Right function has a "number of bytes" optional 3rd argument that I'm ignoring bc wtf
     ("right"          , normalD 2 eRight),
     ("search"         , normalD 3 eSearch),   
     ("substitute"     , normalD 4 eSubstitute),
@@ -402,7 +402,7 @@ toValueAC c (EntityRef r@(ERef l))
     entity <- refToEntity c r
     toValueAC c entity
 toValueAC _ (EntityVal v) = Right v
--- | Only accept 1x1 matrices
+-- Only accept 1x1 matrices
 toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of
   (1,1) -> Right $ V.head v
   otherwise -> Left ArrayConstantDim
@@ -496,7 +496,7 @@ substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
 -- | Mapping requires that entity to be a matrix
 mapArgs :: Dim -> FuncDescriptor -> EFuncResult
 mapArgs (c,r) fDes con e = do
-  -- | Row-major accumulation of results
+  -- Row-major accumulation of results
   let evalAF = resToVal . ((callback fDes) con) . (getOffsetArgs fDes e)
   let results = [evalAF (Coord c' r') | r'<-[0..(r-1)],c'<-[0..(c-1)]]
   errResults <- compressErrors results
@@ -571,7 +571,7 @@ argToNumVec (EntityVal (EValueS s))  = do  -- attempt to cast to numeric
 argToNumVec (EntityVal (EValueE e)) = Left $ Default e
 argToNumVec (EntityVal (EValueB True)) = Right $ V.singleton $ return $ EValueI 1
 argToNumVec (EntityVal (EValueB False)) = Right $ V.singleton $ return $ EValueI 0
--- | Ignore all non-numeric values within a matrix
+-- Ignore all non-numeric values within a matrix
 argToNumVec (EntityMatrix m) = do
   (EMatrix c r v) <- matrixError m
   Right $ filterNum v
@@ -602,16 +602,16 @@ collapseNumeric' f c e = do
 -- | Given that function and function name, produce EFunc
 zipNumericSum2 :: (EFormattedNumeric -> EFormattedNumeric -> EFormattedNumeric) -> String -> EFunc
 zipNumericSum2 zipper name c e = do
-  -- | Make sure that there are two arguments, both matrices
+  -- Make sure that there are two arguments, both matrices
   (EMatrix c1 r1 v1) <- getRequired name 1 e :: ThrowsError EMatrix
   (EMatrix c2 r2 v2) <- getRequired name 2 e :: ThrowsError EMatrix
-  -- | Throw error if dimensions don't match
+  -- Throw error if dimensions don't match
   if ((c1,r1) /= (c2,r2))
     then Left $ NA $ "Arguments for " ++ name ++ " had different sizes"
     else valToResult $ EValueNum $ sumInt $ V.zipWith zipFunc (V.map numVal v1) (V.map numVal v2)
       where
-        -- | If both elements aren't numeric, replace with 0
-        -- | Eg sumxmy2 with string arrays will return 0
+        -- If both elements aren't numeric, replace with 0
+        -- Eg sumxmy2 with string arrays will return 0
         zipFunc :: Maybe EFormattedNumeric -> Maybe EFormattedNumeric -> EFormattedNumeric
         zipFunc (Just a) (Just b) = zipper a b
         zipFunc _ _ = return $ EValueI 0
@@ -619,18 +619,18 @@ zipNumericSum2 zipper name c e = do
 -- | Template for functions like sumif etc; produces the filtered vector to apply some lambda function to
 ifFunc :: String ->  Context -> [EEntity] -> ThrowsError (V.Vector EValue)
 ifFunc f c e = do
-  -- | We want refs because we may need to resize later (Excel sucks)
+  -- We want refs because we may need to resize later (Excel sucks)
   critRange <- getRequired f 1 e :: ThrowsError ERef
   criteria <- getRequired f 2 e :: ThrowsError EValue
   valRange <- getOptional critRange f 3 e :: ThrowsError ERef
-  -- | Make sure that the criteria range and sum range have the same dimension before replacing refs
+  -- Make sure that the criteria range and sum range have the same dimension before replacing refs
   let valRange' = matchDimension critRange valRange
-  -- | refToEntity will throw an error if any ASValue cannot be mapped to an Excel value
+  -- refToEntity will throw an error if any ASValue cannot be mapped to an Excel value
   critEntity <- refToEntity c critRange
   valEntity <- refToEntity c valRange'
   let matcher = matchLambda criteria :: (EValue -> Bool)
   case critEntity of
-    -- | Excel *IF functions work with non-range references; return 0 as default if no match
+    -- Excel *IF functions work with non-range references; return 0 as default if no match
     (EntityVal v) -> if (matcher v)
       then Right $ V.singleton v
       else Right $ V.singleton $ EValueNum $ return $ EValueI 0
@@ -652,9 +652,9 @@ ifsFunc f e = do
   if (allTheSame dims) -- make sure that all ranges have the same dimension
     then do
       let critVecs = map content criteriaMatrices
-      -- | Should the ith element be included?
+      -- Should the ith element be included?
       let include vecs ms i = and $ map (\(f,val) -> f val) $ zip ms $ map (\v -> (V.!) v i) vecs
-      -- | Only include values in the value vector where all criteria are met (and function)
+      -- Only include values in the value vector where all criteria are met (and function)
       let filteredValVec = V.ifilter (\i _ -> include critVecs matches i) valVec
       Right $ filteredValVec
     else Left $ VAL "Not all ranges in had the same size"
@@ -741,8 +741,8 @@ stringMatch (c:cs) = case c of
     let (c':cs') = cs
     char (toLower c')
     stringMatch cs'
-  -- | Keep matching characters until next parser works, but don't consume the recursive input (lookAhead)
-  -- | Try is needed because the stringMatch and anyChar parsers overlap
+  -- Keep matching characters until next parser works, but don't consume the recursive input (lookAhead)
+  -- Try is needed because the stringMatch and anyChar parsers overlap
   '*' -> manyTill anyChar (try (lookAhead (stringMatch cs))) >> (stringMatch cs)
   '?' -> anyChar >> (stringMatch cs)
   otherwise -> (char (toLower otherwise)) >> (stringMatch cs)
@@ -992,7 +992,7 @@ eMatch c e = do
   lookupType <- getOptional 1 "match" 3 e :: ThrowsError Int
   let matcher = matchLambda lookupVal :: (EValue -> Bool)
   case lookupType of
-    -- | Type 0 enables regex
+    -- Type 0 enables regex
     0 -> case (V.findIndex matcher vec) of
       Nothing -> Left $ NA "No match found"
       Just i -> intToResult (i+1)
@@ -1064,7 +1064,7 @@ eVlookup c e = do
       -- Excel isn't very clear about this, I'm implementing it as the largest elem <= lookupVal
       let firstCol = head lstCols
       let i = findIndex (\x -> x > lookupVal) firstCol 
-      -- ^ first index with lookupVal > index. i-1 is the index of the largest
+      -- first index with lookupVal > index. i-1 is the index of the largest
       -- element <= lookupVal, unless i is 0 or there was simply nothing found. 
       case i of
         Nothing  -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
@@ -1253,7 +1253,7 @@ eLarge c e = do
   if (V.null nums)
     then Left $ NA $ "Large received no numeric values in range"
     else do
-      -- | Linear algorithm doesn't seem to exist
+      -- Linear algorithm doesn't seem to exist
       let kLargestNum = (reverse $ sort $ V.toList nums) !!(k-1)
       valToResult $ EValueNum kLargestNum
 
@@ -1398,11 +1398,11 @@ median x | odd n  = head  $ drop (n `div` 2) x'
                         n  = length x
                         avg (p:[q]) = (p+q)*(return $ EValueD 0.5)
 
--- |Modes returns a sorted list of modes in descending order
+-- | Modes returns a sorted list of modes in descending order
 modes :: (Ord a) => [a] -> [(Int, a)]
 modes xs = sortBy (comparing $ negate.fst) $ map (\x->(length x, head x)) $ (group.sort) xs
 
--- |Mode returns the mode of the list, otherwise Nothing
+-- | Mode returns the mode of the list, otherwise Nothing
 mode :: (Ord a) => [a] -> Maybe a
 mode xs = case m of
             [] -> Nothing
@@ -1451,11 +1451,11 @@ genericRank f rankGroup c e = do
   (EMatrix _ _ v) <- getRequired f 2 e :: ThrowsError EMatrix
   order <- getOptional 0 f 3 e :: ThrowsError Int
   let lst = V.toList $ filterNum v
-  -- | In Excel, default is high to low
+  -- In Excel, default is high to low
   let sorted = if (order /= 0)
                  then sort lst
                  else reverse $ sort lst
-  -- | Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
+  -- Enumerate ranks, then group by equal ranks, then determine the common rank of each group, and concatenate
   let ranks = concatMap rankGroup $ groupBy (\x y -> (fst x == fst y)) $ zip sorted [1..argNumLimit]
   case (lookup x ranks) of
     Nothing -> Left $ VAL $ "Couldn't find given element for " ++ f
@@ -1555,7 +1555,7 @@ textFind caseSensitive c e = do
   withinText' <- getRequired f 2 e :: ThrowsError String
   let findText = normString caseSensitive findText'
   let withinText = normString caseSensitive withinText'
-  -- | Optional starting position, starting from 1 (default)
+  -- Optional starting position, starting from 1 (default)
   startNum <- getOptional 1 f 3 e :: ThrowsError Int
   if startNum <= 0 || startNum >= (length withinText)
     then Left $ VAL "Starting position out of bounds for FIND"
@@ -1564,7 +1564,7 @@ textFind caseSensitive c e = do
       case findStr findText shiftedWithin of 
         Nothing -> Left $ VAL "Couldn't find smaller string in larger for FIND"
         Just pos -> intToResult $ pos + startNum
-        -- ^ Answer is from beginning of original withinText (add startNum-1 for that offset, 
+        -- Answer is from beginning of original withinText (add startNum-1 for that offset, 
         -- then add 1 for Excel's 1-indexing)
 
 -- | Helper for above

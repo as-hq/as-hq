@@ -86,6 +86,7 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- assumes all evaled cells are in the same sheet
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
+-- #lenses
 runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
 runDispatchCycle mstate cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
@@ -103,9 +104,9 @@ runDispatchCycle mstate cs descSetting src updateTransform = do
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch state roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
+    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } 
     finalCells <- EE.evalEndware mstate src transformedCtx
-    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
+    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } 
     DT.updateDBWithContext state src ctx
     return $ updateAfterEval ctx
   either (const $ G.recompute graphAddress conn) (const $ return ()) errOrUpdate -- graph db may have changed during dispatch; if not committed, reset it
@@ -233,33 +234,33 @@ evalChain' state (c@(Cell loc xp val ps rk disp):cs) ctx = do
   -- Context modification
 
 -- #needsrefactor the maybe logic sholdn't be dealt with here
--- Helper function that removes a maybe descriptor from a context and returns the updated context. 
+-- Helper function that removes a maybe descriptor from a context and returns the updated context. #lens
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
-removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
+removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } 
   where 
     ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiff' = case descriptor of
       Nothing -> ddiff
       Just d -> removeKey ddiff (key d)
 
--- Helper function that removes multiple descriptors from the ddiff of the context. 
+-- Helper function that removes multiple descriptors from the ddiff of the context. #lens
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } -- #lens
+removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } 
   where
     ddiff = descriptorUpdates $ updateAfterEval ctx
     ddiffWithbeforeVals = L.foldl' removeKey ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
-addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } -- #lens
+addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
   where
     ddiff  = descriptorUpdates $ updateAfterEval ctx
     ddiff' = addValue ddiff descriptor
 
 -- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
--- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority).
+-- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens
 addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } -- #lens
+addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } 
   where
     newAddedCells = mergeCells cells (newCellsInContext ctx)
     newMap   = insertMultiple (virtualCellsMap ctx) (mapCellLocation cells) cells
@@ -320,12 +321,13 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   return (ctx'', decoupledCells)
 
 
-  -- NEXT: do checks on rangekeys being in both added and removed.
-  -- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
-  -- after all side effects due to insertion have been handled)
-  -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
+-- NEXT: do checks on rangekeys being in both added and removed.
+-- the cell passed in is the old cell (we insert the old cell + new eval'ed value into the context at the end of this function, 
+-- after all side effects due to insertion have been handled)
+-- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
+--  #lens
 contextInsert :: ServerState -> ASCell -> Formatted EvalResult -> EvalTransform
-contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  -- #lens
+contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
   let conn  = state^.dbConn
       cv    = result^.resultValue
       disp  = result^.resultDisplay 
@@ -355,7 +357,7 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  -- #
                         Just inds -> map ((M.!) (virtualCellsMap ctxWithEvalCells)) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch state dispatchCells ctxWithEvalCells ProperDescendants
-      -- ^ propagate the descendants of the expanded cells (except for the list head)
+      -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
       -- Only the head of the list has an ancestor at this point.
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. 

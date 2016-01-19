@@ -88,7 +88,7 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
 ----------------------------------------------------------------------------------------------------------------------
 -- low-level API
 
-  -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
+-- | Makes sure everything is synced; the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
 setCellsPropagated :: GraphAddress -> Connection -> [ASCell] -> IO ()
 setCellsPropagated addr conn cells = 

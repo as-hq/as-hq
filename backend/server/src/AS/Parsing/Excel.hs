@@ -153,7 +153,7 @@ refMatch = do
       -- Force colRanges to have l <= r.
       -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
       Nothing -> case colrng of
-        -- #needsrefactor VV we should not be using orientExColRange here. The logic for orienting
+        -- We should not be using orientExColRange here. The logic for orienting
         -- shouldn't be slapped in the middle of refMatch. 
         Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
         Nothing -> case idx of 

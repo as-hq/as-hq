@@ -30,7 +30,7 @@ evalEndware mstate (CommitSource sid uid) ctx = do
   state <- lift $ readMVar mstate
   let cells0 = newCellsInContext ctx
       cells1 = cells0 ++ blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
-      -- ^ represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
+      -- represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
   mapM_ (lift . DM.possiblyCreateDaemon mstate uid) cells0
   oldRules <- lift $ DB.getCondFormattingRulesInSheet (state^.dbConn) sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules

@@ -18,7 +18,7 @@ flipDiff (Diff x y) = Diff y x
 
 -- #expert would like to somehow ensure that a is an instance of HasKey and b is KeyType a. 
 data Update a b = Update { newVals :: [a], oldKeys :: [b] } deriving (Show, Read, Eq, Generic)
--- #anand you could write a constructor yourself (not sure if compiles)
+-- You could write a constructor yourself (not sure if compiles) #anand
 --mkUpdate :: (HasKey a, Eq (KeyType b)) => [a] -> [KeyType b] -> Update a (KeyType b)
 --mkUpdate as bs = Update {newVals = as, oldKeys = bs}
 

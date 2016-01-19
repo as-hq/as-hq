@@ -93,8 +93,9 @@ getKeysByPattern conn pattern = runRedis conn $ $fromRight <$> keys (BC.pack pat
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
+--  #expert
 toDecoupled :: ASCell -> ASCell
-toDecoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellExpression .~ e' & cellRangeKey .~ Nothing  -- #expert
+toDecoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellExpression .~ e' & cellRangeKey .~ Nothing  
   where 
     lang = c^.cellExpression.language
     v = c^.cellValue
