@@ -16,6 +16,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
+import {textbox as zIndex} from '../styles/zIndex';
 
 import type {
   ASFocusType
@@ -212,7 +213,7 @@ export default class Textbox
       lineHeight: ((pos && (pos.extent.y + 5)) || 20) + 'px',
       top: pos && pos.origin.y,
       left: pos && pos.origin.x,
-      zIndex: 5,
+      zIndex,
       width: this.getWidth(),
       // height is a function of lineHeight and maxLines, see ace virtual renderer
       border: "solid 2px black",

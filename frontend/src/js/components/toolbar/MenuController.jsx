@@ -14,6 +14,7 @@ import ToolbarActionCreator from '../../actions/ASToolbarActionCreators';
 
 import ASCell from '../../classes/ASCell';
 import ASRange from '../../classes/ASRange';
+import {menuController as zIndex} from '../../styles/zIndex';
 
 /*
 This higher order component takes a toolbar component, a menu-style component, and styles them to be on top of one another.
@@ -122,7 +123,7 @@ export default class MenuController
         transform: 'translateY(50%)',
         // ^ Note that the toolbar control's bottom is at toolbarHeight/2 + controlHeight/2. The above transform puts
         // the top of the menu at this location.
-        zIndex: 50 // needed to display over the editor/sheet
+        zIndex,
       },
     };
   }

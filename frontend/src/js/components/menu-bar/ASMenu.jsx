@@ -17,6 +17,7 @@ import ReactDOM from 'react-dom';
 
 import U from '../../AS/Util';
 import _Styles from '../../styles/menu-bar/ASMenuBar';
+import {asMenu as zIndex} from '../../styles/zIndex';
 
 import {FlatButton} from 'material-ui';
 
@@ -107,7 +108,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
           position: 'absolute',
           top: 0,
           bottom: 0,
-          zIndex: 1,
+          zIndex,
           cursor: 'pointer',
         };
         const fileItem: FileItemSpec = menuItem;

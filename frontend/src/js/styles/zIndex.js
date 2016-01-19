@@ -1,0 +1,17 @@
+export const unselectedMenu = 0;
+export const replEditor = 0;
+export const evalHeaderEditor = 0;
+export const aceEditor = 0;
+export const asCodeField = 0;
+export const asMenu = 1;
+export const overlayInner = 5;
+export const textbox = 5;
+export const findBar = 10;
+export const findModal = 10;
+export const menuController = 50; // over editor / sheet
+export const overlayOuter = 100;
+export const rightClickMenu = 100;
+export const bottomBar = 1000;
+export const asMenuBar = 10000;
+export const topBar = 100000;
+export const asErrorPane = 100000;

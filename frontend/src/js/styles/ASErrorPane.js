@@ -1,4 +1,5 @@
 /* @flow */
+import {asErrorPane as zIndex} from './zIndex';
 
 export default {
   root: {
@@ -11,7 +12,7 @@ export default {
     position: 'absolute',
     right: 0,
     height: '26px',
-    zIndex: 100000
+    zIndex,
   },
 
   showAllLabel: {

@@ -3,6 +3,7 @@ import {logDebug} from '../AS/Logger';
 import KeyUtils from '../AS/KeyUtils';
 import ShortcutUtils from '../AS/ShortcutUtils';
 import CellStore from '../stores/ASCellStore';
+import {replEditor as zIndex} from '../styles/zIndex';
 var ace = require('brace');
 var React = require('react');
 
@@ -204,7 +205,7 @@ module.exports = React.createClass({
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
-      zIndex: 0
+      zIndex,
     };
     return (<div
         id={this.props.name}

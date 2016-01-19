@@ -15,6 +15,7 @@ import ace from 'brace';
 import {logDebug} from '../../AS/Logger';
 
 import Util from '../../AS/Util';
+import {asCodeField as zIndex} from '../../styles/zIndex';
 
 import shortid from 'shortid';
 
@@ -157,7 +158,7 @@ export default class ASCodeField
 
   render(): React.Element {
     const divStyle = {
-      zIndex: 0,
+      zIndex,
       ...this.props.style
     };
 

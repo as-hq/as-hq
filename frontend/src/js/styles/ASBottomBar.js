@@ -1,4 +1,5 @@
 /* @flow */
+import {bottomBar as zIndex} from './zIndex';
 
 export default {
   root: {
@@ -19,8 +20,6 @@ export default {
 
   tooltip: {
     top: 0,
-    zIndex: 1000 // to be visible on top of spreadsheet when closed
+    zIndex,
   }
-
-  
 };

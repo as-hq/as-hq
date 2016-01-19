@@ -1,14 +1,16 @@
+import {asMenuBar as zIndex} from '../zIndex';
+
 export default {
   root: {
     width: '100%',
     height: '36px',
     backgroundColor: '#181818',
-    zIndex: '10000'
+    zIndex,
   },
 
   menuRoot: {
     display: 'inline-block',
-    zIndex: '10000'
+    zIndex,
   },
 
   menu: {
@@ -17,7 +19,7 @@ export default {
     width: '80px',
     height: '36px',
     textTransform: 'none',
-    zIndex: '10000'
+    zIndex,
   },
 
   menuDropRoot: {

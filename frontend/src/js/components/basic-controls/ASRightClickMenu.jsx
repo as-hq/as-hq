@@ -3,6 +3,7 @@ import React from 'react';
 import Menu from './ASUnselectedMenu.jsx';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Mixins} from 'material-ui';
+import {rightClickMenu as zIndex} from '../../styles/zIndex';
 
 let {ClickAwayable, StylePropable} = Mixins;
 
@@ -63,14 +64,16 @@ export default React.createClass({
     let styles = {
       root: {
         display: 'inline-block',
-        zIndex: 100,
+        zIndex,
         position: 'absolute',
         left: x,
         top: y,
       },
 
       menu: {
-        zIndex: 100,
+        // TODO(joel) confused why we give this a zIndex since its parent has
+        // one
+        zIndex,
         top: -12,
         left: -12,
         fontFamily: 'Roboto, sans-serif',

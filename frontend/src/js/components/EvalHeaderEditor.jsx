@@ -2,6 +2,7 @@
 
 import {logDebug} from '../AS/Logger';
 
+import {evalHeaderEditor as zIndex} from '../styles/zIndex';
 import CellStore from '../stores/ASCellStore';
 import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import API from '../actions/ASApiActionCreators';
@@ -16,7 +17,7 @@ import type {
 var ace = require('brace');
 var React = require('react');
 
-const defaultEditorProps = { 
+const defaultEditorProps = {
   theme  : 'monokai',
   fontSize   : 12,
   showGutter : true,
@@ -32,7 +33,7 @@ function onPropsSet(editor, props) {
   editor.setTheme('ace/theme/'+defaultEditorProps.theme);
   editor.setFontSize(defaultEditorProps.fontSize);
   editor.renderer.setShowGutter(defaultEditorProps.showGutter);
-  
+
   editor.setOption('readOnly', defaultEditorProps.readOnly);
   editor.setOption('highlightActiveLine', defaultEditorProps.highlightActiveLine);
   editor.setShowPrintMargin(defaultEditorProps.showPrintMargin);
@@ -41,23 +42,23 @@ function onPropsSet(editor, props) {
 }
 
 type EvalHeaderEditorDefaultProps = {
-  mode: string; 
-  value: string; 
-  height: string; 
-  width: string; 
-  name: string; 
-  maxLines: ?number; 
+  mode: string;
+  value: string;
+  height: string;
+  width: string;
+  name: string;
+  maxLines: ?number;
 };
 
 type EvalHeaderEditorProps = {
-  mode: string; 
-  value: string; 
-  height: string; 
-  width: string; 
-  name: string; 
-  maxLines: ?number; 
-  language: ASLanguage; 
-  saveAndEval: () => void; 
+  mode: string;
+  value: string;
+  height: string;
+  width: string;
+  name: string;
+  maxLines: ?number;
+  language: ASLanguage;
+  saveAndEval: () => void;
 };
 
 type EvalHeaderEditorState = {};
@@ -68,14 +69,14 @@ export default class EvalHeaderEditor
   /***************************************************************************************************************************/
   // React methods
 
-  editor: any; 
+  editor: any;
 
   constructor(props: EvalHeaderEditorDefaultProps) {
     super(props);
   }
 
   getRawEditor(): any {
-    return this.editor; 
+    return this.editor;
   }
 
   componentDidMount() {
@@ -95,7 +96,7 @@ export default class EvalHeaderEditor
   handleKeyDown(e: SyntheticKeyboardEvent) {
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
-      U.Shortcut.tryEvalHeaderShortcut(e); 
+      U.Shortcut.tryEvalHeaderShortcut(e);
     }
   }
 
@@ -109,7 +110,7 @@ export default class EvalHeaderEditor
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
-      zIndex: 0
+      zIndex,
     };
     return (<div
         id={this.props.name}
@@ -124,12 +125,12 @@ EvalHeaderEditor.propTypes = {
   mode     : React.PropTypes.string,
   value    : React.PropTypes.string,
   height   : React.PropTypes.string,
-  width    : React.PropTypes.string, 
+  width    : React.PropTypes.string,
   maxLines : React.PropTypes.number,
   language : React.PropTypes.string
 };
 
-EvalHeaderEditor.defaultProps = { 
+EvalHeaderEditor.defaultProps = {
   mode     : 'python',
   value    : '',
   height   : '100px',

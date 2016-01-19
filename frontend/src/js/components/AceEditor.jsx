@@ -9,6 +9,7 @@ import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators.js';
+import {aceEditor as zIndex} from '../styles/zIndex';
 
 import type {
   ASFocusType
@@ -250,7 +251,7 @@ export default class AceEditor
     let divStyle = {
       width: this.props.width,
       height: this.props.height,
-      zIndex: 0,
+      zIndex,
       resize: 'both',
       overflow:'auto'
     };

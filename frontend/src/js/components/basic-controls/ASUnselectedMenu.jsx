@@ -24,6 +24,7 @@ import List from 'material-ui/lib/lists/list';
 import Paper from 'material-ui/lib/paper';
 import DefaultRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import {unselectedMenu as zIndex} from '../../styles/zIndex';
 
 const Menu = React.createClass({
 
@@ -169,7 +170,7 @@ const Menu = React.createClass({
         transition: animated ? Transitions.easeOut('250ms', 'transform') : null,
         // Note(joel): this used to be `rawTheme.zIndex.menu`, but apparently
         // the material-ui api changed. 0 works, though.
-        zIndex: 0,
+        zIndex,
         top: openDown ? 0 : null,
         bottom: !openDown ? 0 : null,
         left: !openLeft ? 0 : null,

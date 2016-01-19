@@ -7,6 +7,7 @@ import Store from '../stores/ASFindStore';
 import {TextField, AppBar, DropDownMenu, FlatButton, IconButton, FontIcon, Styles, Paper, Tab, Tabs, Menu, IconMenu} from 'material-ui';
 let MenuItem = require('material-ui/lib/menus/menu-item');
 let MenuDivider = require('material-ui/lib/menus/menu-divider');
+import {findModal as findModalZIndex} from '../styles/zIndex';
 
 import ASHorizontalDropdownButton from './basic-controls/ASHorizontalDropdownButton.jsx';
 
@@ -70,7 +71,7 @@ export default React.createClass({
 
     return (
 
-        <div style={{position:'absolute',zIndex:10,left:600,top:200}} >
+        <div style={{position:'absolute',zIndex: findModalZIndex,left:600,top:200}} >
 
             <Paper zDepth={5} style={{width:500,height:500,borderStyle:'solid 2px'}}>
             	<AppBar style={{width:"100%",height:"10px",backgroundColor:Styles.Colors.amber900}}

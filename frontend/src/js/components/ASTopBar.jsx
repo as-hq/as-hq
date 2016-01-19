@@ -25,6 +25,7 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
 import ASChartDialog from './chart/ASChartDialog.jsx';
+import {topBar as topBarZIndex} from '../styles/zIndex';
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
@@ -93,7 +94,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
           top: 0,
           left: 0,
           lineHeight: '50px',
-          zIndex: '100000'
+          zIndex: topBarZIndex,
         }}>
           α
         </div>

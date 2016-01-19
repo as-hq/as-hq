@@ -19,6 +19,10 @@ import {Resizable} from 'react-resizable';
 import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
 import API from '../actions/ASApiActionCreators';
+import {
+  overlayOuter as overlayOuterZIndex,
+  overlayInner as overlayInnerZIndex,
+} from '../styles/zIndex';
 
 /*
 Image props have important  metadata about the size and position of an image. The offsets are computed relative to
@@ -129,7 +133,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
       height: height,
       top: top + offsetY - scrollPixels.y,
       left: left + offsetX - scrollPixels.x,
-      zIndex: 5,
+      zIndex: overlayInnerZIndex,
       background: 'white'
     };
 
@@ -137,7 +141,7 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
         <Draggable
           moveOnStartChange={false}
           start={{x: 0, y: 0}}
-          zIndex={100}
+          zIndex={overlayOuterZIndex}
           onStop={this._onDragStop.bind(this)}
           onDrag={this._shouldUpdateDrag.bind(this)} >
 
