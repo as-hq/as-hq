@@ -379,8 +379,5 @@ const ASCellStore = Object.assign({}, BaseStore, {
   }, */
 });
 
-// A lot of things listen to this store, eventemitter think's there's a memory
-// leak
-ASCellStore.setMaxListeners(100);
 
 export default ASCellStore;

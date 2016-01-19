@@ -17,9 +17,9 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
       /*************************************************************************************************************************/
       // Prop and state methods
 
-      /*
+      /* 
         We use the following props:
-          1) Props to pass the toolbar control (ex width, height of button).
+          1) Props to pass the toolbar control (ex width, height of button). 
           2) Props to generate menu
           3) How to get the menu value given a change in active cell; function(cell) -> value
           4) toolbarControlPropTransform: function(menuVisible, menuValue, toolbarProps) -> newToolbarProps
@@ -65,7 +65,7 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
       /*************************************************************************************************************************/
       // Menu generation
 
-      // The tag is used to generate the type of element, and the props are used to generate a MenuItem/Divider etc.
+      // The tag is used to generate the type of element, and the props are used to generate a MenuItem/Divider etc. 
       // Automatically handles checking. Example of propSet: {tag: 'MenuItem', primaryText: 'Number' ... }
       getMenu() {
         let checkedValue = this.state.menuValue;
@@ -89,9 +89,9 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
         });
         return (
           <Menu
-            desktop={true}
-            width={this.props.menuWidth}
-            maxHeight={this.props.menuMaxHeight}
+            desktop={true} 
+            width={this.props.menuWidth} 
+            maxHeight={this.props.menuMaxHeight} 
             onItemTouchTap={this._onMenuClick}
             onEscKeyDown={this._onMenuClose}>
               {menuItems}
@@ -105,10 +105,11 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
 
       // When an item is clicked, update checkedValue state and call the callback
       _onMenuClick(e, item) {
-        let nextValue = item.props.value;
+        let nextValue = item.props.value; 
         let {toolbarControlProps} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(false, nextValue, toolbarControlProps);
         this.setState({menuVisible: false, menuValue: nextValue, toolbarControlProps: newToolbarControlProps});
+        console.log("clicked on item with value " + nextValue);
         this.refs.menuController.refs.controller.onControlStateChange(nextValue);
       },
 
@@ -136,6 +137,7 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
 
       // When you click on the toolbar control, toggle menu visibility
       _onToolbarControlClick(e, nextToolbarState) {
+        console.log("generator toolbar control onclick ");
         let menuVisible = !this.state.menuVisible;
         let {toolbarControlProps, menuValue} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
@@ -150,6 +152,7 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
 
       /* When the activeCell changes, update the menu with a new value, and update the toolbar component as well */
       _setControlStateFromCell(cell) {
+        console.log("Setting control state from cell in generator");
         let menuValue = this.props.getMenuValueFromCell(cell);
         let {toolbarControlProps, menuVisible} = this.state;
         let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
@@ -162,19 +165,19 @@ let GenerateToolbarMenu = function(ToolbarComponent) {
       /*************************************************************************************************************************/
       // Rendering
 
-      // Generate a menu element using menuProps, then generate a toolbarComponent by using the given class along with
-      // this.props.toolbarControlProps. Put them together with some styling, and pass it off to ToolbarController, which
-      // monitors listening to the relevant stores for us.
+      // Generate a menu element using menuProps, then generate a toolbarComponent by using the given class along with 
+      // this.props.toolbarControlProps. Put them together with some styling, and pass it off to ToolbarController, which 
+      // monitors listening to the relevant stores for us. 
       render() {
         let menuElement = this.state.menuVisible ? this.getMenu() : null;
-        let toolbarComponent =
-          <ToolbarComponent
-            {...this.state.toolbarControlProps}
-            onClick={this._onToolbarControlClick}
+        let toolbarComponent = 
+          <ToolbarComponent 
+            {...this.state.toolbarControlProps} 
+            onClick={this._onToolbarControlClick} 
             ref="toolbarControl"/>;
         return (
           <MenuController
-            ref="menuController"
+            ref="menuController"            
             toolbarComponent={toolbarComponent}
             menuComponent={menuElement}
             propagateControlStateChange={this.props.propagateControlStateChange}

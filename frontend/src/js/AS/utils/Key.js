@@ -173,6 +173,7 @@ let Key = {
     if (Key.isDestructiveKey(e) || specials.includes(c)) {
       return "";
     } else {
+      // console.log("key has code: " + c);
       //normalize keyCode
       if (_to_ascii.hasOwnProperty(c)) {
           c = _to_ascii[c.toString()];

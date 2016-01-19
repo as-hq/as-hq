@@ -1,8 +1,7 @@
 /* @flow */
 
 import type {
-  ASLanguage,
-  ValueFormat,
+  ASLanguage
 } from '../types/Eval';
 
 import {logDebug} from '../AS/Logger';
@@ -272,16 +271,9 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   // Checks if you're newly adding text to a cell with a % in it.
   shouldHandlePercentFormat() {
-    const percentProp: ValueFormat = {
-      tag: "ValueFormat",
-      valFormat: {
-        tag: 'Format',
-        formatType: 'Percentage',
-        numDecimalOffset: null,
-      },
-    };
-    const wasTyping = ASExpStore.getUserIsTyping();
-    const cell = CellStore.getActiveCell();
+    let percentProp = {tag: "ValueFormat", formatType: 'Percentage'},
+        wasTyping = ASExpStore.getUserIsTyping(),
+        cell = CellStore.getActiveCell();
     return (!wasTyping && cell != undefined && cell.hasProp(percentProp));
   },
 

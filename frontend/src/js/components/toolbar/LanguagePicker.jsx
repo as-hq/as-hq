@@ -100,6 +100,7 @@ export default class LanguagePicker
 
   // When the active cell changes to a new cell, get the new menu value that should be selected/checked
   _getMenuValueFromCell(cell: ASCell): ASLanguage {
+    console.log("Language picker cell ", cell)
     if (cell != null && cell.expression.language != null) { // #cellrefactor ()
       return cell.expression.language;
     } else {
@@ -108,6 +109,7 @@ export default class LanguagePicker
   }
 
   _propagateControlStateChange(nextValue: string, rng: ASRange) {
+    console.log("Propagating language change: " + nextValue);
     ExpActionCreator.handleToggleLanguage(nextValue);
   }
 

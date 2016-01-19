@@ -28,15 +28,15 @@ import type {
 type TextboxDefaultProps = {}
 
 type TextboxProps = {
-  position: () => ?HGRectangle; //#encapsulation
-  onDeferredKey: (e: SyntheticKeyboardEvent) => void;
-  hideToast: () => void;
-  setFocus: (elem: ASFocusType) => void;
+  position: () => ?HGRectangle; //#encapsulation 
+  onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
+  hideToast: () => void; 
+  setFocus: (elem: ASFocusType) => void; 
 };
 
 type TextboxState = {
-  isVisible: boolean;
-  language: ASLanguage;
+  isVisible: boolean; 
+  language: ASLanguage; 
   renderTrigger: boolean;
 };
 
@@ -45,13 +45,12 @@ export default class Textbox
 {
   /**************************************************************************************************************************/
   // React methods
-  editor: any; //decided that it's not worth flowing this
-  _boundOnChange: () => void;
+  editor: any; //decided that it's not worth flowing this 
 
   constructor(props: TextboxProps) {
     super(props);
 
-    this.state = {
+    this.state = { 
       isVisible: false,
       language: Constants.Languages.Excel,
       renderTrigger: false // WTF we have to do this I feel so dirty
@@ -62,8 +61,7 @@ export default class Textbox
     this.editor = ace.edit('textbox');
     this.editor.$blockScrolling = Infinity;
     this.editor.on('focus', this._onFocus.bind(this));
-    this._boundOnChange = () => this._onChange();
-    this.editor.getSession().on('change', this._boundOnChange);
+    this.editor.getSession().on('change', this._onChange.bind(this));
     this.editor.container.addEventListener('keydown', this._onKeyDown.bind(this), true);
     this.showCursor();
     this.editor.setFontSize(12);
@@ -71,10 +69,6 @@ export default class Textbox
     this.editor.setOption('maxLines', Infinity);
     this.editor.renderer.setShowGutter(false); // no line numbers
     this.editor.getSession().setUseWrapMode(true); // no word wrap
-  }
-
-  componentWillUnmount() {
-    this.editor.getSession().off('change', this._boundOnChange);
   }
 
   // When the component is about to update (after the initial render), update the mode of the editor as well
@@ -131,7 +125,7 @@ export default class Textbox
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-          extentX = maybe(0, (pos) => pos.extent.x, this.props.position());
+          extentX = maybe(0, (pos) => pos.extent.x, this.props.position()); 
       return Math.max(extentX, (longestStr.length)*7);
     } else {
       return 0;
@@ -175,7 +169,7 @@ export default class Textbox
 
   // Appends a % to the end of the editor string, and sets the cursor to
   // be one before the %.
-  _onChange() {
+  _onChange(e: SyntheticKeyboardEvent) {
     if (ExpStore.getDoTextBoxCallback()) {
       let xpStr = this.editor.getValue();
       ExpActionCreator.handleTextBoxChange(xpStr);
@@ -196,23 +190,22 @@ export default class Textbox
   // Render
 
   render(): React.Element {
-    const pos = this.props.position();
-
     let baseStyle = {
       display:'block',
       position:'absolute',
       // height of each line in the editor, add 5 to give some leeway at top and bottom
-      lineHeight: (pos && (pos.extent.y + 5)) || 20,
-      top: pos && pos.origin.y,
-      left: pos && pos.origin.x,
+      lineHeight: maybe("20px", (pos) => pos.extent.y + 5 + "px", this.props.position()), 
+      top: maybe(null, (pos) => pos.origin.y, this.props.position()), 
+      left: maybe(null, (pos) => pos.origin.x, this.props.position()), 
       zIndex: 5,
       width: this.getWidth(),
       // height is a function of lineHeight and maxLines, see ace virtual renderer
       border: "solid 2px black",
       visibility: this.state.isVisible ? 'visible' : 'hidden'
     };
-
-    return <div id='textbox' style={baseStyle} />;
+    return (
+      <div id={'textbox'} style={baseStyle} />
+    );
   }
 }
 

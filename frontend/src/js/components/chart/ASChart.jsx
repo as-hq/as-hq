@@ -55,6 +55,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   componentWillUnmount() {
+    console.error("Chart unmounted!");
     CellStore.removeChangeListener(this._onDataChange.bind(this));
   }
 
@@ -99,11 +100,13 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
         newData[insertIdx].value = val;
       }
     });
+    console.log("updated chart data!");
     this.setState({data: newData});
   }
 
   // ChartContext -> ChartData
   _contextToData(ctx: ASChartContext): ASChartData {
+    console.log("Contexttodata: " + JSON.stringify(ctx));
     const {xLabels} = ctx;
     if (CU.isCartesian(ctx.chartType) && xLabels !== null && xLabels !== undefined) {
       return {
@@ -136,6 +139,7 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
 
   // ChartContext -> [PolarDataset]
   _generatePolarDatasets(ctx: ASChartContext): Array<PolarDataset> {
+    console.log("generating polar datasets with context: " + JSON.stringify(ctx));
     let datasets = [];
     const {values, plotLabels} = ctx;
     if (values !== null && values !== undefined && plotLabels !== null && plotLabels !== undefined) {

@@ -186,6 +186,8 @@ export default class ASErrorPane
     let errors = this._getCurrentErrorList();
     let {location} = errors[row];
 
+    console.log('request select', location);
+
     this.props.onRequestSelect(location);
     this.setState({
       selectedRow: row

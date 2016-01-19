@@ -16,7 +16,7 @@ import {catMaybes} from '../AS/Maybe';
 import _ from 'lodash';
 
 import React from 'react';
-import {findDOMNode} from 'react-dom';
+let ReactDOM = require('react-dom');
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
@@ -240,7 +240,7 @@ export default class ASSpreadsheet
   // Default getter methods, relating to location/scrolling/selection
 
   _getHypergrid(): HGElement {
-    return findDOMNode(this.refs.hypergrid);
+    return React.findDOMNode(this.refs.hypergrid);
   }
 
   _getBehavior(): HGBehaviorElement {
