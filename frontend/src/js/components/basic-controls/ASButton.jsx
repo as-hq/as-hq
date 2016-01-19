@@ -1,4 +1,5 @@
 import React, {PropTypes} from 'react';
+import {findDOMNode} from 'react-dom';
 import {
   AppCanvas,
   EnhancedButton,
@@ -270,10 +271,10 @@ export default React.createClass({
     if (keyboardFocused && !this.props.disabled) {
       this.setState({ zDepth: this.state.initialZDepth + 1 });
       let amount = (this.props.primary || this.props.secondary) ? 0.4 : 0.08;
-      React.findDOMNode(this.refs.overlay).style.backgroundColor = ColorManipulator.fade(this.mergeAndPrefix(this.getStyles().label, this.props.labelStyle).color, amount);
+      findDOMNode(this.refs.overlay).style.backgroundColor = ColorManipulator.fade(this.mergeAndPrefix(this.getStyles().label, this.props.labelStyle).color, amount);
     } else if (!this.state.hovered) {
       this.setState({ zDepth: this.state.initialZDepth });
-      React.findDOMNode(this.refs.overlay).style.backgroundColor = 'transparent';
+      findDOMNode(this.refs.overlay).style.backgroundColor = 'transparent';
     }
   }
 });

@@ -96,7 +96,6 @@ const ChartUtils = {
       if (arr.length == 1) return arr[0];
       else return arr.map((elem) => { return elem[0]; });
     } else {
-      // console.error("Array passed in to reduceNestedArray was not even one-dimensional");
       return null;
     }
   },
@@ -108,7 +107,6 @@ const ChartUtils = {
       if (arr.length == 1) return arr[0];
       else return arr.map((elem) => { return elem[0]; });
     } else {
-      // console.error("Array passed in to reduceNestedArray was not even one-dimensional");
       return null;
     }
   },

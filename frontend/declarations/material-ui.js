@@ -87,7 +87,7 @@ declare module 'material-ui' {
     onChange?: (e: SyntheticTouchEvent, index: number, menuItem: MenuItemRequest) => void;
   }
 
-  declare class DialogAction {
+  declare type DialogAction = {
     id?: string;
     text: string;
     ref?: string;

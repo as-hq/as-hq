@@ -62,10 +62,6 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
     };
   }
 
-  componentWillUnmount() {
-    console.error("Overlay unmounted!");
-  }
-
   /* Upon drag or resize, update the backend metadata about the image */
   updateImageProps(prop: ASCellProp) {
     if (this.props.overlay.loc) {
@@ -94,12 +90,10 @@ export default class ASOverlay extends React.Component<{}, ASOverlayProps, ASOve
   }
 
   _onResizeStart(e: SyntheticEvent, size: any) {
-    console.log("resize start!");
     this.setState({resizing: true});
   }
 
   _onResizeStop(e: SyntheticEvent, {size: {width, height}}: any) {
-    console.log("ON RESIZE STOP!");
     this.setState({resizing: false});
     let {overlay: {offsetX, offsetY}} = this.props;
     let tagValue = {

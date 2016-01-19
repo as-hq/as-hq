@@ -19,8 +19,12 @@ import type {
 } from '../types/Eval';
 
 // $FlowFixMe somehow Flow isn't recognizing these?
-var ace = require('brace');
-var React = require('react');
+import ace from 'brace';
+import React from 'react';
+
+// side-effectful import needed to enable autocomplete
+// $FlowFixMe somehow Flow isn't recognizing these?
+import 'brace/ext/language_tools';
 
 function onPropsSet(editor, props) {
   editor.setTheme('ace/theme/' + props.theme);
@@ -37,17 +41,17 @@ function onPropsSet(editor, props) {
 }
 
 type AceEditorProps = {
-  handleEditorFocus: () => void; 
-  onDeferredKey: (e: SyntheticKeyboardEvent) => void; 
-  hideToast: () => void; 
-  setFocus: (elem: ASFocusType) => void; 
+  handleEditorFocus: () => void;
+  onDeferredKey: (e: SyntheticKeyboardEvent) => void;
+  hideToast: () => void;
+  setFocus: (elem: ASFocusType) => void;
   theme: string;
   name: string;
   height: string;
   width: string;
   // fontSize: number; (Anand made this font larger; restoring it back to original for now. Alex 12/30)
   showGutter: boolean;
-  onLoad: ?((editor: any) => void); 
+  onLoad: ?((editor: any) => void);
   minLines: number;
   maxLines: number;
   readOnly: boolean;
@@ -62,7 +66,7 @@ type AceEditorDefaultProps = {
   width: string;
   // fontSize: number;
   showGutter: boolean;
-  onLoad: ?((editor: any) => void); 
+  onLoad: ?((editor: any) => void);
   minLines: number;
   maxLines: number;
   readOnly: boolean;
@@ -71,13 +75,13 @@ type AceEditorDefaultProps = {
 };
 
 type AceEditorState = {
-  language: ASLanguage; 
+  language: ASLanguage;
 };
 
 export default class AceEditor
   extends React.Component<AceEditorDefaultProps, AceEditorProps, AceEditorState>
 {
-  editor: any; 
+  editor: any;
 
   /*************************************************************************************************************************/
   // React methods
@@ -85,7 +89,7 @@ export default class AceEditor
   constructor(props: AceEditorProps) {
     super(props);
 
-    this.state = { 
+    this.state = {
       language: Constants.Languages.Excel
     }
   }

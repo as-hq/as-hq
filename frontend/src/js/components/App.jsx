@@ -132,7 +132,7 @@ export default React.createClass({
         <div style={{
           ...fullStyle,
           ...(errorPaneOpen ? { } : {'display': 'none'})}}>
-          <ASErrorPane open={errorPaneOpen} onRequestSelect={this._handleRequestSelect.bind(this)} />
+          <ASErrorPane open={errorPaneOpen} onRequestSelect={idx => this._handleRequestSelect(idx)} />
         </div>
         <div style={{
           ...fullStyle,
@@ -154,7 +154,7 @@ export default React.createClass({
           open={ModalStore.getChartingOpen()}
           onRequestClose={() => DialogActions.closeChartingDialog()}
           onCreate={(chart) => OverlayActions.add(chart)} />
-        <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
+        <ASTopBar toggleEvalHeader={() => this._toggleEvalHeader()} />
 
         <Toolbar />
 
@@ -164,8 +164,8 @@ export default React.createClass({
 
         <div style={{width: '100%', height: `${bottomBarHeight}px`}}>
           <ASBottomBar
-            toggleErrorPane={this._toggleErrorPane.bind(this)}
-            toggleOutputPane={this._toggleOutputPane.bind(this)} />
+            toggleErrorPane={() => this._toggleErrorPane()}
+            toggleOutputPane={() => this._toggleOutputPane()} />
         </div>
 
       </div>
