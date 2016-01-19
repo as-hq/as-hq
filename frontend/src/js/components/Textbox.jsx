@@ -202,7 +202,7 @@ export default class Textbox
       display:'block',
       position:'absolute',
       // height of each line in the editor, add 5 to give some leeway at top and bottom
-      lineHeight: (pos && (pos.extent.y + 5)) || 20,
+      lineHeight: ((pos && (pos.extent.y + 5)) || 20) + 'px',
       top: pos && pos.origin.y,
       left: pos && pos.origin.x,
       zIndex: 5,

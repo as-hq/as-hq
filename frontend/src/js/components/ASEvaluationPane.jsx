@@ -220,11 +220,9 @@ export default class ASEvalPane
     if (SheetStateStore.getDecoupleAttempt()) {
       let resp = true;
       // If testing, don't show confirm box. The test will send decouple msg.
-      if (!isTesting()) {
-        resp = window.confirm("You're attempting to decouple cells. Are you sure?");
-        if (resp) {
-          API.decouple();
-        }
+      resp = window.confirm("You're attempting to decouple cells. Are you sure?");
+      if (resp) {
+        API.decouple();
       }
       SheetStateStore.setDecoupleAttempt(false);
     }
