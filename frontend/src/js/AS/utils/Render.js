@@ -101,7 +101,7 @@ const Render = {
         case "URL": //not implemented yet
           break;
         case "ValueFormat":
-          switch (prop.formatType) {
+          switch (prop.valFormat.formatType) {
             case "Money":
               config.value = Format.formatMoney("$", config.value, 2);
               break;
@@ -111,7 +111,11 @@ const Render = {
             case "Date":
               config.value = Format.formatDate(config.value);
               break;
+            default: 
+              break;
           }
+          // Change the precision accordingly if the number of decimal offsets is given
+          config.value = Format.formatDecimal(prop.valFormat.numDecimalOffset, config.value);
           break;
         case "Bold":
           config.font = "bold " + config.font;

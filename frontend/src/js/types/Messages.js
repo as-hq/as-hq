@@ -310,6 +310,7 @@ export type ServerAction =
   | Cut
   | ToggleProp
   | SetProp
+  | ChangeDecimalPrecision
   | Repeat
   | BugReport
   | MutateSheet
@@ -424,6 +425,11 @@ export type ToggleProp = {
 export type SetProp = {
   tag: "SetProp";
   contents: [ASCellProp, ASRangeObject];
+};
+
+export type ChangeDecimalPrecision = {
+  tag: "ChangeDecimalPrecision";
+  contents: [number, ASRangeObject]; 
 };
 
 export type Repeat = {

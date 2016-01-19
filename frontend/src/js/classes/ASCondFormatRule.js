@@ -6,53 +6,58 @@ import type {
 
 import type {
   CondFormatRule,
-  CondFormatCondition
+  BoolCondition,
+  FormatMapConstructor
 } from '../types/CondFormat';
 
 import ASRange from './ASRange';
 
+import shortid from 'shortid';
+
 export default class ASCondFormatRule {
   _condFormatRuleId: string;
-  _condFormat: ASCellProp;
-  _condition: CondFormatCondition;
+  _formatMapConstructor: FormatMapConstructor;
   _cellLocs: Array<ASRange>;
 
   get condFormatRuleId(): string { return this._condFormatRuleId; }
-  get condFormat(): ASCellProp { return this._condFormat; }
-  get condition(): CondFormatCondition { return this._condition; }
+  get formatMapConstructor(): FormatMapConstructor { return this._formatMapConstructor; }
   get cellLocs(): Array<ASRange> { return this._cellLocs; }
 
-  static fromClasses({ condFormatRuleId, condFormat, condition, cellLocs }: ({
-    condFormatRuleId: string;
-    condFormat: ASCellProp;
-    condition: CondFormatCondition;
+  static fromClasses({ condFormatRuleId, formatMapConstructor, cellLocs }: ({
+    condFormatRuleId: ?string;
+    formatMapConstructor: FormatMapConstructor;
     cellLocs: Array<ASRange>;
   })): ASCondFormatRule {
     return new ASCondFormatRule({
       tag: 'CondFormatRule',
-      condFormatRuleId: condFormatRuleId,
-      condFormat: condFormat,
-      condition: condition,
+      condFormatRuleId: condFormatRuleId || ASCondFormatRule.getNewRuleId(),
+      formatMapConstructor: formatMapConstructor,
       cellLocs: cellLocs.map((r) => r.obj())
     });
+  }
+
+  static getNewRuleId(): string {
+    return shortid.generate();
   }
 
   constructor(obj: CondFormatRule) {
     this._condFormatRuleId = obj.condFormatRuleId;
-    this._condFormat = obj.condFormat;
-    this._condition = obj.condition;
+    this._formatMapConstructor = obj.formatMapConstructor;
     this._cellLocs = obj.cellLocs.map((r) => new ASRange(r));
   }
 
   obj(): CondFormatRule {
-    const {condFormatRuleId, condFormat, condition, cellLocs} = this;
+    const {condFormatRuleId, formatMapConstructor, cellLocs} = this;
 
     return ({
       tag: 'CondFormatRule',
       condFormatRuleId: condFormatRuleId,
-      condFormat: condFormat,
-      condition: condition,
+      formatMapConstructor: formatMapConstructor,
       cellLocs: cellLocs.map((r) => r.obj())
     });
+  }
+
+  appliesTo(rng: ASRange): boolean {
+    return this.cellLocs.some((r) => rng.intersectsWith(r));
   }
 }

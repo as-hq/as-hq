@@ -1,22 +1,23 @@
-module AS.Handlers.Props (handleToggleProp, handleSetProp) where
+module AS.Handlers.Props (handleToggleProp, handleSetProp, handleChangeDecimalPrecision) where
+
+import Data.List
+import Control.Concurrent
+import Control.Lens
+import qualified Data.Map as M
+import Database.Redis (Connection)
 
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Commits
+import AS.Types.Eval
 
 import AS.DB.API
-
+import AS.Dispatch.Core as DP
 import AS.Daemon as DM
 import AS.Reply
 import AS.Util
-
-import Data.List
-import Control.Concurrent
-import Control.Lens
-
-import Database.Redis (Connection)
 
 -- | Used only for flag props. 
 handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
@@ -53,10 +54,33 @@ removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (c^.cellLocation) state
 removePropEndware _ _ _ = return ()
 
-handleSetProp :: Connection -> ASUserClient -> CellProp -> ASRange -> IO ()
-handleSetProp conn uc prop rng = do
+-- Given a prop transform, create the new cells by mapping over the transform and run a dispatch cycle with those cells.
+-- We want to run a dispatch cycle so that the possibly new formats can propagate; if A1 is now a percent and B1 depended on A1, 
+-- then B1 may now have a percent format as well. This isn't necessary for many props, however, (bold doesn't propagate)
+-- so a future refactor of props should address this. 
+-- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
+-- to update when you change their precision. 
+handleTransformProp :: (ASCellProps -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
+handleTransformProp f uc state rng = do
   let locs = rangeToIndices rng
+  conn <- view dbConn <$> readMVar state
   cells <- getPossiblyBlankCells conn locs
-  let cells' = map (cellProps %~ setProp prop) cells
+  -- Create new cells by changing props in accordance with cellPropsTransforms 
+  let cells' = map (cellProps %~ f) cells
+  -- Update the DB with the new cells, these won't be re-evaluated
   setCells conn cells'
-  sendSheetUpdate uc $ sheetUpdateFromCells cells'
+  -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
+  errOrUpdate <- DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) id
+  broadcastErrOrUpdate state uc (addCellsToUpdate cells' <$> errOrUpdate)
+
+handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleSetProp uc state prop rng = handleTransformProp (setProp prop) uc state rng
+
+-- Change the decimal precision of all the values in a range
+handleChangeDecimalPrecision :: ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
+handleChangeDecimalPrecision uc state i rng = handleTransformProp (upsertProp defaultDecProp updateDecPrecision) uc state rng
+  where
+    defaultDecProp = ValueFormat (Format NoFormat (Just i))
+    updateDecPrecision (ValueFormat (Format fType Nothing)) = ValueFormat $ Format fType $ Just i
+    updateDecPrecision (ValueFormat (Format fType (Just dOff))) = ValueFormat $ Format fType $ Just (dOff + i)
+    updateDecPrecision x = x

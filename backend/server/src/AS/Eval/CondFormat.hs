@@ -59,11 +59,14 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
           shiftXp = shiftExpression offset
           determineFormats v = case condMapConstructor of 
             BoolFormatMapConstructor boolCond props -> do 
-              let shiftAndEvalExpr = (evaluateExpression state sid ctx) . shiftXp 
-              shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
-              return $ if shouldFormat then props else []
+              let mEvalLoc = shiftInd offset tl
+              case mEvalLoc of 
+                Nothing -> return []
+                Just evalLoc -> do 
+                  let shiftAndEvalExpr = (evaluateBoolExpression state evalLoc ctx) . shiftXp 
+                  shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
+                  return $ if shouldFormat then props else []
             LambdaFormatMapConstructor lambdaExpr -> do 
-              -- The logic here should probably be abstracted somewhere else. 
               let shiftedLambdaExpr = shiftXp (Expression lambdaExpr Python)
               formatResult <- evaluateFormatExpression state sid ctx shiftedLambdaExpr v
               return $ case formatResult of 
@@ -72,14 +75,13 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
       conditionalFormats <- determineFormats $ c^.cellValue
       return $ c & cellProps %~ setCondFormatProps conditionalFormats
 
-
-
 -- #needsrefactor this may not be the right place to put the below three functions.
-
 -- Also, there are probably a ton of redundant calls to the DB -- we might be inserting 
--- into the EvalContext the same cell, pulled from the DB, over and over again in 
--- different calls to updatedContextForEval.
--- #lens
+-- into the EvalContext the same cell, pulled from the DB, over and over again in different calls to updatedContextForEval
+
+-- | Takes in a context and an expression, and adds to the context all the cells referenced
+-- in the expression that are not already in the context. This is the context that will be
+-- used to evaluate said expression. 
 updatedContextForEval :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec EvalContext
 updatedContextForEval state sid ctx xp = do 
   let valMap = virtualCellsMap ctx
@@ -91,12 +93,11 @@ updatedContextForEval state sid ctx xp = do
   let valMap' = insertMultiple valMap depIndsToGet cells
   return ctx { virtualCellsMap = valMap' } 
 
-evaluateExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec ASValue
-evaluateExpression state sid ctx xp@(Expression str lang) = do
+evaluateBoolExpression :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EitherTExec ASValue
+evaluateBoolExpression state evalLoc ctx xp@(Expression str lang) = do
+  let sid = evalLoc^.locSheetId
   ctx' <- updatedContextForEval state sid ctx xp
-  -- we don't care about the display string produced by evaluateLanguage
-  let dummyLoc = Index sid (Coord (-1) (-1)) -- #needsrefactor sucks. evaluateLanguage should take in a Maybe index. Until then
-  (Formatted (EvalResult res _) _) <- evaluateLanguage state dummyLoc ctx' xp
+  (Formatted (EvalResult res _) _) <- evaluateLanguage state evalLoc ctx' xp
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)
     CellValue (ValueError msg _) -> do
@@ -104,6 +105,10 @@ evaluateExpression state sid ctx xp@(Expression str lang) = do
       left $ CondFormattingError errMsg
     CellValue v -> return v
 
+-- #needsrefactor should really have a typeclass that encompasses ASExpression and LambdaConditionExpr.
+-- For now we're just shoehorning LambdaConditionExpr into an ASExpression. 
+-- 
+-- | Evaluates a Python function that returns a format or an error, rather than an ASValue. 
 evaluateFormatExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EitherTExec FormatResult
 evaluateFormatExpression state sid ctx lambdaExpr v = do
   let kerAddr = state^.appSettings.pyKernelAddress 

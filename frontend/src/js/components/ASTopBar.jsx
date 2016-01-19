@@ -12,9 +12,11 @@ import type {
 } from './menu-bar/types';
 
 import React from 'react';
+import request from 'superagent';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
 import Constants from '../Constants';
 
@@ -26,11 +28,6 @@ import ASChartDialog from './chart/ASChartDialog.jsx';
 
 type ASTopBarProps = {
   toggleEvalHeader: Callback;
-};
-
-type ASTopBarState = {
-  chartOpen: boolean;
-  condFormattingOpen: boolean;
 };
 
 function nested(etc): NestedMenuSpec {
@@ -56,11 +53,9 @@ function file({callback, title}): FileItemSpec {
   });
 }
 
-export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBarState> {
+export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
   constructor(props: ASTopBarProps) {
     super(props);
-
-    this.state = { condFormattingOpen: false, chartOpen: false };
   }
 
   render(): React.Element {
@@ -81,13 +76,6 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
 
     return (
       <span>
-        <ASCondFormattingDialog
-          open={this.state.condFormattingOpen}
-          onRequestClose={this._onCondFormatClose.bind(this)} />
-        <ASChartDialog
-          open={this.state.chartOpen}
-          onRequestClose={this._onChartClose.bind(this)}
-          onCreate={OverlayActions.add} />
         <div style={{
           position: 'absolute',
           display: 'block',
@@ -121,9 +109,23 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             file({
               title: 'Import CSV',
               callback(files) {
+                // TODO(joel): this should be part of the api, not done inline
+                const req = request.post(FileImportDialog.url);
                 for (let i = 0; i < files.length; i++) {
-                  FileImportDialog.importCSVCallback(files[i]);
+                  const file = files[i];
+                  req.attach(file.name, file);
                 }
+
+                req.end((err, res) => {
+                  if (err || !res.ok) {
+                    console.error(err);
+                    alert('Could not import files');
+                  } else {
+                    for (let i = 0; i < files.length; i++) {
+                      FileImportDialog.importCSVCallback(files[i]);
+                    }
+                  }
+                });
               },
             }),
 
@@ -139,9 +141,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             simple({
               title: 'Conditional formatting',
               callback() {
-                self.setState({
-                  condFormattingOpen: true
-                });
+                DialogActions.openCondFormattingDialog();
               }
             }),
 
@@ -160,9 +160,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
             simple({
               title: 'Chart',
               callback() {
-                self.setState({
-                  chartOpen: true
-                });
+                DialogActions.openChartingDialog();
               }
             })
           ]},
@@ -190,13 +188,5 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, ASTopBa
         ]} />
       </span>
     );
-  }
-
-  _onCondFormatClose() {
-    this.setState({condFormattingOpen: false});
-  }
-
-  _onChartClose() {
-    this.setState({chartOpen: false});
   }
 }

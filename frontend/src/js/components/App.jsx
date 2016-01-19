@@ -1,3 +1,9 @@
+/* @flow */
+
+import type {
+  StoreLink
+} from '../types/React';
+
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
@@ -6,6 +12,10 @@ import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
 import ASConnectionBar from './ASConnectionBar.jsx';
 import ASBottomBar from './ASBottomBar.jsx';
+
+import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
+import ASChartDialog from './chart/ASChartDialog.jsx';
+
 import ResizablePanel from './ResizablePanel.jsx'
 import Toolbar from './toolbar/Toolbar.jsx';
 
@@ -17,16 +27,27 @@ const {
   Conversion: TC
 } = U;
 
+import ASIndex from '../classes/ASIndex';
+
+// $FlowFixMe: missing annotations
 import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
+
 import API from '../actions/ASApiActionCreators';
+import DialogActions from '../actions/DialogActionCreators';
+import OverlayActions from '../actions/ASOverlayActionCreators';
+
 import Constants from '../Constants';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ConnectionStore from '../stores/ASConnectionStore';
+import ModalStore from '../stores/ASModalStore';
 
+// $FlowFixMe: missing annotations
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
+// $FlowFixMe: missing annotations
 import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
 export default React.createClass({
+  $storeLinks: ([]: Array<StoreLink>),
 
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
@@ -44,6 +65,16 @@ export default React.createClass({
     SheetStateStore.setUserId(userId);
     ConnectionStore.addChangeListener(() => this._onConnectionStateChange());
     API.initialize();
+  },
+
+  componentDidMount() {
+    U.React.addStoreLinks(this, [
+      { store: ModalStore }
+    ]);
+  },
+
+  componentWillUnmount() {
+    U.React.removeStoreLinks(this);
   },
 
   getInitialState() {
@@ -65,7 +96,7 @@ export default React.createClass({
     muiTheme: React.PropTypes.object
   },
 
-  getChildContext() {
+  getChildContext(): any {
     return {
       muiTheme: ThemeManager.getMuiTheme(DarkTheme)
     };
@@ -74,7 +105,7 @@ export default React.createClass({
   /**************************************************************************************************************************/
   /* Core render method for the whole app */
 
-  render() {
+  render(): React.Element {
     // TODO: these heights should be in a config file, not here
     const {errorPaneOpen, outputPaneOpen, isConnected} = this.state;
     const bottomBarHeight = 24;
@@ -92,12 +123,10 @@ export default React.createClass({
     // Note: it's OK to give things inside ResizablePanel height 100% because ResizablePanel uses it's own height as reference.
     // Here, the height of the resizable panel is everything except top and bottom parts, so all percents in fullStyle are relative to that
     // Also, it's essential to keep the outputPane component in the layout, and to make it invisible if necessary, rather than null
-
     let evalPane =
       <div style={fullStyle}>
         <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
       </div>;
-
     let errorAndOutputPane =
       <div style={fullStyle}>
         <div style={{
@@ -114,11 +143,17 @@ export default React.createClass({
 
     return (
       <div style={{width: '100%',height: '100%'}} >
-
         <div style={connectionBarStyle}>
           <ASConnectionBar />
         </div>
 
+        <ASCondFormattingDialog
+          open={ModalStore.getCondFormattingOpen()}
+          onRequestClose={() => DialogActions.closeCondFormattingDialog()} />
+        <ASChartDialog
+          open={ModalStore.getChartingOpen()}
+          onRequestClose={() => DialogActions.closeChartingDialog()}
+          onCreate={(chart) => OverlayActions.add(chart)} />
         <ASTopBar toggleEvalHeader={this._toggleEvalHeader.bind(this)} />
 
         <Toolbar />
@@ -161,14 +196,12 @@ export default React.createClass({
     });
   },
 
-  _handleRequestSelect(idx) {
-    let rng = TC.indexToRange(idx);
-    let sel = { origin: idx, range: rng };
-    this.refs.evalPane.getASSpreadsheet().select(sel);
-  },
-
   _onConnectionStateChange() {
     let isConnected = ConnectionStore.getIsConnected();
     this.setState({isConnected: isConnected});
+  },
+
+  _handleRequestSelect(idx: ASIndex) {
+    this.refs.evalPane.getASSpreadsheet().selectIndex(idx);
   }
 });

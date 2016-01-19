@@ -89,7 +89,7 @@ decomposeCompositeValue c (Expanding (VPSeries indices vals)) = Just $ FatCell c
     idx       = c^.cellLocation
     dims      = getDimensions (A vals)
     rangeKey  = RangeKey idx dims
-    desc      = RangeDescriptor rangeKey PSeries $ M.fromList [("dfIndices", JSONLeaf . ListValue . A $ indices)]
+    desc      = RangeDescriptor rangeKey PSeries $ M.fromList [("seriesIndices", JSONLeaf . ListValue . A $ indices)]
     cells     = decomposeCells desc c (A vals)
 
 -- #lens

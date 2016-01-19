@@ -7,6 +7,10 @@ import Constants from '../Constants';
 import BaseStore from './BaseStore';
 import Util from '../AS/Util';
 
+import {Just} from '../AS/Maybe';
+
+import ASRange from '../classes/ASRange';
+
 import ASCondFormatRule from '../classes/ASCondFormatRule';
 
 let _data = {
@@ -28,6 +32,22 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
 
   getRules(): Array<ASCondFormatRule> {
     return _data.rules;
+  },
+
+  getRulesApplyingToRange(rng: ASRange): Array<ASCondFormatRule> {
+    return ASCondFormatStore.getRules().filter(
+      (rule) => rule.appliesTo(rng)
+    )
+  },
+
+  getRuleById(id: string): ?ASCondFormatRule {
+    return ASCondFormatStore.getRules().filter(
+      ({condFormatRuleId: rid}) => id === rid
+    )[0];
+  },
+
+  withRuleById<T>(id: string, cb: (val: ASCondFormatRule) => T): ?T {
+    return Just(ASCondFormatStore.getRuleById(id)).fmap(cb).out();
   },
 
   // #needsrefactor yes Michael I know I'm using indices etc. etc.

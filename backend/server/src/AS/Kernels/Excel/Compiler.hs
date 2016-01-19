@@ -286,14 +286,14 @@ money :: Parser (Formatted Double)
 money = do 
   spaces >> char '$' >> spaces
   f <- floatOrInteger 
-  return $ Formatted f $ Just Money
+  return $ Formatted f (Just (Format Money Nothing))
 
 percentage :: Parser (Formatted Double)
 percentage = do
   spaces
   p <- floatOrInteger
   char '%' >> spaces
-  return $ Formatted (percentToDecimal p) $ Just Percentage
+  return $ Formatted (percentToDecimal p) (Just (Format Percentage Nothing))
 
 date :: Parser (Formatted Double)
 date = do 
@@ -304,7 +304,7 @@ date = do
   year <- natural
   if (month > 12 || day > 31)
     then fail "Invalid date"
-    else return $ Formatted (dateToDecimal month day year) $ Just Date
+    else return $ Formatted (dateToDecimal month day year) (Just (Format Date Nothing))
 
 formattedFloat :: Parser (Formatted Double)
 formattedFloat = (try money) <|> (try percentage) <|> (try date) <|> (try $ return <$> float')

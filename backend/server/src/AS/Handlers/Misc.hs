@@ -16,6 +16,8 @@ import AS.Types.Selection
 import AS.Types.Updates
 import qualified AS.Types.BarProps as BP
 
+import Database.Redis (Connection)
+
 import AS.Handlers.Eval
 import AS.Handlers.Paste
 import AS.Handlers.Delete
@@ -247,22 +249,35 @@ handleGetBar uc state bInd = do
   let msg = maybe (ClientMessage . PassBarToTest $ Bar bInd BP.emptyProps) (ClientMessage . PassBarToTest) mBar
   sendToOriginal uc msg
 
--- #needsrefactor Should eventually merge with handleSetProp. 
-handleSetBarProp :: ASUserClient -> MVar ServerState -> BarIndex -> BarProp -> IO ()
-handleSetBarProp uc mstate bInd prop = do 
-  state <- readMVar mstate
-  let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
+-- Functions for setting bar props.
+updateBarPropsInDB :: Connection -> BarProp -> BarIndex -> IO (Bar, Bar)
+updateBarPropsInDB conn prop bInd = do
   oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
   let newProps = BP.setProp prop oldProps
       newBar   = Bar bInd newProps
       oldBar   = Bar bInd oldProps
   DB.setBar conn newBar
-  -- Commit barProps.
+  return $ (oldBar, newBar)
+
+commitBars :: ASUserClient -> GraphAddress -> Connection -> [Bar] -> [Bar] ->  IO()
+commitBars uc graphAddress conn oldBars newBars = do
   time <- getASTime
-  let bd     = Diff { beforeVals = [oldBar], afterVals = [newBar] }
+  let bd     = Diff { beforeVals = oldBars, afterVals = newBars }
       commit = (emptyCommitWithTime time) { barDiff = bd }
   DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
+
+updateAndCommitBars :: ASUserClient -> GraphAddress -> Connection -> BarProp -> [BarIndex] -> IO()
+updateAndCommitBars uc graphAddress conn prop bInds  = do
+  oldNewPropPairs <- mapM (updateBarPropsInDB conn prop) bInds
+  let (oldProps, newProps) = unzip oldNewPropPairs
+  commitBars uc graphAddress conn oldProps newProps
+
+-- #needsrefactor Should eventually merge with handleSetProp. 
+handleSetBarProp :: ASUserClient -> ServerState -> BarIndex -> BarProp -> IO ()
+handleSetBarProp uc state bInd prop = do 
+  let conn = state^.dbConn
+      graphAddress = state^.appSettings.graphDbAddress
+  updateAndCommitBars uc graphAddress conn prop [bInd]
   sendToOriginal uc $ ClientMessage NoAction
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets

@@ -5,7 +5,7 @@ import type {
 } from '../../types/Eval';
 
 import type {
-  CondFormatCondition
+  BoolCondition
 } from '../../types/CondFormat';
 
 import React from 'react';
@@ -21,11 +21,11 @@ import ASButton from '../basic-controls/ASButton.jsx';
 
 type ASCondFormattingDialogContentsProps = {
   rules: Array<ASCondFormatRule>;
-  onEditRule: (ruleId: string) => () => void;
-  onDeleteRule: (ruleId: string) => () => void;
+  onEditRule: (ruleId: string) => void;
+  onDeleteRule: (ruleId: string) => void;
 };
 
-function conditionDescriptor(condition: CondFormatCondition): string {
+function conditionDescriptor(condition: BoolCondition): string {
   switch (condition.tag) {
     case 'CustomCondition':
       return `satisfies ${condition.contents.language} expression ${condition.contents.expression}`;
@@ -64,13 +64,25 @@ function showRule(rule: ASCondFormatRule): string {
     rule.cellLocs.map((r) => r.toExcel().toString())
   );
 
-  let {condition, condFormat} = rule;
+  const {formatMapConstructor} = rule;
 
-  return `${rngsStr}: if cell ${
-    conditionDescriptor(condition)
-  }, ${
-    styleDescriptor(condFormat)
-  }`;
+  switch (formatMapConstructor.tag) {
+    case 'BoolFormatMapConstructor':
+      const {
+        boolFormatMapCondition,
+        boolFormatMapProps: [boolFormatMapProp]
+      } = formatMapConstructor;
+      return `${rngsStr}: if cell ${
+        conditionDescriptor(boolFormatMapCondition)
+      }, ${
+        styleDescriptor(boolFormatMapProp)
+      }`;
+    case 'LambdaFormatMapConstructor':
+      const {contents} = formatMapConstructor;
+      return `${rngsStr}: ${contents}`;
+    default:
+      throw new Error('Unhandled case!');
+  }
 }
 
 function ASCondFormattingRuleLabel(
@@ -97,13 +109,13 @@ export default function ASCondFormattingDialogContents(
           <ASCondFormattingRuleLabel ruleTitle={showRule(rule)} />
           <ASButton
             style={_Styles.buttons}
-            onMouseUp={onEditRule(rule.condFormatRuleId)}
+            onMouseUp={() => onEditRule(rule.condFormatRuleId)}
             label="Edit"
             selectable={false} />
           <ASButton
             style={_Styles.buttons}
             primary={true}
-            onMouseUp={onDeleteRule(rule.condFormatRuleId)}
+            onMouseUp={() => onDeleteRule(rule.condFormatRuleId)}
             label="Delete"
             selectable={false} />
         </div>

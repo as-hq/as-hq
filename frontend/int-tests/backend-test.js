@@ -55,6 +55,8 @@ describe('backend', () => {
     makeIsBetweenCondFormattingFontRuleExcel,
     makeIsNotBetweenCondFormattingFontRuleExcel,
 
+    makeLambdaRule,
+
     setColumnWidth,
 
     python,
@@ -2878,6 +2880,122 @@ describe('backend', () => {
             shouldHaveProp('A6', 'Italic'),
             removeCondFormattingRule(rule.condFormatRuleId),
             shouldHaveProp('A6', 'Italic'),
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('lambda format rules', () => {
+        it ('should individually set properties correctly', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule("A1", "lambda x: Format(italic=True, bold=True)")
+            ),
+            shouldHaveProp('A1', 'Italic'),
+            shouldHaveProp('A1', 'Bold'),
+            updateCondFormattingRule(
+              makeLambdaRule("A2", "lambda x: Format(underline=True, url='hello')")
+            ),
+            shouldHaveProp('A2', 'Underline'),
+            shouldHaveProp('A2', 'URL'),
+            updateCondFormattingRule(
+              makeLambdaRule("A3", "lambda x: Format(textColor=Color('red'), fillColor=Color('blue'))")
+            ),
+            shouldHaveProp('A3', 'TextColor'),
+            shouldHaveProp('A3', 'FillColor'),
+            exec(done)
+          ]);
+        });
+
+        it ('deals with escaped strings properly', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule('A1', "lambda x: Format(url='He\"ll\\o\\\"')")
+            ),
+            shouldHaveProp('A1', 'URL'), // really just tests whether this properly parses
+            exec(done)
+          ]);
+        });
+
+        it ('fails gracefully', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule('A1', "not a lambda")
+            ),
+            updateCondFormattingRule(
+              makeLambdaRule('A2', "lambda x: 'not a format'")
+            ),
+            // the above should both produce conditional formatting errors, which haven't yet
+            // been implemented. All I'm really checking here is that the server doesn't crash, 
+            // and we can make it to exec(done). 
+            exec(done)
+          ]);
+        });
+
+        it ('conditionally formats based on a lambda', (done) => {
+          _do([
+            python('A1', 'range(3)'),
+            updateCondFormattingRule(
+              makeLambdaRule('A1:A10', "lambda x: Format(bold=(x >= 1), italic=(x <= 1))")
+            ),
+            shouldHaveProp('A1', 'Italic'), // A1 has 0 in it
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Italic'), // A2 has 1 in it
+            shouldHaveProp('A2', 'Bold'), 
+            shouldNotHaveProp('A3', 'Italic'), // A3 has 2 in it
+            shouldHaveProp('A3', 'Bold'), 
+            exec(done)
+          ]);
+        });
+
+        it ('can reference values from other cells', (done) => {
+          _do([
+            python('A1', 'range(3)'),
+            updateCondFormattingRule(
+              makeLambdaRule('A1:A10', "lambda x: Format(bold=(A1 >= 1), italic=(A2 <= 1))")
+            ),
+            shouldNotHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'), 
+            shouldHaveProp('A3', 'Bold'), 
+
+            shouldHaveProp('A1', 'Italic'), // A1 has 0 in it
+            shouldNotHaveProp('A2', 'Italic'), // A2 has 1 in it
+            shouldHaveProp('A3', 'Italic'), // None <= 1 evaluates to true (<___<)
+            exec(done)
+          ]);
+        });
+
+        it ('conditionally formats based on an eval header function', (done) => {
+          _do([
+            pythonEvalHeader('def format(x):\n\tf = Format()\n\tf.bold = True\n\treturn f'),
+            updateCondFormattingRule(
+              makeLambdaRule('A1', "format")
+            ),
+            shouldHaveProp('A1', 'Bold'), // A1 has 0 in it
+            exec(done)
+          ]);
+        });
+
+        it ('can interpolate color with lambda', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule('A1:A10', "lambda x: Format(fillColor=Color(hue=0,saturation=1,luminance=x/10.0))")
+            ),
+            python('A1', 'range(10)'),
+            shouldHaveProp('A1', 'FillColor'), // currently API doesn't expose nice way to peek at color
+            shouldHaveProp('A10', 'FillColor'), 
+            exec(done)
+          ]);
+        });
+
+        it ('can interpolate color with lambda with colorAverage', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule('A1:A10', "lambda x: Format(fillColor=colorAverage(Color('red'), Color('green'), x/10.0))")
+            ),
+            python('A1', 'range(10)'),
+            shouldHaveProp('A1', 'FillColor'), // currently API doesn't expose nice way to peek at color
+            shouldHaveProp('A10', 'FillColor'), 
             exec(done)
           ]);
         });

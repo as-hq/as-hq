@@ -92,9 +92,15 @@ export type FontName = {
   contents: string;
 };
 
+export type Format = {
+  tag: 'Format';
+  formatType: FormatType;
+  numDecimalOffset: ?number;
+};
+
 export type ValueFormat = {
   tag: 'ValueFormat';
-  formatType: FormatType;
+  valFormat: Format;
 };
 
 export type ImageData = {

@@ -1,7 +1,6 @@
 /* @flow */
 
 import React from 'react';
-let request = require('superagent');
 
 import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';
@@ -37,8 +36,7 @@ const FileImportDialog = {
         API.importCSV(simpleIndex, 'Excel', file.name);
       }
     }
-  },
-
+  }
 };
 
 export default FileImportDialog;

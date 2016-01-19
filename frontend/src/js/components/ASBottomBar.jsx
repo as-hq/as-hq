@@ -1,4 +1,4 @@
-// TODO: flow
+// @flow
 
 import type {
   Callback
@@ -7,9 +7,10 @@ import type {
 import React from 'react';
 
 import {Paper} from 'material-ui';
+// $FlowFixMe
 import IconButton from 'material-ui/lib/icon-button';
+// $FlowFixMe
 import FontIcon from 'material-ui/lib/font-icon';
-
 
 import _Styles from '../styles/ASBottomBar';
 
@@ -40,7 +41,7 @@ export default function ASBottomBar(props: ASBottomBarProps): React.Element {
         tooltipStyles={_Styles.tooltip}>
         swap_horiz
       </IconButton>
-     
+
     </Paper>
   );
 }

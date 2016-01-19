@@ -182,11 +182,11 @@ instance (Show a) => Show (Formatted a) where
 
 instance Num EFormattedNumeric where
   negate = liftM negate
-  signum (Formatted f _) = Formatted (signum f) $ Just NoFormat
+  signum (Formatted f _) = Formatted (signum f) (Just (Format NoFormat Nothing))
   abs = liftM abs
   (+) = liftM2 (+)
-  (*) (Formatted x (Just Percentage)) (Formatted y f) = Formatted (x*y) f
-  (*) (Formatted x f) (Formatted y (Just Percentage)) = Formatted (x*y) f
+  (*) (Formatted x (Just (Format Percentage _))) (Formatted y f) = Formatted (x*y) f
+  (*) (Formatted x f) (Formatted y (Just (Format Percentage _))) = Formatted (x*y) f
   (*) x y = liftM2 (*) x y
   fromInteger = return . fromInteger
 

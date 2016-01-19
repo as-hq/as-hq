@@ -1,21 +1,33 @@
 /* @flow */
 
 import type {
-  ASLocation, 
+  ASLocation,
   ASCellProp,
   ASExpression,
   ASRangeObject
-} from'./Eval';
+} from './Eval';
 
 export type CondFormatRule = {
   tag: 'CondFormatRule';
   condFormatRuleId: string;
-  condFormat: ASCellProp;
-  condition: CondFormatCondition;
   cellLocs: Array<ASRangeObject>;
+  formatMapConstructor: FormatMapConstructor;
 };
 
-export type CondFormatCondition =
+export type FormatMapConstructor = BoolFormatMapConstructor | LambdaFormatMapConstructor;
+
+export type BoolFormatMapConstructor = {
+  tag: "BoolFormatMapConstructor";
+  boolFormatMapCondition: BoolCondition;
+  boolFormatMapProps: [ASCellProp];
+};
+
+export type LambdaFormatMapConstructor = {
+  tag: "LambdaFormatMapConstructor";
+  contents: string;
+};
+
+export type BoolCondition =
   CustomCondition
   | GreaterThanCondition
   | LessThanCondition
@@ -31,7 +43,8 @@ export type CondFormatCondition =
 export type CustomCondition = {
   tag: 'CustomCondition';
   contents: ASExpression;
-}
+};
+
 export type GreaterThanCondition = {
   tag: 'GreaterThanCondition';
   contents: ASExpression;
