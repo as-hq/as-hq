@@ -33,8 +33,8 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
 -- | Extracts an element of a matrix
 matrixIndex :: Coord -> EMatrix -> EValue
 matrixIndex coord (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
-  where r = coord^.row
-        c = coord^.col
+  where r = coord^.row^.int
+        c = coord^.col^.int
 
 -- | Cast ASValue (from CellMap) to an Excel entity. 
 asValueToEntity :: Formatted ASValue -> Maybe EEntity
@@ -127,10 +127,10 @@ topLeftLoc (RangeRef (Range _ (a,_))) = a
 dimension :: ASReference -> (Int,Int)
 dimension (IndexRef (Index _ _)) = (1,1)
 dimension (RangeRef (Range _ (coord1, coord2))) = (c-a+1,d-b+1)
-  where a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+  where a = coord1^.col^.int
+        b = coord1^.row^.int
+        c = coord2^.col^.int
+        d = coord2^.row^.int
 
 -- | Given current reference and another reference, only return the relevant part of the second reference
 -- | Returns Nothing if the second reference is 2D, or if no intersection possible
@@ -170,7 +170,7 @@ matchDimension (ERef r1) (ERef r2) = if topLeft == botRight
   else ERef $ RangeRef $ Range sh (topLeft, botRight)
   where
     topLeft = topLeftLoc r2
-    o = Offset (getWidth r1 - 1) (getHeight r1 - 1)
+    o = Offset (getWidth r1 - Col 1) (getHeight r1 - Row 1)
     botRight = shiftCoordIgnoreOutOfBounds o topLeft
     sh = shName r2
 

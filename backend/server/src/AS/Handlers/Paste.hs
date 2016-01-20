@@ -59,12 +59,12 @@ getCopyOffSets from to = offsets
   where
     fromDims = getRangeDims from
     toDims = getRangeDims to
-    xRep = max 1 ((width toDims) `div` (width fromDims))
-    yRep = max 1 ((height toDims) `div` (height fromDims))
-    xRepOffsets = take xRep [0, (width fromDims)..]
-    yRepOffsets = take yRep [0, (height fromDims)..]
+    xRep = max 1 ((width toDims)^.int `div` (width fromDims)^.int)
+    yRep = max 1 ((height toDims)^.int `div` (height fromDims)^.int)
+    xRepOffsets = take xRep [0, (width fromDims)^.int..]
+    yRepOffsets = take yRep [0, (height fromDims)^.int..]
     tlOffset = getRangeOffset from to
-    offsets = [Offset { dCol = (dCol tlOffset) + x, dRow = (dRow tlOffset) + y } | x <- xRepOffsets, y <- yRepOffsets]
+    offsets = [Offset { dCol = (dCol tlOffset) + Col x, dRow = (dRow tlOffset) + Row y } | x <- xRepOffsets, y <- yRepOffsets]
 
 -- | Gets you the new cells to eval after shifting from a copy/paste. 
 getCopyCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
@@ -94,7 +94,7 @@ sanitizeCopyCells conn cells from
 -- | Offsets all the references in an expression that are contained in the cut range (passed in as 
 -- the argument "from"). 
 shiftExpressionForCut :: ASRange -> Offset -> ASExpression -> ASExpression
-shiftExpressionForCut from offset xp = xp' 
+shiftExpressionForCut from offset xp = xp'
   where 
     fromSid     = rangeSheetId from
     shouldShift = (rangeContainsRef from) . (exRefToASRef fromSid)

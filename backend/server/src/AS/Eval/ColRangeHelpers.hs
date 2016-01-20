@@ -93,14 +93,14 @@ listOfCellsByColToRange c@(ColRange sid (Coord startCol t, InfiniteRowCoord endC
          else Range sid (Coord startCol t, Coord endCol maxRowInCols)
     False -> $error "colRange startCol > endCol in listOfCellsByColToRange "
 
-orientColRange :: ASColRange -> ASColRange
-orientColRange cr@(ColRange sid (coord1, col2)) = 
-  let startCol = min (view col coord1) (view col col2)
-      endCol   = max (view col coord1) (view col col2)
-      tl       = coord1 & col .~ startCol
-      r        = InfiniteRowCoord endCol
-  in
-  ColRange sid (tl, r)
+--- orientColRange :: ASColRange -> ASColRange
+--- orientColRange cr@(ColRange sid (coord1, col2)) = 
+---   let startCol = min (view col coord1) (view col col2)
+---       endCol   = max (view col coord1) (view col col2)
+---       tl       = coord1 & col .~ startCol
+---       r        = InfiniteRowCoord endCol
+---   in
+---   ColRange sid (tl, r)
 
 -- Uses the evalcontext, DB, and column range to extract the range equivalent to the ColumnRange
 -- If there is nothing in the ColRange ((l, t), r), result of this function is equivalent to the range

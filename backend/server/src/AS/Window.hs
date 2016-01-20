@@ -22,22 +22,23 @@ data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRigh
 instance ToJSON ASWindow where
   toJSON (Window sid coord1 coord2) = object ["tag" .= ("window" :: String),
                                               "sheetId" .= sid,
-                                              "range" .= object [ 
-                                                 "tl" .= object [ "row"  .= r, 
-                                                                  "col"  .= c],
-                                                 "br" .= object [ "row"  .= r2, 
-                                                                  "col"  .= c2]]]
-                                                  where c  = view col coord1 
+                                              "range" .= object [
+                                                 "tl" .= object [ "row"  .= (r^.int),
+                                                                  "col"  .= (c^.int)],
+                                                 "br" .= object [ "row"  .= (r2^.int),
+                                                                  "col"  .= (c2^.int)]]]
+                                                  where c  = view col coord1
                                                         r  = view row coord1
                                                         c2 = view col coord2
                                                         r2 = view row coord2
 
+-- TODOX: timchu. Code duplication with FromJSON ASRange.
 instance FromJSON ASWindow where
   parseJSON (Object v) = do
-    rng <- v .: "window" 
+    rng <- v .: "window"
     (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
-    tl' <- Coord <$> tl .: "col" <*> tl .: "row"
-    br' <- Coord <$> br .: "col" <*> br .: "row"
+    tl' <- Coord <$> (Col <$> tl .: "col") <*> (Row <$> tl .: "row")
+    br' <- Coord <$> (Col <$> br .: "col") <*> (Row <$> br .: "row")
     sid <- v .: "sheetId"
     return $ Window sid tl' br'
   parseJSON _          = fail "client message JSON attributes missing"
@@ -48,7 +49,7 @@ deriveSafeCopy 1 'base ''ASWindow
 -- Helpers
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
-inRange :: Int -> Int -> Int -> Bool
+inRange :: (Num a, Ord a) => a -> a -> a -> Bool
 inRange x start len = ((x >= start) && (x <= (start + len)))
 
 inViewingWindow :: ASWindow -> ASIndex -> Bool
