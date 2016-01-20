@@ -45,8 +45,6 @@ function onPropsSet(editor, props) {
 type EditorDefaultProps = {
   mode: string;
   value: string;
-  height: string;
-  width: string;
   maxLines: ?number;
 
   onKeyDown: Callback<SyntheticKeyboardEvent>;
@@ -60,12 +58,12 @@ type EditorProps = {
   value: string;
   requestChange: Callback<string>;
 
+  style: any;
+
   onKeyDown: Callback<SyntheticKeyboardEvent>;
   onKeyUp: Callback<SyntheticKeyboardEvent>;
   onFocus: Callback<SyntheticFocusEvent>;
 
-  height: string;
-  width: string;
   maxLines: ?number;
   language: ASLanguage;
 };
@@ -143,10 +141,9 @@ export default class ASCodeField
   }
 
   render(): React.Element {
-    let divStyle = {
-      width: this.props.width,
-      height: this.props.height,
-      zIndex: 0
+    const divStyle = {
+      zIndex: 0,
+      ...this.props.style
     };
 
     return (
@@ -222,8 +219,10 @@ export default class ASCodeField
 ASCodeField.defaultProps = {
   mode     : 'python',
   value    : '',
-  height   : '100px',
-  width    : '100%',
+  style    : {
+    width  : '100%',
+    height : '100px'
+  }
   name     : 'brace-editor',
   maxLines : null,
 
