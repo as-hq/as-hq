@@ -52,13 +52,14 @@ export default React.createClass({
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
     let sheetId, userId;
+    const promptUser = !(Constants.sheetId || Constants.userId);
 
-    if (Constants.isProduction || Constants.promptUser) {
+    if (Constants.isProduction || promptUser) {
       sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.", "INIT_SHEET_ID");
       userId = window.prompt("Enter your username.","TEST_USER_ID");
     } else {
-      sheetId = "INIT_SHEET_ID";
-      userId = "TEST_USER_ID";
+      sheetId = Constants.sheetId || "INIT_SHEET_ID";
+      userId = Constants.userId || "TEST_USER_ID";
     }
 
     SheetStateStore.setCurrentSheetById(sheetId);
