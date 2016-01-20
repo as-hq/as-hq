@@ -85,14 +85,14 @@ getCellsRect conn r1@(Range _ (coord1,coord2)) r2@(Range _ (coord1',coord2')) = 
       | otherwise = do 
         cells <- DB.getCells conn $ rangeToIndices r1
         return $ map reverse $ formatRect (d-b+1) cells
-    a  = coord1 ^.col^.int
-    b  = coord1 ^.row^.int
-    c  = coord2 ^.col^.int
-    d  = coord2 ^.row^.int
-    a' = coord1'^.col^.int
-    b' = coord1'^.row^.int
-    c' = coord2'^.col^.int
-    d' = coord2'^.row^.int
+    a  = coord1 ^.col
+    b  = coord1 ^.row
+    c  = coord2 ^.col
+    d  = coord2 ^.row
+    a' = coord1'^.col
+    b' = coord1'^.row
+    c' = coord2'^.col
+    d' = coord2'^.row
 
 
 formatRect :: Int -> [a] -> [[a]]

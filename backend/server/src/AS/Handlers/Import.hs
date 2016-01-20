@@ -52,11 +52,10 @@ map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)
 map2D f = V.map (V.map f)
 
 -- Map a function over a 2D vector with index. First arg is dX, second is dY.
--- TODOX: timchu. No clue what happened
 imap2D :: (Col -> Row -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)
 imap2D f csv = V.imap innerMap csv
   where
-    innerMap i = V.imap (\j _ -> f (Col j) (Row i))
+    innerMap i = V.imap (\j _ -> f j i)
 
 -- ZipWith3 in 2D, used to construct cells
 zipWith3In2D :: (a -> b -> c -> d) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b) -> V.Vector (V.Vector c) -> V.Vector (V.Vector d)

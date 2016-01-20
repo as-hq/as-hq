@@ -1,8 +1,6 @@
 -- TODO: split this up to, and separate types into core types and Excel types? 
 
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, BangPatterns #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 
 module AS.Types.Excel where
 
@@ -24,7 +22,7 @@ import Control.Monad.Except
 import Control.Monad (liftM, ap)
 
 import Text.Read (readMaybe)
-import Data.Maybe hiding (fromJust)
+import Data.Maybe (maybe)
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Text as T
@@ -36,30 +34,15 @@ import Control.Lens.TH
 -- | Excel Location Parsing
 
 -- reference locking
-data RefType = ABS | REL deriving (Eq)
+data SingleRefType = ABS | REL deriving (Eq)
+-- TODO: only SingleRefType should exist. Timchu, 1/3/15.
+data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
--- This order on RefType is arbitrary.
-instance Ord RefType where
-  (>=) ABS REL = False
-  (<=) REL ABS = False
-
-data ExInt a = ExInt { _refType :: RefType, _ind :: a } deriving (Eq)
-makeLenses ''ExInt
-
-instance Ord a => Ord (ExInt a) where
-  (>=) exInt1 exInt2 =
-    or [exInt1^.ind >= exInt2^.ind,
-        exInt1^.ind == exInt2^.ind && exInt1^.refType >= exInt2^.refType]
-  (<=) exInt1 exInt2 = 
-    or [exInt1^.ind <= exInt2^.ind,
-        exInt1^.ind == exInt2^.ind && exInt1^.refType <= exInt2^.refType]
-
-type ExCol = ExInt Col
-type ExRow = ExInt Row
-data ExIndex   = ExIndex {_exCol :: ExCol, _exRow :: ExRow } 
+data ExIndex   = ExIndex {refType :: RefType, colStr :: String, rowStr :: String} 
   deriving (Eq)
-makeLenses ''ExIndex
-data ExColRange = ExColRange {firstIndex :: ExIndex, secondCol :: ExCol }
+data ExCol = ExCol { singleRefType :: SingleRefType, col2 :: String}
+  deriving (Eq)
+data ExColRange = ExColRange {firstIndex :: ExIndex, secondCol :: ExCol}
   deriving (Eq)
 data ExRange = ExRange {first :: ExIndex, second :: ExIndex}
    deriving (Eq)
@@ -94,33 +77,27 @@ instance Show ExRef where
   show a = 
     let prefix = showRefQualifier (workbookRef a) (sheetRef a)
     in case a of 
-      ExOutOfBounds ->
-        "#REF!"
-      ExIndexRef l _ _ ->
-        prefix ++ (show l)
-      ExColRangeRef (ExColRange tl r) _ _ ->
-        prefix ++ (show tl) ++ ":" ++ showAsCol r
-      ExRangeRef (ExRange tl br) _ _ ->
-        prefix ++ (show tl) ++ ":" ++ (show br)
-      ExPointerRef l _ _ ->
-        '@':prefix ++ (show l)
+      ExOutOfBounds                -> "#REF!"
+      ExIndexRef l _ _               -> prefix ++ (show l)
+      ExColRangeRef (ExColRange tl r) _ _ -> prefix ++ (show tl) ++ ":" ++ (show r)
+      ExRangeRef (ExRange tl br) _ _ -> prefix ++ (show tl) ++ ":" ++ (show br)
+      ExPointerRef l _ _           -> '@':prefix ++ (show l)
 
-displayRefType :: RefType -> String
-displayRefType refType = case refType of ABS -> "$"; REL -> ""
-
-showAsCol :: ExCol -> String
-showAsCol exCol = (displayRefType $ exCol^.refType) ++ (colToColStr $ exCol^.ind)
-
-showAsRow :: ExRow -> String
-showAsRow exRow = (displayRefType $ exRow^.refType) ++ (rowToRowStr $ exRow^.ind)
+instance Show ExCol where
+  show (ExCol t c) = d1 ++ c
+    where
+      d1 = case t of
+        ABS -> "$"
+        REL -> ""
 
 instance Show ExIndex where
-  show (ExIndex c r) = cStr ++ rStr 
-    where cStr = showAsCol c
-          rStr = showAsRow r
-
-instance Show ExRange where
-  show (ExRange exIndex1 exIndex2) = (show exIndex1) ++ ":" ++ (show exIndex2)
+  show (ExIndex rType c r) = d1 ++ c ++ d2 ++ r
+    where 
+      (d1, d2) = case rType of 
+        ABS_ABS -> ("$","$")
+        ABS_REL -> ("$","")
+        REL_ABS -> ("","$")
+        REL_REL -> ("","")
 
 showRefQualifier :: Maybe WorkbookName -> Maybe SheetName -> String
 showRefQualifier wb sh = case wb of 
@@ -408,8 +385,14 @@ data ContextualFormula = ArrayFormula Formula | SimpleFormula Formula deriving (
 -----------------------------------------------------------------------------
 -- Conversions between ASRef's and ExRef's
 
--- | "AA" -> Col 27
--- Used in colToColStr and in Excel/Lib.
+-- | "AA" -> 27
+colStrToInt :: String -> Int
+colStrToInt "" = 0
+colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
+  where
+    coef = $fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
+
+-- | 27 -> "AA",  218332954 ->"RITESH"
 intToColStr :: Int -> String
 intToColStr x
   | x <= 26 = [['A'..'Z'] !! (x-1)]
@@ -418,57 +401,36 @@ intToColStr x
         m = (x-1) `mod` 26
         d = (x-1) `div` 26
 
--- | "AA" -> Col 27
-colToColStr :: Col -> String
-colToColStr  = intToColStr . view int
+-- | "27" -> 27
+rowStrToInt :: String -> Int
+rowStrToInt r = $read r :: Int
 
--- | Col 27 -> "AA",  Col 218332954 ->"RITESH"
-colStrToCol :: String -> Col
-colStrToCol = Col . colStrToInt
-  where 
-    colStrToInt "" = 0
-    colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
-      where
-        coef = $fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
-
--- | Row 27 -> "27"
-rowToRowStr :: Row -> String
-rowToRowStr  = intToRowStr . view int
-  where
-    intToRowStr i = show i
-
--- | "27" -> Row 27
-rowStrToRow :: String -> Row
-rowStrToRow = Row . rowStrToInt
-  where
-    rowStrToInt r = $read r :: Int
+-- | 27 -> "27"
+intToRowStr :: Int -> String
+intToRowStr i = show i
 
 -- used in DB Ranges
 indexToExcel :: ASIndex -> String
-indexToExcel (Index _ coord) = (colToColStr $ coord^.col) ++ (rowToRowStr $ coord^.row)
+indexToExcel (Index _ coord) = (intToColStr $ coord^.col) ++ (show $ coord^.row)
 
 -- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
 -- ref, unless it's a part of the ExRef)
-
-exIndexToCoord :: ExIndex -> Coord
-exIndexToCoord exIndex = Coord (exIndex^.exCol^.ind) (exIndex^.exRow^.ind)
-
 exRefToASRef :: ASSheetId -> ExRef -> ASReference
 exRefToASRef sid exRef = case exRef of
   ExOutOfBounds -> OutOfBounds
-  ExIndexRef exIndex sn wn -> IndexRef $ Index sid' $ exIndexToCoord exIndex
+  ExIndexRef (ExIndex _ c r) sn wn -> IndexRef $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
     -- VV probably needs orienting 
-  ExColRangeRef (ExColRange f (ExInt _ c2)) sn wn -> ColRangeRef $ orientColRange $ ColRange sid' (tl, InfiniteRowCoord c2)
+  ExColRangeRef (ExColRange f (ExCol _ c2)) sn wn -> ColRangeRef $ ColRange sid' (tl, InfiniteRowCoord (colStrToInt c2))
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
-      tl   = exIndexToCoord f
+      IndexRef (Index  _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
   ExRangeRef (ExRange f s) sn wn -> RangeRef $ orientRange $ Range sid' (tl, br)
     where
       sid' = maybe sid id (sheetIdFromContext sn wn)
-      tl = exIndexToCoord f
-      br = exIndexToCoord s
-  ExPointerRef exIndex sn wn -> PointerRef $ Pointer $ Index sid' $ exIndexToCoord exIndex
+      IndexRef (Index _ tl) = exRefToASRef sid' $ ExIndexRef f sn Nothing
+      IndexRef (Index _ br) = exRefToASRef sid' $ ExIndexRef s sn Nothing
+  ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
@@ -484,80 +446,49 @@ sheetIdFromContext _ _ = Nothing
 -- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
 -- #lenses
 -- TODO: Introduce PossiblyInfiniteRange as a type: is just correct, makes colRange functions  consequence of functions on ranges.
+-- Note: could create a helper operating on the underlying rect (tl, br).
 -- Note: Code duplication between this and orientRange.
+-- TODO: Refactor refTypes so that these are unnecessary.
+splitRefType :: RefType -> (SingleRefType,  SingleRefType)
+splitRefType rType =
+  case rType of
+       REL_REL -> (REL, REL)
+       REL_ABS -> (REL, ABS)
+       ABS_REL -> (ABS, REL)
+       ABS_ABS -> (ABS, ABS)
+combineSingleRefs :: (SingleRefType,  SingleRefType) -> RefType
+combineSingleRefs srTypes =
+  case srTypes of
+      (REL, REL) -> REL_REL
+      (REL, ABS) -> REL_ABS
+      (ABS, REL) -> ABS_REL
+      (ABS, ABS) -> ABS_ABS
 
--- TODOX: check that newSecondCol is the item that is not newFirstCol
 orientExRange :: ExRange -> ExRange
-orientExRange e@(ExRange (ExIndex firstCol firstRow) (ExIndex secondCol secondRow)) =
-  let newFirstCol  = max firstCol secondCol
-      newSecondCol = min firstCol secondCol
-      newFirstRow  = max firstRow secondRow
-      newSecondRow = min firstRow secondRow
-  in
-  ExRange (ExIndex newFirstCol newFirstRow) (ExIndex newSecondCol newSecondRow)
+orientExRange e@(ExRange (ExIndex firstRefType firstCol firstRow) (ExIndex secondRefType secondCol secondRow)) =
+  let (firstColRefType, firstRowRefType) = splitRefType firstRefType
+      (secondColRefType, secondRowRefType) = splitRefType secondRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      (t, tRefType, b, bRefType) = if firstRow <= secondRow
+                  then (firstRow, firstRowRefType, secondRow, secondRowRefType)
+                  else (secondRow, secondRowRefType, firstRow, firstRowRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+      brRefType = combineSingleRefs (rRefType, bRefType)
+  in 
+  -- l t and r bsince Col comes before Row in ExIndex
+  ExRange (ExIndex tlRefType l t) (ExIndex brRefType r b)
 
 -- Helper method in exColRangeMutate
 -- outputs an exColRange equivalent to the input of the first ExColRange, with the first coord <= second coord
 orientExColRange :: ExColRange -> ExColRange
-orientExColRange e@(ExColRange (ExIndex firstCol firstRow) secondCol) =
-  let newFirstCol  = max firstCol secondCol
-      newSecondCol = min firstCol secondCol
-  in
-  ExColRange (ExIndex newFirstCol firstRow) secondCol
-
-------------------------------------------------------------------------------------------------------------------------------------------------
--- Helper Functions
-
--- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
--- ex. ExIndex $A3 (1,1) -> ExIndex $A4
--- doesn't do any work with Parsec/actual parsing
-shiftExRef :: Offset -> ExRef -> ExRef
-shiftExRef = shiftExRefPossiblyForced False
-
--- shifts absolute references too
-shiftExRefForced :: Offset -> ExRef -> ExRef
-shiftExRefForced = shiftExRefPossiblyForced True
-
-shiftExRefPossiblyForced :: Bool -> Offset -> ExRef -> ExRef
-shiftExRefPossiblyForced forced o exRef = fromMaybe ExOutOfBounds $ shiftExRefPossiblyForced' forced o exRef
-
-shiftExRefPossiblyForced' :: Bool -> Offset -> ExRef -> Maybe ExRef
-shiftExRefPossiblyForced' forced o exRef =
-  let shiftExIndex = shiftExIndexPossiblyForced forced
-  in
-  case exRef of
-    ExOutOfBounds -> Nothing
-    ExIndexRef exIndex sh wb -> ExIndexRef <$> (shiftExIndex o exIndex) <*> Just sh <*> Just wb
-    ExRangeRef (ExRange f s) sh wb -> do
-      [shiftedF, shiftedS] <- mapM (shiftExIndex o) [f, s]
-      return $ ExRangeRef (ExRange shiftedF shiftedS) sh wb
-    ExColRangeRef (ExColRange f s) sh wb -> do
-      shiftedF <- shiftExIndex o f
-      shiftedS <- shiftExIntPossiblyForced forced (dCol o) s
-      return $ ExColRangeRef (ExColRange shiftedF shiftedS) sh wb
-    ExPointerRef l sh wb -> do
-      l' <- shiftExIndex o l
-      return $ ExPointerRef l' sh wb
-
--- shift absolute references.
--- #RoomForImprovement. Right now, we shift an "ExInt a" type by an "a" type. Instead, we
--- could shift it by an "OffsetThing a" type.
-shiftExIntForced :: (Num a, Ord a) => a -> ExInt a -> Maybe (ExInt a)
-shiftExIntForced = shiftExIntPossiblyForced True
-
-shiftExIntPossiblyForced :: (Num a, Ord a) => Bool -> a -> ExInt a -> Maybe (ExInt a)
-shiftExIntPossiblyForced forced d exInt =
-  if shiftedInt > fromInteger 0
-     then Just $ exInt & ind .~ shiftedInt
-     else Nothing
-  where shiftedInt = if (forced || exInt ^.refType == REL)
-                        then exInt^.ind + d
-                        else exInt^.ind
-
-shiftExIndexForced :: (Num a, Ord a) => Offset -> ExIndex -> Maybe ExIndex
-shiftExIndexForced = shiftExIndexPossiblyForced True
-
-shiftExIndexPossiblyForced :: Bool -> Offset -> ExIndex -> Maybe ExIndex
-shiftExIndexPossiblyForced forced offset =
-  (exCol %%~ shiftExIntPossiblyForced forced (dCol offset)) >=>
-  (exRow %%~ shiftExIntPossiblyForced forced (dRow offset))
+orientExColRange e@(ExColRange (ExIndex firstRefType firstCol firstRow) (ExCol secondColRefType secondCol)) =
+  let t = firstRow
+      (firstColRefType, tRefType) = splitRefType firstRefType
+      (l, lRefType, r, rRefType) = if firstCol <= secondCol
+                  then (firstCol, firstColRefType, secondCol, secondColRefType)
+                  else (secondCol, secondColRefType, firstCol, firstColRefType)
+      tlRefType = combineSingleRefs (lRefType, tRefType)
+  in 
+  ExColRange (ExIndex tlRefType l t) (ExCol rRefType r)
