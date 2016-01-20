@@ -23,12 +23,14 @@ server/eval_files/**/headers/*
 server/eval_files/**/headers/*.*
 !server/eval_files/**/template.*
 !server/eval_files/**/template_repl.*
-!server/eval_files/**/headers/dummy
+!server/eval_files/**/headers/.gitkeep
 
-server/static/*/*
-server/static/*
-!server/static/images/dummy
-!server/static/file-input-handler.py
+# keep /server/static/dummy and /server/static/file-input-handler.py; ignore everything else
+/server/static/images/*
+/server/static/*
+!.gitkeep
+!/server/static/images
+!/server/static/file-input-handler.py
 
 graph-database/server
 
