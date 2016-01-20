@@ -11,7 +11,7 @@ import AS.Types.Network
 
 import AS.Dispatch.Core
 --import AS.Dispatch.Repl
-import AS.Dispatch.EvalHeader
+import AS.Eval.Core (evaluateHeader)
 
 import AS.DB.API
 import AS.DB.Eval
@@ -21,19 +21,20 @@ import AS.Reply
 
 import Control.Concurrent
 import Control.Lens hiding ((.=))
+import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
 
-handleEval :: ASUserClient -> MVar ServerState -> [EvalInstruction] -> IO ()
-handleEval uc state evalInstructions  = do
+handleEval :: MessageId -> ASUserClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+handleEval mid uc state evalInstructions  = do
   let xps  = map evalXp evalInstructions
       inds = map evalLoc evalInstructions
   conn <- view dbConn <$> readMVar state
   oldProps <- mapM (getPropsAt conn) inds
   let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
   errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate state uc errOrUpdate
+  broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- not maintaining right now (Alex 12/28)
 -- handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
@@ -42,16 +43,18 @@ handleEval uc state evalInstructions  = do
 --   msg' <- runReplDispatch sid xp
 --   sendToOriginal uc msg'
 
-handleEvalHeader :: ASUserClient -> ServerState -> EvalHeader -> IO ()
-handleEvalHeader uc state evalHeader = do
+handleEvalHeader :: MessageId -> ASUserClient -> ServerState -> EvalHeader -> IO ()
+handleEvalHeader mid uc state evalHeader = do
   setEvalHeader (state^.dbConn) evalHeader
-  msg' <- runEvalHeader (state^.appSettings) evalHeader
-  sendToOriginal uc msg'
+  result <- runEitherT $ evaluateHeader (state^.appSettings) evalHeader
+  sendToOriginal uc $ case result of 
+        Left e -> failureMessage mid $ generateErrorMessage e
+        Right v -> ClientMessage mid $ ShowHeaderResult v
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB
-handleDecouple :: ASUserClient -> MVar ServerState -> IO ()
-handleDecouple uc mstate = do 
+handleDecouple :: MessageId -> ASUserClient -> MVar ServerState -> IO ()
+handleDecouple mid uc mstate = do 
   state <- readMVar mstate
   let conn = state^.dbConn
       src = userCommitSource uc
@@ -60,5 +63,5 @@ handleDecouple uc mstate = do
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
-      broadcastSheetUpdate mstate $ sheetUpdateFromCommit c
+      broadcastSheetUpdate mid mstate $ sheetUpdateFromCommit c
 

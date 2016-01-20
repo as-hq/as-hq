@@ -1,7 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 module AS.Daemon where
 
 import Prelude()
 import AS.Prelude
+
+import AS.Config.Constants
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Network
@@ -59,7 +62,7 @@ possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell = 
   let xp = cell^.cellExpression
       loc = cell^.cellLocation
-      msg = ServerMessage $ Evaluate [EvalInstruction xp loc]
+      msg = ServerMessage daemon_message_id $ Evaluate [EvalInstruction xp loc] -- this ServerMessage has no origin message Id, so give it a default
   in case getProp StreamInfoProp (cell^.cellProps) of 
     Nothing -> case (getStreamPropFromExpression xp) of 
       Nothing -> return ()
@@ -80,7 +83,7 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
     else do 
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
-        let initMsg = ServerMessage $ InitializeDaemon daemonId loc
+        let initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc-- this ServerMessage has no origin message Id, so give it a default
         settings <- view appSettings <$> readMVar state
         WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
           U.sendMessage initMsg conn

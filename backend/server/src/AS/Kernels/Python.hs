@@ -1,11 +1,10 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
-module AS.Kernels.Python.Eval where
+module AS.Kernels.Python where
 
 import GHC.Generics
 
 import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
-import AS.Kernels.Python.Pyfi
 
 import AS.Logging
 import AS.Config.Settings
@@ -74,17 +73,8 @@ evaluateLambdaFormat addr sid lambdaExpr val = do
 clear :: KernelAddress -> ASSheetId -> IO ()
 clear addr = sendMessage_ addr . ClearRequest
 
--- SQL has not been updated to use the new kernel yet, because it doesn't seem super urgent rn.
--- #anand 1/1/16
-evaluateSql :: String -> String -> EitherTExec EvalResult
-evaluateSql _ "" = return emptyResult
-evaluateSql header str = do
-    validCode <- formatCode header SQL str
-    if isDebug
-        then lift $ writeExecFile SQL validCode
-        else return ()
-    v <- execWrappedCode validCode
-    return $ EvalResult v Nothing
+evaluateSql :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateSql addr sid code = evaluateWithScope addr Cell sid =<< (liftIO $ formatSqlCode code)
 
 testCell :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
 testCell addr sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate addr sid code)
@@ -182,25 +172,3 @@ connectToKernel addr = do
   reqSocket <- socket Req 
   connect reqSocket addr
   return reqSocket
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Old code that should go away when SQL is updated/overhauled/rewritten
-
-execWrappedCode :: String -> EitherTExec CompositeValue
-execWrappedCode evalCode = do
-    result <- lift $ pyfiString evalCode
-    case result of 
-      Right result' -> hoistEither $ R.parseValue Python result'
-      Left e -> return e
-
-pyfiString :: String -> IO (Either CompositeValue String)
-pyfiString evalStr = catch (Right <$> execString) whenCaught
-    where
-        execString = defVV (evalStr ++ pyString) ("Hello" :: String)
-        whenCaught :: SomeException -> IO (Either CompositeValue String)
-        whenCaught e = return . Left . CellValue $ ValueError (show e) "Syntax error."
-
-pyString :: String
-pyString = [str|
-def export(x=None):
-    return result
-|]

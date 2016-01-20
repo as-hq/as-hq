@@ -27,20 +27,20 @@ import Database.Redis (Connection)
 import Control.Monad ((>=>))
 import Control.Lens
 
-handleCopy :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
-handleCopy uc state from to = do
+handleCopy :: MessageId -> ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleCopy mid uc state from to = do
   putStrLn $ "IN HANDLE COPY"
   conn <- view dbConn <$> readMVar state
   toCells <- getCopyCells conn from to
   errOrUpdate <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate state uc errOrUpdate
+  broadcastErrOrUpdate mid state uc errOrUpdate
 
-handleCut :: ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
-handleCut uc mstate from to = do
+handleCut :: MessageId -> ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleCut mid uc mstate from to = do
   state <- readMVar mstate
   newCells <- getCutCells (state^.appSettings.graphDbAddress) (state^.dbConn) from to
   errOrUpdate <- runDispatchCycle mstate newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mstate uc errOrUpdate
+  broadcastErrOrUpdate mid mstate uc errOrUpdate
 
 -- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
 -- could restructure this in such a way that encapsulation is not broken. 

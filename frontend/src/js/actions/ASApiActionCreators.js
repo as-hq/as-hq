@@ -105,6 +105,7 @@ let refreshDialogShown: boolean = false;
 
 pws.ondisconnect = () => {
   API.reinitialize(); // queue our handshake for the next time we reconnect
+  ProgressActionCreators.clearAllProgress();
   setConnectedState(false);
 };
 
@@ -156,6 +157,17 @@ pws.onmessage = (event: MessageEvent) => {
   if (action.tag == "AskDecouple") {
     Dispatcher.dispatch({
       _type: 'EVAL_TRIED_TO_DECOUPLE'
+    });
+    // Clear all progress indicator if we received a Decouple message.
+    // The reasoning is that Decouple messages are currently not tied
+    // to any particular cell in backend, since currently the logic
+    // for producing the Decouple message is simply to check if any existing
+    // coupled cells morphed to regular cells. Thus, the messageId sent for
+    // evaluation and the id after received after decoupling are not the same,
+    // and cannot be reconciled. The current workaround is to clear all progress
+    // upon receiving a Decouple message.
+    Dispatcher.dispatch({
+      _type: 'CLEAR_ALL_PROGRESS'
     });
     return;
   }

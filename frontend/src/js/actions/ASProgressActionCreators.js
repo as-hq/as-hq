@@ -7,13 +7,12 @@ import type {
 } from '../types/Messages';
 
 import Dispatcher from '../Dispatcher';
-import Constants from '../Constants';
 
 export function markSent(msg: ServerMessage) {
   const {messageId, serverAction} = msg;
   if (serverAction.tag === 'Evaluate') {
     Dispatcher.dispatch({
-      _type: Constants.ActionTypes.MARK_SENT,
+      _type: 'MARK_SENT',
       index: serverAction.contents[0].evalLoc.index,
       messageId,
     });
@@ -28,10 +27,16 @@ export function markReceived(msg: ClientMessage) {
     const indices = locations.map(({cellLocation: {index}}) => index);
     for (const index of indices) {
       Dispatcher.dispatch({
-        _type: Constants.ActionTypes.MARK_RECEIVED,
+        _type: 'MARK_RECEIVED',
         index,
         messageId,
       });
     }
   }
+}
+
+export function clearAllProgress() {
+  Dispatcher.dispatch({
+    _type: 'CLEAR_ALL_PROGRESS'
+  });
 }

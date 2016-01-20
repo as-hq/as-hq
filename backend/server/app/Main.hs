@@ -10,18 +10,20 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 
+import AS.Config.Paths
+import AS.Config.Constants
+
 import AS.Clients()
 import AS.Logging
 import AS.Window
 import AS.Util
-import AS.Config.Paths
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
 import AS.Types.Locations
-import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python as KP
 
 import System.Posix.Signals
 import Control.Exception
@@ -130,15 +132,15 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
 handleFirstMessage state conn msg =
   case (decode msg :: Maybe ServerMessage) of
-    Just (ServerMessage (Initialize cuid csid)) -> do -- first mesage is user init
+    Just (ServerMessage _ (Initialize cuid csid)) -> do -- first mesage is user init
       user <- initUser conn cuid csid
       catch (initClient user state) (handleRuntimeException user state)
-    Just (ServerMessage (InitializeDaemon pid pLoc)) -> do -- first message is daemon init
+    Just (ServerMessage _ (InitializeDaemon pid pLoc)) -> do -- first message is daemon init
       let daemon = initDaemonFromMessageAndConn conn pid pLoc
       initClient daemon state
     _ -> do -- first message is neither
-      putStrLn "First message not an initialization message"
-      sendMessage (failureMessage "Cannot connect") conn
+      putStrLn $ "First message not an initialization message, received: " ++ (show msg)
+      sendMessage (failureMessage initialization_failure_message_id "Cannot connect") conn -- failure messages are not associated with any send message id.
 
 -- #needsrefactor should move to Environment.hs, or something
 shouldPreprocess :: Bool
@@ -230,7 +232,7 @@ processMessage client state message = do
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if isPermissible || isDebug
     then handleServerMessage client state message
-    else sendMessage (failureMessage "Insufficient permissions") (clientConn client)
+    else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn client)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do

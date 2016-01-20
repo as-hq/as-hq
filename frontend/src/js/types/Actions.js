@@ -14,7 +14,8 @@ import type {
   EvalResult,
   ASLanguage,
   RangeDescriptor,
-  RangeKey
+  RangeKey,
+  NakedIndex
 } from './Eval';
 
 import type {
@@ -199,6 +200,22 @@ export type CloseChartingDialogAction = {
   _type: 'CLOSE_CHARTING_DIALOG';
 };
 
+export type MarkSentAction = {
+  _type: 'MARK_SENT';
+  index: NakedIndex;
+  messageId: string;
+};
+
+export type MarkReceivedAction = {
+  _type: 'MARK_RECEIVED';
+  index: NakedIndex;
+  messageId: string;
+};
+
+export type ClearAllProgressAction = {
+  _type: 'CLEAR_ALL_PROGRESS';
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -239,4 +256,7 @@ export type ASAction =
   | OpenCondFormattingDialogAction
   | CloseCondFormattingDialogAction
   | OpenChartingDialogAction
-  | CloseChartingDialogAction;
+  | CloseChartingDialogAction
+  | ClearAllProgressAction
+  | MarkSentAction
+  | MarkReceivedAction;

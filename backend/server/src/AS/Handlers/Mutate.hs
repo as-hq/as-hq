@@ -26,8 +26,8 @@ import Control.Monad
 import Control.Lens
 import Data.Maybe
 
-handleMutateSheet :: ASUserClient -> MVar ServerState -> MutateType -> IO ()
-handleMutateSheet uc state mutateType = do
+handleMutateSheet :: MessageId -> ASUserClient -> MVar ServerState -> MutateType -> IO ()
+handleMutateSheet mid uc state mutateType = do
   let sid = userSheetId uc
   conn <- view dbConn <$> readMVar state
   -- update cells 
@@ -51,7 +51,7 @@ handleMutateSheet uc state mutateType = do
   -- propagate changes
   let updateTransform update = update { barUpdates = bu, condFormatRulesUpdates = cfru }
   errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
-  broadcastErrOrUpdate state uc errOrUpdate
+  broadcastErrOrUpdate mid state uc errOrUpdate
 
 keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
 keepUnequal x = (ls1, ls2)

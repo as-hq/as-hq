@@ -28,5 +28,6 @@ export type RenderParams = {
   boxWidth: number,
   topLeftBox: ?HGPoint,
   dragCorner: ?DragCorner,
-  draggedBoxSelection: ?ASSelection
+  draggedBoxSelection: ?ASSelection,
+  inProgressTimeout: number
 };

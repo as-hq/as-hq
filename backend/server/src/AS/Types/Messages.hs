@@ -2,6 +2,9 @@
 
 module AS.Types.Messages where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Window
 import AS.ASJSON
 
@@ -21,22 +24,26 @@ import AS.Types.CondFormat
 import AS.Types.Updates 
 
 import GHC.Generics
+import Data.Aeson
 import Data.Aeson.Types (defaultOptions)
 import Data.SafeCopy
 import qualified Data.Text as T
 
+type MessageId = T.Text
 
 data ServerMessage = ServerMessage {
-  serverAction :: ServerAction
+    serverMessageId :: MessageId
+  , serverAction :: ServerAction
 } deriving (Show, Read, Generic)
 
 data ClientMessage = ClientMessage {
-  clientAction :: ClientAction
+    clientMessageId :: MessageId
+  , clientAction :: ClientAction
 } deriving (Show, Read, Generic)
 
 -- maybe move to Util?
-failureMessage :: String -> ClientMessage
-failureMessage s = ClientMessage $ ShowFailureMessage s
+failureMessage :: MessageId -> String -> ClientMessage
+failureMessage mid s = ClientMessage mid $ ShowFailureMessage s
 
 -- the constructors (i.e. the first words) are verbs telling client what action to take
 data ClientAction = 
@@ -109,13 +116,28 @@ data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :
 --------------------------------------------------------------------------------------------------------------
 -- Instances
 
-asToFromJSON ''ServerMessage
+instance FromJSON ServerMessage where
+  parseJSON (Object v) = ServerMessage <$> v .: "messageId" <*> v .: "serverAction"
+  parseJSON _ = $error "expected JSON to be object type"
+
+-- #anand
+-- Daemons require a ToJSON instance, as they need to be able to generate ServerMessages.
+-- the reason being that daemons are currently implemented as actual WebSocket clients.
+-- I think daemons could be implemented as async threads which directly hook into our handler
+-- functions; there's no need for them to *actually* create JSON-ified server messages.
+instance ToJSON ServerMessage where
+  toJSON (ServerMessage mid action) = object  [ "messageId" .= mid 
+                                              , "serverAction" .= action ]
+
 asToFromJSON ''ServerAction
 asToFromJSON ''MutateType
 asToFromJSON ''EvalInstruction
 
+instance ToJSON ClientMessage where
+  toJSON (ClientMessage mid action) = object  [ "messageId" .= mid 
+                                              , "clientAction" .= action ]
+
 -- are legit.
-asToJSON ''ClientMessage
 asToJSON ''ClientAction
 
 deriveSafeCopy 1 'base ''ServerMessage
@@ -142,6 +164,6 @@ generateErrorMessage e = case e of
 
 -- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
 -- #needsrefactor when makeCondFormatMessage goes, this can probably go too
-makeErrorMessage :: ASExecError -> ClientMessage
-makeErrorMessage DecoupleAttempt = ClientMessage AskDecouple
-makeErrorMessage e = ClientMessage $ ShowFailureMessage $ generateErrorMessage e
+makeErrorMessage :: MessageId -> ASExecError -> ClientMessage
+makeErrorMessage mid DecoupleAttempt = ClientMessage mid AskDecouple 
+makeErrorMessage mid e = ClientMessage mid $ ShowFailureMessage $ generateErrorMessage e

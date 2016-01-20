@@ -7,6 +7,11 @@ import type {
 } from '../../types/Render';
 
 import ASRange from '../../classes/ASRange';
+import RenderU from './Render';
+
+// Not declaring HTMLImageElement for now.
+let loadingImage: any = new Image();
+loadingImage.src = "js/components/svg-loaders/svg-loaders/bars.svg";
 
 export default {
   // The below two methods draw three sides of the rectangle
@@ -47,15 +52,16 @@ export default {
   },
 
   drawRect (rng: ASRange, renderer: HGRendererElement, gc: GraphicsContext): ?PXRectangle {
-    let grid = renderer.getGrid(),
-        fixedColCount = grid.getFixedColumnCount(),
-        fixedRowCount = grid.getFixedRowCount(),
-        scrollX = grid.getHScrollValue(),
-        scrollY = grid.getVScrollValue(),
-        firstVisibleColumn = renderer.getVisibleColumns()[0],
-        firstVisibleRow = renderer.getVisibleRows()[0],
-        lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
-        lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
+    const {
+      fixedColCount,
+      fixedRowCount,
+      scrollX,
+      scrollY,
+      firstVisibleColumn,
+      firstVisibleRow,
+      lastVisibleColumn,
+      lastVisibleRow
+    } = RenderU.getGridSpec(renderer);
 
     let tlX = Math.max(rng.tl.col - 1, firstVisibleColumn) + fixedColCount,
         tlY = Math.max(rng.tl.row - 1, firstVisibleRow) + fixedRowCount,
@@ -76,23 +82,23 @@ export default {
     return {origin: {x: oX, y: oY}, extent: {x: eX, y: eY}};
   },
 
-  drawProgress(
-    index: ASIndex,
-    progress: number,
+  showInProgress(
+    col: number,
+    row: number,
     renderer: HGRendererElement,
     gc: GraphicsContext
   ) {
-    let grid = renderer.getGrid(),
-        fixedColCount = grid.getFixedColumnCount(),
-        fixedRowCount = grid.getFixedRowCount(),
-        scrollX = grid.getHScrollValue(),
-        scrollY = grid.getVScrollValue(),
-        firstVisibleColumn = renderer.getVisibleColumns()[0],
-        firstVisibleRow = renderer.getVisibleRows()[0],
-        lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0],
-        lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
+    const {
+      fixedColCount,
+      fixedRowCount,
+      scrollX,
+      scrollY,
+      firstVisibleColumn,
+      firstVisibleRow,
+      lastVisibleColumn,
+      lastVisibleRow
+    } = RenderU.getGridSpec(renderer);
 
-    const {col, row} = index;
     const x = col - 1 + fixedColCount;
     const y = row - 1 + fixedRowCount;
     const shape = renderer._getBoundsOfCell(x - scrollX, y - scrollY);
@@ -106,9 +112,22 @@ export default {
         return;
     }
 
-    // TODO(joel) figure out coloring
-    gc.fillStyle = 'rgb(87, 171, 255)';
-    gc.fillRect(oX, oY, eX * progress, eY);
+    gc.fillStyle = '#CFD8DC';
+    gc.fillRect(oX, oY, eX, eY);
+    gc.stroke();
+
+    const progressWidth = 30;
+    const progressHeight = 16;
+    const progressOX = oX + (eX / 2) - (progressWidth / 2);
+    const progressOY = oY + (eY / 2) - (progressHeight / 2);
+    gc.drawImage(
+      loadingImage,
+      progressOX,
+      progressOY,
+      progressWidth,
+      progressHeight
+    );
+    gc.stroke();
   },
 
   wrapText(

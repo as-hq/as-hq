@@ -14,6 +14,8 @@ import ASSelection from '../classes/ASSelection';
 import CellStore from '../stores/ASCellStore';
 import ProgressStore from '../stores/ASProgressStore';
 
+import RenderU from './utils/Render';
+
 let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
   deps: [],
@@ -26,7 +28,8 @@ let _renderParams : RenderParams = {
   boxWidth: 6,
   topLeftBox: null, // {x,y} for the location of the top left corner of blue box, in pixels
   dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
-  draggedBoxSelection: null
+  draggedBoxSelection: null,
+  inProgressTimeout: 75
 };
 
 // I suspect this file should get split up
@@ -329,13 +332,14 @@ const Renderers = {
     if (!_renderParams.shouldRenderSquareBox) {
       return; // no box should show on double click
     } else {
-      let grid = this.getGrid(),
-          fixedColCount = grid.getFixedColumnCount(),
-          fixedRowCount = grid.getFixedRowCount(),
-          scrollX = grid.getHScrollValue(),
-          scrollY = grid.getVScrollValue(),
-          lastVisibleColumn = this.getVisibleColumns().slice(-1)[0],
-          lastVisibleRow = this.getVisibleRows().slice(-1)[0];
+      const {
+        fixedColCount,
+        fixedRowCount,
+        scrollX,
+        scrollY,
+        lastVisibleColumn,
+        lastVisibleRow
+      } = RenderU.getGridSpec(this);
 
       if (_renderParams.selection == null) {
         return;
@@ -436,10 +440,12 @@ const Renderers = {
   inProgressRenderer(gc: GraphicsContext) {
     const locs = ProgressStore.getLocationsInProgress();
     const now = Date.now();
-    for (const [index, { messageTimestamp }] of locs) {
-      // TEMP(joel): figure out how we want to style this
-      const progress = .5; // now - messageTimestamp
-      Util.Canvas.drawProgress(index, progress, this, gc);
+    for (const [col, colSet] of locs) {
+      for (const [row, { messageTimestamp }] of colSet) {
+        if (now - messageTimestamp > _renderParams.inProgressTimeout) {
+          Util.Canvas.showInProgress(col, row, this, gc);
+        }
+      }
     }
   },
 };

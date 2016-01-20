@@ -9,7 +9,8 @@ import type {
 
 import type {
   CellBorder,
-  ASOverlaySpec
+  ASOverlaySpec,
+  GridSpec
 } from '../../types/Hypergrid';
 
 import {logDebug} from '../Logger';
@@ -111,7 +112,7 @@ const Render = {
             case "Date":
               config.value = Format.formatDate(config.value);
               break;
-            default: 
+            default:
               break;
           }
           // Change the precision accordingly if the number of decimal offsets is given
@@ -209,6 +210,29 @@ const Render = {
 
   getY(row: number, scrollY: number): string {
     return (row-scrollY)* Constants.cellHeightPx + Constants.gridYOffset + "px";
+  },
+
+  getGridSpec(renderer: HGRendererElement): GridSpec {
+    const grid = renderer.getGrid();
+    const fixedColCount = grid.getFixedColumnCount();
+    const fixedRowCount = grid.getFixedRowCount();
+    const scrollX = grid.getHScrollValue();
+    const scrollY = grid.getVScrollValue();
+    const firstVisibleColumn = renderer.getVisibleColumns()[0];
+    const firstVisibleRow = renderer.getVisibleRows()[0];
+    const lastVisibleColumn = renderer.getVisibleColumns().slice(-1)[0];
+    const lastVisibleRow = renderer.getVisibleRows().slice(-1)[0];
+
+    return {
+      fixedColCount,
+      fixedRowCount,
+      scrollX,
+      scrollY,
+      firstVisibleColumn,
+      firstVisibleRow,
+      lastVisibleColumn,
+      lastVisibleRow
+    };
   }
 };
 

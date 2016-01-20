@@ -23,7 +23,7 @@ type CondFormatRuleId = T.Text
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
                                      , formatMapConstructor :: FormatMapConstructor }  
-                                       deriving (Show, Read, Generic, Eq)
+                                     deriving (Show, Read, Generic, Eq)
 
 type LambdaConditionExpr = String
 

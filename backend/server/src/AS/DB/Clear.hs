@@ -20,7 +20,7 @@ import qualified AS.DB.API as DB
 import qualified AS.Config.Settings as Settings
 import AS.Util as U
 import qualified AS.DB.Internal as DI
-import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python as KP
 import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging

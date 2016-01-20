@@ -35,13 +35,13 @@ import Control.Lens hiding ((.=))
 -- ASUserClient is a client
 
 shouldLogMessage :: ServerMessage -> Bool
-shouldLogMessage (ServerMessage Acknowledge)      = False
-shouldLogMessage (ServerMessage (UpdateWindow _)) = False
-shouldLogMessage (ServerMessage (Open _))         = False
+shouldLogMessage (ServerMessage _ Acknowledge)      = False
+shouldLogMessage (ServerMessage _ (UpdateWindow _)) = False
+shouldLogMessage (ServerMessage _ (Open _))         = False
 shouldLogMessage _                                = True
 
 shouldPrintMessage :: ServerMessage -> Bool
-shouldPrintMessage (ServerMessage Acknowledge) = False
+shouldPrintMessage (ServerMessage _ Acknowledge) = False
 shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
@@ -66,41 +66,42 @@ instance Client ASUserClient where
     storeLastMessage (curState^.dbConn) message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
+    let mid = serverMessageId message 
     case (serverAction message) of
       Acknowledge                 -> handleAcknowledge user
       Initialize _ _              -> handleInitialize user 
       -- New                -> handleNew user state payload
-      Open sid                    -> handleOpen user state sid
+      Open sid                    -> handleOpen mid user state sid
       -- Close                 -> handleClose user state payload
-      UpdateWindow win            -> handleUpdateWindow user state win
+      UpdateWindow win            -> handleUpdateWindow mid user state win
       -- Import                -> handleImport user state payload
       Export sid                  -> handleExport user state sid
-      Evaluate xpsAndIndices      -> handleEval user state xpsAndIndices
+      Evaluate xpsAndIndices      -> handleEval mid user state xpsAndIndices
       -- EvaluateRepl          -> handleEvalRepl user payload
-      EvaluateHeader evalHeader   -> handleEvalHeader user curState evalHeader
-      Get locs                    -> handleGet user state locs
-      GetIsCoupled loc            -> handleIsCoupled user state loc
-      Delete sel                  -> handleDelete user state sel
-      ClearSheetServer sid        -> handleClear user state sid
-      Undo                        -> handleUndo user state
-      Redo                        -> handleRedo user state
-      Copy from to                -> handleCopy user state from to
-      Cut from to                 -> handleCut user state from to
-      ToggleProp prop rng         -> handleToggleProp user state prop rng
-      SetProp prop rng            -> handleSetProp user state prop rng
-      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision user state i rng
-      Repeat sel                  -> handleRepeat user state sel
+      EvaluateHeader evalHeader   -> handleEvalHeader mid user curState evalHeader
+      Get locs                    -> handleGet mid user state locs
+      GetIsCoupled loc            -> handleIsCoupled mid user state loc
+      Delete sel                  -> handleDelete mid user state sel
+      ClearSheetServer sid        -> handleClear mid user state sid
+      Undo                        -> handleUndo mid user state
+      Redo                        -> handleRedo mid user state
+      Copy from to                -> handleCopy mid user state from to
+      Cut from to                 -> handleCut mid user state from to
+      ToggleProp prop rng         -> handleToggleProp mid user state prop rng
+      SetProp prop rng            -> handleSetProp mid user state prop rng
+      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user state i rng
+      Repeat sel                  -> handleRepeat mid user state sel
       BugReport report            -> handleBugReport user report
       -- JumpSelect            -> handleJumpSelect user state payload
-      MutateSheet mutateType      -> handleMutateSheet user state mutateType
-      Drag selRng dragRng         -> handleDrag user state selRng dragRng
-      Decouple                    -> handleDecouple user state
-      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules user state cfru
-      GetBar bInd                 -> handleGetBar user state bInd
-      SetBarProp bInd prop        -> handleSetBarProp user curState bInd prop
-      ImportCSV ind lang fileName -> handleCSVImport user state ind lang fileName
+      MutateSheet mutateType      -> handleMutateSheet mid user state mutateType
+      Drag selRng dragRng         -> handleDrag mid user state selRng dragRng
+      Decouple                    -> handleDecouple mid user state
+      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user state cfru
+      GetBar bInd                 -> handleGetBar mid user state bInd
+      SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
+      ImportCSV ind lang fileName -> handleCSVImport mid user state ind lang fileName
       --Undo         -> $error "Simulated crash"
-      -- above is to test streaming when frontend hasn't been implemented yet
+      -- ^^ above is to test API endpoints which don't have a frontend implementation
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client
@@ -117,16 +118,16 @@ instance Client ASDaemonClient where
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
   handleServerMessage daemon state message = case (serverAction message) of
-    Evaluate xpsAndIndices -> handleEval' daemon state xpsAndIndices
+    Evaluate xpsAndIndices -> handleEval' (serverMessageId message) daemon state xpsAndIndices
     where 
-      handleEval' :: ASDaemonClient -> MVar ServerState -> [EvalInstruction] -> IO ()
-      handleEval' dm state evalInstructions  = do
+      handleEval' :: MessageId -> ASDaemonClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+      handleEval' mid dm state evalInstructions  = do
         let xps  = map evalXp evalInstructions
             inds = map evalLoc evalInstructions 
         conn <- view dbConn <$> readMVar state
         oldProps <- mapM (getPropsAt conn) inds
         let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
         errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id
-        either (const $ return ()) (broadcastSheetUpdate state) errOrUpdate
+        either (const $ return ()) (broadcastSheetUpdate mid state) errOrUpdate
       -- difference between this and handleEval being that it can't take back a failure message. 
       -- yes, code replication, whatever. 

@@ -13,7 +13,7 @@ import AS.Types.Errors
 import AS.Types.CondFormat
 import AS.Types.Network
 
-import AS.Kernels.Python.Eval
+import AS.Kernels.Python
 import AS.Kernels.LanguageUtils
 
 import AS.Eval.Core

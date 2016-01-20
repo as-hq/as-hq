@@ -24,3 +24,14 @@ export type ASOverlaySpec = {
   top: number;
   loc: ?ASIndex;
 };
+
+export type GridSpec = {
+  fixedColCount: number;
+  fixedRowCount: number;
+  scrollX: number;
+  scrollY: number;
+  firstVisibleColumn: number;
+  firstVisibleRow: number;
+  lastVisibleColumn: number;
+  lastVisibleRow: number;
+}

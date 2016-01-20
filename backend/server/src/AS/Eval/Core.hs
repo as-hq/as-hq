@@ -24,7 +24,7 @@ import AS.Types.CellProps
 import AS.Util
 
 import AS.Kernels.LanguageUtils
-import AS.Kernels.Python.Eval as KP
+import AS.Kernels.Python as KP
 import AS.Kernels.R as KR
 import AS.Kernels.Excel.Eval as KE
 import AS.Kernels.OCaml as KO
@@ -151,11 +151,11 @@ handleErrorInLang _ err = Just err
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
 execEvalInLang :: AppSettings -> EvalHeader -> EvalCode -> EitherTExec EvalResult
-execEvalInLang sett evalHeader = 
+execEvalInLang settings evalHeader = 
   case lang of
-    Python  -> KP.evaluate (sett^.pyKernelAddress) sid
+    Python  -> KP.evaluate (settings^.pyKernelAddress) sid
     R       -> KR.evaluate headerCode
-    SQL     -> KP.evaluateSql headerCode
+    SQL     -> KP.evaluateSql (settings^.pyKernelAddress) sid
     OCaml   -> KO.evaluate headerCode
   where 
     sid         = evalHeader^.evalHeaderSheetId

@@ -15,7 +15,7 @@ from pandas import read_sql_query
 
 pysqldf = lambda q: sqldf(q, globals())
 
-result = serialize("DefaultSqlValue")
+result = "DefaultSqlValue"
 def db(dbCmd,dbName=""):
 	try:
 		if "replaceCmd" in globals():
@@ -67,7 +67,4 @@ def pprintErr(e):
 	errJson = {'tag': 'CellValue', 'cellValueType': 'Error', 'errorType': repr(exc_type), 'errorMsg': err}
 	return json.dumps(errJson)
 
-try:
-	#CODE#
-except Exception as e:
-	result = pprintErr(e)
+#CODE#

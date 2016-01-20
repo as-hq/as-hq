@@ -39,13 +39,13 @@ evaluateRepl _ _ = undefined
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
-execOcaml :: IO String
-execOcaml = do
-    args <- getRunnerArgs OCaml
-    file <- getRunFile OCaml
-    terminalCmd <- addCompileCmd OCaml $ formatRunArgs OCaml (getRunnerCmd OCaml) file args
-    res <- evalShell OCaml terminalCmd
-    return res
+--execOcaml :: IO String
+--execOcaml = do
+--    args <- getRunnerArgs OCaml
+--    file <- getRunFile OCaml
+--    terminalCmd <- addCompileCmd OCaml $ formatRunArgs OCaml (getRunnerCmd OCaml) file args
+--    res <- evalShell OCaml terminalCmd
+--    return res
 
 --runReplFile :: IO String
 --runReplFile = do

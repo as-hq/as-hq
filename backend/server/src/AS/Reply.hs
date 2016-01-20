@@ -25,14 +25,14 @@ broadcastTo state sids message = do
 
 -- Given a message that's either a failure or updatea message, only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 
-broadcastErrOrUpdate :: MVar ServerState -> ASUserClient -> Either ASExecError SheetUpdate -> IO ()
-broadcastErrOrUpdate _ orig (Left err) = sendToOriginal orig $ makeErrorMessage err
-broadcastErrOrUpdate state _ (Right update) = broadcastSheetUpdate state update
+broadcastErrOrUpdate :: MessageId -> MVar ServerState -> ASUserClient -> Either ASExecError SheetUpdate -> IO ()
+broadcastErrOrUpdate mid _ orig (Left err) = sendToOriginal orig $ makeErrorMessage mid err
+broadcastErrOrUpdate mid state _ (Right update) = broadcastSheetUpdate mid state update
 
-broadcastSheetUpdate :: MVar ServerState -> SheetUpdate -> IO ()
-broadcastSheetUpdate state sheetUpdate = do 
+broadcastSheetUpdate :: MessageId -> MVar ServerState -> SheetUpdate -> IO ()
+broadcastSheetUpdate mid state sheetUpdate = do 
   State ucs _ _ _ <- readMVar state
-  mapM_ (\uc -> sendSheetUpdate uc . filterSheetUpdate sheetUpdate . userWindow $ uc) ucs
+  mapM_ (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) ucs
 
 -- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
 -- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 
@@ -46,8 +46,8 @@ filterSheetUpdate (SheetUpdate (Update cs locs) rcs ds cfrs) win = update
     locs'  = filter ((==) sid . refSheetId) locs 
     update = SheetUpdate (Update cells' locs') rcs ds cfrs
 
-sendSheetUpdate :: ASUserClient -> SheetUpdate -> IO ()
-sendSheetUpdate uc update = sendMessage (ClientMessage $ UpdateSheet update) (userConn uc)
+sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
+sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (userConn uc)
 
 sendToOriginal :: ASUserClient -> ClientMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (userConn uc)

@@ -6,7 +6,6 @@
 // message id, but we only track evaluation requests here.
 
 import Dispatcher from '../Dispatcher';
-import Constants from '../Constants';
 import BaseStore from './BaseStore';
 
 import type ASIndex from '../classes/ASIndex';
@@ -16,44 +15,65 @@ type MessageMetadata = {
   messageTimestamp: number;
 };
 
-let _waitingIds: Map<ASIndex, MessageMetadata>  = new Map();
+type ProgressStoreData = Map<number, Map<number, MessageMetadata>>;
+
+let _waitingIds: ProgressStoreData = new Map();
 
 const ProgressStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
-      case Constants.ActionTypes.MARK_SENT: {
+      case 'MARK_SENT': {
         const { index, messageId } = action;
         const metadata = {
           messageId,
           messageTimestamp: Date.now(),
         };
-        _waitingIds.set(index, metadata);
+
+        let colSet = _waitingIds.get(index.col);
+        if (colSet !== undefined) {
+          colSet.set(index.row, metadata); // will modify _waitingIds. would be preferable to use ImmutableJS here
+        } else {
+          _waitingIds.set(
+            index.col,
+            new Map().set(index.row, metadata)
+          );
+        }
         ProgressStore.emitChange();
         break;
       }
 
-      case Constants.ActionTypes.MARK_RECEIVED: {
+      case 'MARK_RECEIVED': {
         const { index, messageId } = action;
-        const metadata = _waitingIds.get(index);
 
-        // The user might change the value of a cell before its evaluation has
-        // been returned.
-        //
-        // 1 <---- request ----> 1
-        //      2 <---- request ----> 2
-        //
-        // In which case we need to check that the message we received is the
-        // one we're waiting on.
-        if (metadata != null && metadata.messageId === messageId) {
-          _waitingIds.delete(action.index);
-          ProgressStore.emitChange();
+        let colSet = _waitingIds.get(index.col);
+        if (colSet !== undefined) {
+          const metadata = colSet.get(index.row);
+
+          // The user might change the value of a cell before its evaluation has
+          // been returned.
+          //
+          // 1 <---- request ----> 1
+          //      2 <---- request ----> 2
+          //                            ^ mark finished here
+          //
+          // In which case we need to check that the message we received is the
+          // one we're waiting on.
+          if (metadata != undefined && metadata.messageId === messageId) {
+            colSet.delete(index.row);
+            ProgressStore.emitChange();
+          }
         }
         break;
+      }
+
+      case 'CLEAR_ALL_PROGRESS': {
+        _waitingIds = new Map();
+        ProgressStore.emitChange();
       }
     }
   }),
 
-  getLocationsInProgress(): Map<ASIndex, MessageMetadata> {
+  getLocationsInProgress(): ProgressStoreData {
     return _waitingIds;
   },
 });

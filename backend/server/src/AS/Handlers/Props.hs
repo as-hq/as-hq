@@ -1,10 +1,8 @@
 module AS.Handlers.Props (handleToggleProp, handleSetProp, handleChangeDecimalPrecision) where
 
-import Data.List
-import Control.Concurrent
-import Control.Lens
-import qualified Data.Map as M
-import Database.Redis (Connection)
+import AS.Prelude
+import Prelude()
+import AS.Config.Constants
 
 import AS.Types.Cell
 import AS.Types.Network
@@ -19,9 +17,15 @@ import AS.Daemon as DM
 import AS.Reply
 import AS.Util
 
+import Data.List
+import Control.Concurrent
+import Control.Lens
+import qualified Data.Map as M
+import Database.Redis (Connection)
+
 -- | Used only for flag props. 
-handleToggleProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
-handleToggleProp uc state p rng = do
+handleToggleProp :: MessageId -> ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleToggleProp mid uc state p rng = do
   let locs = rangeToIndices rng
       pt   =  propType p
   conn <- view dbConn <$> readMVar state
@@ -36,18 +40,18 @@ handleToggleProp uc state p rng = do
       setCells conn nonEmptyCells
       deleteLocs conn $ mapCellLocation emptyCells
       mapM_ (removePropEndware state p) nonEmptyCells
-      sendSheetUpdate uc $ sheetUpdateFromCells cells'
+      sendSheetUpdate mid uc $ sheetUpdateFromCells cells'
     else do
       let cells' = map (cellProps %~ setProp p) cellsWithoutProp
       setCells conn cells'
       mapM_ (setPropEndware state p) cells'
-      sendSheetUpdate uc $ sheetUpdateFromCells cells'
+      sendSheetUpdate mid uc $ sheetUpdateFromCells cells'
     -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
     -- Said toad. (Alex 11/7)
 
 setPropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
 setPropEndware state (StreamInfo s) c = modifyDaemon state s (c^.cellLocation) evalMsg
-  where evalMsg = ServerMessage $ Evaluate [EvalInstruction (c^.cellExpression) (c^.cellLocation)]
+  where evalMsg = ServerMessage daemon_message_id $ Evaluate [EvalInstruction (c^.cellExpression) (c^.cellLocation)]
 setPropEndware _ _ _ = return ()
 
 removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
@@ -60,8 +64,8 @@ removePropEndware _ _ _ = return ()
 -- so a future refactor of props should address this. 
 -- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
 -- to update when you change their precision. 
-handleTransformProp :: (ASCellProps -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
-handleTransformProp f uc state rng = do
+handleTransformProp :: MessageId -> (ASCellProps -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
+handleTransformProp mid f uc state rng = do
   let locs = rangeToIndices rng
   conn <- view dbConn <$> readMVar state
   cells <- getPossiblyBlankCells conn locs
@@ -71,14 +75,14 @@ handleTransformProp f uc state rng = do
   setCells conn cells'
   -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
   errOrUpdate <- DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) id
-  broadcastErrOrUpdate state uc (addCellsToUpdate cells' <$> errOrUpdate)
+  broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
-handleSetProp :: ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
-handleSetProp uc state prop rng = handleTransformProp (setProp prop) uc state rng
+handleSetProp :: MessageId -> ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleSetProp mid uc state prop rng = handleTransformProp mid (setProp prop) uc state rng
 
 -- Change the decimal precision of all the values in a range
-handleChangeDecimalPrecision :: ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
-handleChangeDecimalPrecision uc state i rng = handleTransformProp (upsertProp defaultDecProp updateDecPrecision) uc state rng
+handleChangeDecimalPrecision :: MessageId -> ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
+handleChangeDecimalPrecision mid uc state i rng = handleTransformProp mid (upsertProp defaultDecProp updateDecPrecision) uc state rng
   where
     defaultDecProp = ValueFormat (Format NoFormat (Just i))
     updateDecPrecision (ValueFormat (Format fType Nothing)) = ValueFormat $ Format fType $ Just i
