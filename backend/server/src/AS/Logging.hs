@@ -21,10 +21,13 @@ import AS.Config.Paths
 import AS.Config.Settings 
 
 import qualified Data.Text as T
+import Data.Aeson
 import Control.Monad.Trans.Class (lift)
 import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
-import Control.Monad (when)
+import Control.Monad (when, void)
+
+import qualified Network.Wreq as Wreq
 
 truncateLength :: Int
 truncateLength = 2000
@@ -94,7 +97,21 @@ logError err (CommitSource sid uid) = do
       logMsg = "#ERROR: " ++ err ++ '\n':'#':sid' ++ ',':uid' ++ "\n#" ++ time
   writeToASLog serverLogsRoot logMsg
   writeToASLog (serverLogsRoot ++ sid') logMsg
+  logSlack logMsg
   printWithTime logMsg
+
+logSlack :: String -> IO ()
+logSlack msg = void $ Wreq.post webhookUrl payload
+  where
+    webhookUrl = "https://hooks.slack.com/services/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"
+    payload = object [
+        "channel" .= ("#bugreports" :: String)
+      , "username" .= ("ErrorBot" :: String)
+      , "icon_emoji" .= ("ghost" :: String)
+      , "attachments" .= [object [
+          "color" .= ("danger" :: String)
+        , "text" .= msg
+      ]]]
 
 printObj :: (Show a) => String -> a -> IO ()
 printObj = (when shouldWritetoConsole .) . printObjForced
