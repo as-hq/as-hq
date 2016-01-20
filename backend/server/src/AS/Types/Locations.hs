@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module AS.Types.Locations
   ( module AS.Types.Locations
@@ -20,17 +22,25 @@ import Control.DeepSeq.Generics (genericRnf)
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
 
-type Col = Int
-type Row = Int 
+newtype Col = Col { _colInt :: Int } deriving (Show, Read, Eq, Ord, Generic, Num)
+newtype Row = Row { _rowInt :: Int } deriving (Show, Read, Eq, Ord, Generic, Num)
+makeFields ''Col
+makeFields ''Row
+instance Enum Col where
+  toEnum a         = Col a
+  fromEnum (Col a) = a
+instance Enum Row where
+  toEnum a         = Row a
+  fromEnum (Row a) = a
 
 -- We want O(n log n) unions for collections of locations and datatypes that depend on them
--- (e.g. ASCell), so we're making them Ord. 
+-- (e.g. ASCell), so we're making them Ord.
 data Coord = Coord { _coordCol :: Col, _coordRow :: Row } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''Coord
-data InfiniteRowCoord = InfiniteRowCoord { _infiniteRowCoordCol :: Int } deriving (Show, Read, Eq, Ord, Generic)
+data InfiniteRowCoord = InfiniteRowCoord { _infiniteRowCoordCol :: Col } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''InfiniteRowCoord
-data Dimensions = Dimensions {width :: Int, height :: Int} deriving (Show, Read, Eq, Ord, Generic)
-data Offset = Offset { dCol :: Int, dRow :: Int }
+data Dimensions = Dimensions {width :: Col, height :: Row} deriving (Show, Read, Eq, Ord, Generic)
+data Offset = Offset { dCol :: Col, dRow :: Row }
 type Rect = (Coord, Coord)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -64,46 +74,46 @@ instance FromJSON InfiniteRowCoord
 instance ToJSON ASIndex where
   toJSON (Index sid coord) = object ["tag"     .= ("index" :: String),
                                      "sheetId" .= sid,
-                                     "index"   .= object ["row" .= (coord^.row),
-                                                          "col" .= (coord^.col)]]
+                                     "index"   .= object ["row" .= (coord^.row^.int),
+                                                          "col" .= (coord^.col^.int)]]
 
 instance FromJSON ASIndex where
   parseJSON (Object v) = do
     loc <- v .: "index"
     sid <- v .: "sheetId"
-    idx <- Coord <$> loc .: "col" <*> loc .: "row"
+    idx <- Coord <$> (Col <$> loc .: "col") <*> (Row <$> loc .: "row")
     return $ Index sid idx
   parseJSON _          = fail "client message JSON attributes missing"
 
 instance ToJSON ASPointer where
   toJSON (Pointer (Index sid coord)) = object ["tag"     .= ("index" :: String),
                                                "sheetId" .= sid,
-                                               "index"   .= object ["row" .= (coord^.row),
-                                                                    "col" .= (coord^.col) ]]
+                                               "index"   .= object ["row" .= (coord^.row^.int),
+                                                                    "col" .= (coord^.col^.int) ]]
 
 instance FromJSON ASPointer where
   parseJSON (Object v) = do
     loc <- v .: "index"
     sid <- v .: "sheetId"
-    idx <- Coord <$> loc .: "col" <*> loc .: "row"
+    idx <- Coord <$> (Col <$> loc .: "col") <*> (Row <$> loc .: "row")
     return $ Pointer (Index sid idx)
   parseJSON _          = fail "client message JSON attributes missing"
 
 instance ToJSON ASRange  where
   toJSON (Range sid (coord1, coord2)) = object ["tag" .= ("range" :: String),
                                                 "sheetId" .= sid,
-                                                "range" .= object [ 
-                                                   "tl" .= object [ "row"  .= (coord1^.row), 
-                                                                    "col"  .= (coord1^.col)],
-                                                   "br" .= object [ "row"  .= (coord2^.row), 
-                                                                    "col"  .= (coord2^.col)]]]
- 
+                                                "range" .= object [
+                                                   "tl" .= object [ "row"  .= (coord1^.row^.int),
+                                                                    "col"  .= (coord1^.col^.int)],
+                                                   "br" .= object [ "row"  .= (coord2^.row^.int),
+                                                                    "col"  .= (coord2^.col^.int)]]]
+
 instance FromJSON ASRange where
   parseJSON (Object v) = do
-    rng <- v .: "range" 
+    rng <- v .: "range"
     (tl, br) <- (,) <$> rng .: "tl" <*> rng .: "br"
-    tl' <- Coord <$> tl .: "col" <*> tl .: "row"
-    br' <- Coord <$> br .: "col" <*> br .: "row"
+    tl' <- Coord <$> (Col <$> tl .: "col") <*> (Row <$> tl .: "row")
+    br' <- Coord <$> (Col <$> br .: "col") <*> (Row <$> br .: "row")
     sid <- v .: "sheetId"
     return $ Range sid (tl', br')
   parseJSON _          = fail "client message JSON attributes missing"
@@ -116,32 +126,49 @@ instance ToJSON ASReference where
 
 instance FromJSON ASReference
 
---TODO: timchu: not sure if r .= object ["col" .=r2 ] is right. Maybe no list brackets?
-                            --Note: r stands for right, not row.
-instance ToJSON ASColRange where
-  toJSON (ColRange sid (coord,column)) = object["tag" .= ("colRange" :: String),
-                                                "sheetId" .= sid,
-                                                "colRange" .= object[
-                                                "tl" .= object ["row" .= (coord^.row),
-                                                                "col" .= (coord^.col)],
-                                                "r"  .= object ["col" .= (column^.col)]]]
+instance ToJSON ASColRange
+  where
+    toJSON (ColRange sid (coord,infintieRowCoord)) = object["tag" .= ("colRange" :: String),
+                                                            "sheetId" .= sid,
+                                                            "colRange" .= object[
+                                                            "tl" .= object ["row" .= (coord^.row^.int),
+                                                                            "col" .= (coord^.col^.int)],
+                                                            "r"  .= object ["col" .= (infintieRowCoord^.col^.int)]]]
 
--- TODO: timchu, check that this actually works.
-instance FromJSON ASColRange where
+-- TODO: timchu. This instance is never actually used.
+instance FromJSON ASColRange
+  where
+    parseJSON (Object v) = do
+      colrng <- v .: "colRange"
+      (tl, r) <- (,) <$>  colrng .: "tl" <*> colrng .: "r"
+      tl' <- Coord <$> (Col <$> tl .: "col") <*> (Row <$> tl .: "row")
+      r' <- InfiniteRowCoord <$> (Col <$> r .: "col")
+      sid <- v .: "sheetId"
+      return $ ColRange sid (tl', r')
+    parseJSON _ = fail "client message JSON attributes missing"
+
+--These ToJSON instances for Col and Row are a patch to make the new col and row
+--types work with front end.
+--TODOX: Timchu. I'm not sure if these are necessary
+instance ToJSON Col where
+  toJSON (Col i) = toJSON i
+instance ToJSON Row where
+  toJSON (Row i) = toJSON i
+instance FromJSON Col where
   parseJSON (Object v) = do
-    colrng <- v .: "colRange"
-    (tl, r) <- (,) <$>  colrng .: "tl" <*> colrng .: "r"
-    tl' <- Coord <$> tl .: "col" <*> tl .: "row"
-    r' <- r .: "col"
-    sid <- v .: "sheetId"
-    return $ ColRange sid (tl', r')
-  parseJSON _ = fail "client message JSON attributes missing"
-
+    i <- parseJSON (Object v)
+    return $ Col i
+instance FromJSON Row where
+  parseJSON (Object v) = do
+    i <- parseJSON (Object v)
+    return $ Row i
 instance ToJSON Dimensions
 instance FromJSON Dimensions
 
--- deep strict eval instances for R 
+-- deep strict eval instances for R
 
+instance NFData Col                 where rnf = genericRnf
+instance NFData Row                 where rnf = genericRnf
 instance NFData Coord               where rnf = genericRnf
 instance NFData InfiniteRowCoord    where rnf = genericRnf
 instance NFData ASIndex             where rnf = genericRnf
@@ -150,10 +177,14 @@ instance NFData ASRange             where rnf = genericRnf
 instance NFData ASColRange          where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
+instance Hashable Col
+instance Hashable Row
 instance Hashable Coord
 instance Hashable InfiniteRowCoord
 instance Hashable ASIndex
 
+deriveSafeCopy 1 'base ''Col
+deriveSafeCopy 1 'base ''Row
 deriveSafeCopy 1 'base ''Coord
 deriveSafeCopy 1 'base ''InfiniteRowCoord
 deriveSafeCopy 1 'base ''ASRange
@@ -165,17 +196,17 @@ deriveSafeCopy 1 'base ''Dimensions
 
 
 -- TODO: timchu, refactor getHeight to return a maybeInt.
-getHeight :: ASReference -> Int
+getHeight :: ASReference -> Row
 getHeight (IndexRef _) = 1
 getHeight (PointerRef _) = 1
-getHeight (RangeRef (Range _ (coord1,coord2))) = coord2^.row - coord1^.row + 1
+getHeight (RangeRef (Range _ (coord1,coord2))) = (coord2^.row - coord1^.row) + Row 1
 
 -- TODO: refactor getWidth to return a maybeInt, or an Either Int.
-getWidth :: ASReference -> Int
+getWidth :: ASReference -> Col
 getWidth (IndexRef _) = 1
 getWidth (PointerRef _) = 1
-getWidth (RangeRef (Range _ (coord1,coord2))) = coord2^.col - coord2^.col + 1
-getWidth (ColRangeRef (ColRange _ (coord1, col2))) = coord1^.col - col2^.col + 1
+getWidth (RangeRef (Range _ (coord1,coord2))) = (coord2^.col - coord2^.col) + Col 1
+getWidth (ColRangeRef (ColRange _ (coord1, col2))) = (coord1^.col - col2^.col) + Col 1
 
 isRange :: ASReference -> Bool
 isRange (IndexRef _) = False
@@ -201,9 +232,9 @@ rangeContainsRect (Range _ (topLeft1, bottomRight1)) (topLeft2, bottomRight2) = 
 -- when the ASReference passed in is an index or a range
 refsToIndices :: [ASReference] -> [ASIndex]
 refsToIndices = concatMap refToIndices
-  where 
+  where
     refToIndices :: ASReference -> [ASIndex]
-    refToIndices (IndexRef i) = [i] 
+    refToIndices (IndexRef i) = [i]
     refToIndices (RangeRef r) = rangeToIndices r
 
 -- | Range at ((1,1), (2,2)) --> [(1,1), (2, 1), (1, 2), (2, 2)]
@@ -219,7 +250,7 @@ rangeToIndices (Range sheet (ul, lr)) = [Index sheet (Coord x y) | y <- [starty.
 rangeContainsIndex :: ASRange -> ASIndex -> Bool
 rangeContainsIndex (Range sid1 (topLeft, bottomRight)) (Index sid2 coord) = and [
   sid1 == sid2, col' >= col1, col' <= col2, row' >= row1, row' <= row2 ]
-    where 
+    where
       col1  = topLeft^.col
       row1  = topLeft^.row
       col2  = bottomRight^.col
@@ -257,6 +288,13 @@ orientRange (Range sid (tl, br)) = Range sid (tl',br')
     tl' = Coord (min (view col tl) (view col br)) (min (view row tl) (view row br))
     br' = Coord (max (view col tl) (view col br)) (max (view row tl) (view row br))
 
+orientColRange :: ASColRange -> ASColRange
+orientColRange (ColRange sid (tl, r)) = ColRange sid (tl', r')
+  where
+    tl' = Coord            (min (view col tl) (view col r)) $ view row tl
+    r'  = InfiniteRowCoord (max (view col tl) (view col r))
+
+
 rangeToIndicesRowMajor :: ASRange -> [ASIndex]
 rangeToIndicesRowMajor (Range sheet (ul, lr)) = [Index sheet (Coord x y) | y <- [starty..endy],x <- [startx..endx] ]
   where
@@ -275,7 +313,7 @@ rangeToIndicesRowMajor2D (Range sheet (ul, lr)) = map (\y -> [Index sheet (Coord
 
 shiftCoord :: Offset -> Coord -> Maybe Coord
 shiftCoord o coord = 
-  if (view col coord)+(dCol o) >= 1 && (view row coord) +(dRow o) >= 1 
+  if (coord^.col)+(dCol o) >= Col 1 && (coord^.row) +(dRow o) >= Row 1
      then Just $ shiftCoordIgnoreOutOfBounds o coord
      else Nothing
 
@@ -306,8 +344,8 @@ getTopLeft (Range sh (tl,_)) = Index sh tl
 
 getRangeDims :: ASRange -> Dimensions
 getRangeDims (Range _ (coord1, coord2)) =
-  Dimensions { width  = 1 + abs (col2 - col1)
-             , height = 1 + abs (row2 - row1) }
+  Dimensions { width  = (Col 1) + abs (col2 - col1)
+             , height = (Row 1) + abs (row2 - row1) }
   where
     col1 = coord1^.col
     row1 = coord1^.row

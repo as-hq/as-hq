@@ -46,10 +46,9 @@ import qualified Statistics.Matrix as SM
 import Control.Lens hiding ((.=), Context, index, transform)
 import Control.Lens.TH
 
-
-data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
+data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Int,Int)} deriving (Show)
 type Arg a = (Int,a)
-type Dim = (Col,Row)
+type Dim = (Int,Int)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
 -- | TODO: use unboxing if performance is a problem
@@ -369,6 +368,7 @@ unexpectedRefMap c refs = case dim' of
     dim' = getCommonDimension refs
 
 -- | Helper: gets the common dimensionality of the unexpected references
+-- TODO: Refactor Dim to be DimConstructor Col Row, instead of (Int, Int)
 getCommonDimension :: [ERef] -> Maybe Dim
 getCommonDimension [] = Nothing
 getCommonDimension refs = dim
@@ -439,7 +439,7 @@ refToEntity context (ERef l@(IndexRef i)) = case (asValueToEntity v) of
 refToEntity context (ERef (l@(RangeRef r))) =
   if any isNothing vals
       then Left $ CannotConvertToExcelValue l
-      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
+      else Right $ EntityMatrix $ EMatrix ((getWidth l)^.int) ((getHeight l)^.int) $ V.fromList $ catMaybes vals
   where
     mp = evalMap context
     idxs = rangeToIndicesRowMajor r
@@ -452,7 +452,7 @@ refToEntity context (ERef (l@(RangeRef r))) =
 refToEntity context (ERef (colRange@(ColRangeRef cr))) =
   if any isNothing vals
       then Left $ CannotConvertToExcelValue l
-      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
+      else Right $ EntityMatrix $ EMatrix ((getWidth l)^.int) ((getHeight l)^.int) $ V.fromList $ catMaybes vals
   where
     mp = evalMap context
     r = colRangeWithCellMapToRange mp cr
@@ -495,12 +495,12 @@ substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
 -- | The function descriptor contains which arguments to map for an array formula
 -- | Mapping requires that entity to be a matrix
 mapArgs :: Dim -> FuncDescriptor -> EFuncResult
-mapArgs (c,r) fDes con e = do
-  -- Row-major accumulation of results
+mapArgs (cNum,rNum) fDes con e = do
+  -- | Row-major accumulation of results
   let evalAF = resToVal . ((callback fDes) con) . (getOffsetArgs fDes e)
-  let results = [evalAF (Coord c' r') | r'<-[0..(r-1)],c'<-[0..(c-1)]]
+  let results = [evalAF (Coord (Col cNum') (Row rNum')) | rNum'<-[0..(rNum-1)],cNum'<-[0..(cNum-1)]]
   errResults <- compressErrors results
-  return $ EntityMatrix (EMatrix c r (V.fromList errResults))
+  return $ EntityMatrix (EMatrix cNum rNum (V.fromList errResults))
 
 -- | Given a function descriptor, a list of arguments (results) and an offset
 -- | Replace each argument with the offsetted value if fDes says to
@@ -854,7 +854,7 @@ getSheetPrefix "" = ""
 getSheetPrefix s = s ++ "!"
 
 -- | Helper for address; produces R1C1 format string from col num, row num, and relative/absolute type
-refToStringRC :: Col -> Row -> Int -> ThrowsError String
+refToStringRC :: Int -> Int -> Int -> ThrowsError String
 refToStringRC col row 1 = Right $ "R" ++ (show row) ++ "C" ++ (show col)
 refToStringRC col row 2 = Right $ "R" ++ (show row) ++ "C[" ++ (show col) ++ "]"
 refToStringRC col row 3 = Right $ "R[" ++ (show row) ++ "]C" ++ (show col)
@@ -862,7 +862,7 @@ refToStringRC col row 4 = Right $ "R[" ++ (show row) ++ "]C[" ++ (show col) ++ "
 refToStringRC _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
 -- | Helper for address; produces $A$1 format string from col num, row num, and relative/absolute type
-refToString :: Col -> Row -> Int -> ThrowsError String
+refToString :: Int -> Int -> Int -> ThrowsError String
 refToString col row 1 = Right $ "$" ++ (intToCol col) ++ "$" ++ (show row)
 refToString col row 2 = Right $ (intToCol col) ++ "$" ++ (show row)
 refToString col row 3 = Right $ "$" ++ (intToCol col) ++ (show row)
@@ -870,7 +870,7 @@ refToString col row 4 = Right $  (intToCol col)  ++ (show row)
 refToString _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
 -- | Given a column number, produce the column letter (3 -> C)
-intToCol :: Col -> String
+intToCol :: Int -> String
 intToCol = intToColStr -- from AS.Util
 
 -- | Returns the column of a reference; returns a matrix if the input is a range reference
@@ -881,17 +881,16 @@ eColumn c e = do
   -- curLoc is always an index (you evaluate from within a cell)
   (ERef loc) <- getOptional (ERef (IndexRef $ curLoc c)) "column" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral a
+    IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ toInteger a
       where
-        a = coord^.col
-        b = coord^.row
+        a = coord^.col^.int
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _ (coord1, coord2)) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
-        a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+        a = coord1^.col^.int
+        b = coord1^.row^.int
+        c = coord2^.col^.int
+        d = coord2^.row^.int
         m = V.replicate (d-b+1) firstRow
         firstRow = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
@@ -901,16 +900,15 @@ eRow c e = do
   -- curLoc is always an index (you evaluate from within a cell)
   (ERef loc) <- getOptional (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
-    IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral b
-      where a = coord^.col
-            b = coord^.row
+    IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ toInteger b
+      where b = coord^.row^.int
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _(coord1,coord2)) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
-        a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+        a = coord1^.col^.int
+        b = coord1^.row^.int
+        c = coord2^.col^.int
+        d = coord2^.row^.int
         m = V.map (V.replicate (d-b+1)) colValues
         colValues = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
@@ -937,7 +935,7 @@ r1c1 sid = do
   char 'C' <|> char 'c'
   col <- many1 digit
   let [colNum, rowNum] = map read [col, row] :: [Int]
-  return $ IndexRef $ Index sid (Coord colNum rowNum)
+  return $ IndexRef $ Index sid (Coord (Col colNum) (Row rowNum))
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
@@ -955,14 +953,14 @@ eOffset c e = do
   (ERef loc) <- getRequired "offset" 1 e :: ThrowsError ERef
   rows <- getRequired "offset" 2 e :: ThrowsError Int
   cols <- getRequired "offset" 3 e :: ThrowsError Int
-  height <- getOptional (getHeight loc) "offset" 4 e :: ThrowsError Int
-  width <- getOptional (getWidth loc) "offset" 5 e :: ThrowsError Int
+  height <- getOptional ((getHeight loc)^.int) "offset" 4 e :: ThrowsError Int
+  width <- getOptional ((getWidth loc)^.int) "offset" 5 e :: ThrowsError Int
   let topLeftOfLoc = topLeftLoc loc
-      tl = shiftCoordIgnoreOutOfBounds (Offset cols rows) topLeftOfLoc
+      tl = shiftCoordIgnoreOutOfBounds (Offset (Col cols) (Row rows)) topLeftOfLoc
   let loc' = case (height,width) of
-                (1,1) -> IndexRef $ Index (shName loc) tl
+                (1, 1) -> IndexRef $ Index (shName loc) tl
                 (h,w) -> RangeRef $ Range (shName loc) (tl, br) where
-                  br = shiftCoordIgnoreOutOfBounds (Offset (w-1) (h-1)) tl
+                  br = shiftCoordIgnoreOutOfBounds (Offset (Col $ w - 1) (Row $ h - 1)) tl
   verifyInBounds loc'
 
 -- | Makes sure that an ASLocation doesn't have negative coordinates etc.
@@ -975,7 +973,7 @@ verifyInBounds l@(RangeRef (Range _ (a,b))) = if coordIsSafe a && coordIsSafe b
   else Left $ Default "Location index out of bounds"
 
 coordIsSafe :: Coord -> Bool
-coordIsSafe coord = coord^.col > 0 && coord^.row > 0
+coordIsSafe coord = coord^.col > Col 0 && coord^.row > Row 0
 
 -- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix
 -- | Allowed to use wildcards if val = string and type = 0, doesn't care about upper/lower case for strings,
@@ -1031,7 +1029,7 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
   | row==0 && col>=1 = Right $ EntityMatrix $ EMatrix 1 nRow vertical
   | row>=1 && col==0 = Right $ EntityMatrix $ EMatrix nCol 1 horizontal
   | row==0 && col==0 = Right $ EntityMatrix m -- whole matrix
-  | row>=1 && col>=1 = valToResult $ matrixIndex (Coord (col-1) (row-1)) m
+  | row>=1 && col>=1 = valToResult $ matrixIndex (Coord (Col $ col-1) (Row $ row-1)) m
     where
       err = Left $ REF $ "Index out of bounds"
       horizontal = V.unsafeSlice ((row-1)*nCol) nCol v
@@ -1082,7 +1080,7 @@ eVlookup c e = do
 getElemFromCol :: EMatrix -> Int -> Int -> EResult
 getElemFromCol m@(EMatrix c _ _) colNum i
   | c < colNum || colNum < 1 = Left $ REF "Requested column number for VLOOKUP is out of bounds"
-  | otherwise = valToResult $ matrixIndex (Coord (colNum-1) i) m
+  | otherwise = valToResult $ matrixIndex (Coord (Col $ colNum-1) $ Row i) m
     
 
 

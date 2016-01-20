@@ -10,6 +10,9 @@ import qualified Data.Text as T
 import qualified Data.List as L
 import Text.ParserCombinators.Parsec
 import Control.Applicative hiding ((<|>), many)
+import Control.Monad ((>=>))
+import Control.Lens hiding (noneOf)
+import Control.Lens.TH
 import qualified Data.Map as M
 import qualified Data.Text.Lazy (replace)
 
@@ -20,15 +23,10 @@ import AS.Util
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsers to match special excel characters
 
-readSingleRef :: Maybe Char -> SingleRefType
-readSingleRef d1 = case d1 of
+readRefType :: Maybe Char -> RefType
+readRefType d1 = case d1 of
   Nothing -> REL
   Just _ -> ABS
-
-readRefType :: Maybe Char -> Maybe Char -> RefType 
-readRefType d1 d2 = case d1 of
-  Nothing -> maybe REL_REL (const REL_ABS) d2
-  Just _ -> maybe  ABS_REL (const ABS_ABS) d2
 
 dollar :: Parser Char
 dollar = char  '$' -- returns $ or ""; $ is not required for index
@@ -63,25 +61,30 @@ sheetWorkbookMatch = do
         Nothing -> (q1, Nothing) -- sheet, nothing
         Just _ -> (q2, q1)       -- sheet is inner-most parsed (it's q2), so return the reverse order
 
--- | matches $AB15 type things
-indexMatch :: Parser ExIndex
-indexMatch = do
-  a <- optionMaybe dollar
-  col <- many1 letter
-  b <- optionMaybe dollar
-  row <- many1 digit
-  return $ ExIndex (readRefType a b) col row
-
-outOfBoundsMatch :: Parser ExRef
-outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
 --matches $A type things.
 colMatch :: Parser ExCol
 colMatch = do
   dol  <- optionMaybe dollar
-  rcol <- many1 letter
-  return $ ExCol (readSingleRef dol) rcol
+  col <- many1 letter
+  return $ ExInt (readRefType dol) $ colStrToCol col
 
+--matches $1 type things.
+rowMatch :: Parser ExRow
+rowMatch = do
+  dol  <- optionMaybe dollar
+  row <- many1 digit
+  return $ ExInt (readRefType dol) $ rowStrToRow row
+
+-- | matches $AB15 type things
+indexMatch :: Parser ExIndex
+indexMatch = do
+  xCol <- colMatch
+  xRow <- rowMatch
+  return $ ExIndex xCol xRow
+
+outOfBoundsMatch :: Parser ExRef
+outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 -- | Three cases for colRange matching
 
 -- Matches A1:A type things.
@@ -103,11 +106,10 @@ colRangeAToA1Match = do
 -- Parses A:A as A$1:A
 colRangeAToAMatch :: Parser ExColRange
 colRangeAToAMatch = do
-  a  <- optionMaybe dollar
-  lcol <- many1 letter
+  l <- colMatch
   colon
   r <- colMatch
-  return $ ExColRange (ExIndex (readRefType a (Just '$')) lcol "1")  r
+  return $ ExColRange (ExIndex l (ExInt ABS $ Row 1))  r
 
 -- checks for matches to both both A:A and A1:A.
 colRangeMatch :: Parser ExColRange
@@ -122,16 +124,12 @@ colRangeMatch = do
            Nothing -> colRangeAToAMatch
 
 -- | matches index:index
---
 rangeMatch :: Parser ExRange
 rangeMatch = do
   tl <- indexMatch
   colon
   br <- indexMatch
   return $ ExRange tl br
-
-instance Show ExRange where
-  show (ExRange (ExIndex _ tl br) (ExIndex _ tl' br')) = tl ++ br ++ ":" ++ tl' ++ br'
 
 refMatch :: Parser ExRef
 refMatch = do
@@ -148,112 +146,15 @@ refMatch = do
         Just ofb' -> return ExOutOfBounds
         Nothing -> fail "expected index reference when using pointer syntax"
     Nothing -> case rng of 
-      -- Force ranges to have tl <= br.
       Just rng' -> return $ ExRangeRef rng' sh wb
-      -- Force colRanges to have l <= r.
-      -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
       Nothing -> case colrng of
-        -- We should not be using orientExColRange here. The logic for orienting
-        -- shouldn't be slapped in the middle of refMatch. 
-        Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
+        Just colrng' -> return $ ExColRangeRef colrng' sh wb
         Nothing -> case idx of 
           Just idx' -> return $ ExIndexRef idx' sh wb
           Nothing -> case ofb of  
             Just ofb' -> return ExOutOfBounds
             Nothing -> fail "expected valid excel A1:B4 format reference"
 
-
-------------------------------------------------------------------------------------------------------------------------------------------------
--- Helper Functions
-
--- takes an excel location and an offset, and produces the new excel location (using relative range syntax)
--- ex. ExIndex $A3 (1,1) -> ExIndex $A4
--- doesn't do any work with Parsec/actual parsing
-shiftExRef :: Offset -> ExRef -> ExRef
-shiftExRef o exRef = case exRef of
-  ExOutOfBounds -> ExOutOfBounds
-  ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
-    where
-      newColVal = shiftCol (dCol o) dType c
-      newRowVal = shiftRow (dRow o) dType r
-      idx = if (newColVal >= 1 && newRowVal >= 1) 
-        then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
-        else Nothing
-      exRef' = maybe ExOutOfBounds (\i -> exRef { exIndex = i }) idx
-  ExRangeRef (ExRange f s) sh wb -> exRef' 
-      where
-        shiftedInds = (shiftExRef o (ExIndexRef f sh wb), shiftExRef o (ExIndexRef s sh wb))
-        exRef' = case shiftedInds of 
-          (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
-          _ -> ExOutOfBounds
-  -- TODO: timchu, have not implemented out of bounds handling.
-  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
-      where
-        shiftedInd = shiftExRef o (ExIndexRef f sh wb)
-        shiftedF = exIndex shiftedInd
-        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) srType c
-        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
-
-  ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExIndexRef l' _ _ = shiftExRef o (ExIndexRef l sh wb)
-
--- shifts absolute references too
--- TODO: timchu, 12/29/15. Massive code duplication.
-shiftExRefForced :: Offset -> ExRef -> ExRef
-shiftExRefForced o exRef = case exRef of
-  ExOutOfBounds -> ExOutOfBounds
-  ExIndexRef (ExIndex dType c r) _ _ -> exRef' 
-    where
-      newColVal = shiftCol (dCol o) REL_REL c
-      newRowVal = shiftRow (dRow o) REL_REL r
-      idx = if (newColVal >= 1 && newRowVal >= 1) 
-        then Just $ ExIndex dType (intToColStr newColVal) (show newRowVal) 
-        else Nothing
-      exRef' = maybe ExOutOfBounds (\i -> exRef { exIndex = i }) idx
-  ExRangeRef (ExRange f s) sh wb -> exRef' 
-      where
-        shiftedInds = (shiftExRefForced o (ExIndexRef f sh wb), shiftExRefForced o (ExIndexRef s sh wb))
-        exRef' = case shiftedInds of 
-          (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
-          _ -> ExOutOfBounds
-  -- TODO: timchu, have not implemented out of bounds handling.
-  ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
-      where
-        shiftedInd = shiftExRef o (ExIndexRef f sh wb)
-        shiftedF = exIndex shiftedInd
-        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) REL c
-        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
-  ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExIndexRef l' _ _ = shiftExRefForced o (ExIndexRef l sh wb)
-
-shiftCol :: Int -> RefType -> String -> Int
-shiftCol dC rType c = newCVal
-  where
-    cVal = colStrToInt c
-    newCVal = cVal + (case rType of
-      ABS_ABS -> 0
-      ABS_REL -> 0
-      REL_ABS -> dC
-      REL_REL -> dC )
-
-shiftRow :: Int -> RefType -> String -> Int
-shiftRow dR rType r = newRVal 
-  where
-    rVal = ($read r :: Int)
-    newRVal = rVal + (case rType of 
-      ABS_ABS -> 0
-      ABS_REL -> dR
-      REL_ABS -> 0
-      REL_REL -> dR )
-
-shiftSingleCol :: Int -> SingleRefType -> String -> Int
-shiftSingleCol dC srType c = newSCVal
-  where scVal = colStrToInt c
-        newSCVal = scVal + (case srType of
-          ABS -> 0
-          REL -> dC )
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Functions for excel sheet loading
 

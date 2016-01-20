@@ -110,11 +110,17 @@ class Show2 a where
 class Read2 a where
   read2 :: (Show2 a) => String -> a
 
+instance Show2 Col where
+  show2 col = show $ col^.int
+
+instance Show2 Row where
+  show2 row = show $ row^.int
+
 instance Show2 Coord where
-  show2 coord = "(" ++ show (coord^.col) ++ "," ++ show (coord^.row) ++ ")"
+  show2 coord = "(" ++ show (coord^.col^.int) ++ "," ++ show (coord^.row^.int) ++ ")"
 
 instance Show2 InfiniteRowCoord where
-  show2 infiniteRowCoord = show $ infiniteRowCoord^.col
+  show2 infiniteRowCoord = show $ infiniteRowCoord^.col^.int
 
 instance Show2 Rect where
   show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
@@ -149,7 +155,7 @@ instance (Show2 ASReference) where
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 
 instance (Show2 Dimensions) where
-  show2 dims = show (width dims, height dims)
+  show2 dims = show ((width dims)^.int, (height dims)^.int)
 
 instance (Read2 ASReference) where
   read2 str = loc
@@ -168,13 +174,19 @@ instance (Read2 ASReference) where
               "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
 
 pairToCoord :: (Int, Int) -> Coord
-pairToCoord (x, y) = Coord x y
+pairToCoord (x, y) = Coord (Col x) (Row y)
+
+instance Read2 Col where
+  read2 str = Col ($read str)
+
+instance Read2 Row where
+  read2 str = Row ($read str)
 
 instance (Read2 Coord) where
   read2 str = pairToCoord ($read str :: (Int, Int))
 
 instance (Read2 InfiniteRowCoord) where
-  read2 str = InfiniteRowCoord $ ($read str)
+  read2 str = InfiniteRowCoord ($read str)
 
 instance (Read2 Rect) where
   read2 str =  (pairToCoord pair1, pairToCoord pair2)
@@ -182,9 +194,9 @@ instance (Read2 Rect) where
       (pair1, pair2) = $read str :: ((Int, Int), (Int, Int))
 
 instance (Read2 (Coord, InfiniteRowCoord)) where
-  read2 str = (pairToCoord pair, InfiniteRowCoord col)
+  read2 str = (pairToCoord pair, InfiniteRowCoord $ Col colNum)
     where
-      (pair, col) = $read str :: ((Int, Int), Int)
+      (pair, colNum) = $read str :: ((Int, Int), Int)
 
 instance (Read2 ASIndex) where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
@@ -206,7 +218,7 @@ instance (Read2 GraphDescendant) where
   read2 s = IndexDesc (read2 s :: ASIndex)
 
 instance (Read2 Dimensions) where
-  read2 str = Dimensions { width = w, height = h }
+  read2 str = Dimensions { width = Col w, height = Row h }
     where (w, h) = $read str :: (Int, Int)
 
 ----------------------------------------------------------------------------------------------------------------------
