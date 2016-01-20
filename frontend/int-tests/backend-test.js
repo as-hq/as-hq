@@ -2932,6 +2932,18 @@ describe('backend', () => {
           ]);
         });
 
+        it ('fails gracefully on a cell with an error in it', (done) => {
+          _do([
+            updateCondFormattingRule(
+              makeLambdaRule('A1', "lambda x: 'not a format'")
+            ),
+            python('A1', 'AAAAA'),
+            shouldBeError('A1'),
+            // shouldn't crash the code
+            exec(done)
+          ]);
+        });
+
         it ('conditionally formats based on a lambda', (done) => {
           _do([
             python('A1', 'range(3)'),

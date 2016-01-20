@@ -57,18 +57,22 @@ evaluateHeader addr = evaluateWithScope addr Header
 -- #needsrefactor Should not hard core errors
 evaluateLambdaFormat :: KernelAddress -> ASSheetId -> LambdaConditionExpr -> ASValue -> EitherTExec FormatResult
 evaluateLambdaFormat addr sid lambdaExpr val = do 
-  let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ (showValue Python (CellValue val)) ++ ")"
-  (EvaluateFormatReply format e) <- sendMessage addr $ EvaluateFormatRequest sid evalExpr
-  return $ case format of 
-    Just format -> case R.parseFormatValue format of 
+  (mFormatStr, mErr) <- case val of 
+    ValueError _ _ -> return (Nothing, Just "can't format cell with error")
+    v              -> do 
+      let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ showValue Python (CellValue v) ++ ")"
+      EvaluateFormatReply f e <- sendMessage addr $ EvaluateFormatRequest sid evalExpr
+      return (f,e)
+  return $ case mFormatStr of 
+    Just formatStr -> case R.parseFormatValue formatStr of 
       Nothing -> FormatError "Failed to interpret Python result as string." 
       Just format -> FormatSuccess format
-    Nothing  -> case e of 
+    Nothing  -> case mErr of 
       Just err -> FormatError err
       Nothing  -> FormatError "Formatting returned neither value nor error."
 
 clear :: KernelAddress -> ASSheetId -> IO ()
-clear addr = (sendMessage_ addr) . ClearRequest
+clear addr = sendMessage_ addr . ClearRequest
 
 -- SQL has not been updated to use the new kernel yet, because it doesn't seem super urgent rn.
 -- #anand 1/1/16
