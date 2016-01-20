@@ -202,9 +202,12 @@ forkHeartbeat conn interval = void $ forkIO (go 1 `catch` dieSilently)
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do
-  let logMsg = "Runtime error caught: " ++ show e
+  let logMsg = displayException e
   putStrLn logMsg
-  logError logMsg (userCommitSource user)
+  -- don't log CloseRequest exceptions.
+  case (fromException e :: Maybe WS.ConnectionException) of 
+    Just _ -> return () 
+    _ -> logError logMsg (userCommitSource user)
   -- settings <- view appSettings <$> readMVar state
   purgeZombies state
   runServer state
