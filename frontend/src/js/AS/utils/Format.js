@@ -4,6 +4,8 @@ import type {
   ASCurrency
 } from '../../types/Format';
 
+import Constants from '../../Constants';
+
 let FormatUtils = {
   isFormattable(contents: string): boolean {
     return (!!contents) && !isNaN(contents);
@@ -42,32 +44,35 @@ let FormatUtils = {
   },
 
   // If a string is a float, return the number of decimal places it has
-  getNumberOfDecimalPlaces(content: string): ?number {
-    let pieces = content.split('.');
+  getNumberOfDecimalPlaces(x: number): number {
+    let pieces = String(x).split('.');
     if (pieces.length === 2) {
       return pieces[1].length || 0;
     } else {
-      return null;
+      return 0;
     }
   },
 
-  // Given a possible offset and the Hypergrid string, give it the right number of decimal places
-  // Doubles will have 10 decimal places by default if they have more than 10 already, as in Google Sheets
-  formatDecimal(offset: ?number, content: string): string {
-    let numDecPlaces = FormatUtils.getNumberOfDecimalPlaces(content),
-        num = parseFloat(content),
+  // Given a possible offset and a hypergrid string which may or may not be a number, format it so the
+  // number of decimal places it has is: 
+  //   - numDecs, if numDec is not null. 
+  //   - min(10, its current number of decimal places), if numDec is null. 
+  // numDecs is not null exactly when the value passed in belongs to a cell with a ValueFormat
+  // that also specifies how many decimal digits to show. 
+  formatDecimal(numDecs: ?number, content: string): string {
+    let num = parseFloat(content),
         isNumber = !isNaN(num),
         isInteger = Number.isInteger(num);
-    if (isNumber && !isInteger && num != null) {
-      if (offset != null && numDecPlaces != null) {
-        let newNumDecPlaces = (numDecPlaces + offset) >= 0 ? (numDecPlaces + offset) : 0; // don't go lower than 0 decimal places
-        newNumDecPlaces = Math.min(newNumDecPlaces, 10);
-        return num.toFixed(newNumDecPlaces) + '';
-      }  
-      if (numDecPlaces != null && numDecPlaces >= 10) { // limit to 10 decimal places
-        return num.toFixed(10) + '';
+    if (isNumber && num != null) {
+      if (numDecs != null) {
+        return String(num.toFixed(numDecs));
+      } else { 
+        let curNumDecs = FormatUtils.getNumberOfDecimalPlaces(num);
+        if (curNumDecs > Constants.numDecimalDigitsToShow) { 
+          return String(num.toFixed(Constants.numDecimalDigitsToShow));
+        }
       }
-    } 
+    }
     return content;
   },
 

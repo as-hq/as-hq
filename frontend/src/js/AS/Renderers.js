@@ -262,6 +262,10 @@ const Renderers = {
         Util.Render.expandingTypeToRenderConfig(config, cell.expandingType);
       }
 
+      // If there are > 10 decimal places, truncate to first 10, unless the number of
+      // decimal places to show is a cell property, in which case we truncate to that extent. 
+      Util.Render.formatNumberOfDecimalPlaces(config, cell.props);
+
       // props take highest precedence
       if (cell.props.length > 0) { // props take higher precedence
         Util.Render.propsToRenderConfig(config, cell.props);

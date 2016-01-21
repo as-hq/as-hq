@@ -50,6 +50,8 @@ var Constants = Object.assign({
   numVisibleCols: 38,
   numVisibleRows: 31,
 
+  numDecimalDigitsToShow: 10,
+
   cellWidthPx: 100, // ignored; actually set in Render.js with this.config.minWidth = 100;
   cellHeightPx: 20,
 

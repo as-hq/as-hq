@@ -272,17 +272,9 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   // Checks if you're newly adding text to a cell with a % in it.
   shouldHandlePercentFormat() {
-    const percentProp: ValueFormat = {
-      tag: "ValueFormat",
-      valFormat: {
-        tag: 'Format',
-        formatType: 'Percentage',
-        numDecimalOffset: null,
-      },
-    };
-    const wasTyping = ASExpStore.getUserIsTyping();
-    const cell = CellStore.getActiveCell();
-    return (!wasTyping && cell != undefined && cell.hasProp(percentProp));
+    const wasTyping = ASExpStore.getUserIsTyping(),
+         cell = CellStore.getActiveCell();
+    return (!wasTyping && cell != undefined && cell.hasPercentProp());
   },
 
   updateStoreNormalTyping(type, xpStr, cursorPos) {

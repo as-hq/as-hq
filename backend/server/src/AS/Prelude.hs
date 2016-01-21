@@ -5,6 +5,7 @@ module AS.Prelude
   , read
   , head
   , tail
+  , last
   , fromJust
   , fromRight
   , nub
@@ -14,12 +15,12 @@ module AS.Prelude
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
 
-import Prelude as PreludeMinus hiding (head, tail, read, error)
+import Prelude as PreludeMinus hiding (head, tail, last, read, error)
 import qualified Prelude as P
 
 import Control.Lens
 import Language.Haskell.TH
-import Safe (headMay, tailMay)
+import Safe (headMay, lastMay, tailMay)
 import Text.Read (readEither)
 
 import qualified Data.Map as M
@@ -82,6 +83,14 @@ tail' :: (String -> [a]) -> [a] -> [a]
 tail' errorReporter l = case tailMay l of 
   Nothing -> errorReporter "tail got empty list!"
   Just t  -> t
+
+last :: Q Exp
+last = appE [|last'|] error
+
+last' :: (String -> a) -> [a] -> a
+last' errorReporter l = case lastMay l of 
+  Nothing -> errorReporter "last got empty list!"
+  Just h  -> h
 
 read :: Q Exp
 read = appE [|read'|] error

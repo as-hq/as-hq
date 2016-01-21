@@ -7,6 +7,7 @@ import AS.Types.Excel
 import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
+import AS.Types.Formats
 import AS.Eval.ColRangeHelpers (colRangeWithCellMapToRange)
 
 import AS.Kernels.Excel.Util
@@ -1096,7 +1097,7 @@ getElemFromCol m@(EMatrix c _ _) colNum i
 oneArgDouble :: (Num a) => String -> (Double -> Double) -> EFunc
 oneArgDouble name f c e = do
   num <- getRequired name 1 e :: ThrowsError EFormattedNumeric
-  let ans = case orig num of
+  let ans = case num^.orig of
                 EValueI i -> f (fromIntegral i)
                 EValueD d -> f d
   valToResult $ EValueNum $ return $ EValueD ans
@@ -1124,7 +1125,7 @@ eSqrtPi c e = do
 eSqrt :: EFunc
 eSqrt c e = do
   formattedNum <- getRequired "sqrt" 1 e :: ThrowsError EFormattedNumeric
-  let num = orig formattedNum
+  let num = formattedNum^.orig
   if num < EValueD 0 
     then Left $ SqrtNegative $ $fromJust $ extractType $ EntityVal $ EValueNum formattedNum
     else do 
@@ -1715,7 +1716,7 @@ ePower' c e = do
   b <- getRequired "^" 2 e :: ThrowsError EFormattedNumeric
   if (isZero a && isZero b) 
     then Left ZeroToTheZero
-    else case orig b of 
+    else case b^.orig of 
       EValueI _ -> valToResult $ EValueNum $ (liftM2 intExp) a b
       EValueD _ -> if isNonnegative a 
         then valToResult $ EValueNum $ (liftM2 floatExp) a b

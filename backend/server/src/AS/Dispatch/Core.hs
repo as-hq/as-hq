@@ -13,15 +13,16 @@ import Data.Text as T (unpack,pack)
 import Control.Exception.Base
 
 import AS.Types.Cell
-import AS.Types.Locations
 import AS.Types.CellProps
+import AS.Types.Commits
+import AS.Types.DB
+import AS.Types.Eval
+import AS.Types.Formats
+import AS.Types.Locations
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.Commits
-import AS.Types.Eval
-import AS.Types.DB
-import AS.Logging
 import AS.Types.Updates
+import AS.Logging
 
 import AS.Dispatch.Expanding        as DE
 import AS.DB.Eval

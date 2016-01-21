@@ -5,12 +5,14 @@ import Prelude()
 import AS.Config.Constants
 
 import AS.Types.Cell
-import AS.Types.Network
-import AS.Types.Messages
-import AS.Types.User
 import AS.Types.Commits
 import AS.Types.Eval
+import AS.Types.Formats
+import AS.Types.Messages
+import AS.Types.Network
+import AS.Types.User
 
+import AS.Prelude 
 import AS.DB.API
 import AS.Dispatch.Core as DP
 import AS.Daemon as DM
@@ -18,6 +20,7 @@ import AS.Reply
 import AS.Util
 
 import Data.List
+import Control.Applicative ((<*>))
 import Control.Concurrent
 import Control.Lens
 import qualified Data.Map as M
@@ -64,13 +67,13 @@ removePropEndware _ _ _ = return ()
 -- so a future refactor of props should address this. 
 -- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
 -- to update when you change their precision. 
-handleTransformProp :: MessageId -> (ASCellProps -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
-handleTransformProp mid f uc state rng = do
+transformPropsInDatabase :: MessageId -> (ASCell -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
+transformPropsInDatabase mid f uc state rng = do
   let locs = rangeToIndices rng
   conn <- view dbConn <$> readMVar state
   cells <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 
-  let cells' = map (cellProps %~ f) cells
+  let cells' = map (f >>= (set cellProps)) cells
   -- Update the DB with the new cells, these won't be re-evaluated
   setCells conn cells'
   -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
@@ -78,13 +81,13 @@ handleTransformProp mid f uc state rng = do
   broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
 handleSetProp :: MessageId -> ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
-handleSetProp mid uc state prop rng = handleTransformProp mid (setProp prop) uc state rng
+handleSetProp mid uc state prop rng = transformPropsInDatabase mid (setProp prop . view cellProps) uc state rng
 
 -- Change the decimal precision of all the values in a range
 handleChangeDecimalPrecision :: MessageId -> ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
-handleChangeDecimalPrecision mid uc state i rng = handleTransformProp mid (upsertProp defaultDecProp updateDecPrecision) uc state rng
+handleChangeDecimalPrecision mid uc state i rng = transformPropsInDatabase mid cellPropsUpdate uc state rng
   where
-    defaultDecProp = ValueFormat (Format NoFormat (Just i))
-    updateDecPrecision (ValueFormat (Format fType Nothing)) = ValueFormat $ Format fType $ Just i
-    updateDecPrecision (ValueFormat (Format fType (Just dOff))) = ValueFormat $ Format fType $ Just (dOff + i)
-    updateDecPrecision x = x
+    getUpdatedFormat :: ASCell -> Maybe Format
+    getUpdatedFormat = view format . shiftDecPrecision i . getFormattedVal
+    cellPropsUpdate :: ASCell -> ASCellProps
+    cellPropsUpdate  = (maybe id (setProp . ValueFormat) . getUpdatedFormat) <*> (view cellProps)

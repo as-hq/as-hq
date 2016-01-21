@@ -78,7 +78,21 @@ const Render = {
     }
   },
 
-  propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>): HGRendererConfig {
+  // If there's info in the props about how many decimal places to show, insert that
+  // information into the config. 
+  formatNumberOfDecimalPlaces(config: HGRendererConfig, props: Array<ASCellProp>) { 
+    let numDec = null,
+        formatInd = props.map(({tag}) => tag).indexOf("ValueFormat");
+    if (formatInd >= 0) {
+      let format = props[formatInd]; 
+      if (format.tag === "ValueFormat") { // for flow 
+        numDec = format.valFormat.numDecimals;
+      }
+    }
+    config.value = Format.formatDecimal(numDec, config.value);
+  },
+
+  propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>) {
     let self = Render;
     for (var i=0; i<props.length; i++) {
       let prop = props[i];
@@ -116,7 +130,7 @@ const Render = {
               break;
           }
           // Change the precision accordingly if the number of decimal offsets is given
-          config.value = Format.formatDecimal(prop.valFormat.numDecimalOffset, config.value);
+          config.value = Format.formatDecimal(prop.valFormat.numDecimals, config.value);
           break;
         case "Bold":
           config.font = "bold " + config.font;
@@ -131,39 +145,37 @@ const Render = {
           break;
       }
     }
-    return config;
   },
 
-  expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType): HGRendererConfig {
+  expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType) {
     config.bgSelColor = '#64B5F6';
     switch (etype) {
       case "List":
         config.bgColor = Constants.Colors.cornsilk;
-        return config;
+        break;
       default:
         config.bgColor = Constants.Colors.lightcyan;
-        return config;
     }
   },
 
-  valueToRenderConfig(config: HGRendererConfig, val: ASValue): HGRendererConfig {
+  valueToRenderConfig(config: HGRendererConfig, val: ASValue) {
     switch(val.tag) {
       case "ValueI":
       case "ValueD":
         config.halign = 'right';
-        return config;
+        break;
       case "ValueS":
         config.halign = 'left';
-        return config;
+        break;
       case "ValueImage":
         config.bgColor = Constants.Colors.lavender;
-        return config;
+        break;
       case "ValueSerialized":
         config.bgColor = Constants.Colors.powderblue;
-        return config;
+        break;
       default:
         config.halign = 'center';
-        return config;
+        break;
     }
   },
 

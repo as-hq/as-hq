@@ -13,6 +13,7 @@ import AS.Types.Locations
 import AS.Types.RangeDescriptor
 import AS.Types.CellProps
 import AS.Types.Errors
+import AS.Types.Formats
 import AS.Types.Updates
 import AS.Types.Values
 
@@ -124,8 +125,8 @@ partitionByRangeKey cells keys = liftListTuple $ map (go cells) keys
 getCellFormat :: ASCell -> Maybe Format
 getCellFormat = fmap valFormat . getProp ValueFormatProp . view cellProps
 
-getCellFormatType :: ASCell -> Maybe FormatType
-getCellFormatType = fmap formatType . getCellFormat
+getCellFormatType :: ASCell -> Maybe FormatType 
+getCellFormatType = fmap (view formatType) . getCellFormat
 
 execErrorToValueError :: ASExecError -> ASValue
 execErrorToValueError e = ValueError (show e) "Exec error"
@@ -141,3 +142,11 @@ setCellProp cp  = cellProps %~ setProp cp
 
 mapCellLocation :: [ASCell] -> [ASIndex]
 mapCellLocation = map (view cellLocation)
+
+-- #expert how to make a lens from this??
+getFormattedVal :: ASCell -> Formatted ASValue 
+getFormattedVal c = Formatted (c^.cellValue) (getCellFormat c)
+
+setFormattedVal :: ASCell -> Formatted ASValue -> ASCell
+setFormattedVal c fv = c & cellValue .~ (fv^.orig) 
+                         & cellProps %~ maybe id (setProp . ValueFormat) (fv^.format)

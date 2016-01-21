@@ -21,27 +21,25 @@ module AS.Types.CellProps
     emptyProps,
     upsertProp,
     filterProps,
-    Format(..),
-    FormatType(..), 
-    Formatted(..), 
     Bloomberg(..), 
     StreamSource(..), 
     Stream(..)
   ) where
 
 import AS.Types.User
+import AS.Types.Formats
 import AS.ASJSON
 
 import GHC.Generics
 import Data.Aeson
 import Data.SafeCopy
 
+import Control.Applicative (liftA2)
+
 import Data.Aeson.Types (Parser)
 import Data.Maybe
 import Data.List (foldl')
 import qualified Data.Map as M
-import Control.Applicative
-import Control.Monad (liftM, ap)
 
 -- #expert is there a better way to structure these? 
 
@@ -155,32 +153,6 @@ filterProps :: (CellProp -> Bool) -> ASCellProps -> ASCellProps
 filterProps f (ASCellProps up cp) = ASCellProps (M.filter f up) cp
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
--- Formats
-
-data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
--- A format must have a FormatType, and possibly keeps track of num decimal offset (if applicable, not so for Date)
--- An offset of +1 means that there's one more decimal place; 1.22 -> 1.220
-data Format = Format {formatType :: FormatType, numDecimalOffset :: Maybe Int} deriving (Show, Read, Eq, Generic)
--- The Formatted monad possibly gives formatting to an original value
-data Formatted a = Formatted { orig :: a, format :: Maybe Format }
-
-instance Functor Formatted where
-  fmap = liftM
-
-instance Applicative Formatted where
-  pure  = return
-  (<*>) = ap
-
--- Always retain the format of the first argument, unless there was none
-instance Monad Formatted where
-  return x                   = Formatted x Nothing
-  Formatted x Nothing >>= f = f x
-  Formatted x (Just y) >>= f = (f x) {format = (Just y)}
-  
-instance (Eq a) => Eq (Formatted a) where
-  (==) (Formatted x _) (Formatted y _)  = x == y
-
-----------------------------------------------------------------------------------------------------------------------------------------------
 -- Streaming
 
 -- Stream sources
@@ -199,8 +171,6 @@ deriveSafeCopy 1 'base ''Stream
 deriveSafeCopy 1 'base ''StreamSource
 deriveSafeCopy 1 'base ''HAlignType
 deriveSafeCopy 1 'base ''Bloomberg
-deriveSafeCopy 1 'base ''FormatType
-deriveSafeCopy 1 'base ''Format
 deriveSafeCopy 1 'base ''ASCellProps
 
 
@@ -216,8 +186,6 @@ asToFromJSON ''CellProp
 asToFromJSON ''CellPropType
 asToFromJSON ''VAlignType
 asToFromJSON ''HAlignType
-asToFromJSON ''Format
-asToFromJSON ''FormatType
 asToFromJSON ''Bloomberg
 asToFromJSON ''Stream
 asToFromJSON ''StreamSource

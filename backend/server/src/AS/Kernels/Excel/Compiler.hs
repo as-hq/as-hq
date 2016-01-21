@@ -3,9 +3,10 @@ module AS.Kernels.Excel.Compiler where
 import AS.Prelude
 import Prelude()
 
-import AS.Types.Excel
 import AS.Types.CellProps
 import AS.Types.Errors
+import AS.Types.Excel
+import AS.Types.Formats
 import AS.Parsing.Excel (refMatch)
 import qualified AS.Parsing.Common as C
 

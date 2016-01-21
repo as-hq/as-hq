@@ -602,7 +602,7 @@ const API = {
   setFormat(formatType: FormatType, rng: ASRange) {
     let formatProp: ValueFormat = {
       tag: 'ValueFormat',
-      valFormat: {tag: 'Format', formatType: formatType, numDecimalOffset: null}
+      valFormat: {tag: 'Format', formatType: formatType, numDecimals: null}
     };
     API.setProp(formatProp, rng);
   },

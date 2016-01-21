@@ -8,10 +8,11 @@ import qualified Data.Map as M
 
 import AS.Types.Cell
 import AS.Types.CellProps
-import AS.Types.Network
-import AS.Types.Messages
-import AS.Types.Eval
 import AS.Types.Commits
+import AS.Types.Eval
+import AS.Types.Formats
+import AS.Types.Messages
+import AS.Types.Network
 import AS.Types.Selection
 import AS.Types.Updates
 

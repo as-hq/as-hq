@@ -9,6 +9,7 @@ import Data.Maybe hiding (fromJust)
 import Data.Char
 
 import AS.Types.Excel
+import AS.Types.Formats
 import AS.Types.Cell
 import AS.Types.Eval
 
@@ -121,7 +122,7 @@ isFormulaCell cell = not valExpEqual
     valExpEqual = case lang of
       Excel -> case maybeVal of
         Nothing  -> False
-        Just val -> orig val == cell^.cellValue
+        Just val -> val^.orig == cell^.cellValue
         where
           formula = parse literal "" xp
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue

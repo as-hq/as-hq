@@ -18,9 +18,10 @@ import qualified Data.Text as T
 import AS.Types.Eval
 import AS.Types.EvalHeader
 import AS.Types.Excel (indexToExcel)
+import AS.Types.Formats
 import AS.Types.Cell
-import AS.Types.Network
 import AS.Types.CellProps
+import AS.Types.Network
 import AS.Util
 
 import AS.Kernels.LanguageUtils

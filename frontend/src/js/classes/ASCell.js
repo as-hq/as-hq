@@ -118,4 +118,19 @@ export default class ASCell {
     let propInd = cellProps.map(({tag}) => tag).indexOf(tag);
     return (propInd >= 0 && _.isEqual(cellProps[propInd], prop));
   }
+
+  hasPercentProp(): boolean {
+    let cellProps = this._props; 
+    let propInd = cellProps.map(({tag}) => tag).indexOf("ValueFormat");
+    if (propInd < 0) {
+      return false; 
+    } 
+
+    // this is less concise than it could be so that flow has an easier time
+    let format = cellProps[propInd];
+    if (format.tag === "ValueFormat") { 
+      return format.valFormat.formatType == "Percentage"; 
+    }
+    return false; 
+  }
 }

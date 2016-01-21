@@ -95,7 +95,7 @@ export type FontName = {
 export type Format = {
   tag: 'Format';
   formatType: FormatType;
-  numDecimalOffset: ?number;
+  numDecimals: ?number;
 };
 
 export type ValueFormat = {

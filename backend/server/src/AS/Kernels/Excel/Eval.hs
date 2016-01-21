@@ -1,9 +1,11 @@
 module AS.Kernels.Excel.Eval where
 
 
-import AS.Types.Excel
 import AS.Types.Cell
 import AS.Types.Eval
+import AS.Types.Excel
+import AS.Types.Formats
+
 
 import Data.List (transpose)
 
@@ -14,6 +16,7 @@ import AS.Kernels.Excel.Util as U
 import qualified Data.Map as M
 import qualified Data.Vector as V
 
+import Control.Lens hiding (Context)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -40,7 +43,7 @@ entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
   [transposedCol] -> return $ Expanding . VList . A $ transposedCol -- matches in this case iff original list2D is a vertical list
   otherwise -> return $ Expanding . VList . M $ list2D
   where
-    list2D = map (map $ orig . eValToASValue) (U.matrixTo2DList m)
+    list2D = map (map $ view orig . eValToASValue) (U.matrixTo2DList m)
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not

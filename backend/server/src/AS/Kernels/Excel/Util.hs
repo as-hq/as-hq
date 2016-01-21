@@ -3,9 +3,10 @@ module AS.Kernels.Excel.Util where
 import AS.Prelude
 import Prelude()
 
-import AS.Types.Excel
 import AS.Types.Cell
 import AS.Types.Errors
+import AS.Types.Excel
+import AS.Types.Formats
 
 import AS.Kernels.Excel.Compiler
 import AS.Util
