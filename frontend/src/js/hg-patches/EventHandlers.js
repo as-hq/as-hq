@@ -261,7 +261,7 @@ const callbacks: Array<InitCallback> = [
             spreadsheet.refs.rightClickMenu.openAt(
               x,
               y,
-              columnHeaderMenuItems(row)
+              columnHeaderMenuItems(col)
             );
           }
         }
