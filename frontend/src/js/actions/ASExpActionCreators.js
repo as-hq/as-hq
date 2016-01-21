@@ -1,6 +1,11 @@
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
 
+import API from '../actions/ASApiActionCreators';
+
+import ExpStore from '../stores/ASExpStore';
+import SelectionStore from '../stores/ASSelectionStore';
+
 /* The action creator for expression changes */
 
 export default {
@@ -73,6 +78,14 @@ export default {
      _type: Constants.ActionTypes.LANGUAGE_TOGGLED,
      lang: lang
     });
-  }
 
+    if (!ExpStore.getUserIsTyping() && ExpStore.getExpression() !== '') {
+      SelectionStore.withActiveSelection(({origin}) => {
+        API.evaluate(origin, {
+          expression: ExpStore.getExpression(),
+          language: lang
+        });
+      });
+    }
+  }
 };

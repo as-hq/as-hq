@@ -1,8 +1,15 @@
 /* @flow */
 
+import type {
+  StoreLink
+} from '../../types/React';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles, FontIcon} from 'material-ui';
+
+import API from '../../actions/ASApiActionCreators';
+import Util from '../../AS/Util';
 
 import ASCell from '../../classes/ASCell';
 import ASRange from '../../classes/ASRange';
@@ -10,7 +17,9 @@ import ASRange from '../../classes/ASRange';
 import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
+
 import ExpStore from '../../stores/ASExpStore';
+import SelectionStore from '../../stores/ASSelectionStore';
 import ExpActionCreator from '../../actions/ASExpActionCreators.js';
 
 import type {
@@ -33,24 +42,17 @@ type LanguagePickerProps = {
 type LanguagePickerDefaultProps = {
 };
 
-type LanguagePickerState = {
-  language: ASLanguage;
-};
-
 export default class LanguagePicker
-  extends React.Component<LanguagePickerDefaultProps, LanguagePickerProps, LanguagePickerState>
+  extends React.Component<LanguagePickerDefaultProps, LanguagePickerProps, {}>
 {
   /*************************************************************************************************************************/
   // Sub-component generation
 
+  $storeLinks: Array<StoreLink>;
   languages: Array<LanguageMenuOption>;
 
   constructor(props: LanguagePickerProps) {
     super(props);
-
-    this.state = {
-      language: ExpStore.getDefaultLanguage()
-    }
 
     this.languages = [
       {name: 'Excel', shortcut: 'Ctrl+1'},
@@ -70,7 +72,7 @@ export default class LanguagePicker
 
   toolbarControlProps(): ToolbarControlProps {
     return {
-      displayValue: this.state.language,
+      displayValue: ExpStore.getLanguage(),
       tooltip: "Languages",
       showTooltip: true,
       width: 85
@@ -82,17 +84,13 @@ export default class LanguagePicker
   // This happens when user presses Ctrl + 1, etc; toggles the  language from an external source
 
   componentDidMount() {
-    ExpStore.addChangeListener(this._onToggleLanguage.bind(this));
+    Util.React.addStoreLinks(this, [ // this forceUpdates every time ExpStore updates but this is fast enough.
+      { store: ExpStore }
+    ]);
   }
 
   componentWillUnmount() {
-    ExpStore.removeChangeListener(this._onToggleLanguage.bind(this));
-  }
-
-  _onToggleLanguage() {
-    if (ExpStore.getLanguage() !== this.state.language) {
-      this.setState({language: ExpStore.getLanguage()});
-    }
+    Util.React.removeStoreLinks(this);
   }
 
   /*************************************************************************************************************************/
@@ -130,7 +128,7 @@ export default class LanguagePicker
         getMenuValueFromCell={this._getMenuValueFromCell.bind(this)}
         toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
         propagateControlStateChange={this._propagateControlStateChange.bind(this)}
-        initialValue={this.state.language}
+        initialValue={ExpStore.getLanguage()}
         menuWidth={65}
         toolbarControlWidth={85}
         id="LanguagePicker" />
