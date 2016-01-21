@@ -1,5 +1,8 @@
 module AS.Kernels.Excel.Compiler where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Excel
 import AS.Types.CellProps
 import AS.Types.Errors
@@ -258,7 +261,7 @@ str = C.quotedString
 
 -- dirty, dirty hack to turn integer "123" into float "0.123"
 integerToDecimal :: Integer -> Double
-integerToDecimal i = read ("0." ++ (show i)) :: Double
+integerToDecimal i = $read ("0." ++ (show i)) :: Double
 
 percentToDecimal :: Double -> Double
 percentToDecimal p = p / 100

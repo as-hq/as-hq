@@ -25,7 +25,7 @@ userIdExists uid state = L.elem uid (map userId (state^.userClients))
 getUserByClientId :: ClientId -> ServerState -> Maybe ASUserClient
 getUserByClientId cid state = case (filter (\c -> (sessionId c == cid)) (state^.userClients)) of
   [] -> Nothing
-  l -> Just $ L.head l
+  l -> Just $ $head l
 
 -- | Applies a (user -> user) function to a user in the server state
 modifyUser :: (ASUserClient -> ASUserClient) -> ASUserClient -> MVar ServerState -> IO ()

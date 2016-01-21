@@ -75,11 +75,10 @@ getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
 getUnquotedMatchesWithContext xp p = 
   if (isExcelLiteral)
     then ([expr], [])
-    else (fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expr)
+    else ($fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expr)
   where
     lang = xp^.language 
     expr = xp^.expression
-    fromRight (Right x) = x
     isExcelLiteral = (lang == Excel) && parsedCorrectly
     parsedCorrectly = case (parse formula "" expr) of 
       Right _ -> False 

@@ -1,5 +1,8 @@
 module AS.Kernels.Excel.Lib where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Excel
 import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
@@ -10,14 +13,14 @@ import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
 import qualified Data.Map.Strict as M
 import Data.Either
-import Data.Maybe
 import Control.Monad.Except
-import Data.List
+import Data.List hiding (head)
+import Data.Maybe hiding (fromJust)
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 
-import Text.Read as TR
+import qualified Text.Read as TR
 import Text.Regex
 import Data.Char (toLower,toUpper)
 import qualified Data.Text as T
@@ -375,9 +378,9 @@ getCommonDimension refs = dim
   where
     cols = map (\(ERef l) -> fst (dimension l)) refs
     rows = map (\(ERef l) -> snd (dimension l)) refs
-    dim | and [allTheSame cols, allTheSame rows]      = Just $ (head cols, head rows)
-      | and [allTheSame cols, allTheSameOrOne rows] = Just $ (head cols, maximum rows)
-      | and [allTheSameOrOne cols, allTheSame rows] = Just $ (maximum cols, head rows)
+    dim | and [allTheSame cols, allTheSame rows]      = Just $ ($head cols, $head rows)
+      | and [allTheSame cols, allTheSameOrOne rows] = Just $ ($head cols, maximum rows)
+      | and [allTheSameOrOne cols, allTheSame rows] = Just $ (maximum cols, $head rows)
       | otherwise = Nothing
 
 -- | Given the correct dimension and a reference, replace it with a matrix of the right dimension, possibly using replication
@@ -415,7 +418,7 @@ arrConstToResult c es = do
   if (aligned es)
     then do
       vals <- compressErrors $ concatMap (map (toValueAC c)) es
-      return $ EMatrix (length (head es)) (length es) (V.fromList vals)
+      return $ EMatrix (length ($head es)) (length es) (V.fromList vals)
     else Left $ ArrayConstantDim
 
 --------------------------------------------------------------------------------------------------------------
@@ -538,7 +541,7 @@ numVal (EValueNum n) = Just n
 numVal _ = Nothing
 
 filterNum :: V.Vector EValue -> V.Vector EFormattedNumeric
-filterNum v = V.map (fromJust . numVal) $ V.filter (isJust . numVal) v
+filterNum v = V.map ($fromJust . numVal) $ V.filter (isJust . numVal) v
 
 flattenMatrix :: V.Vector (V.Vector a) -> V.Vector a
 flattenMatrix = V.concat . V.toList
@@ -754,7 +757,7 @@ stringMatch (c:cs) = case c of
 typeVerifier :: String -> (EEntity -> Bool) -> Bool -> EFuncResult
 typeVerifier name verifier errDefault c e = do 
   e' <- testNumArgs 1 name e
-  case head e' of 
+  case $head e' of 
     Left _ -> valToResult $ EValueB errDefault
     Right x -> valToResult $ EValueB $ verifier x 
 
@@ -795,13 +798,13 @@ eIfError :: EFuncResult
 eIfError c r = do
   r' <- testNumArgs 2 "iferror" r
   let errRes = r!!1
-  case (head r') of
+  case ($head r') of
     Left e -> errRes
     Right (EntityVal (EValueE _)) -> errRes
     Right (EntityMatrix (EMatrix 1 1 v)) -> case V.head v of 
       EValueE _ -> errRes
-      otherwise -> head r'
-    otherwise -> head r'
+      otherwise -> $head r'
+    otherwise -> $head r'
 
 eIf :: EFunc
 eIf c e = do
@@ -936,7 +939,7 @@ r1c1 sid = do
   row <- many1 digit
   char 'C' <|> char 'c'
   col <- many1 digit
-  let [colNum, rowNum] = map read [col, row] :: [Int]
+  let [colNum, rowNum] = map $read [col, row] :: [Int]
   return $ IndexRef $ Index sid (Coord colNum rowNum)
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
@@ -1001,13 +1004,13 @@ eMatch c e = do
       let desiredValue = V.maximum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ ($fromJust (V.findIndex (==desiredValue) vec)) + 1
     -1 -> do 
       let indices = (V.filter (>=lookupVal) vec) 
       let desiredValue = V.minimum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ ($fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
@@ -1062,7 +1065,7 @@ eVlookup c e = do
   if approx -- assumes first col is sorted
     then do 
       -- Excel isn't very clear about this, I'm implementing it as the largest elem <= lookupVal
-      let firstCol = head lstCols
+      let firstCol = $head lstCols
       let i = findIndex (\x -> x > lookupVal) firstCol 
       -- first index with lookupVal > index. i-1 is the index of the largest
       -- element <= lookupVal, unless i is 0 or there was simply nothing found. 
@@ -1072,7 +1075,7 @@ eVlookup c e = do
         Just ind -> getElemFromCol m colNum (ind-1)
     else do 
       -- accept wildcards for an exact match
-      let mIndex = findIndex (matchLambda lookupVal) (head lstCols)
+      let mIndex = findIndex (matchLambda lookupVal) ($head lstCols)
       case mIndex of
         Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
         Just ind  -> getElemFromCol m colNum ind
@@ -1123,7 +1126,7 @@ eSqrt c e = do
   formattedNum <- getRequired "sqrt" 1 e :: ThrowsError EFormattedNumeric
   let num = orig formattedNum
   if num < EValueD 0 
-    then Left $ SqrtNegative $ fromJust $ extractType $ EntityVal $ EValueNum formattedNum
+    then Left $ SqrtNegative $ $fromJust $ extractType $ EntityVal $ EValueNum formattedNum
     else do 
       let ans = case num of
                     EValueI i -> sqrt (fromIntegral i)
@@ -1295,7 +1298,7 @@ eCountIfs c e =  do
   if (length e <= 0)
     then Left $ RequiredArgMissing "countif" 1 
     else do 
-      vec <- ifsFunc "countifs" $ (head e):e
+      vec <- ifsFunc "countifs" $ ($head e):e
       intToResult $ V.length vec
 
 eBinomDist ::  EFunc
@@ -1391,7 +1394,7 @@ eModeSngl c e = do
 
 -- | Median
 median :: [EFormattedNumeric] -> EFormattedNumeric
-median x | odd n  = head  $ drop (n `div` 2) x'
+median x | odd n  = $head  $ drop (n `div` 2) x'
          | even n = avg $ take 2 $ drop i x'
                   where i = (length x' `div` 2) - 1
                         x' = sort x
@@ -1400,13 +1403,13 @@ median x | odd n  = head  $ drop (n `div` 2) x'
 
 -- | Modes returns a sorted list of modes in descending order
 modes :: (Ord a) => [a] -> [(Int, a)]
-modes xs = sortBy (comparing $ negate.fst) $ map (\x->(length x, head x)) $ (group.sort) xs
+modes xs = sortBy (comparing $ negate.fst) $ map (\x->(length x, $head x)) $ (group.sort) xs
 
 -- | Mode returns the mode of the list, otherwise Nothing
 mode :: (Ord a) => [a] -> Maybe a
 mode xs = case m of
             [] -> Nothing
-            otherwise -> Just . snd $ head m
+            otherwise -> Just . snd $ $head m
     where m = filter (\(a,b) -> a > 1) (modes xs)
 
 eCorrel :: EFunc

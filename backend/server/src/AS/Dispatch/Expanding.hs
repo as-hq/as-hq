@@ -6,8 +6,8 @@ module AS.Dispatch.Expanding
   , recomposeCompositeValue
   ) where
 
-import Prelude()
 import AS.Prelude
+import Prelude()
 
 import AS.Types.Cell
 import AS.Types.Eval
@@ -162,7 +162,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Exp
 recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Expanding val
   where
     val       = VPSeries indices vals
-    (JSONLeaf (ListValue (A indices))) = attrs M.! "seriesIndices"
+    (JSONLeaf (ListValue (A indices))) = $valAt "seriesIndices" attrs
     (A vals)  = recomposeCells dims cells
     dims      = Dimensions { width = 1, height = length cells }
 

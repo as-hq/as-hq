@@ -1,5 +1,7 @@
 module AS.Kernels.Excel.Util where
 
+import AS.Prelude
+import Prelude()
 
 import AS.Types.Excel
 import AS.Types.Cell
@@ -11,14 +13,15 @@ import AS.DB.API
 
 import qualified Data.Text as T
 import Data.Either
-import Data.Maybe
-import Data.List
+import Data.Maybe hiding (fromJust)
+import Data.List hiding (head, tail)
 import qualified Data.Vector as V
 
 import Control.Lens
 
 import System.IO.Unsafe
 import Database.Redis (Connection)
+
 -------------------------------------------------------------------------------------------------------------
 -- | Matrix methods
 
@@ -191,12 +194,12 @@ aligned lst = allTheSame lenRows
 topLeftLst :: [[a]] -> Maybe a
 topLeftLst b
   | (length b == 0) = Nothing
-  | (length (head b) == 0) = Nothing
-  | otherwise = Just $ (head . head) b
+  | (length ($head b) == 0) = Nothing
+  | otherwise = Just $ ($head . $head) b
 
 -- | Check if all elements of a list are the same
 allTheSame :: (Eq a) => [a] -> Bool
-allTheSame xs = and $ map (== head xs) (tail xs)
+allTheSame xs = and $ map (== $head xs) ($tail xs)
 
 -- | All the elements in the list are either 1 or equal to some common value [1,3,3,1,1,3]
 allTheSameOrOne :: (Eq a, Num a) => [a] -> Bool
@@ -227,7 +230,7 @@ matrixError m@(EMatrix _ _ v) = do
       Left $ Default s
 
 getError :: [EError] -> EError
-getError = head
+getError = $head
 
 compressErrors :: [ThrowsError a] -> ThrowsError [a]
 compressErrors x

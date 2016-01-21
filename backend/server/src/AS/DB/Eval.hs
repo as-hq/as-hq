@@ -42,11 +42,11 @@ getCellsWithContext conn EvalContext { virtualCellsMap = mp } locs = map replace
 --  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
 --  #mustrefactor why isn't this left IndexOfPointerNonExistant
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
-referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . view cellValue $ mp M.! i 
+referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . view cellValue $ $valAt i mp 
 referenceToCompositeValue conn ctx (PointerRef p) = do 
   let idx = pointerIndex p
   let mp = virtualCellsMap ctx
-  let cell = mp M.! idx
+  let cell = $valAt idx mp
   case cell^.cellRangeKey of 
     Nothing -> $error "Pointer to normal expression!" 
     Just rKey -> do 
@@ -66,13 +66,13 @@ referenceToCompositeValue conn ctx (ColRangeRef cr) = return $ Expanding . VList
     -- current dispatch created new cells in the bottom of a column whose
     -- colRange is being evaluated.
     indToVal ind = case M.member ind (virtualCellsMap ctx) of
-                        True -> view cellValue $ (virtualCellsMap ctx) M.! ind
+                        True -> view cellValue $ $valAt ind (virtualCellsMap ctx)
                         False -> NoValue
     vals    = map (map indToVal) indices
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
-    indToVal ind = view cellValue $ (virtualCellsMap ctx) M.! ind
+    indToVal ind = view cellValue $ $valAt ind (virtualCellsMap ctx)
     vals    = map (map indToVal) indices
 
 -- Only used in conditional formatting.

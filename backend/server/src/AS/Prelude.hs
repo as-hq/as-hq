@@ -1,8 +1,10 @@
 module AS.Prelude 
   ( module PreludeMinus
   , error
+  , valAt
   , read
   , head
+  , tail
   , fromJust
   , fromRight
   , nub
@@ -12,12 +14,12 @@ module AS.Prelude
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
 
-import Prelude as PreludeMinus hiding (head, read, error)
+import Prelude as PreludeMinus hiding (head, tail, read, error)
 import qualified Prelude as P
 
 import Control.Lens
 import Language.Haskell.TH
-import Safe (headMay)
+import Safe (headMay, tailMay)
 import Text.Read (readEither)
 
 import qualified Data.Map as M
@@ -40,6 +42,15 @@ locatedError loc = [|(\msg -> P.error ("\x1b[1;31mError\x1b[0m at " ++ $(litE $ 
 -------------------------------------------------------------------------------------------------------------------------
 -- safe error-reporting functions
 
+-- | Safe unsafe version of lookup; think of it as $fromJust . lookup
+valAt :: Q Exp
+valAt = appE [|valAt'|] error
+
+valAt' :: (Ord a) => (String -> b) -> a -> M.Map a b -> b
+valAt' errorReporter key mp = case key `M.lookup` mp of 
+  Nothing -> errorReporter $ "key not found in map" 
+  Just h  -> h
+
 fromJust :: Q Exp
 fromJust = appE [|fromJust'|] error
 
@@ -60,15 +71,23 @@ head :: Q Exp
 head = appE [|head'|] error
 
 head' :: (String -> a) -> [a] -> a
-head' errorReporter l = case (headMay l) of 
+head' errorReporter l = case headMay l of 
   Nothing -> errorReporter "head got empty list!"
   Just h  -> h
+
+tail :: Q Exp
+tail = appE [|tail'|] error
+
+tail' :: (String -> [a]) -> [a] -> [a]
+tail' errorReporter l = case tailMay l of 
+  Nothing -> errorReporter "tail got empty list!"
+  Just t  -> t
 
 read :: Q Exp
 read = appE [|read'|] error
 
 read' :: (Read a) => (String -> a) -> String -> a
-read' errorReporter str = case (readEither str) of 
+read' errorReporter str = case readEither str of 
   Left e -> errorReporter $ "Read failed, because: " ++ e
   Right a -> a
 

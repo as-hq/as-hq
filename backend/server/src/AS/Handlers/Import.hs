@@ -1,5 +1,8 @@
 module AS.Handlers.Import where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Network
@@ -15,7 +18,6 @@ import AS.Reply
 import qualified Data.Csv as CSV
 import qualified Data.Vector as V
 import qualified AS.Parsing.Read as PR
-import qualified Data.Maybe as DM
 import qualified Data.ByteString.Lazy as BL
 import qualified AS.DB.Transaction as DT 
 
@@ -37,7 +39,7 @@ handleCSVImport mid uc mstate ind lang fileName = do
     Left e -> putStrLn e >> return ()
     Right csv -> do 
       -- Create cells, taking offset, lang, and parsing into account
-      let indices = imap2D (\dx dy -> DM.fromJust $ shiftInd (Offset dx dy) ind) csv
+      let indices = imap2D (\dx dy -> $fromJust $ shiftInd (Offset dx dy) ind) csv
           values = map2D (csvValue lang) csv
           vCells = zipWith3In2D (\ind str val -> Cell ind (Expression str lang) val emptyProps Nothing Nothing) indices csv values
           cells = toList2D vCells

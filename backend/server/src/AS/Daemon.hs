@@ -21,13 +21,10 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)
-import Data.ByteString.Char8 hiding (putStrLn,filter,any,length)
-import Data.ByteString.Lazy.Char8 as B hiding (putStrLn,filter,any,length)
 import qualified Network.WebSockets as WS
 
 import AS.Config.Settings as S
 import AS.Util as U
-import Data.List as L
 
 import Control.Monad
 import Control.Lens hiding ((.=))
@@ -46,10 +43,10 @@ getDaemonName loc = (show loc) ++ "daemon"
 getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
   state <- readMVar state
-  let daemon = L.filter ((==) loc . daemonLoc) (state^.daemonClients)
+  let daemon = filter ((==) loc . daemonLoc) (state^.daemonClients)
   case daemon of 
     [] -> return Nothing
-    d -> return $ Just $ daemonConn $ L.head d 
+    d -> return $ Just $ daemonConn $ $head d 
 
 -- | If it's something like TODAY() + DATE(), figure that out and automatically make the
 -- cell stream. 

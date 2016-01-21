@@ -354,12 +354,12 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map ((M.!) (virtualCellsMap ctxWithEvalCells)) inds
+                        Just inds -> map (flip $valAt $ virtualCellsMap ctxWithEvalCells) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch state dispatchCells ctxWithEvalCells ProperDescendants
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
-      -- Only the head of the list has an ancestor at this point.
+      -- Only the $head of the list has an ancestor at this point.
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. 
       -- if so, look up the new cells from the map. 
       -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, 

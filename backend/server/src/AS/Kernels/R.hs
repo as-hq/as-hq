@@ -9,6 +9,9 @@ module AS.Kernels.R
   , evaluateHeader
   ) where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
@@ -138,7 +141,7 @@ castSEXP x = case x of
 
 rdVector :: [ASValue] -> CompositeValue
 rdVector vals
-  | length vals == 1 = CellValue $ head vals 
+  | length vals == 1 = CellValue $ $head vals 
   | otherwise        = Expanding . VList . A $ vals
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
@@ -175,14 +178,14 @@ rdVectorVals = map mkArray
     mkArray row = case row of 
       Expanding (VList (A arr)) -> arr
       CellValue v               -> [v]
-      _ -> error "cannot cast multi-dimensional vector"
+      _ -> $error "cannot cast multi-dimensional vector"
 
 castNames :: CompositeValue -> [ASValue]
 castNames val = case val of
   Expanding (VList (A names)) -> names
   CellValue (ValueS s)        -> [ValueS s]
   CellValue NoValue           -> [ValueS "NULL"]
-  _ -> error $ "could not cast dataframe labels from composite value " ++ (show val)
+  _ -> $error $ "could not cast dataframe labels from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
 castS4 :: R.SEXP s a -> R s ASValue

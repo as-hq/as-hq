@@ -3,6 +3,9 @@ module AS.Types.Network
   , module AS.Types.Sheets
   ) where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Sheets 
 import AS.Types.Locations
 import AS.Types.Commits
@@ -52,7 +55,7 @@ instance FromJSON AppSettings where
     redisPort <- v .:? "redisPort" .!= 6379
     shouldPrint <- v .:? "shouldWriteToConsole" .!= True
     return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort shouldPrint
-  parseJSON _ = error "expected environment to be an object"
+  parseJSON _ = $error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients

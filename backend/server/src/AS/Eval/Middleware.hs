@@ -3,7 +3,7 @@ module AS.Eval.Middleware (evalMiddleware) where
 import Prelude()
 import AS.Prelude
 
-import Data.List
+import Data.List hiding (tail)
 import Database.Redis (Connection)
 import Data.Maybe
 
@@ -32,7 +32,7 @@ cleanPossiblyExtaneousEqualSign xp =
   case xp^.language of 
     Excel     -> xp
     otherwise -> case headMay $ xp^.expression of 
-      Just '='  -> xp & expression .~ (tail $ xp^.expression)
+      Just '='  -> xp & expression %~ $tail
       otherwise -> xp
 
 -- addBackTags :: [ASCell] -> IO [ASCell]

@@ -31,7 +31,6 @@ import System.IO
 
 import qualified Data.Text as T
 import qualified Data.List as L
-import qualified Data.Maybe as MB
 import Data.List.Split as SP
 import qualified Data.Map as M
 import qualified Prelude as P
@@ -241,7 +240,7 @@ insertValues conn sheetid ctx xp =
           matchRefs = map (exRefToASRef sheetid) exRefs
       context <- mapM (lookUpRef conn SQL ctx) matchRefs
       let st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-          newExp = view expression $ replaceRefs (\el -> (L.!!) st (MB.fromJust (L.findIndex (el==) exRefs))) xp
+          newExp = view expression $ replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
           contextStmt = "setGlobals("++(show context) ++")\n"
           evalStmt = "result = db(\'" ++ newExp ++ "\')"
       return $ contextStmt ++ evalStmt

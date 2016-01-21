@@ -46,8 +46,8 @@ setCellsAncestors addr cells = do
     depSets = map getAncestorsForCell cells
     relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
 
--- If a cell is a fat cell head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
--- cell, we only want to set an edge from it to the head of the list (for checking circular dependencies).
+-- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
+-- cell, we only want to set an edge from it to the $head of the list (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
 getAncestorsForCell c = if not $ isEvaluable c
   then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
@@ -87,7 +87,7 @@ processGraphReply reply = case (B.unpack $ L.last reply) of
     let filtered = L.map B.unpack $ L.init reply
     right $ L.map read2 filtered
   "CIRC_DEP" -> do
-    let circDepLoc = (read2 (B.unpack $ L.head reply)) :: ASIndex
+    let circDepLoc = (read2 (B.unpack $ $head reply)) :: ASIndex
     left $ CircularDepError circDepLoc
   _ -> do
     left $ UnknownGraphError

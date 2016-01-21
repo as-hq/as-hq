@@ -140,7 +140,7 @@ getCutNewDescCells addr conn from offset = do
 
 -- | Decouples cells appropriately for re-eval on cut/paste, as follows:
 --   * if a cell is not a part of a list, leave it as is. 
---   * if an entire list is contained in the range, keep just the head of the list. (So on eval
+--   * if an entire list is contained in the range, keep just the $head of the list. (So on eval
 --     the entire list is re-evaluated)
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
 sanitizeCutCells :: Connection -> [ASCell] -> ASRange -> IO [ASCell]
