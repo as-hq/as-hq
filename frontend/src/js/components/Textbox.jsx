@@ -132,7 +132,7 @@ export default class Textbox
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
           extentX = maybe(0, (pos) => pos.extent.x, this.props.position());
-      return Math.max(extentX, (longestStr.length)*7);
+      return Math.max(extentX, (longestStr.length)*8.15);
     } else {
       return 0;
     }
