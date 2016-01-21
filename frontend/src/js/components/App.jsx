@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  Callback
+} from '../types/Base';
+
+import type {
   StoreLink
 } from '../types/React';
 
@@ -48,6 +52,7 @@ import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
 export default React.createClass({
   $storeLinks: ([]: Array<StoreLink>),
+  $listenerRemovers: ([]: Array<Callback>),
 
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
@@ -72,6 +77,10 @@ export default React.createClass({
     U.React.addStoreLinks(this, [
       { store: ModalStore }
     ]);
+
+    window.addEventListener('contextmenu', (evt) => {
+      evt.preventDefault();
+    });
   },
 
   componentWillUnmount() {
