@@ -13,6 +13,7 @@ import json
 import cPickle
 import base64
 import uuid
+import datetime
 
 imageSavePath = os.path.dirname(os.getcwd()) + '/server/static/images/'
 
@@ -94,6 +95,9 @@ def serialize(val):
 
   elif isinstance(val, Hidden):
     return json.dumps(generalSerialize(val, val.name))
+
+  elif isinstance(val, datetime.datetime):
+    return json.dumps(generalSerialize(val, str(val)))
 
   else: 
     try:
