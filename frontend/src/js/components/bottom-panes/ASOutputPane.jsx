@@ -30,7 +30,7 @@ type ASOutputPaneState = {
   selection: ?string;
 };
 
-export default class ASErrorPane
+export default class ASOutputPane
   extends React.Component<{}, ASOutputPaneProps, ASOutputPaneState>
 {
   constructor(props: ASOutputPaneProps) {

@@ -34,84 +34,41 @@ const {
 import ASIndex from '../../classes/ASIndex';
 import ASSelection from '../../classes/ASSelection';
 
-import CellStore from '../../stores/ASCellStore';
-import SelectionStore from '../../stores/ASSelectionStore';
-
 import _Styles from '../../styles/ASErrorPane';
 
 import _ from 'lodash';
 
 type ASErrorPaneProps = {
-  style?: {[key: string]: any};
-  onRequestSelect: Callback<ASIndex>;
-};
-
-type ASErrorPaneState = {
-  currentSelection: ?ASSelection;
+  onlyShowCurSelErrs: boolean; 
+  onErrorSelect: (row: number) => void;
+  showAllValueLink: ReactLink;
   errors: Array<ASClientError>;
-  onlyCurrentCell: boolean;
-  selectedRow: number;
 };
 
 export default class ASErrorPane
-  extends React.Component<{}, ASErrorPaneProps, ASErrorPaneState>
+  extends React.Component<{}, ASErrorPaneProps, {}>
 {
   constructor(props: ASErrorPaneProps) {
     super(props);
-
-    this.state = {
-      currentSelection: null,
-      errors: [],
-      onlyCurrentCell: true,
-      selectedRow: -1
-    };
   }
 
-  componentDidMount() {
-    CellStore.addChangeListener(this._handleCellStoreChange.bind(this));
-    SelectionStore.addChangeListener(this._handleSelectionChange.bind(this));
-  }
-
-  componentWillUnmount() {
-    CellStore.removeChangeListener(this._handleCellStoreChange.bind(this));
-    SelectionStore.removeChangeListener(this._handleSelectionChange.bind(this));
-  }
-
-  linkStateLens<T>(lens: Lens<ASErrorPaneState, T>): ReactLink<T> {
-    let self = this;
-    return ({
-      value: lens.get(self.state),
-      requestChange(newValue: T) {
-        lens.set(self.state, newValue);
-      }
-    });
-  }
-
-  linkState(str: $Keys<ASErrorPaneState>): ReactLink {
-    let self = this;
-
-    return this.linkStateLens({
-      get(state: ASErrorPaneState) { return state[str]; },
-      set(state: ASErrorPaneState, val: any) {
-        self.setState({ [str]: val });
-      }
-    });
+  shouldComponentUpdate(nextProps: ASErrorPaneProps, nextState: {}): boolean { 
+    return !_.isEqual(nextProps.errors, this.props.errors); 
   }
 
   render(): React.Element {
-    let errors = this._getCurrentErrorList();
-    let {selectedRow} = this.state;
-
+    let {onlyShowCurSelErrs, onErrorSelect, errors} = this.props;
     return (
       <Paper style={_Styles.root}>
         <div style={_Styles.showAllContainer}>
           <div style={_Styles.showAllLabel}>
-            Show only errors from current cell
+            Show only errors from current selection
           </div>
           <input
             type="checkbox"
             style={_Styles.showAllCheckbox}
-            checkedLink={this.linkState('onlyCurrentCell')} />
+            checkedLink={this.props.showAllValueLink}
+          />
         </div>
         <Table
           height="100%"
@@ -119,7 +76,7 @@ export default class ASErrorPane
           selectable={false}
           style={_Styles.table}
           headerStyle={_Styles.th}
-          onCellClick={this._handleCellClick.bind(this)}>
+          onCellClick={(row, col) => onErrorSelect(row)}>
           <TableHeader
             adjustForCheckbox={false}
             displaySelectAll={false}
@@ -143,8 +100,7 @@ export default class ASErrorPane
             {errors.map(({location, language, msg}, rowIdx) =>
               <TableRow
                 style={_Styles.tr(rowIdx)}
-                displayBorder={false}
-                selected={selectedRow === rowIdx} >
+                displayBorder={false} >
                 {[
                   location.toExcel().toString(),
                   language,
@@ -160,35 +116,5 @@ export default class ASErrorPane
         </Table>
       </Paper>
     );
-  }
-
-  _getCurrentErrorList(): Array<ASClientError> {
-    const {onlyCurrentCell, currentSelection, errors} = this.state;
-
-    if (onlyCurrentCell && currentSelection) {
-      return errors.filter(
-        ({ location }) => location.isInRange(currentSelection.range)
-      );
-    } else {
-      return errors;
-    }
-  }
-
-  _handleCellStoreChange() {
-    this.setState({ errors: CellStore.getAllErrors() });
-  }
-
-  _handleSelectionChange() {
-    this.setState({ currentSelection: SelectionStore.getActiveSelection() });
-  }
-
-  _handleCellClick(row: number, col: number) {
-    let errors = this._getCurrentErrorList();
-    let {location} = errors[row];
-
-    this.props.onRequestSelect(location);
-    this.setState({
-      selectedRow: row
-    });
   }
 }

@@ -23,7 +23,7 @@ import ASChartDialog from './chart/ASChartDialog.jsx';
 import ResizablePanel from './ResizablePanel.jsx'
 import Toolbar from './toolbar/Toolbar.jsx';
 
-import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
+import ASErrorPaneController from './bottom-panes/ASErrorPaneController.jsx';
 import ASOutputPane from './bottom-panes/ASOutputPane.jsx';
 
 import U from '../AS/Util';
@@ -141,7 +141,9 @@ export default React.createClass({
         <div style={{
           ...fullStyle,
           ...(errorPaneOpen ? { } : {'display': 'none'})}}>
-          <ASErrorPane open={errorPaneOpen} onRequestSelect={idx => this._handleRequestSelect(idx)} />
+          <ASErrorPaneController 
+            open={errorPaneOpen} 
+            selectCellAtLocation={idx => this._handleRequestSelect(idx)} />
         </div>
         <div style={{
           ...fullStyle,
