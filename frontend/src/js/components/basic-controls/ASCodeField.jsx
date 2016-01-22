@@ -14,7 +14,7 @@ import ace from 'brace';
 
 import {logDebug} from '../../AS/Logger';
 
-import U from '../../AS/Util';
+import Util from '../../AS/Util';
 
 import shortid from 'shortid';
 
@@ -100,8 +100,7 @@ type EditorState = {
 export default class ASCodeField
   extends React.Component<EditorDefaultProps, EditorProps, EditorState>
 {
-  /***************************************************************************************************************************/
-  // React methods
+  $listenerRemovers: Array<Callback>;
 
   editor: any;
   silent: boolean;
@@ -123,10 +122,23 @@ export default class ASCodeField
     this.editor = ace.edit(this.state.name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this._getPropsValue(), 1);
-    this.editor.on('change', () => this._handleEditorChange());
-    this.editor.on('focus', (evt) => this._handleEditorFocus(evt));
 
     onPropsSet(this.editor, this.props);
+
+    const aceListenerImplementer = (listenerName, listener) => ({
+      listener, 
+      add: (l) => this.editor.on(listenerName, l),
+      remove: (l) => this.editor.off(listenerName, l)
+    });
+
+    Util.React.implementComponentListeners(this, [
+      aceListenerImplementer('change', () => this._handleEditorChange()), 
+      aceListenerImplementer('focus', (evt) => this._handleEditorFocus(evt))
+    ]);
+  }
+
+  componentWillUnmount() {
+    Util.React.removeComponentListeners(this);
   }
 
   componentWillReceiveProps(nextProps: EditorProps) {
@@ -222,7 +234,7 @@ ASCodeField.defaultProps = {
   style    : {
     width  : '100%',
     height : '100px'
-  }
+  },
   name     : 'brace-editor',
   maxLines : null,
 

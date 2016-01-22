@@ -20,6 +20,8 @@ and then be able to forceUpdate on render,
 
  */
 
+// TODO: refactor everything into $destructors
+
 import type {
   Callback,
   Dict
@@ -33,13 +35,17 @@ import React from 'react';
 
 import BaseStore from '../../stores/BaseStore';
 
-type ExtReactComponent = ReactComponent & {
-  $storeLinks: Array<StoreLink>
+type StoreLinkedReactComponent = ReactComponent & {
+  $storeLinks: Array<StoreLink>;
+};
+
+type ListenedReactComponent = ReactComponent & {
+  $listenerRemovers: Array<Callback>;
 };
 
 const ASReactUtils = {
   addStoreLinks(
-    component: ExtReactComponent,
+    component: StoreLinkedReactComponent,
     storeLinks: Array<{
       listener?: Callback;
       store: typeof BaseStore;
@@ -58,11 +64,33 @@ const ASReactUtils = {
     });
   },
 
-  removeStoreLinks(component: ExtReactComponent) {
+  removeStoreLinks(component: StoreLinkedReactComponent) {
     component.$storeLinks.forEach(({store, listener}) => {
       store.removeChangeListener(listener);
     });
     component.$storeLinks = [];
+  },
+
+  implementComponentListeners(
+    component: ListenedReactComponent,
+    listenerImplementers: Array<{
+      listener: Callback;
+      add: (listener: Callback) => void;
+      remove: (listener: Callback) => void;
+    }>
+  ) {
+    listenerImplementers.forEach(({listener, add, remove}) => {
+      // add the listeners
+      add(listener);
+
+      // store listeners for later removal
+      component.$listenerRemovers.push(() => remove(listener));
+    });
+
+  },
+
+  removeComponentListeners(component: ListenedReactComponent) {
+    component.$listenerRemovers.forEach((f) => f());
   }
 };
 

@@ -243,6 +243,10 @@ export default class ASSpreadsheet
     return findDOMNode(this.refs.hypergrid);
   }
 
+  _getTextbox(): Textbox {
+    return this.refs.textbox;
+  }
+
   _getBehavior(): HGBehaviorElement {
     return this._getHypergrid().getBehavior();
   }
@@ -659,7 +663,7 @@ export default class ASSpreadsheet
                                                   userIsTyping,
                                                   clickType,
                                                   ExpStore.getExpression(),
-                                                  this.refs.textbox.editor);
+                                                  this._getTextbox().editor);
 
         // if visible key and there was a last cell ref, move the selection back to the origin
         let activeSelection = SelectionStore.getActiveSelection();
@@ -735,29 +739,29 @@ export default class ASSpreadsheet
       case Constants.ActionTypes.GRID_KEY_PRESSED:
         Render.setShouldRenderSquareBox(false);
         this.repaint();
-        this.refs.textbox.updateTextBox(xpStr, cursorPos);
+        this._getTextbox().updateTextBox(xpStr, cursorPos);
         break;
       // hide textbox, if focus not already in grid, put it there
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
-        this.refs.textbox.hideTextBox(xpStr);
+        this._getTextbox().hideTextBox();
         this.props.setFocus('grid');
         break;
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         break;
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_GRID:
       case Constants.ActionTypes.PARTIAL_REF_CHANGE_WITH_EDITOR:
-        this.refs.textbox.updateTextBox(xpStr);
+        this._getTextbox().updateTextBox(xpStr);
         break;
       case Constants.ActionTypes.ESC_PRESSED:
-        this.refs.textbox.updateTextBox(xpStr);
-        this.refs.textbox.hideTextBox();
+        this._getTextbox().updateTextBox(xpStr);
+        this._getTextbox().hideTextBox();
         break;
       // put focus on grid on get
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
       case Constants.ActionTypes.LANGUAGE_TOGGLED:
-        this.refs.textbox.updateLanguage();
+        this._getTextbox().updateLanguage();
         break;
       default:
         break;
@@ -825,7 +829,7 @@ export default class ASSpreadsheet
                    scroll={scroll}
                    onDeferredKey={onTextBoxDeferredKey}
                    hideToast={hideToast}
-                   position={() => this.getTextboxPosition()}
+                   position={this.getTextboxPosition()}
                    setFocus={setFocus} />
 
         </div>

@@ -28,7 +28,7 @@ import type {
 type TextboxDefaultProps = {}
 
 type TextboxProps = {
-  position: () => ?HGRectangle; //#encapsulation
+  position: ?HGRectangle; //#encapsulation
   onDeferredKey: (e: SyntheticKeyboardEvent) => void;
   hideToast: () => void;
   setFocus: (elem: ASFocusType) => void;
@@ -61,13 +61,20 @@ export default class Textbox
   componentDidMount() {
     this.editor = ace.edit('textbox');
     this.editor.$blockScrolling = Infinity;
+
     this.editor.on('focus', this._onFocus.bind(this));
+
     this._boundOnChange = () => this._onChange();
     this.editor.getSession().on('change', this._boundOnChange);
+
     this.editor.container.addEventListener('keydown', this._onKeyDown.bind(this), true);
+
     this.showCursor();
+
     this.editor.setFontSize(12);
+
     this._updateMode(this.state.language);
+
     this.editor.setOption('maxLines', Infinity);
     this.editor.renderer.setShowGutter(false); // no line numbers
     this.editor.getSession().setUseWrapMode(true); // no word wrap
@@ -95,7 +102,7 @@ export default class Textbox
   // Text box focus and update methods
 
   // null/undefined cursorPos means selection goes to the end
-  updateTextBox(xpStr: string, cursorPos: number) {
+  updateTextBox(xpStr: string, cursorPos?: number) {
     logDebug("Updating textbox: " + xpStr);
     ExpStore.setDoTextBoxCallback(false);
     if (!this.state.isVisible) { //will be visible after update, put cursor in textbox
@@ -131,7 +138,7 @@ export default class Textbox
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-          extentX = maybe(0, (pos) => pos.extent.x, this.props.position());
+          extentX = maybe(0, (pos) => pos.extent.x, this.props.position);
       return Math.max(extentX, (longestStr.length)*8.15);
     } else {
       return 0;
@@ -196,7 +203,7 @@ export default class Textbox
   // Render
 
   render(): React.Element {
-    const pos = this.props.position();
+    const pos = this.props.position;
 
     let baseStyle = {
       display:'block',
