@@ -79,6 +79,7 @@ library
                        AS.Types.Excel
                        AS.Types.Formats
                        AS.Types.Locations
+                       AS.Types.Migrations.Locations
                        AS.Types.Messages
                        AS.Types.Network
                        AS.Types.RangeDescriptor

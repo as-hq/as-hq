@@ -4,8 +4,11 @@
 
 module AS.Types.Locations
   ( module AS.Types.Locations
+  , module AS.Types.Migrations.Locations
   , module AS.Types.Sheets
   ) where
+
+import AS.Types.Migrations.Locations
 
 import AS.Types.Sheets
 
