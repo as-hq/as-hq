@@ -52,7 +52,6 @@ import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
 export default React.createClass({
   $storeLinks: ([]: Array<StoreLink>),
-  $listenerRemovers: ([]: Array<Callback>),
 
   /* When mounting, send a message to the backend to signify a connection */
   componentWillMount() {
