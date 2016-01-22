@@ -1,132 +1,111 @@
+// @flow
+
 import React from 'react';
-import ReactDOM from 'react-dom';
-import {Styles, FontIcon} from 'material-ui';
-let Paper = require('material-ui/lib/paper');
+import shallowCompare from 'react-addons-shallow-compare';
+// $FlowFixMe
 import ColorPicker from 'react-color';
 
-import Constants from '../../Constants';
-import API from '../../actions/ASApiActionCreators';
-import U from '../../AS/Util';
-let {
-  Conversion: TC
-} = U;
-
-import MenuController from './MenuController.jsx';
 import ToolbarButton from './ToolbarButton.jsx';
+import DropdownMenu from './DropdownMenu.jsx';
+
+// TODO(joel) - this is unused
+type ColorPickerProps = {
+  tooltip: string;
+  iconName: string;
+  value: string;
+  active: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+};
 
 export default React.createClass({
 
-  // Easy way to deal with closing menu upon clickaway
-  mixins: [require('react-clickaway')],
-
-  /*************************************************************************************************************************/
-  // Props and state data
+  shouldComponentUpdate(nextProps: ColorPickerProps, nextState: any): boolean {
+    // const x = shallowCompare(this, nextProps, nextState);
+    // XXX(joel) onOpen, onClose ruin optimization
+    // TODO(joel) make functional component
+    return !(
+         this.props.tooltip === nextProps.tooltip
+      && this.props.iconName === nextProps.iconName
+      && this.props.value === nextProps.value
+      && this.props.active === nextProps.active
+    );
+  },
 
   propTypes: {
     tooltip: React.PropTypes.string.isRequired,
     iconName: React.PropTypes.string.isRequired,
-    propTag: React.PropTypes.string.isRequired // TextColor, FillColor, etc
+    value: React.PropTypes.string.isRequired,
+    active: React.PropTypes.bool.isRequired,
+    onOpen: React.PropTypes.func.isRequired,
+    onClose: React.PropTypes.func.isRequired,
   },
 
-  getInitialState() {
-    return {
-      color: Constants.DefaultColors[this.props.propTag],
-      pickerVisible: false,
+  // Easy way to deal with closing menu upon clickaway
+  // $FlowFixMe
+  mixins: [require('react-clickaway')],
+
+  _onButtonClick() {
+    if (this.props.active) {
+      this.props.onClose();
+    } else {
+      this.props.onOpen();
     }
   },
 
-  /*************************************************************************************************************************/
-  // Respond to events
-
-  // When a color has been selected, close the menu and tell the toolbarcontroller, which will call propagate
-  // This will also cause the button color to change due to the rerender
-  handleColorChange(color) {
-    let newColor =  '#'+ color.hex;
-    this.setState({pickerVisible: false, color: newColor});
-    this.refs.menuController.refs.controller.onControlStateChange(newColor);
-  },
-
-  _onButtonClick(e, pushState) {
-    this.setState({pickerVisible: !this.state.pickerVisible});
-  },
-
   _onPickerClose() {
-    this.setState({pickerVisible: false});
+    this.props.onClose();
   },
 
   // Close picker when user clicks away if picker is currently visible
   componentClickAway() {
-    if (this.state.pickerVisible){
-      this._onPickerClose();
+    if (this.props.active) {
+      this.props.onClose();
     }
-  },
-
-  /*************************************************************************************************************************/
-  // Methods to pass to ToolbarController from MenuController to monitor stores and act upon changes
-
-  _setControlStateFromCell(cell) {
-    let newColor = Constants.DefaultColors[this.props.propTag];
-    let prop = (cell != null) ? cell.getPropByTag(this.props.propTag) : null;
-    if (prop != null) {
-      newColor = prop.contents;
-    }
-    // Only update state if something changed. Should eventually use PureRenderMixin + immutability
-    if (this.state.color !== newColor) {
-      this.setState({ color: newColor });
-    }
-  },
-
-  _propagateControlStateChange(nextState, rng) {
-    API.setProp({
-      tag: this.props.propTag,
-      contents: nextState
-    }, rng);
-  },
-
-  /*************************************************************************************************************************/
-  // Styles and rendering
-
-  getStyles() {
-    return {
-      colorPickerStyle:{
-        position: 'absolute',
-        width: 245
-      }
-    };
   },
 
   render() {
-    let {colorPickerStyle, paperStyle} = this.getStyles();
-    let button =
+    const {active, iconName, tooltip, onSelect, value} = this.props;
+
+    const button = (
       <ToolbarButton
-        usePushState={false}
         spacing={7}
         width={43}
-        showTooltip={!this.state.pickerVisible}
-        iconName={this.props.iconName}
-        includeDropdownArrow={true}
-        tooltip={this.props.tooltip}
-        onClick={this._onButtonClick} />;
-    let colorPicker = this.state.pickerVisible ?
-        <div style={colorPickerStyle} >
+        showTooltip={!active}
+        iconName={iconName}
+        includeDropdownArrow
+        tooltip={tooltip}
+        onClick={() => this._onButtonClick()}
+      />
+    );
+
+    const colorPicker = active
+      ? (
+        <div style={styles.colorPickerStyle}>
           <ColorPicker
-            onChangeComplete={this.handleColorChange}
-            color={this.state.color}
+            onChangeComplete={onSelect}
+            color={value}
             position="top"
-            display='top'
-            type="compact" />
-        </div> : null;
+            display="top"
+            type="compact"
+          />
+        </div>
+      )
+      : <noscript />;
+
     return (
-      <MenuController
-        ref="menuController"
+      <DropdownMenu
         toolbarWidth={36}
         toolbarComponent={button}
         menuComponent={colorPicker}
-        setControlStateFromCell={this._setControlStateFromCell}
-        propagateControlStateChange={this._propagateControlStateChange}
-        id={"ColorPicker" + this.props.propTag}
-        onMenuShouldClose={this._onPickerClose} />
+      />
     );
-  }
-
+  },
 });
+
+const styles = {
+  colorPickerStyle: {
+    position: 'absolute',
+    width: 245,
+  },
+};

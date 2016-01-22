@@ -21,9 +21,9 @@ import {asMenu as zIndex} from '../../styles/zIndex';
 
 import {FlatButton} from 'material-ui';
 
-// $FlowFixMe: don't know how to declare this in Flow yet
+// $FlowFixMe
 import Menu from 'material-ui/lib/menus/menu';
-// $FlowFixMe: don't know how to declare this in Flow yet
+// $FlowFixMe
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Popover} from 'material-ui';
 

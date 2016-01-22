@@ -501,4 +501,33 @@ declare module 'react-dom/server' {
   ): string;
 }
 
+declare module 'react-addons-perf' {
+  // We don't actually use anything from this module in our code, just assign
+  // it to window.Perf
+  declare var exports: any;
+}
+
+declare module 'react-tooltip' {
+  declare type TooltipProps = {
+    id: string;
+    delayHide: ?number;
+    delayShow: ?number;
+    place?: 'top' | 'right' | 'bottom' | 'left';
+    type?: 'success' | 'warning' | 'error' | 'info' | 'light';
+    effect?: 'float' | 'solid';
+    offset?: {
+      top?: number;
+      right?: number;
+      bottom?: number;
+      left?: number;
+    };
+  };
+
+  declare var exports: ReactClass<{}, TooltipProps, {}>;
+}
+
+declare module 'react-addons-shallow-compare' {
+  declare function exports(this: any, newProps: any, newState: any): boolean;
+}
+
 declare class Image extends ReactComponent { }

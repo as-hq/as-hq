@@ -2,195 +2,120 @@ import React from 'react';
 import Menu from 'material-ui/lib/menus/menu';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import Divider from 'material-ui/lib/divider';
-import _ from 'lodash';
 
-import ToolbarController from './ToolbarController.jsx';
-import MenuController from './MenuController.jsx';
+import DropdownMenu from './DropdownMenu.jsx';
 
-let GenerateToolbarMenu = function(ToolbarComponent) {
-
+function GenerateToolbarMenu(ToolbarComponent) {
   return React.createClass({
+    propTypes: {
+      // Props to pass the toolbar control (ex width, height of button).
+      toolbarControlProps: React.PropTypes.object.isRequired,
+      // Props to generate menu
+      menuProps: React.PropTypes.array.isRequired,
+      // Width: menu width
+      menuWidth: React.PropTypes.number,
+      // Max height, will scroll if height > max height
+      menuMaxHeight: React.PropTypes.number,
+      // Should we check selections TODO(joel) - better description
+      menuShouldCheckSelections: React.PropTypes.bool,
+      toolbarControlWidth: React.PropTypes.number,
+      visible: React.PropTypes.bool.isRequired,
+      value: React.PropTypes.string.isRequired,
+      onSelect: React.PropTypes.func.isRequired,
+      onClose: React.PropTypes.func.isRequired,
+      onOpen: React.PropTypes.func.isRequired,
+    },
 
-      // Easy way to deal with closing menu upon clickaway
-      mixins: [require('react-clickaway')],
+    // Easy way to deal with closing menu upon clickaway
+    mixins: [require('react-clickaway')],
 
-      /*************************************************************************************************************************/
-      // Prop and state methods
+    getDefaultProps() {
+      return {
+        menuWidth: 65,
+        menuMaxHeight: 400,
+        menuShouldCheckSelections: true,
+        toolbarControlWidth: 100,
+      };
+    },
 
-      /*
-        We use the following props:
-          1) Props to pass the toolbar control (ex width, height of button).
-          2) Props to generate menu
-          3) How to get the menu value given a change in active cell; function(cell) -> value
-          4) toolbarControlPropTransform: function(menuVisible, menuValue, toolbarProps) -> newToolbarProps
-          5) How to propagate a state change in the control, usually some API call
-          6) Initial value in menu
-          7) Width: menu width
-          8) Max height, will scroll if height > max height
-          9) Should we check selections
-          10) Id used for uniqueness of dropdowns
-          11) Width of toolbar control, for styling
-      */
-      propTypes: {
-        toolbarControlProps: React.PropTypes.object.isRequired,
-        menuProps: React.PropTypes.array.isRequired,
-        getMenuValueFromCell: React.PropTypes.func.isRequired,
-        toolbarControlPropTransform: React.PropTypes.func.isRequired,
-        propagateControlStateChange: React.PropTypes.func.isRequired,
-        initialValue: React.PropTypes.string.isRequired,
-        menuWidth: React.PropTypes.number,
-        menuMaxHeight: React.PropTypes.number,
-        menuShouldCheckSelections: React.PropTypes.bool,
-        id: React.PropTypes.string.isRequired,
-        toolbarControlWidth: React.PropTypes.number
-      },
+    // The tag is used to generate the type of element, and the props are used
+    // to generate a MenuItem/Divider etc.  Automatically handles checking.
+    //
+    // Example of propSet: {tag: 'MenuItem', primaryText: 'Number' ... }
+    getMenu() {
+      const checkedValue = this.props.value;
+      const menuItems = this.props.menuProps.map((propSet) => {
+        const valueMatch = propSet.value === checkedValue;
+        const extraProps = {key: propSet.value};
 
-      getDefaultProps() {
-        return {
-          menuWidth: 65,
-          menuMaxHeight: 400,
-          menuShouldCheckSelections: true,
-          toolbarControlWidth: 100
+        // If you should have checks, the value matches the checked value in
+        // state, and there's no default left icon, render check
+        if (!this.props.menuShouldCheckSelections) {
+          // intentionally empty
+        } else if (propSet.leftIcon == null) {
+          extraProps.checked = valueMatch;
+          extraProps.insetChildren = !valueMatch;
+        } else {
+          extraProps.checked = false;
+          // if there's a leftIcon, inset children and never check
+          extraProps.insetChildren = true;
         }
-      },
 
-      getInitialState() {
-        return {
-          toolbarControlProps: this.props.toolbarControlProps,
-          menuVisible: false,
-          menuValue: this.props.initialValue
-        }
-      },
+        return propSet.tag === 'MenuItem'
+          ? <MenuItem {...propSet} {...extraProps} />
+          : <Divider {...propSet} {...extraProps} />;
+      });
 
-      /*************************************************************************************************************************/
-      // Menu generation
+      return (
+        <Menu
+          desktop
+          width={this.props.menuWidth}
+          maxHeight={this.props.menuMaxHeight}
+          onItemTouchTap={this._onMenuClick}
+          onEscKeyDown={this._onMenuClose}
+        >
+          {menuItems}
+        </Menu>
+      );
+    },
 
-      // The tag is used to generate the type of element, and the props are used to generate a MenuItem/Divider etc.
-      // Automatically handles checking. Example of propSet: {tag: 'MenuItem', primaryText: 'Number' ... }
-      getMenu() {
-        let checkedValue = this.state.menuValue;
-        let menuItems = this.props.menuProps.map((propSet) => {
-          let valueMatch =  propSet.value === checkedValue;
-          propSet.key = propSet.value;
-          // If you should have checks, the value matches the checked value in state, and there's no default left icon, render check
-          if (!this.props.menuShouldCheckSelections) {
-          } else if (propSet.leftIcon == null) {
-            propSet.checked = valueMatch;
-            propSet.insetChildren = !valueMatch;
-          } else {
-            propSet.checked = false;
-            propSet.insetChildren = true; // if there's a leftIcon, inset children and never check
-          }
-          if (propSet.tag === 'MenuItem') {
-            return React.createElement(MenuItem, propSet)
-          } else {
-            return React.createElement(Divider, propSet)
-          }
-        });
-        return (
-          <Menu
-            desktop={true}
-            width={this.props.menuWidth}
-            maxHeight={this.props.menuMaxHeight}
-            onItemTouchTap={this._onMenuClick}
-            onEscKeyDown={this._onMenuClose}>
-              {menuItems}
-          </Menu>
-        );
-      },
+    _onMenuClick(e, item) {
+      this.props.onSelect(item.props.value);
+    },
 
-
-      /*************************************************************************************************************************/
-      // Respond to menu events
-
-      // When an item is clicked, update checkedValue state and call the callback
-      _onMenuClick(e, item) {
-        let nextValue = item.props.value;
-        let {toolbarControlProps} = this.state;
-        let newToolbarControlProps = this.props.toolbarControlPropTransform(false, nextValue, toolbarControlProps);
-        this.setState({menuVisible: false, menuValue: nextValue, toolbarControlProps: newToolbarControlProps});
-        this.refs.menuController.refs.controller.onControlStateChange(nextValue);
-      },
-
-      _onMenuClose() {
-        let {toolbarControlProps, menuValue} = this.state;
-        let newToolbarControlProps = this.props.toolbarControlPropTransform(false, menuValue, toolbarControlProps);
-        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
-        if (this.state.menuVisible || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
-          this.setState({menuVisible: false, toolbarControlProps: newToolbarControlProps});
-        }
-      },
-
-      /*************************************************************************************************************************/
-      // Click away
-
-      // Close menu when user clicks away if menu is currently visible
-      componentClickAway() {
-        if (this.state.menuVisible){
-          this._onMenuClose();
-        }
-      },
-
-      /*************************************************************************************************************************/
-      // Toolbar component onClick
-
-      // When you click on the toolbar control, toggle menu visibility
-      _onToolbarControlClick(e, nextToolbarState) {
-        let menuVisible = !this.state.menuVisible;
-        let {toolbarControlProps, menuValue} = this.state;
-        let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
-        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
-        if (this.state.menuVisible !== menuVisible || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
-          this.setState({menuVisible: menuVisible, toolbarControlProps: newToolbarControlProps});
-        }
-      },
-
-      /*************************************************************************************************************************/
-      // ToolbarController callbacks
-
-      /* When the activeCell changes, update the menu with a new value, and update the toolbar component as well */
-      _setControlStateFromCell(cell) {
-        let menuValue = this.props.getMenuValueFromCell(cell);
-        let {toolbarControlProps, menuVisible} = this.state;
-        let newToolbarControlProps = this.props.toolbarControlPropTransform(menuVisible, menuValue, toolbarControlProps);
-        // Only update state if something changed. Should eventually use PureRenderMixin + immutability
-        if (this.state.menuValue !== menuValue || !_.isEqual(this.state.toolbarControlProps, newToolbarControlProps)) {
-          this.setState({menuValue: menuValue, toolbarControlProps: newToolbarControlProps});
-        }
-      },
-
-      /*************************************************************************************************************************/
-      // Rendering
-
-      // Generate a menu element using menuProps, then generate a toolbarComponent by using the given class along with
-      // this.props.toolbarControlProps. Put them together with some styling, and pass it off to ToolbarController, which
-      // monitors listening to the relevant stores for us.
-      render() {
-        let menuElement = this.state.menuVisible ? this.getMenu() : null;
-        let toolbarComponent =
-          <ToolbarComponent
-            {...this.state.toolbarControlProps}
-            onClick={this._onToolbarControlClick}
-            ref="toolbarControl"/>;
-        return (
-          <MenuController
-            ref="menuController"
-            toolbarComponent={toolbarComponent}
-            menuComponent={menuElement}
-            propagateControlStateChange={this.props.propagateControlStateChange}
-            setControlStateFromCell={this._setControlStateFromCell}
-            id={this.props.id}
-            onMenuShouldClose={this._onMenuClose}
-            toolbarWidth={this.props.toolbarControlWidth} />
-        );
+    componentClickAway() {
+      if (this.props.visible) {
+        this.props.onClose();
       }
+    },
+
+    _onToolbarControlClick() {
+      this.props.visible ? this.props.onClose() : this.props.onOpen();
+    },
+
+    // Generate a menu element using menuProps, then generate a
+    // toolbarComponent by using the given class along with
+    // this.props.toolbarControlProps. Put them together with some styling, and
+    // pass it off to ToolbarController, which monitors listening to the
+    // relevant stores for us.
+    render() {
+      const menuElement = this.props.visible && this.getMenu();
+      const toolbarComponent = (
+        <ToolbarComponent
+          {...this.props.toolbarControlProps}
+          onClick={this._onToolbarControlClick}
+        />
+      );
+
+      return (
+        <DropdownMenu
+          toolbarComponent={toolbarComponent}
+          menuComponent={menuElement}
+          toolbarWidth={this.props.toolbarControlWidth}
+        />
+      );
+    },
   });
 }
 
 export default GenerateToolbarMenu;
-
-
-
-
-
-

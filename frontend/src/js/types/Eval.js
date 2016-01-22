@@ -137,6 +137,7 @@ export type Italic = {
   contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
+// XXX(joel) - we don't have an underline button, but we have strikethrough?
 export type Underline = {
   tag: 'Underline';
   contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)

@@ -1,8 +1,6 @@
-/* @flow */
-
-import type {
-  ASRangeObject
-} from '../../types/Eval';
+// @flow
+//
+// A button with an icon and a tooltip
 
 import React from 'react';
 
@@ -11,26 +9,26 @@ import {Styles, FontIcon} from 'material-ui';
 const FlatButton = require('material-ui/lib/flat-button');
 // $FlowFixMe
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
-// $FlowFixMe
-let Tooltip = require("react-tooltip");
+import Tooltip from 'react-tooltip';
 
-
-
-/*
-This component displays an icon in a button
-It also has the ability to display a tooltip (blurb of what the button does upon hovering)
-*/
 
 type ToolbarButtonDefaultProps = {
   width: number;
   height: number;
+  // left margin
   spacing: number;
-  onClick: (e: SyntheticMouseEvent, state: any) => void;
+  onClick: () => void;
+  // iconName: name of the material-ui icon used for the FontIcon (print, home,
+  // etc)
   iconName: string;
+  // HTML Element of the icon itself can be passed; overrides iconName if not
+  // null
   iconElement: ?React.Element;
+  // actual message underneath button (ex. Print (Ctrl+P))
   tooltip: string;
-  usePushState: boolean;
   showTooltip: boolean;
+  // Should we include a dropdown arrow inside the button? This wouldn't do
+  // anything by itself if clicked.
   includeDropdownArrow: boolean;
   arrowSize: number;
   iconColor: string;
@@ -40,135 +38,97 @@ type ToolbarButtonProps = {
   width: number;
   height: number;
   spacing: number;
-  onClick: (e: SyntheticMouseEvent, state: any) => void; // #needsrefactor only any because type of second arg depends on a prop...
+  onClick: () => void; // #needsrefactor only any because type of second arg depends on a prop...
   iconName: string;
   iconElement: ?React.Element;
   tooltip: string;
-  usePushState: boolean;
   showTooltip: boolean;
   includeDropdownArrow: boolean;
   arrowSize: number;
   iconColor: string;
-};
-
-type ToolbarButtonState = {
-  pushed: boolean;
-  hovered: boolean;
+  active?: boolean;
 };
 
 export default class ToolbarButton
-  extends React.Component<ToolbarButtonDefaultProps, ToolbarButtonProps, ToolbarButtonState>
-{
+  extends React.Component<ToolbarButtonDefaultProps, ToolbarButtonProps, {}> {
 
-  /*************************************************************************************************************************/
-  // React methods
-
-  /*
-    We keep the following props:
-      1/2) size of the button
-      3) spacing (marginLeft)
-      4) onClick callback function (e, nextState) => {}
-      5) iconName: name of the material-ui icon used for the FontIcon (print, home, etc)
-      6) iconElement: HTML Element of the icon itself can be passed; overrides iconName if not null
-      7) tooltip: actual message underneath button (ex. Print (Ctrl+P))
-      8) usePushState: should the button "stay pushed" when pushed; should its color and state change?
-         For buttons like undo and redo, this is false (no pushed state needed), for bold, this is needed, since
-         the button should be pushed in if the active cell/selection is bold
-      9) Should we show the tooltip
-      10) Should we include a dropdown arrow inside the button? This wouldn't do anything by itself if clicked.
-      11) Size of that arrow
-      12) Color of the icon
-  */
-
-  /*
-    We keep the following state:
-      1) pushed; is the button pushed?
-  */
-
-  constructor(props: ToolbarButtonProps) {
-    super(props);
-
-    this.state = {
-      pushed: false,
-      hovered: false
-    }
+  shouldComponentUpdate(nextProps: ToolbarButtonProps): boolean {
+    // XXX(joel) onClick is created fresh each time, ruins optimization
+    // TODO(joel) make functional component, use onlyUpdateForKeys
+    return !(
+         this.props.width === nextProps.width
+      && this.props.height === nextProps.height
+      && this.props.spacing === nextProps.spacing
+      && this.props.iconName === nextProps.iconName
+      && this.props.iconElement === nextProps.iconElement
+      && this.props.tooltip === nextProps.tooltip
+      && this.props.showTooltip === nextProps.showTooltip
+      && this.props.includeDropdownArrow === nextProps.includeDropdownArrow
+      && this.props.arrowSize === nextProps.arrowSize
+      && this.props.iconColor === nextProps.iconColor
+      && this.props.active === nextProps.active
+    );
   }
-
-  /*************************************************************************************************************************/
-  // Respond to events
-
-  // Update internal state and tell parent about it. Separator shouldn't be visible when pushed
-  _onClick(e: SyntheticMouseEvent) {
-    console.log("Toolbar button onclick");
-    if (this.props.usePushState) {
-      let nextState = !this.state.pushed;
-      this.setState({pushed: nextState});
-      this.props.onClick(e, nextState);
-    } else {
-      this.props.onClick(e, this.state.pushed);
-    }
-  }
-
-  // Push the button (upon parent's request)
-  setPushState(shouldBePushed: boolean) {
-    if (this.props.usePushState) {
-      this.setState({pushed: shouldBePushed});
-    }
-  }
-
-  _onMouseEnter() {
-    this.setState({hovered: true});
-  }
-
-  _onMouseLeave() {
-    this.setState({hovered: false});
-  }
-
-  /*************************************************************************************************************************/
-  // Styles and rendering
 
   getStyles(): any {
+    const {
+      width,
+      height,
+      spacing,
+      includeDropdownArrow,
+      iconColor,
+      activeBackgroundColor,
+      arrowSize,
+      active
+    } = this.props;
+
     return {
-      pushedColor: Styles.Colors.pink300,
       buttonStyle: {
         display: 'inline-block', // buttons should stack horizontally
         position: 'relative',
         top: '50%',
         transform: 'translateY(-50%)',
-        width: this.props.width,
-        minWidth: this.props.width, // needed to make override current minWidth, which prevents width from having an effect if too small
-        height: this.props.height,
-        marginLeft: this.props.spacing, // spacing between buttons
+        width,
+        minWidth: width, // needed to make override current minWidth, which prevents width from having an effect if too small
+        height,
+        marginLeft: spacing, // spacing between buttons
         // background color gets in the way of hoverColor and the default is already set by toolbarStyle
+        ...(active ? { backgroundColor: activeBackgroundColor } : {})
       },
       // Put an icon in the center of the button. If there's an arrow as well, the icon won't be centered horizontally in the middle.
       iconStyle: {
         position: 'absolute',
         top: '50%',
-        left: this.props.includeDropdownArrow ? `calc(50% - ${this.props.arrowSize/2.0 + 'px'})` : '50%',
+        left: includeDropdownArrow ? `calc(50% - ${this.props.arrowSize / 2.0 + 'px'})` : '50%',
         transform: 'translate(-50%, -50%)',
-        color: this.state.hovered ? Styles.Colors.grey50 : this.props.iconColor,
+        color: iconColor,
       },
       // An arrow, the left edge of which is arrowSize from the right border
       arrowStyle: {
         position: 'absolute',
         top: '50%',
-        width: this.props.arrowSize,
-        height: this.props.arrowSize,
+        width: arrowSize,
+        height: arrowSize,
         left: `calc(100% - ${this.props.arrowSize + 'px'})`,
-        transform: 'translate(0%, -50%)'
-      }
+        transform: 'translate(0%, -50%)',
+      },
     };
   }
 
   render(): React.Element {
-    let {pushedColor, buttonStyle, iconStyle, arrowStyle, arrowSepStyle} = this.getStyles();
-    if (this.state.pushed) {
-      buttonStyle.backgroundColor = pushedColor;
-    }
+    const {buttonStyle, iconStyle, arrowStyle} = this.getStyles();
+
     // If the user passes in their own icon element, use that, or use their material-ui icon, or default
-    let iconElement = (this.props.iconElement == null) ?
-      <FontIcon style={iconStyle} className="material-icons"> {this.props.iconName} </FontIcon>
+    const iconElement = this.props.iconElement == null
+      ? (
+        <FontIcon
+          // TODO(joel): could this be a <GenIcon> ?
+          style={iconStyle}
+          className="material-icons toolbar-button-icon"
+        >
+          {this.props.iconName}
+        </FontIcon>
+      )
       : this.props.iconElement;
 
     // Include an arrow if the user wanted to
@@ -187,9 +147,7 @@ export default class ToolbarButton
         data-for={this.props.tooltip}
         data-tip={this.props.tooltip}
         style={buttonStyle}
-        onClick={e => this._onClick(e)}
-        onMouseLeave={() => this._onMouseLeave()}
-        onMouseEnter={() => this._onMouseEnter()}
+        onClick={() => this.props.onClick()}
       >
         {iconElement}
         {arrowElement}
@@ -215,8 +173,6 @@ export default class ToolbarButton
       </span>
     );
   }
-
-
 }
 
 ToolbarButton.propTypes = {
@@ -227,24 +183,24 @@ ToolbarButton.propTypes = {
   iconName: React.PropTypes.string,
   iconElement: React.PropTypes.object,
   tooltip: React.PropTypes.string,
-  usePushState: React.PropTypes.bool,
   showTooltip: React.PropTypes.bool,
   includeDropdownArrow: React.PropTypes.bool,
   arrowSize: React.PropTypes.number,
-  iconColor: React.PropTypes.string
+  iconColor: React.PropTypes.string,
+  activeBackgroundColor: React.PropTypes.string,
 };
 
 ToolbarButton.defaultProps = {
   width: 36,
   height: 36,
   spacing: 2,
-  onClick: (e, state) => {},
+  onClick: () => {},
   iconName: 'home',
   iconElement: null,
-  usePushState: true,
-  tooltip: "",
+  tooltip: '',
   showTooltip: true,
   includeDropdownArrow: false,
   arrowSize: 15,
-  iconColor: Styles.Colors.grey500
+  iconColor: Styles.Colors.grey500,
+  activeBackgroundColor: Styles.Colors.pink300,
 };

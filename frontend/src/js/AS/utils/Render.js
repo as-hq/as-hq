@@ -48,7 +48,6 @@ const Render = {
   /* Used to know what to display on the sheet */
   showValue(cv: ASValue, isRepl: boolean = false): (string|number) {
     // logDebug("In show value: " + JSON.stringify(cv));
-    let self = Render;
     switch (cv.tag) {
       case "NoValue":
         return "";
@@ -79,13 +78,13 @@ const Render = {
   },
 
   // If there's info in the props about how many decimal places to show, insert that
-  // information into the config. 
-  formatNumberOfDecimalPlaces(config: HGRendererConfig, props: Array<ASCellProp>) { 
+  // information into the config.
+  formatNumberOfDecimalPlaces(config: HGRendererConfig, props: Array<ASCellProp>) {
     let numDec = null,
         formatInd = props.map(({tag}) => tag).indexOf("ValueFormat");
     if (formatInd >= 0) {
-      let format = props[formatInd]; 
-      if (format.tag === "ValueFormat") { // for flow 
+      let format = props[formatInd];
+      if (format.tag === "ValueFormat") { // for flow
         numDec = format.valFormat.numDecimals;
       }
     }
@@ -93,7 +92,6 @@ const Render = {
   },
 
   propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>) {
-    let self = Render;
     for (var i=0; i<props.length; i++) {
       let prop = props[i];
       switch (prop.tag) {

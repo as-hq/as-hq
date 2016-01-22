@@ -15,6 +15,8 @@ import type {
   RangeDescriptor,
   RangeKey,
   NakedIndex,
+  HAlignType,
+  VAlignType,
 } from './Eval';
 
 import type {
@@ -262,6 +264,36 @@ export type SetConnectingStateAction = {
   isConnected: boolean;
 };
 
+export type OpenMenuItem = {
+  _type: 'OPEN_TOOLBAR_ITEM';
+  name: string;
+};
+
+export type CloseMenuItem = {
+  _type: 'CLOSE_TOOLBAR_ITEM';
+  name: string;
+};
+
+export type SetFormat = {
+  _type: 'SET_FORMAT';
+  format: string;
+};
+
+export type SetFont = {
+  _type: 'SET_FONT';
+  font: string;
+};
+
+export type SetHAlign = {
+  _type: 'SET_HALIGN';
+  alignment: HAlignType;
+};
+
+export type SetVAlign = {
+  _type: 'SET_VALIGN';
+  alignment: VAlignType;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -342,4 +374,11 @@ export type ASAction =
   | ToggledFocusF2Action
   | ResetLastUpdatedCells
   | SetActiveSelectionAction
+  | SetConnectingStateAction
+  | OpenMenuItem
+  | CloseMenuItem
+  | SetFormat
+  | SetFont
+  | SetHAlign
+  | SetVAlign
   ;

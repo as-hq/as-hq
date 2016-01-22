@@ -1,95 +1,54 @@
 /* @flow */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
-import {Styles, FontIcon} from 'material-ui';
+import pure from 'recompose/pure';
 
-import ASCell from '../../classes/ASCell';
-import ASRange from '../../classes/ASRange';
+import ExpActionCreators from '../../actions/ASExpActionCreators';
+import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 
-import ToolbarController from './ToolbarController.jsx';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
 import type {
   ToolbarControlProps,
-  MenuProps
+  MenuProps,
 } from '../../types/Toolbar';
 
-type FontSizePickerDefaultProps = {};
+type FontSizePickerProps = {
+  value: number;
+  visible: boolean;
+};
 
-type FontSizePickerProps = {};
+const fontSizes: Array<number> = [6, 7, 8, 9, 10, 11, 12, 14, 18, 24, 36];
 
-type FontSizePickerState = {};
+const menuProps: Array<MenuProps> = fontSizes.map((size) => {
+  return {tag: 'MenuItem', primaryText: `${size}`, value: `${size}`};
+});
 
-export default class FontSizePicker
-  extends React.Component<FontSizePickerDefaultProps, FontSizePickerProps, FontSizePickerState>
-{
+const toolbarControlProps: ToolbarControlProps = {
+  tooltip: 'Font size',
+  displayValue: '10',
+  showTooltip: true,
+  width: 45,
+};
 
-  /*************************************************************************************************************************/
-  // Sub-component generation
+const ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
 
-  fontSizes: Array<number>;
-
-  constructor(props: FontSizePickerProps) {
-    super(props);
-
-    this.fontSizes = [6, 7, 8, 9, 10, 11, 12, 14, 18, 24, 36];
-  }
-
-
-  getMenuProps(): Array<MenuProps> {
-    return this.fontSizes.map((size) => {
-      return {tag: 'MenuItem', primaryText: `${size}`, value: `${size}`};
-    });
-  }
-
-  toolbarControlProps(): ToolbarControlProps {
-    return {
-      tooltip: "Font size",
-      displayValue: '10',
-      showTooltip: true,
-      width: 45
-    };
-  }
-
-  /*************************************************************************************************************************/
-  // Helper methods to pass to generator
-
-  // When the active cell changes to a new cell, get the new menu value that should be selected/checked
-  _getMenuValueFromCell(cell: ASCell): string {
-    return "10"; // TODO: something like cell.cellProps.font.fontSize
-  }
-
-  _propagateControlStateChange(nextValue: string, rng: ASRange) {
-    // TODO: case on value, call some API function
-    console.log("Propagating state change to backend: " + nextValue);
-  }
-
-  // Update the toolbar control props given a the menu visibility, menuValue, and current toolbarProps.
-  _toolbarControlPropTransform(menuVisible: boolean, menuValue: string, toolbarControlProps: ToolbarControlProps): ToolbarControlProps {
-    toolbarControlProps.showTooltip = !menuVisible;
-    toolbarControlProps.displayValue = menuValue;
-    return toolbarControlProps;
-  }
-
-  /*************************************************************************************************************************/
-  //Render
-
-  render(): React.Element {
-    let ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
-    return (
-      <ButtonWithMenu
-        toolbarControlProps={this.toolbarControlProps()}
-        menuProps={this.getMenuProps()}
-        getMenuValueFromCell={this._getMenuValueFromCell.bind(this)}
-        toolbarControlPropTransform={this._toolbarControlPropTransform.bind(this)}
-        propagateControlStateChange={this._propagateControlStateChange.bind(this)}
-        initialValue="10"
-        menuWidth={65}
-        toolbarControlWidth={45}
-        id="FontSizePicker" />
-    );
-  }
-
+function FontSizePicker(props: FontSizePickerProps): React.Element {
+  const {visible, value} = props;
+  return (
+    <ButtonWithMenu
+      toolbarControlProps={toolbarControlProps}
+      menuProps={menuProps}
+      menuWidth={65}
+      toolbarControlWidth={45}
+      visible={visible}
+      value={value}
+      onSelect={size => ExpActionCreators.setFontSize(size)}
+      onOpen={() => ToolbarActionCreators.openItem('FontSizePicker')}
+      onClose={() => ToolbarActionCreators.closeItem('FontSizePicker')}
+    />
+  );
 }
+
+export default pure(FontSizePicker);

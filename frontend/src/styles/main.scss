@@ -153,3 +153,13 @@ body {
 .ansi-bright-magenta-bg {background-color: #E7C7F2;}
 .ansi-bright-cyan-bg {background-color: #B0F0F5;}
 .ansi-bright-white-bg {background-color: #FFF;}
+
+// TODO(joel) - move these styles over to js
+.toolbar > div {
+  display: inline;
+}
+
+.toolbar-button-icon:hover {
+  // material-ui grey50
+  color: #fafafa !important;
+}

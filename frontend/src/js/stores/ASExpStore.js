@@ -3,6 +3,8 @@
 import type {
   ASLanguage,
   ValueFormat,
+  VAlignType,
+  HAlignType,
 } from '../types/Eval';
 
 import {logDebug} from '../AS/Logger';
@@ -203,6 +205,38 @@ const ASExpStore = Object.assign({}, BaseStore, {
 
   setDefaultLanguage(lang) {
     _data.defaultLanguage = lang;
+  },
+
+  // TODO(joel): support setting this
+  getFont(): string {
+    return 'Arial';
+  },
+
+  // TODO(joel): support setting this
+  getFontSize(): number {
+    return 10;
+  },
+
+  // TODO(joel): support setting this
+  getVAlign(): VAlignType {
+    return 'VCenterAlign';
+  },
+
+  // TODO(joel): support setting this
+  getHAlign(): HAlignType {
+    return 'LeftAlign';
+  },
+
+  getFillColor() {
+    return 'XXX(joel)';
+  },
+
+  getBorderColor() {
+    return 'XXX(joel)';
+  },
+
+  getTextColor() {
+    return 'XXX(joel)';
   },
 
   getClickType() : ?string {
