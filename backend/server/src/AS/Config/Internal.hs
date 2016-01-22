@@ -16,7 +16,7 @@ import Language.Haskell.TH
 -- needs to be in a module by itself, because templatehaskell... 
 
 -------------------------------------------------------------------------------------------------------------------------
--- compile-time settings 
+-- compile- and run-time settings 
 
 getPrintSetting :: Q Exp
 getPrintSetting = do
@@ -29,7 +29,7 @@ getSettings = catch readEnvironment handleException
     readEnvironment = do
       env <- B.readFile =<< getEnvironmentPath
       case (eitherDecode env) of 
-        Right settings -> putStrLn "using settings from Environment.json" >> return settings
+        Right settings -> putStrLn ("using settings from Environment.json: " ++ show env) >> return settings
         Left err -> $error $ "couldn't decode environment file, because: " ++ err
     handleException :: SomeException -> IO AppSettings
     handleException _ = putStrLn "decoding Environment failed, falling back on defaults" >> return defaultSettings

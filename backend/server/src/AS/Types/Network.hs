@@ -38,9 +38,11 @@ data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _graphDbAddress :: GraphAddress
                                 , _pyKernelAddress :: KernelAddress
                                 , _redisPort :: Port
+                                , _redisHost :: Host
                                 , _shouldPrint :: Bool}
                                 deriving (Show)
 
+type Host = String
 type Port = Int
 type GraphAddress = String
 type KernelAddress = String
@@ -53,8 +55,9 @@ instance FromJSON AppSettings where
     graphAddr <- v .:? "graphDbAddress_haskell" .!= "tcp://localhost:5555"
     pyAddr <- v .:? "pyKernelAddress_haskell" .!= "tcp://localhost:20000"
     redisPort <- v .:? "redisPort" .!= 6379
+    redisHost <- v .:? "redisHost" .!= "localhost"
     shouldPrint <- v .:? "shouldWriteToConsole" .!= True
-    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort shouldPrint
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldPrint
   parseJSON _ = $error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

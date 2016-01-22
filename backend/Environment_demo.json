@@ -6,5 +6,6 @@
   "pyKernelAddress_haskell": "tcp://localhost:20200",
   "graphDbAddress_cpp": "tcp://*:5755",
   "pyKernelAddress_python": "tcp://*:20200",
-  "redisPort": 6381
+  "redisPort": 6381,
+  "redisHost": "localhost"
 }

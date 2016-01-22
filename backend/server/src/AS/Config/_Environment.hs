@@ -16,4 +16,5 @@ defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
                                 , _graphDbAddress = "tcp://localhost:5555"
                                 , _pyKernelAddress = "tcp://localhost:20000"
                                 , _redisPort = 6379
+                                , _redisHost = "localhost"
                                 , _shouldPrint = False}

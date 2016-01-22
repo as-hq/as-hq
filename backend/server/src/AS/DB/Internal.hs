@@ -53,12 +53,12 @@ import Network.Socket.Internal
 -- Settings
 
 connectRedis :: AppSettings -> IO Connection
-connectRedis settings = connect $ cInfo (settings^.redisPort)
+connectRedis settings = connect $ cInfo (settings^.redisHost) (settings^.redisPort) 
 
 -- | Haskell Redis connection object
-cInfo :: Port -> ConnectInfo
-cInfo port = ConnInfo
-    { connectHost           = "localhost"
+cInfo :: Host -> Port -> ConnectInfo
+cInfo host port = ConnInfo
+    { connectHost           = host
     , connectPort           = PortNumber $ fromIntegral port
     , connectAuth           = Nothing
     , connectDatabase       = 0
