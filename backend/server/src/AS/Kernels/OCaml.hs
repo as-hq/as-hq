@@ -1,5 +1,8 @@
 module AS.Kernels.OCaml where
 
+import AS.Prelude
+import Prelude()
+
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
@@ -21,7 +24,7 @@ import Control.Monad.Trans.Either
 
 --  DEPRECATED until we actually support OCaml (anand 1/6/15)
 evaluate :: String -> String -> EitherTExec EvalResult
-evaluate _ _ = undefined
+evaluate _ _ = $undefined
 --evaluate _ "" = return $ CellValue NoValue
 --evaluate _ str = do
     --if isDebug 
@@ -33,7 +36,7 @@ evaluate _ _ = undefined
 
 --  DEPRECATED until we actually support OCaml (anand 1/6/15)
 evaluateRepl :: String -> String -> EitherTExec EvalResult
-evaluateRepl _ _ = undefined
+evaluateRepl _ _ = $undefined
 --evaluateRepl _ "" = return $ CellValue NoValue
 --evaluateRepl _ str = left ExecError -- TODO
 ----------------------------------------------------------------------------------------------------------------------------------------------

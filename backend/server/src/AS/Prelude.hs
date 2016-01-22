@@ -1,6 +1,7 @@
 module AS.Prelude 
   ( module PreludeMinus
   , error
+  , undefined
   , valAt
   , read
   , head
@@ -15,7 +16,7 @@ module AS.Prelude
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
 
-import Prelude as PreludeMinus hiding (head, tail, last, read, error)
+import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined)
 import qualified Prelude as P
 
 import Control.Lens
@@ -99,6 +100,9 @@ read' :: (Read a) => (String -> a) -> String -> a
 read' errorReporter str = case readEither str of 
   Left e -> errorReporter $ "Read failed, because: " ++ e
   Right a -> a
+
+undefined :: Q Exp
+undefined = appE error [|"Undefined!"|]
 
 --get :: Q Exp
 --get = appE [|get'|] error
