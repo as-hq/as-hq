@@ -1,10 +1,11 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 import cgi
+import json
 
 # If connected to the server, address = ip address of server
 # localhost configs: change host to localhost
-host = 'localhost'
+defaultHost = '18.102.225.27'
 defaultFrontendPort = 8080
 defaultFileHandlingPort = 9000
 
@@ -35,23 +36,30 @@ if __name__ == '__main__':
   except:
     settings = {}
 
-  server_address = None
+  # below can probably be DRY'd up
+  if 'host' in settings: 
+    host = settings['host']
+  else: 
+    print("host not specified in environment file, falling back on default")
+    host = defaultHost
+  print("Connecting to host " + host + "\n")
+
   if 'fileInputHandlerPort' in settings:
-    port = settings['fileInputHandlerPort']
-    print("Attaching to port '" + port + "' from Environment.json\n")
-    server_address = (host, port)
+    fileInputHandlerPort = settings['fileInputHandlerPort']
   else:
-    print("No environment specified, falling back on defaults\n")
-    server_address = (host, defaultFileHandlingPort)
+    print("fileInputHandlerPort not specified in environment file, falling back on default")
+    fileInputHandlerPort = defaultFileHandlingPort
+  print("Attaching to port '" + str(fileInputHandlerPort) + "'\n")
 
   if 'frontendPort' in settings:
-    port = settings['frontendPort']
-    print("Using frontend port '" + port + "' from Environment.json\n")
-    FileInputHandler.frontendAddress = 'http://' + host + ':' + str(port)
+    frontendPort = settings['frontendPort']
   else:
-    print("No environment specified, falling back on defaults\n")
-    FileInputHandler.frontendAddress = 'http://' + host + ':' + str(defaultFrontendPort)
-
+    print("frontendPort not specified in environment file, falling back on default")
+    frontendPort = defaultFrontendPort
+  print("Using frontend port '" + str(frontendPort) + "'\n")
+  
+  FileInputHandler.frontendAddress = 'http://' + host + ':' + str(defaultFrontendPort)
+  server_address = (host, fileInputHandlerPort)
   httpd = HTTPServer(server_address, FileInputHandler)
   print('http server is running on address: ' + str(server_address))
   httpd.serve_forever()
