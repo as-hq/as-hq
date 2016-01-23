@@ -28,7 +28,7 @@ import type {
 type TextboxDefaultProps = {}
 
 type TextboxProps = {
-  position: ?HGRectangle; //#encapsulation
+  getPosition: () => ?HGRectangle; //#encapsulation
   onDeferredKey: (e: SyntheticKeyboardEvent) => void;
   hideToast: () => void;
   setFocus: (elem: ASFocusType) => void;
@@ -138,7 +138,7 @@ export default class Textbox
       let xp = this.editor.getValue(),
           rows = xp.split("\n"),
           longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-          extentX = maybe(0, (pos) => pos.extent.x, this.props.position);
+          extentX = maybe(0, (pos) => pos.extent.x, this.props.getPosition());
       return Math.max(extentX, (longestStr.length)*8.15);
     } else {
       return 0;
@@ -203,7 +203,7 @@ export default class Textbox
   // Render
 
   render(): React.Element {
-    const pos = this.props.position;
+    const pos = this.props.getPosition();
 
     let baseStyle = {
       display:'block',
@@ -221,9 +221,4 @@ export default class Textbox
 
     return <div id='textbox' style={baseStyle} />;
   }
-}
-
-Textbox.propTypes = {
-  onDeferredKey: React.PropTypes.func.isRequired,
-  position: React.PropTypes.func.isRequired
 }

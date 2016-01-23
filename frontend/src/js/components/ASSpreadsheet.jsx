@@ -829,7 +829,7 @@ export default class ASSpreadsheet
                    scroll={scroll}
                    onDeferredKey={onTextBoxDeferredKey}
                    hideToast={hideToast}
-                   position={this.getTextboxPosition()}
+                   getPosition={() => this.getTextboxPosition()}
                    setFocus={setFocus} />
 
         </div>
