@@ -28,3 +28,6 @@ getSettings = I.getSettings
 
 heartbeat_interval :: Milliseconds
 heartbeat_interval = 1000
+
+process_message_timeout :: Seconds
+process_message_timeout = 5

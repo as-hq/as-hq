@@ -20,6 +20,7 @@ library
                        AS.Daemon
                        AS.LanguageDefs
                        AS.Serialize
+                       AS.Async
                        AS.DB.API
                        AS.DB.Eval
                        AS.DB.Expanding
@@ -177,6 +178,7 @@ executable alphasheets-exe
                      , wai-websockets
                      , wai-app-static
                      , file-embed
+                     , containers
   default-language:    Haskell2010
 
 benchmark alphasheets-bench

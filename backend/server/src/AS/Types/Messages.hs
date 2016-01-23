@@ -49,6 +49,7 @@ failureMessage mid s = ClientMessage mid $ ShowFailureMessage s
 data ClientAction = 
     NoAction
   | AskDecouple
+  | AskTimeout 
   | SetInitialProperties SheetUpdate [EvalHeader] -- list of expressions in header
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
@@ -88,6 +89,7 @@ data ServerAction =
   | MutateSheet MutateType
   | Drag { initialRange :: ASRange, dragRange :: ASRange }
   | Decouple
+  | Timeout
   | UpdateCondFormatRules CondFormatRuleUpdate
   | SetBarProp BarIndex BarProp
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }

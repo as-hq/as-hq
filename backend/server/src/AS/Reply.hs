@@ -18,8 +18,9 @@ import Control.Lens
 
 broadcastTo :: MVar ServerState -> [ASSheetId] -> ClientMessage -> IO ()
 broadcastTo state sids message = do
-  (State ucs _ _ _) <- readMVar state
-  let ucsSheetIds = zip ucs (map userSheetId ucs)
+  curState <- readMVar state
+  let ucs = curState^.userClients
+      ucsSheetIds = zip ucs (map userSheetId ucs)
       affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sids) ucsSheetIds
   (flip mapM_) affectedUsers $ \(UserClient _ conn _ _) -> sendMessage message conn
 
@@ -31,8 +32,10 @@ broadcastErrOrUpdate mid state _ (Right update) = broadcastSheetUpdate mid state
 
 broadcastSheetUpdate :: MessageId -> MVar ServerState -> SheetUpdate -> IO ()
 broadcastSheetUpdate mid state sheetUpdate = do 
-  State ucs _ _ _ <- readMVar state
-  mapM_ (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) ucs
+  curState <- readMVar state
+  mapM_ 
+    (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) 
+    (curState^.userClients)
 
 -- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
 -- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 

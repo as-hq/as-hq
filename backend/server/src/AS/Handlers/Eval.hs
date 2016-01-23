@@ -19,6 +19,8 @@ import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
 
+import qualified Data.Map as M
+
 import Control.Concurrent
 import Control.Lens hiding ((.=))
 import Control.Monad.Trans.Either
@@ -65,3 +67,11 @@ handleDecouple mid uc mstate = do
       updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
       broadcastSheetUpdate mid mstate $ sheetUpdateFromCommit c
 
+-- | The user has pressed the "kill" button for an overlong operation;
+-- look up the relevant thread, and kill it if it exists.
+handleTimeout :: MessageId -> MVar ServerState -> IO ()
+handleTimeout mid state = 
+  modifyMVar_ state $ \curState -> do
+    maybe (return ()) killThread $
+      M.lookup mid (view threads curState)
+    return $ curState & threads %~ (M.delete mid)

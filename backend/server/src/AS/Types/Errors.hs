@@ -92,8 +92,7 @@ getExcelErrorType NegExpBaseWithFloatingExp = (NumErr, "a negative exponent base
 getExcelErrorType ZeroToTheZero = (NumErr, "evaluating 0^0")
 
 data ASExecError =
-    Timeout
-  | WillNotEvaluate
+    WillNotEvaluate
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId}
   | DBNothingException {badLocs :: [ASIndex]}

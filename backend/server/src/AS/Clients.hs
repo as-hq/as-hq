@@ -49,11 +49,11 @@ instance Client ASUserClient where
   clientConn = userConn
   clientId = sessionId
   ownerName = userId
-  addClient uc s@(State ucs dcs dbc port)
-    | uc `elem` ucs = s
-    | otherwise = State (uc:ucs) dcs dbc port
-  removeClient uc s@(State ucs dcs dbc port)
-    | uc `elem` ucs = State (L.delete uc ucs) dcs dbc port
+  addClient uc s
+    | uc `elem` (s^.userClients) = s
+    | otherwise = s & userClients %~ (uc :)
+  removeClient uc s
+    | uc `elem` (s^.userClients) = s & userClients %~ (L.delete uc)
     | otherwise = s
   handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
@@ -96,6 +96,7 @@ instance Client ASUserClient where
       MutateSheet mutateType      -> handleMutateSheet mid user state mutateType
       Drag selRng dragRng         -> handleDrag mid user state selRng dragRng
       Decouple                    -> handleDecouple mid user state
+      Timeout                     -> handleTimeout mid state
       UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user state cfru
       GetBar bInd                 -> handleGetBar mid user state bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
@@ -111,11 +112,11 @@ instance Client ASDaemonClient where
   clientConn = daemonConn
   clientId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
-  addClient dc s@(State ucs dcs dbc port)
-    | dc `elem` dcs = s
-    | otherwise = State ucs (dc:dcs) dbc port
-  removeClient dc s@(State ucs dcs dbc port)
-    | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
+  addClient dc s
+    | dc `elem` (s^.daemonClients) = s
+    | otherwise = s & daemonClients %~ (dc :)
+  removeClient dc s
+    | dc `elem` (s^.daemonClients) = s & daemonClients %~ (L.delete dc)
     | otherwise = s
   handleServerMessage daemon state message = case (serverAction message) of
     Evaluate xpsAndIndices -> handleEval' (serverMessageId message) daemon state xpsAndIndices
