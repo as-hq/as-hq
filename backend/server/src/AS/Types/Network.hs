@@ -39,7 +39,8 @@ data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _pyKernelAddress :: KernelAddress
                                 , _redisPort :: Port
                                 , _redisHost :: Host
-                                , _shouldPrint :: Bool}
+                                , _shouldPrint :: Bool
+                                , _shouldWriteToSlack :: Bool}
                                 deriving (Show)
 
 type Host = String
@@ -57,7 +58,8 @@ instance FromJSON AppSettings where
     redisPort <- v .:? "redisPort" .!= 6379
     redisHost <- v .:? "redisHost" .!= "localhost"
     shouldPrint <- v .:? "shouldWriteToConsole" .!= True
-    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldPrint
+    shouldWriteToSlack <- v .:? "shouldWriteToSlack" .!= True
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldPrint shouldWriteToSlack
   parseJSON _ = $error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

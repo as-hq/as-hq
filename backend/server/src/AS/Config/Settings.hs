@@ -17,6 +17,9 @@ isDebug = True
 shouldWritetoConsole :: Bool
 shouldWritetoConsole = $(I.getPrintSetting)
 
+shouldLogToSlack :: Bool
+shouldLogToSlack = $(I.getShouldWriteToSlack)
+
 largeSearchBound :: Int
 largeSearchBound = 1000
 

@@ -23,6 +23,12 @@ getPrintSetting = do
   settings <- runIO getSettings
   return . ConE . mkName . show $ settings^.shouldPrint
 
+getShouldWriteToSlack :: Q Exp
+getShouldWriteToSlack = do
+  settings <- runIO getSettings
+  return . ConE . mkName . show $ settings^.shouldWriteToSlack
+
+-- currently always fails, and always reads from defaultSettings (Alex 1/22)
 getSettings :: IO AppSettings
 getSettings = catch readEnvironment handleException
   where 

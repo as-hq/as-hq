@@ -17,4 +17,5 @@ defaultSettings = AppSettings  { _backendWsAddress = "0.0.0.0"
                                 , _pyKernelAddress = "tcp://localhost:20000"
                                 , _redisPort = 6379
                                 , _redisHost = "localhost"
-                                , _shouldPrint = False}
+                                , _shouldPrint = False
+                                , _shouldWriteToSlack = True} -- Should only be True in production environment

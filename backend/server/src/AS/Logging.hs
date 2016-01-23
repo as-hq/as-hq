@@ -101,7 +101,7 @@ logError err (CommitSource sid uid) = do
   printWithTime logMsg
 
 logSlack :: String -> IO ()
-logSlack msg = void $ Wreq.post webhookUrl payload
+logSlack msg = when shouldLogToSlack $ void $ Wreq.post webhookUrl payload
   where
     webhookUrl = "https://hooks.slack.com/services/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"
     payload = object [
