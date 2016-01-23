@@ -26,6 +26,7 @@ import AS.Handlers.Paste
 import AS.Handlers.Delete
 
 import AS.Eval.CondFormat
+import AS.Eval.Core
 
 import AS.Window
 import AS.Logging
@@ -84,19 +85,18 @@ handleOpen :: MessageId -> ASUserClient -> MVar ServerState -> ASSheetId -> IO (
 handleOpen mid uc state sid = do 
   -- update state
   conn <- view dbConn <$> readMVar state
+  settings <- view appSettings <$> readMVar state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
       startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
   US.modifyUser makeNewWindow uc state
-  -- get header files data to send back to user user
-  headers         <- mapM (DB.getEvalHeader conn sid) headerLangs
-  -- get conditional formatting data to send back to user user
-  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
-  -- get column props
-  bars <- DB.getBarsInSheet conn sid
-  -- get cells
+  -- get initial sheet data
   cells <- DB.getCellsInSheet conn sid
-  -- get rangeDescriptors
+  bars <- DB.getBarsInSheet conn sid
   rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
+  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
+  headers         <- mapM (DB.getEvalHeader conn sid) headerLangs
+  -- pre-evaluate the headers
+  mapM (runEitherT . evaluateHeader settings) headers
   let sheetUpdate = SheetUpdate (Update cells []) (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
   sendToOriginal uc $ ClientMessage mid $ SetInitialProperties sheetUpdate headers
 
