@@ -20,7 +20,7 @@ import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
 import Constants from '../Constants';
 
-import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
+import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';

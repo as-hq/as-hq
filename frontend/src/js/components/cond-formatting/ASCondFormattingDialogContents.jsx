@@ -15,7 +15,7 @@ import Util from '../../AS/Util';
 import ASCondFormatRule from '../../classes/ASCondFormatRule';
 import ASRange from '../../classes/ASRange';
 
-import _Styles from '../../styles/dialogs/ASCondFormattingDialog';
+import _Styles from '../../styles/cond-formatting/ASCondFormattingDialog';
 
 import ASButton from '../basic-controls/ASButton.jsx';
 

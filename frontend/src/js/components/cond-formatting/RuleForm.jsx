@@ -10,6 +10,7 @@ import FAddendLift from '../form-generators/FormAddendLift.jsx';
 import TabSelector from '../form-generators/TabSelector.jsx';
 import HODropdownMenu from '../form-generators/HODropdownMenu.jsx';
 
+import CodeField from '../form-generators/FCCodeField.jsx';
 import TextField from '../form-generators/FCTextField.jsx';
 import ColorPicker from '../form-generators/FCColorPicker.jsx';
 
@@ -112,7 +113,9 @@ const BoolConditionForm = {
 const LambdaForm = FAddendLift({
   tag: 'LambdaFormatMapConstructor',
   text: 'Lambda formatter',
-  form: TextField // TODO: change to code editor compliant with valueLink
+  form: CodeField(
+    { defaultValue: 'lambda x: Format(italic=True, bold=True)' }
+  )
 });
 
 const Form = FSum({

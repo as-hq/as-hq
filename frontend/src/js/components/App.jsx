@@ -17,7 +17,7 @@ import ASTopBar from './ASTopBar.jsx';
 import ASConnectionBar from './ASConnectionBar.jsx';
 import ASBottomBar from './ASBottomBar.jsx';
 
-import ASCondFormattingDialog from './dialogs/ASCondFormattingDialog.jsx';
+import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASChartDialog from './chart/ASChartDialog.jsx';
 
 import ResizablePanel from './ResizablePanel.jsx'
@@ -141,8 +141,8 @@ export default React.createClass({
         <div style={{
           ...fullStyle,
           ...(errorPaneOpen ? { } : {'display': 'none'})}}>
-          <ASErrorPaneController 
-            open={errorPaneOpen} 
+          <ASErrorPaneController
+            open={errorPaneOpen}
             selectCellAtLocation={idx => this._handleRequestSelect(idx)} />
         </div>
         <div style={{

@@ -28,7 +28,7 @@ const defaultEditorProps = {
 };
 
 function onPropsSet(editor, props) {
-  editor.getSession().setMode('ace/mode/'+props.mode);
+  editor.getSession().setMode('ace/mode/'+props.language);
   editor.setOption('maxLines', props.maxLines);
 
   editor.setTheme('ace/theme/'+defaultEditorProps.theme);
@@ -43,9 +43,11 @@ function onPropsSet(editor, props) {
 }
 
 type EditorDefaultProps = {
-  mode: string;
+  language: string;
   value: string;
   maxLines: ?number;
+
+  style: any;
 
   onKeyDown: Callback<SyntheticKeyboardEvent>;
   onKeyUp: Callback<SyntheticKeyboardEvent>;
@@ -53,7 +55,7 @@ type EditorDefaultProps = {
 };
 
 type EditorProps = {
-  mode: string;
+  language: string;
 
   value: string;
   requestChange: Callback<string>;
@@ -65,7 +67,6 @@ type EditorProps = {
   onFocus: Callback<SyntheticFocusEvent>;
 
   maxLines: ?number;
-  language: ASLanguage;
 };
 
 type EditorState = {
@@ -108,6 +109,8 @@ export default class ASCodeField
   constructor(props: EditorDefaultProps) {
     super(props);
 
+    this.$listenerRemovers = [];
+
     this.silent = false;
     this.state = {
       name: shortid.generate()
@@ -126,13 +129,13 @@ export default class ASCodeField
     onPropsSet(this.editor, this.props);
 
     const aceListenerImplementer = (listenerName, listener) => ({
-      listener, 
+      listener,
       add: (l) => this.editor.on(listenerName, l),
       remove: (l) => this.editor.off(listenerName, l)
     });
 
     Util.React.implementComponentListeners(this, [
-      aceListenerImplementer('change', () => this._handleEditorChange()), 
+      aceListenerImplementer('change', () => this._handleEditorChange()),
       aceListenerImplementer('focus', (evt) => this._handleEditorFocus(evt))
     ]);
   }
@@ -229,7 +232,7 @@ export default class ASCodeField
 }
 
 ASCodeField.defaultProps = {
-  mode     : 'python',
+  language : 'python',
   value    : '',
   style    : {
     width  : '100%',
