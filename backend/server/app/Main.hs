@@ -10,7 +10,6 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 
-import AS.Config.Paths
 import AS.Config.Constants
 
 import AS.Clients()
@@ -154,8 +153,7 @@ shouldPreprocess = False
 preprocess :: WS.Connection -> MVar ServerState -> IO () 
 preprocess conn state = do
   -- prepare the preprocessing
-  logDir <- getServerLogDir
-  fileContents <- AS.Prelude.readFile (logDir ++ "client_messages")
+  fileContents <- AS.Prelude.readFile (S.log_dir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
       nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && $head l /= '#') fileLinesWithNumbers
 

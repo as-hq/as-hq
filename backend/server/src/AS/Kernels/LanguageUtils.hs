@@ -4,6 +4,8 @@ module AS.Kernels.LanguageUtils where
 import Prelude()
 import AS.Prelude
 
+import AS.Config.Settings as S
+
 import Text.Parsec
 import Text.Parsec.Text
 import qualified Data.Text as T
@@ -16,7 +18,6 @@ import AS.Types.Errors
 
 import AS.Logging
 
-import AS.Config.Paths
 import AS.Parsing.Show
 import AS.Parsing.Substitutions
 import AS.Parsing.Common
@@ -271,8 +272,7 @@ insertValues conn sheetid ctx xp =
 
 getTemplate :: ASLanguage -> IO String
 getTemplate lang = do
-  path <- getEvalPath
-  P.readFile $ path ++ file
+  P.readFile $ S.eval_dir ++ file
   where
     file = case lang of
       R     -> "r/template.r"

@@ -22,12 +22,13 @@ type SuccessCallback = IO ()
 -- | For example, a user decides to evaluate A1. It runs for more than n seconds, so the
 -- user receives a notification asking if he wants to kill it. If the user doesn't 
 -- press 'kill' in time, the action will run to completion and the message will be dismissed. 
--- Otherwise, the 'kill' message handler will throw an exception to this thread. 
+-- Otherwise, the 'Timeout' message handler will throw an exception to this thread. 
+-- GHC #7719 explains why we need uninterruptibleMask_.
 timeout :: Seconds -> TimeoutCallback -> SuccessCallback -> IO () -> IO ()
 timeout n onTimeout onSuccess f = 
   bracket (forkIOWithUnmask $ \unmask ->
-               unmask $ threadDelay (1000 * 1000 * n) >> onTimeout) -- start a timer thread.
-          (uninterruptibleMask_ . killThread) -- kill the timer thread if f completes early. GHC #7719 explains why we need uninterruptibleMask_.
+               unmask $ threadDelay (1000 * 1000 * n) >> onTimeout)
+          (uninterruptibleMask_ . killThread) 
           (\_ -> f) 
   >> onSuccess
 

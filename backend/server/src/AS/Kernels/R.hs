@@ -19,8 +19,7 @@ import AS.Types.Sheets
 import AS.Kernels.Internal
 import AS.Kernels.LanguageUtils
 
-import AS.Config.Settings
-import AS.Config.Paths (getImagesPath)
+import AS.Config.Settings as S
 import AS.Logging
 import AS.Util (getUniqueId, trace')
 
@@ -63,15 +62,13 @@ type ASFilePath = String
 evaluate :: String -> EvalCode -> EitherTExec EvalResult
 evaluate _ ""  = return emptyResult
 evaluate _ str = do
-  fp <- liftIO $ getCurrentDirectory 
-  v <- liftIO $ execOnString str (execR fp False)
+  v <- liftIO $ execOnString str (execR False)
   return $ EvalResult v Nothing
 
 evaluateRepl :: EvalCode -> EitherTExec EvalResult
 evaluateRepl ""  = return emptyResult
 evaluateRepl str = do
-  fp <- liftIO $ getCurrentDirectory
-  v <- liftIO $ execOnString str (execR fp True)
+  v <- liftIO $ execOnString str (execR True)
   return $ EvalResult v Nothing
 
 evaluateHeader :: EvalCode -> EitherTExec EvalResult
@@ -96,9 +93,10 @@ execOnString str f = do
 
 -- takes (current project dir, isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
-execR :: ASFilePath -> Bool -> EvalCode -> IO CompositeValue
-execR fp isGlobal s =
-  let whenCaught :: SomeException -> IO CompositeValue
+execR :: Bool -> EvalCode -> IO CompositeValue
+execR isGlobal s =
+  let fp = S.main_dir
+      whenCaught :: SomeException -> IO CompositeValue
       whenCaught e = (R.runRegion $ castR =<< [r| setwd(fp_hs) |]) >> (return . CellValue $ ValueError (show e) "R error")
   in flip catch whenCaught $ R.runRegion $ castR =<< if isGlobal
     then [r| eval(parse(text=s_hs)) |]
@@ -164,9 +162,8 @@ castVector v = do
         if (isRPlot nameStrs)
           then do
             uid <- liftIO getUniqueId
-            path <- liftIO getImagesPath
             let imageName = uid ++ ".png"
-                savePath = path ++ imageName
+                savePath = S.images_dir ++ imageName
             [r|ggsave(filename=savePath_hs, plot=AS_LOCAL_EXEC)|]
             return . CellValue $ ValueImage imageName
           else return . Expanding . VRList $ zip nameStrs vals
