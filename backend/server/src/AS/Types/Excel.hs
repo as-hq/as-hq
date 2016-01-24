@@ -30,6 +30,7 @@ import qualified Data.Text as T
 import Database.Redis (Connection)
 import Control.Lens hiding ((.=), index, Context)
 import Control.Lens.TH
+import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
@@ -241,6 +242,8 @@ type EResult = ThrowsError EEntity
 
 type EFunc =  (Context -> [EEntity] -> EResult)
 type EFuncResult = (Context -> [EResult] -> EResult)
+type EFuncEitherT =  (Context -> [EEntity] -> EitherT EError IO EEntity)
+type EFuncResultEitherT = (Context -> [EResult] -> EitherT EError IO EEntity)
 
 --------------------------------------------------------------------------------------------------------------
 -- | Type checking for argument extraction

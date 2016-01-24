@@ -908,6 +908,15 @@ describe('backend', () => {
               exec(done)
           ]);
         });
+        it ('RAND', (done) => {
+          _do([
+              excel('A1', '=RAND()'),
+              excel('B1', '=RAND()'),
+              python('A2', '0 <= A1 <= 1 and 0 <= B1 <= 1 and A1 != B1'),
+              shouldBe('A2', valueB(true)),
+              exec(done)
+          ]);
+        });
         xit ('MATCH', (done) => {
             _do([
                 excel('A1', 'Product'),

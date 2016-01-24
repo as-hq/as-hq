@@ -19,6 +19,7 @@ import Data.List hiding (head, tail)
 import qualified Data.Vector as V
 
 import Control.Lens
+import Control.Monad.Trans.Either
 
 import System.IO.Unsafe
 import Database.Redis (Connection)
@@ -62,19 +63,26 @@ to1D (EMatrix c r v)
 
 -- | Convert a result to a value. Used when mapping array formulas; eval gives a bunch of results
 -- that need to be casted back to a EMatrix
-resToVal :: EResult -> ThrowsError EValue
-resToVal (Right (EntityVal v)) = Right v
-resToVal (Left e) = Left e
-resToVal other = Left $ ArrayFormulaUnMappable
 
 valToResult :: EValue -> EResult
 valToResult = Right . EntityVal
+
+entityToVal :: EEntity -> ThrowsError EValue
+entityToVal (EntityVal v) = Right v
+entityToVal other = Left $ ArrayFormulaUnMappable
+
+--TODOX: timchu, rename!
+valToEitherT :: EValue -> EitherT EError IO EEntity
+valToEitherT = return . EntityVal
 
 stringResult :: String -> EResult
 stringResult = Right . EntityVal . EValueS
 
 locToResult :: ASReference -> EResult
 locToResult = Right . EntityRef . ERef
+
+locToEitherT :: ASReference -> EitherT EError IO EEntity
+locToEitherT = right . EntityRef . ERef
 
 doubleToResult :: Double -> EResult
 doubleToResult = valToResult . EValueNum . return . EValueD

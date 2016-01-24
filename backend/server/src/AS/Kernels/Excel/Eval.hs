@@ -47,9 +47,9 @@ entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
 -- throws away formatting in this case... awaiting your refactor, Anand. (Alex 11/11)
 
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
-evalExcel :: String -> Context -> EResult
+evalExcel :: String -> Context -> EitherT EError IO EEntity
 evalExcel s context = do
-  f <- C.parseFormula s
+  f <- hoistEither $ C.parseFormula s
   case f of
     ArrayFormula formula -> L.evalArrayFormula context formula
     SimpleFormula formula -> L.evalFormula context formula
@@ -57,7 +57,8 @@ evalExcel s context = do
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 -- Excel doesn't have print statements, so the display value of EvalResult is always Nothing
 evaluate :: Connection -> String -> ASIndex -> CellMap -> EitherTExec (Formatted EvalResult)
-evaluate conn s idx mp = right $ EvalResult <$> val <*> return Nothing
-  where 
-    context = Context mp idx conn
-    val = convertEither context $ evalExcel s context
+evaluate conn s idx mp =  do
+  let context = Context mp idx conn
+  eResult <- lift $ runEitherT $ evalExcel s context
+  let val = convertEither context eResult
+  right $ EvalResult <$> val <*> return Nothing

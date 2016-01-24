@@ -8,10 +8,10 @@ import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.Formats
-import AS.Eval.ColRangeHelpers (colRangeWithCellMapToRange)
-
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
+import AS.Eval.ColRangeHelpers (colRangeWithCellMapToRange)
+
 import qualified Data.Map.Strict as M
 import Data.Either
 import Control.Monad.Except
@@ -22,6 +22,8 @@ import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 
 import qualified Text.Read as TR
+import System.Random (randomIO)
+
 import Text.Regex
 import Data.Char (toLower,toUpper)
 import qualified Data.Text as T
@@ -50,6 +52,7 @@ import qualified Statistics.Matrix as SM
 import Control.Lens hiding ((.=), Context, index, transform)
 import Control.Lens.TH
 
+import Control.Monad.Trans.Either
 
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
 type Arg a = (Int,a)
@@ -84,12 +87,16 @@ data FuncDescriptor = FuncDescriptor {
   arrFormEvalArgs :: [Int],       -- Evaluate these arguments as AF in normal mode (and in AF mode as well)
   replaceRefArgs :: [Int],        -- Before evaluation, replace reference arguments by context/DB
   maxNumArgs :: Maybe Int,        -- Upper bound on number of arguments (Nothing means no bound, like sum)
-  callback :: EFuncResult
+  callback :: EFuncResultEitherT
 }
 
 -- | Scalarize in normal mode, map over all arguments for array formula, replace all refs
 normalD :: Int -> EFunc -> FuncDescriptor
 normalD n f = FuncDescriptor [1..argNumLimit] [1..argNumLimit] [] [1..argNumLimit] (Just n) (transform f)
+
+-- #CodeDuplication with normalD.
+normalDIO :: Int -> EFuncEitherT -> FuncDescriptor
+normalDIO n f = FuncDescriptor [1..argNumLimit] [1..argNumLimit] [] [1..argNumLimit] (Just n) (transformFuncEitherT f)
 
 -- | Similar to above, but only map/scalarize over some arguments
 normalD' :: Int -> [Int] -> EFunc -> FuncDescriptor
@@ -113,8 +120,11 @@ vector2 f = FuncDescriptor [] [] [1,2] [1..argNumLimit] (Just 2) (transform f)
 infixD :: EFunc -> FuncDescriptor
 infixD = normalD 2 
 
+convertFuncResultToEitherT :: EFuncResult -> EFuncResultEitherT
+convertFuncResultToEitherT = ((hoistEither . ) . )
+
 cellType :: EFuncResult -> FuncDescriptor
-cellType = FuncDescriptor [1] [1] [] [1] (Just 1)
+cellType eFuncResult = FuncDescriptor [1] [1] [] [1] (Just 1) (convertFuncResultToEitherT eFuncResult)
 
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
@@ -232,14 +242,22 @@ functions =  M.fromList $
     ("search"         , normalD 3 eSearch),   
     ("substitute"     , normalD 4 eSubstitute),
     ("trim"           , normalD 1 eTrim),
-    ("upper"          , normalD 1 eUpper)]
+    ("upper"          , normalD 1 eUpper),
+    -- | Random function
+    ("rand"           , normalDIO 0 eRand)]
 
 -- | Many functions are simpler to implement as [EEntity] -> EResult
 -- | This function maps those EFuncs to EFuncResults by returning an error if any args were errors
-transform :: EFunc -> EFuncResult
-transform f = \c r -> do
+transform :: EFunc -> EFuncResultEitherT
+transform f = \c r -> hoistEither $ do
   args <- compressErrors r
   f c args
+
+transformFuncEitherT :: EFuncEitherT -> EFuncResultEitherT
+transformFuncEitherT f = \context resultArgs -> do
+  args <- hoistEither $ compressErrors resultArgs
+  f context args
+
 
 getFunc :: String -> ThrowsError FuncDescriptor
 getFunc f = case (M.lookup (map toLower f) functions) of
@@ -250,11 +268,11 @@ getFunc f = case (M.lookup (map toLower f) functions) of
 -- | AST Evaluation functions
 
 -- | Make sure that a function doesn't have too many args
-checkNumArgs :: String -> Maybe Int -> Int -> ThrowsError ()
+checkNumArgs :: String -> Maybe Int -> Int -> EitherT EError IO ()
 checkNumArgs name (Just max) len =  if len > max
-  then Left $ TooManyArgs name
-  else Right ()
-checkNumArgs _ Nothing _ = Right ()
+  then left $ TooManyArgs name
+  else right ()
+checkNumArgs _ Nothing _ = right ()
 
 -- | If eval basic formula produces a matrix, only take top left value
 topLeftForMatrix :: String -> EResult ->  EResult
@@ -263,50 +281,51 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
   | otherwise = valToResult $ V.head v
 topLeftForMatrix _ r = r
 
-evalBasicFormula :: Context -> BasicFormula -> EResult
-evalBasicFormula c (Ref exLoc) = locToResult $ exRefToASRef (view locSheetId (curLoc c)) exLoc
-evalBasicFormula c (Var val)   = valToResult val
-evalBasicFormula c (Fun f fs)  = do
-  fDes <- getFunc f
-  let args = map (getFunctionArg c fDes) (zip [1..argNumLimit] fs)
-      argsRef = substituteRefsInArgs c fDes args
-  checkNumArgs f (maxNumArgs fDes) (length argsRef)
-  topLeftForMatrix f $ (callback fDes) c argsRef
+evalBasicFormula :: Context -> BasicFormula -> EitherT EError IO EEntity
+evalBasicFormula context (Ref exIndex) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
+evalBasicFormula c (Var val)   = valToEitherT val
+--TDOOX: timchu. Names + wasted code.
+evalBasicFormula context (Fun f inputFormulas)  = do
+  fDescriptor <- hoistEither $ getFunc f
+  args <- lift $ mapM (runEitherT . getFunctionArg context fDescriptor) (zip [1..argNumLimit] inputFormulas)
+  let argsRef = substituteRefsInArgs context fDescriptor args
+  checkNumArgs f (maxNumArgs fDescriptor) (length argsRef)
+  result <- lift $ runEitherT $ callback fDescriptor context argsRef
+  hoistEither $ topLeftForMatrix f $ result
 
-evalFormula :: Context -> Formula -> EResult
-evalFormula c (Basic b) = evalBasicFormula c b
-evalFormula c (ArrayConst b) = do
-  let lstChildren = map (map (evalBasicFormula c)) b
-  ac <- compressErrors $ concat lstChildren
-  fmap EntityMatrix $ arrConstToResult c $ map rights lstChildren
+evalFormula :: Context -> Formula -> EitherT EError IO EEntity
+evalFormula context (Basic basicFormula) = evalBasicFormula context basicFormula
+evalFormula context (ArrayConst basicFormulas) = do
+  lstChildren <- mapM ( mapM (evalBasicFormula context)) basicFormulas
+  hoistEither $ fmap EntityMatrix $ arrConstToResult context $ lstChildren
 
-evalArrayFormula :: Context -> Formula -> EResult
-evalArrayFormula c (Basic (Ref exLoc)) = locToResult $ exRefToASRef (view locSheetId (curLoc c)) exLoc
-evalArrayFormula c (Basic (Var val)) = valToResult val
-evalArrayFormula c f@(ArrayConst b) = evalFormula c f
-evalArrayFormula c f@(Basic (Fun name fs)) = do
-  fDes <- getFunc name
+-- TODOX: timchu, lots of code duplication. Especially in args <- ....
+evalArrayFormula :: Context -> Formula -> EitherT EError IO EEntity
+evalArrayFormula context (Basic (Ref exIndex)) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
+evalArrayFormula _       (Basic (Var val)) = valToEitherT val
+evalArrayFormula context formula@(ArrayConst b) = evalFormula context formula
+evalArrayFormula context basicFormula@(Basic (Fun name formulasPassedIntoFunc)) = do
+  fDescriptor <- hoistEither $ getFunc name
+  checkNumArgs name (maxNumArgs fDescriptor) (length formulasPassedIntoFunc)
   -- curLoc is always an index (you evaluate from within a cell)
-  let s = shName (IndexRef $ curLoc c)
-  --  This is a name duplication with a function in Handlers/Mutate.hs.
-  refMap <- unexpectedRefMap c (getUnexpectedRefs s f)
-  checkNumArgs name (maxNumArgs fDes) (length fs)
+  let sheetId = shName (IndexRef $ curLoc context)
+  refMap <- hoistEither $ unexpectedRefMap context (getUnexpectedRefs sheetId basicFormula)
   case refMap of
-    Just mp -> evalArrayFormula' c mp f
+    Just mp -> evalArrayFormula' context mp basicFormula
     Nothing -> do
-      let args = map (evalArrayFormula c) fs
-      let argsRef = substituteRefsInArgs c fDes args
-      (callback fDes) c argsRef
+      args <- mapM (lift . runEitherT . (evalArrayFormula context)) formulasPassedIntoFunc
+      let argsRef = substituteRefsInArgs context fDescriptor args
+      (callback fDescriptor) context argsRef
 
 -- | Evaluate a (valid) array formula given a RefMap to replace unexpected array references
 -- | In particular, calling this method means the callback will return a Matrix
-evalArrayFormula' :: Context -> RefMap -> Formula -> EResult
-evalArrayFormula' c mp (Basic (Fun f fs)) = do
-  let args = map (evalArrayFormula' c mp) fs
+evalArrayFormula' :: Context -> RefMap -> Formula -> EitherT EError IO EEntity
+evalArrayFormula' context mp (Basic (Fun functionName formulasPassedIntoFunc)) = do
+  args <- mapM (lift . runEitherT . (evalArrayFormula' context mp)) formulasPassedIntoFunc
   let replacedArgs = map (replace (refMap mp)) args
-  fDes <- getFunc f
-  mapArgs (refDim mp) fDes c replacedArgs
-evalArrayFormula' c mp f = evalArrayFormula c f
+  fDescriptor <- hoistEither $ getFunc functionName
+  mapArgs (refDim mp) fDescriptor context replacedArgs
+evalArrayFormula' context mp formula = evalArrayFormula context formula
 
 --------------------------------------------------------------------------------------------------------------
 -- | AST Normal Evaluation helpers
@@ -315,27 +334,32 @@ evalArrayFormula' c mp f = evalArrayFormula c f
 -- | Depending on arg number, do normal eval or array formula eval
 -- | If the resulting EResult is a reference to be scalarized, compute intersection/throw error
 -- | The callback function itself will throw an error if it has an invalid argument type
-getFunctionArg :: Context -> FuncDescriptor -> Arg Formula -> EResult
-getFunctionArg c fd (argNum,(ArrayConst lst)) = scalarizeArrConst c fd argNum lst
-getFunctionArg c fd (argNum,f) = scalarizeRef (IndexRef $ curLoc c) fd (argNum,res) -- curLoc is always an index (you evaluate from within a cell)
-  where
-    res | elem argNum (arrFormEvalArgs fd) = evalArrayFormula c f
-      | otherwise = evalFormula c f
+getFunctionArg :: Context -> FuncDescriptor -> Arg Formula -> EitherT EError IO EEntity
+getFunctionArg context funcDescriptor (argNum,(ArrayConst lst)) =
+  scalarizeArrConst context funcDescriptor argNum lst
+getFunctionArg context funcDescriptor (argNum,formula) = do
+  result <- lift $ runEitherT $  case elem argNum (arrFormEvalArgs funcDescriptor) of
+                                   True  -> evalArrayFormula context formula
+                                   False -> evalFormula      context formula
+  lift $ runEitherT $ evalFormula context formula
+  scalarizeRef (IndexRef $ curLoc context) funcDescriptor (argNum,result) -- curLoc is always an index (you evaluate from within a cell)
 
-scalarizeArrConst :: Context -> FuncDescriptor -> Int -> [[BasicFormula]] -> EResult
-scalarizeArrConst c fd argNum lst
-  | (elem argNum (scalarArgsIfNormal fd)) = case (topLeftLst lst) of
-    Nothing -> throwError $ EmptyArrayConstant
-    Just tl -> evalBasicFormula c tl
-  | otherwise =  evalFormula c (ArrayConst lst)
+scalarizeArrConst :: Context -> FuncDescriptor -> Int -> [[BasicFormula]] -> EitherT EError IO EEntity
+scalarizeArrConst context funcDescriptor argNum lst
+  | (elem argNum (scalarArgsIfNormal funcDescriptor)) =
+      case (topLeftLst lst) of
+        Nothing -> left $ EmptyArrayConstant
+        Just tl -> evalBasicFormula context tl
+  | otherwise =  evalFormula context (ArrayConst lst)
 
-scalarizeRef :: ASReference -> FuncDescriptor -> Arg EResult -> EResult
-scalarizeRef curLoc fd (argNum,r@(Right (EntityRef (ERef loc))))
-  |(elem argNum (scalarArgsIfNormal fd)) = case (scalarizeLoc curLoc loc) of
-    Nothing -> throwError $ ScalarizeIntersectionError curLoc loc
-    Just newLoc -> locToResult newLoc
-  |otherwise = r
-scalarizeRef _ _ x = snd x
+scalarizeRef :: ASReference -> FuncDescriptor -> Arg EResult -> EitherT EError IO EEntity
+scalarizeRef curLoc funcDescriptor (argNum,ref@(Right (EntityRef (ERef locInsideRef))))
+  |(elem argNum (scalarArgsIfNormal funcDescriptor)) =
+    case (scalarizeLoc curLoc locInsideRef) of
+      Nothing     -> left $ ScalarizeIntersectionError curLoc locInsideRef
+      Just newLoc -> hoistEither $ locToResult newLoc
+  |otherwise = hoistEither $ ref
+scalarizeRef _ _ x = hoistEither $ snd x
 
 --------------------------------------------------------------------------------------------------------------
 -- | AST Array Formula Evaluation helpers
@@ -359,6 +383,7 @@ getRangeRefs s fDes (numArg,(Basic (Ref exIndex)))
   | otherwise = []
 getRangeRefs s _ (_,f) = getUnexpectedRefs s f
 
+-- TODOX: timchu. Comments here would be nice. I don't know what this does.
 -- | Returns a map of replacements for "unexpected" range references
 -- | All must have same dimension, same width and height (or 1), or same height and width (or 1)
 unexpectedRefMap :: Context -> [ERef] -> ThrowsError (Maybe RefMap)
@@ -432,13 +457,13 @@ arrConstToResult c es = do
 
 -- NOTE: treating index refs as 1x1 matrices for functions like sum that need to know that a value came from a reference
 refToEntity :: Context -> ERef -> ThrowsError EEntity
-refToEntity context (ERef l@(IndexRef i)) = case (asValueToEntity v) of
-  Nothing -> Left $ CannotConvertToExcelValue l
-  Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
-  where
-    v = case (M.lookup i (evalMap context)) of
-      Nothing -> dbLookup (dbConn context) i
-      c -> cellToFormattedVal c
+refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
+    Nothing -> Left $ CannotConvertToExcelValue l
+    Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
+    where
+      v = case (M.lookup i (evalMap c)) of
+        Nothing -> dbLookup (dbConn c) i
+        c -> cellToFormattedVal c
 
 refToEntity context (ERef (l@(RangeRef r))) =
   if any isNothing vals
@@ -453,6 +478,7 @@ refToEntity context (ERef (l@(RangeRef r))) =
     dbVals = dbLookupBulk (dbConn context) needDB
     vals = map toEValue $ mapVals ++ dbVals
 
+-- #ErrorSource. This does not do DB lookups, which are needed for some Excel functions like indirect.
 refToEntity context (ERef (colRange@(ColRangeRef cr))) =
   if any isNothing vals
       then Left $ CannotConvertToExcelValue l
@@ -498,13 +524,15 @@ substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
 
 -- | The function descriptor contains which arguments to map for an array formula
 -- | Mapping requires that entity to be a matrix
-mapArgs :: Dim -> FuncDescriptor -> EFuncResult
-mapArgs (c,r) fDes con e = do
-  -- Row-major accumulation of results
-  let evalAF = resToVal . ((callback fDes) con) . (getOffsetArgs fDes e)
-  let results = [evalAF (Coord c' r') | r'<-[0..(r-1)],c'<-[0..(c-1)]]
-  errResults <- compressErrors results
-  return $ EntityMatrix (EMatrix c r (V.fromList errResults))
+mapArgs :: Dim -> FuncDescriptor -> EFuncResultEitherT
+mapArgs (c,r) funcDescriptor context e = do
+  -- | Row-major accumulation of results
+  let evalAF :: Coord -> EitherT EError IO EValue
+      evalAF coord = do
+        val <- callback funcDescriptor context $ getOffsetArgs funcDescriptor e coord
+        hoistEither $ entityToVal $ val
+  vals <- sequence [evalAF (Coord c' r') | r'<-[0..(r-1)],c'<-[0..(c-1)]]
+  return $ EntityMatrix (EMatrix c r (V.fromList vals))
 
 -- | Given a function descriptor, a list of arguments (results) and an offset
 -- | Replace each argument with the offsetted value if fDes says to
@@ -795,8 +823,8 @@ isNumeric _ = False
 
 -- | If the first argument is an error (eval or otherwise), return the second
 -- | Eval error will produce a Left, referencing an error cell (eg if A1 is #REF) is a EValueE
-eIfError :: EFuncResult
-eIfError c r = do
+eIfError :: EFuncResultEitherT
+eIfError c r = hoistEither $ do
   r' <- testNumArgs 2 "iferror" r
   let errRes = r!!1
   case ($head r') of
@@ -1783,3 +1811,9 @@ eAmpersand context arguments = do
                  otherwise -> Right $ showE value
   [str1, str2] <- mapM makeValueString (zip [val1, val2] [1,2])
   stringResult $ str1 ++ str2
+
+eRand :: EFuncEitherT
+eRand context entities = do
+  e' <- hoistEither $ testNumArgs 0 "rand" entities
+  r <- lift $ (randomIO :: IO Double)
+  hoistEither $ valToResult $ EValueNum (return $ EValueD r)
