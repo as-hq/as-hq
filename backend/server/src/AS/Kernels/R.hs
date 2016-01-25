@@ -48,7 +48,7 @@ import System.Directory
 
 import Control.Monad.IO.Class
 import Control.Applicative
-import Control.Exception (catch, SomeException)
+import Control.Exception (handle, SomeException)
 -- EitherT
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -96,11 +96,21 @@ execOnString str f = do
 execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s =
   let fp = S.main_dir
-      whenCaught :: SomeException -> IO CompositeValue
-      whenCaught e = (R.runRegion $ castR =<< [r| setwd(fp_hs) |]) >> (return . CellValue $ ValueError (show e) "R error")
-  in flip catch whenCaught $ R.runRegion $ castR =<< if isGlobal
+      fpStatic = S.static_dir
+      onException :: SomeException -> IO CompositeValue
+      onException e = (R.runRegion $ castR =<< [r| setwd(fp_hs) |]) >> (return . CellValue $ ValueError (show e) "R error")
+  in handle onException $ R.runRegion $ castR =<< if isGlobal
     then [r| eval(parse(text=s_hs)) |]
-    else [r| AS_LOCAL_ENV<-function(){setwd(paste(getwd(),"/static",sep="")); result = eval(parse(text=s_hs)); setwd("../"); result}; AS_LOCAL_EXEC<-AS_LOCAL_ENV(); AS_LOCAL_EXEC |]
+    else [r| 
+    AS_LOCAL_ENV <- function() {
+      setwd(fpStatic_hs) 
+      result = eval(parse(text=s_hs))
+      setwd(fp_hs)
+      result
+    }; 
+    AS_LOCAL_EXEC<-AS_LOCAL_ENV()
+    AS_LOCAL_EXEC 
+    |]
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue

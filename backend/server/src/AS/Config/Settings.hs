@@ -33,6 +33,9 @@ process_message_timeout = 5
 main_dir :: String
 main_dir = $(I.getAppendedPath "")
 
+static_dir :: String 
+static_dir = $(I.getAppendedPath I.static_dir)
+
 images_dir :: String
 images_dir = $(I.getAppendedPath I.images_dir)
 

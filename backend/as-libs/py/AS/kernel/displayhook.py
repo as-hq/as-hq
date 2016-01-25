@@ -10,12 +10,17 @@ class ASDisplayHook(DisplayHook):
     This class does many things, but the basic idea is that it is a callable
     that gets called anytime user code returns a value.
     """
-    exec_result = Instance('AS.kernel.shell.ASExecutionResult',
-                           allow_none=True)
+
+    # This stores the most recent execution result, which is used 
+    # when the last line of user code is an evaluable expression.
+    exec_result = None
 
     def __init__(self, shell=None, cache_size=1000, silent=False, **kwargs):
       super(ASDisplayHook, self).__init__(shell, cache_size, **kwargs)
       self.silent = silent
+
+    def fill_exec_result(self, result):
+      self.exec_result = result
 
     def write_output_prompt(self):
       if self.silent:

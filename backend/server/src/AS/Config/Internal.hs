@@ -40,16 +40,11 @@ getSettings = catch readEnvironment handleException
 -------------------------------------------------------------------------------------------------------------------------
 -- filepaths 
 
---py_eval_path = "server/as-py-eval/"
---py_libs_path = "asl/as-libs/py/"
---py_template_file = "template.py"
---py_eval_file = "eval.py"
---py_run_file = "run.py"
-
 images_dir = "static/images/"
 eval_dir   = "eval_files/"
 env_dir    = ".." </> "Environment.json"
 log_dir    = "logs/"
+static_dir = "static/"
 
 getAppendedPath :: String -> Q Exp
 getAppendedPath dir = do
