@@ -41,6 +41,8 @@
   "scripts": {
     "dev": "gulp --type dev",
     "start": "gulp",
+    "start-nightly": "gulp --ports=8180",
+    "start-demo": "gulp --ports=8280",
     "build": "gulp build",
     "test": "jest --verbose",
     "integration-test": "karma start"
