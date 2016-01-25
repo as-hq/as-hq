@@ -601,18 +601,19 @@ export default class ASEvalPane
       });
     }
 
-    // Only re-eval if the cell actually changed from before.
-    let curCell = CellStore.getCell(origin);
-    if (!curCell) {
-      if (xpObj.expression != "") {
-        API.evaluate(origin, xpObj);
-      }
-    } else {
-      let {expression, language} = curCell.expression;
-      if (expression != xpObj.expression || language != xpObj.language) {
+    // Only eval if the expression is not empty, and the cell is not part of an expanding cell with
+    // a different expression. 
+    // #incomplete this is still slightly wrong. If we're pressing ctrl+enter on the head cell (or maybe
+    // any cell in the list) we might want the list to update (e.g. if it's range(a), where a is a constant
+    // defined in the header. This is a detail that feels nontrivial to fix now -- the current 
+    // solution is probably good enough. (Alex 1/25)
+    if (xpObj.expression != "") {
+      const curCell = CellStore.getCell(origin);
+      if (curCell == null || curCell.expandingType == null || curCell.expression.expression != xpObj.expression) { 
         API.evaluate(origin, xpObj);
       }
     }
+
     ExpStore.setDefaultLanguage(xpObj.language);
   }
 
