@@ -116,7 +116,7 @@ export default class ASSpreadsheet
     this.mouseDownInBox = false;
     this.dragSelectionOrigin = null;
 
-    
+
     this.resizedColNum = null;
     this.resizedRowNum = null;
 
@@ -138,10 +138,11 @@ export default class ASSpreadsheet
   }
 
   componentDidMount() {
-    // Be able to respond to events from ExpStore
-    ExpStore.addChangeListener(this._onExpressionChange.bind(this));
-    BarStore.addChangeListener(this._onBarPropsChange.bind(this));
-    OverlayStore.addChangeListener(this._onOverlaysChange.bind(this));
+    U.React.addStoreLinksWithoutForceUpdate(this, [
+      { store: ExpStore, listener: () => this._onExpressionChange() },
+      { store: BarStore, listener: () => this._boundOnBarPropsChange() },
+      { store: OverlayStore, listener: () => this._boundOnOverlaysChange() },
+    ]);
 
     // Hypergrid initialization
     document.addEventListener('polymer-ready', () => {
@@ -163,7 +164,7 @@ export default class ASSpreadsheet
   }
 
   componentWillUnmount() {
-    ExpStore.removeChangeListener(this._onExpressionChange.bind(this));
+    U.React.removeStoreLinks(this);
   }
 
   /*************************************************************************************************************************/
