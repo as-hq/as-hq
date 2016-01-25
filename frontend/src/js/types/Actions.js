@@ -216,6 +216,21 @@ export type ClearAllProgressAction = {
   _type: 'CLEAR_ALL_PROGRESS';
 };
 
+export type AddNotificationAction = {
+  _type: 'ADD_NOTIFICATION';
+  spec: ASNotificationSpec;
+};
+
+export type DismissNotificationAction = {
+  _type: 'DISMISS_NOTIFICATION';
+  uid: string;
+};
+
+export type RemoveNotificationAction = {
+  _type: 'REMOVE_NOTIFICATION';
+  uid: string;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -259,4 +274,7 @@ export type ASAction =
   | CloseChartingDialogAction
   | ClearAllProgressAction
   | MarkSentAction
-  | MarkReceivedAction;
+  | MarkReceivedAction
+  | AddNotificationAction
+  | DismissNotificationAction
+  | RemoveNotificationAction;
