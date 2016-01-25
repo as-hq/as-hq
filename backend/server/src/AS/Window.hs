@@ -1,10 +1,11 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
-
 module AS.Window
   ( ASWindow(..)
   , intersectViewingWindow
   , getScrolledLocs
   ) where
+
+import AS.Prelude
+import Prelude()
 
 import AS.Types.Locations
 import AS.Types.Cell
@@ -14,7 +15,8 @@ import Data.Aeson
 import Data.SafeCopy
 import Control.Lens hiding ((.=))
 
-data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} deriving (Show,Read,Eq,Generic)
+data ASWindow = Window {windowSheetId :: ASSheetId, topLeft :: Coord, bottomRight :: Coord} 
+                deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances

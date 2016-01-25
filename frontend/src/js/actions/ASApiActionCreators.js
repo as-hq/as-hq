@@ -201,6 +201,7 @@ pws.onmessage = (event: MessageEvent) => {
       });
       break;
     case 'AskTimeout':
+      console.warn("Got timeout message!");
       const {serverActionType, timeoutMessageId} = action;
       let operation = serverActionType;
       if (serverActionType === 'Evaluate') {
@@ -436,10 +437,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  timeout(timeoutMessageId: string) {
+  timeout(messageId: string) {
     const msg = {
       tag: "Timeout",
-      timeoutMessageId
+      contents: messageId
     };
     API.sendMessageWithAction(msg);
   },

@@ -155,7 +155,6 @@ sendMessage addr msg = do
     reqSocket <- connectToKernel addr
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
-  printWithTimeT "SENDING MESSAGE TO KERNEL!"
   case resp of 
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"

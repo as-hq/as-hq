@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
-
 module AS.Types.Formats
   ( Format(..),
     FormatType(..), 
@@ -29,12 +27,12 @@ import Control.Lens.Prism
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Formats
 
-data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Generic)
+data FormatType = NoFormat | Money | Percentage | Date deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- A format must have a FormatType, and possibly keeps track of num decimal offset (if applicable, not so for Date)
 -- An offset of +1 means that there's one more decimal place; 1.22 -> 1.220
 -- note: I'd prefer to not expose this, but pattern-matching this just makes life *so* much easier
-data Format = Format { _formatType :: FormatType, _numDecimals :: Maybe Int } deriving (Show, Read, Eq, Generic)
+data Format = Format { _formatType :: FormatType, _numDecimals :: Maybe Int } deriving (Show, Read, Data, Typeable, Eq, Generic)
 
 -- The Formatted monad possibly gives formatting to an original value
 -- note: I'd prefer to not expose this, but pattern-matching this just makes life *so* much easier

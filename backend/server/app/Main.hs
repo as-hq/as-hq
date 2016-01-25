@@ -198,12 +198,17 @@ processAsyncWithTimeout c state msg = case c of
     modifyMVar_ state $ \curState -> 
       return $ curState & threads %~ (M.insert mid tid)
     where
-      mid       = serverMessageId msg
+      mid = serverMessageId msg
+      act = getServerActionType . serverAction $ msg
       timeoutAsync f = forkIO $ 
         timeout S.process_message_timeout onTimeout onSuccess f
-      onTimeout = sendMessage (ClientMessage mid AskTimeout) (clientConn c)
-      onSuccess = modifyMVar_ state $ \curState -> 
-        return $ curState & threads %~ (M.delete mid)
+      onTimeout = 
+        sendMessage 
+          (ClientMessage timeout_message_id $ AskTimeout mid act) 
+          (clientConn c)
+      onSuccess = 
+        modifyMVar_ state $ \curState -> 
+          return $ curState & threads %~ (M.delete mid)
   (clientType -> Daemon) -> void $ forkIO (processMessage c state msg)
   _ -> return ()
 

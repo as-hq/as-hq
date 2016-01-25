@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -7,6 +6,9 @@ module AS.Types.Locations
   , module AS.Types.Migrations.Locations
   , module AS.Types.Sheets
   ) where
+
+import AS.Prelude
+import Prelude()
 
 import AS.Types.Migrations.Locations
 
@@ -28,7 +30,7 @@ type Row = Int
 
 -- We want O(n log n) unions for collections of locations and datatypes that depend on them
 -- (e.g. ASCell), so we're making them Ord. 
-data Coord = Coord { _coordCol :: Col, _coordRow :: Row } deriving (Show, Read, Eq, Ord, Generic)
+data Coord = Coord { _coordCol :: Col, _coordRow :: Row } deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 makeFields ''Coord
 data InfiniteRowCoord = InfiniteRowCoord { _infiniteRowCoordCol :: Int } deriving (Show, Read, Eq, Ord, Generic)
 makeFields ''InfiniteRowCoord
@@ -40,11 +42,11 @@ type Rect = (Coord, Coord)
 -- Locations
 
 data ASIndex = Index { _locSheetId :: ASSheetId, _index :: Coord } 
-  deriving (Show, Read, Eq, Generic, Ord)
+  deriving (Show, Read, Eq, Generic, Data, Typeable, Ord)
 data ASPointer = Pointer { pointerIndex :: ASIndex } 
   deriving (Show, Read, Eq, Ord, Generic)
 data ASRange = Range {rangeSheetId :: ASSheetId, range :: Rect }
-  deriving (Show, Read, Eq, Ord, Generic)
+  deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 data ASColRange = ColRange {colRangeSheetId :: ASSheetId, colRange :: (Coord, InfiniteRowCoord) }
   deriving (Show, Read, Eq, Ord, Generic)
 data ASReference = IndexRef ASIndex | ColRangeRef ASColRange | RangeRef ASRange | PointerRef ASPointer | OutOfBounds

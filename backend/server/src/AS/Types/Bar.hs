@@ -4,6 +4,9 @@
 
 module AS.Types.Bar where
 
+import AS.Prelude
+import Prelude()
+
 import AS.ASJSON
 
 import AS.Types.Sheets
@@ -17,7 +20,7 @@ import Data.SafeCopy
 import Control.Applicative
 import Control.Monad (liftM, ap)
 
-data BarType = ColumnType | RowType deriving (Show, Read, Eq, Generic)
+data BarType = ColumnType | RowType deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- NORM: never expand this type; always modify it using the records. (So we don't confuse 
 -- before and after accidentally.)
@@ -25,7 +28,7 @@ type BarDiff = Diff Bar
 type BarUpdate = Update Bar BarIndex
 
 -- Uniquely identifies a row or column in a sheet. 
-data BarIndex = BarIndex { barSheetId :: ASSheetId, barType :: BarType, barNumber :: Int } deriving (Show, Read, Eq, Generic)
+data BarIndex = BarIndex { barSheetId :: ASSheetId, barType :: BarType, barNumber :: Int } deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data Bar = Bar {barIndex :: BarIndex, barProps :: ASBarProps} deriving (Show, Read, Eq, Generic)
 

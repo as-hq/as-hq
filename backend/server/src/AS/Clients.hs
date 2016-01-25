@@ -96,7 +96,7 @@ instance Client ASUserClient where
       MutateSheet mutateType      -> handleMutateSheet mid user state mutateType
       Drag selRng dragRng         -> handleDrag mid user state selRng dragRng
       Decouple                    -> handleDecouple mid user state
-      Timeout                     -> handleTimeout mid state
+      Timeout timeoutMid          -> handleTimeout timeoutMid state
       UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user state cfru
       GetBar bInd                 -> handleGetBar mid user state bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop

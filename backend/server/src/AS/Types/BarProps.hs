@@ -1,6 +1,7 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
-
 module AS.Types.BarProps where
+
+import AS.Prelude
+import Prelude()
 
 import AS.ASJSON
 
@@ -15,7 +16,7 @@ import Data.SafeCopy
 data BarProp = 
     Dimension Int -- width for columns, height for rows
   | FromCell CP.CellProp
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data BarPropType = DimensionProp | FromCellProp CP.CellPropType deriving (Show, Read, Eq, Generic, Ord)
 

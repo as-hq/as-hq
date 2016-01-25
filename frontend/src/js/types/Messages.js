@@ -491,7 +491,7 @@ export type Decouple = {
 
 export type Timeout = {
   tag: "Timeout";
-  timeoutMessageId: string;
+  contents: string; // the messageId of the message we want to kill
 }
 
 export type UpdateCondFormatRules = {
