@@ -1,10 +1,13 @@
 module AS.Reply (broadcastTo, broadcastErrOrUpdate, broadcastSheetUpdate, sendSheetUpdate, sendToOriginal) where
 
+import AS.Types.Bar
 import AS.Types.Cell
 import AS.Types.Commits
+import AS.Types.CondFormat
 import AS.Types.Updates
-import AS.Types.Network
 import AS.Types.Messages
+import AS.Types.Network
+import AS.Types.RangeDescriptor
 import AS.Types.User
 import AS.Types.Errors
 import AS.Util
@@ -37,13 +40,21 @@ broadcastSheetUpdate mid state sheetUpdate =
 -- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 
 -- (We *do* only send back the deleted cells in the sheet though, as opposed to deleted cells everywhere.)
 filterSheetUpdate :: SheetUpdate -> ASWindow -> SheetUpdate
-filterSheetUpdate (SheetUpdate (Update cs locs) rcs ds cfrs) win = update
+filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
   where 
     sid    = windowSheetId win
-    -- cells' = intersectViewingWindow cs win -- only filtering by sheet now. no more viewing window bs
-    cells' = filter ((==) sid . view (cellLocation.locSheetId)) cs
-    locs'  = filter ((==) sid . refSheetId) locs 
-    update = SheetUpdate (Update cells' locs') rcs ds cfrs
+    -- #lens
+    cu'    = filterUpdateByKey ((==) sid . refSheetId) cu 
+    bu'    = filterUpdateByKey ((==) sid . barSheetId) bu
+    du'    = filterUpdateByKey ((==) sid . view locSheetId . keyIndex) du
+    -- We have to do this workaround because there's currently no easy way to get a sheetId from a 
+    -- condFormatRuleId, so we just won't filter out the keys to delete, and we keep only the new rules
+    -- that apply exclusively to cells in the current sheet. (...in any case, a conditional format rule
+    -- should never be applicable over multiple sheets.) It's currently ok to ask frontend to delete
+    -- conditional formatting rules that don't exist on the sheet (currently a noop), but we *really*
+    -- shouldn't tell it to add rules from a separate sheet. (Alex 1/25)
+    filteredCfrs = filter (all ((==) sid . rangeSheetId) . cellLocs) (newVals cfru)
+    update = SheetUpdate cu' bu' du' (Update filteredCfrs (oldKeys cfru))
 
 sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
 sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (userConn uc)

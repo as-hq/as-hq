@@ -42,7 +42,7 @@ handleDelete mid uc state rng = do
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 -- #lens
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
-modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bs ds cfs) = SheetUpdate (Update cs' locs') bs ds cfs 
+modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bu du cfu) = SheetUpdate (Update cs' locs') bu du cfu 
   where 
     rngs  = [rng] 
     locs' = (map RangeRef rngs) ++ locs
