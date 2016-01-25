@@ -110,7 +110,7 @@ handleOpen mid uc state sid = do
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 
 handleUpdateWindow :: MessageId -> ASUserClient -> ServerState -> ASWindow -> IO ()
-handleUpdateWindow mid uc state w = sendToOriginal uc $ ClientMessage NoAction
+handleUpdateWindow mid uc state w = sendToOriginal uc $ ClientMessage mid NoAction
 -- handleUpdateWindow cid mstate w = do
   -- state <- readMVar mstate
 --   let conn = state^.dbConn

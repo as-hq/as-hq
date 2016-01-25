@@ -67,8 +67,8 @@ removePropEndware _ _ _ = return ()
 -- so a future refactor of props should address this. 
 -- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
 -- to update when you change their precision. 
-handleTransformProp :: MessageId -> (ASCellProps -> ASCellProps) -> ASUserClient -> ServerState -> ASRange -> IO ()
-handleTransformProp f uc state rng = do
+transformPropsInDatabase :: MessageId -> (ASCell -> ASCellProps) -> ASUserClient -> ServerState -> ASRange -> IO ()
+transformPropsInDatabase mid f uc state rng = do
   let locs = rangeToIndices rng
       conn = state^.dbConn
   cells <- getPossiblyBlankCells conn locs

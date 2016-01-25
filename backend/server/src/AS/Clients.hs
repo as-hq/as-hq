@@ -72,12 +72,12 @@ instance Client ASUserClient where
       Initialize _ _              -> handleInitialize user 
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen mid user state sid
-      -- Close                 -> handleClose mid user curState payload
+      -- Close                 -> handleClose user curState payload
       UpdateWindow win            -> handleUpdateWindow mid user curState win
-      -- Import                -> handleImport mid user curState payload
-      Export sid                  -> handleExport mid user curState sid
+      -- Import                -> handleImport user curState payload
+      Export sid                  -> handleExport user curState sid
       Evaluate xpsAndIndices      -> handleEval mid user curState xpsAndIndices
-      -- EvaluateRepl          -> handleEvalRepl mid user payload
+      -- EvaluateRepl          -> handleEvalRepl user payload
       EvaluateHeader evalHeader   -> handleEvalHeader mid user curState evalHeader
       Get locs                    -> handleGet mid user curState locs
       GetIsCoupled loc            -> handleIsCoupled mid user curState loc
@@ -91,8 +91,8 @@ instance Client ASUserClient where
       SetProp prop rng            -> handleSetProp mid user curState prop rng
       ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user curState i rng
       Repeat sel                  -> handleRepeat mid user curState sel
-      BugReport report            -> handleBugReport mid user report
-      -- JumpSelect            -> handleJumpSelect mid user curState payload
+      BugReport report            -> handleBugReport user report
+      -- JumpSelect            -> handleJumpSelect user curState payload
       MutateSheet mutateType      -> handleMutateSheet mid user curState mutateType
       Drag selRng dragRng         -> handleDrag mid user curState selRng dragRng
       Decouple                    -> handleDecouple mid user curState
@@ -120,7 +120,7 @@ instance Client ASDaemonClient where
   handleServerMessage daemon mstate message = case (serverAction message) of
     Evaluate xpsAndIndices -> do
       state <- readMVar mstate
-      handleEval' mid daemon state xpsAndIndices
+      handleEval' (serverMessageId message) daemon state xpsAndIndices
     where 
       handleEval' :: MessageId -> ASDaemonClient -> ServerState -> [EvalInstruction] -> IO ()
       handleEval' mid dm state evalInstructions  = do
