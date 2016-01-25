@@ -91,7 +91,7 @@ export default React.createClass({
       currentPane: 'eval',
       // object passed from splash pane specifying initial params: opened sheet, etc
       initEvalInfo: {},
-      errorPaneOpen: true,
+      errorPaneOpen: false,
       outputPaneOpen: false,
       isConnected: true
     }
