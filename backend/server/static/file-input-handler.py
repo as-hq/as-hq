@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
   settings = None
   try:
-    f = open('../Environment.json', 'r')
+    f = open('../../Environment.json', 'r')
     settings = json.loads(f.read())
     f.close()
   except:
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     frontendPort = defaultFrontendPort
   print("Using frontend port '" + str(frontendPort) + "'\n")
   
-  FileInputHandler.frontendAddress = 'http://' + host + ':' + str(defaultFrontendPort)
+  FileInputHandler.frontendAddress = 'http://' + host + ':' + str(frontendPort)
   server_address = (host, fileInputHandlerPort)
   httpd = HTTPServer(server_address, FileInputHandler)
   print('http server is running on address: ' + str(server_address))
