@@ -14,6 +14,7 @@
     "eslint-config-airbnb": "^4.0.0",
     "eslint-plugin-react": "^3.16.1",
     "fs": "0.0.2",
+    "git-rev-sync": "^1.4.0",
     "gulp": "^3.8.7",
     "gulp-babel": "^5.2.1",
     "gulp-bower-src": "^0.1.0",
@@ -39,7 +40,9 @@
     "require-dir": "^0.3.0",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
-    "watchify": "^3.2.3"
+    "watchify": "^3.2.3",
+    "webpack": "^1.12.12",
+    "webpack-dev-server": "^1.14.1"
   },
   "scripts": {
     "dev": "gulp --type dev",
