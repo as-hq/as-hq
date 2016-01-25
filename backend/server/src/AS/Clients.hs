@@ -72,34 +72,34 @@ instance Client ASUserClient where
       Initialize _ _              -> handleInitialize user 
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen mid user state sid
-      -- Close                 -> handleClose user state payload
-      UpdateWindow win            -> handleUpdateWindow mid user state win
-      -- Import                -> handleImport user state payload
-      Export sid                  -> handleExport user state sid
-      Evaluate xpsAndIndices      -> handleEval mid user state xpsAndIndices
-      -- EvaluateRepl          -> handleEvalRepl user payload
+      -- Close                 -> handleClose mid user curState payload
+      UpdateWindow win            -> handleUpdateWindow mid user curState win
+      -- Import                -> handleImport mid user curState payload
+      Export sid                  -> handleExport mid user curState sid
+      Evaluate xpsAndIndices      -> handleEval mid user curState xpsAndIndices
+      -- EvaluateRepl          -> handleEvalRepl mid user payload
       EvaluateHeader evalHeader   -> handleEvalHeader mid user curState evalHeader
-      Get locs                    -> handleGet mid user state locs
-      GetIsCoupled loc            -> handleIsCoupled mid user state loc
-      Delete sel                  -> handleDelete mid user state sel
-      ClearSheetServer sid        -> handleClear mid user state sid
-      Undo                        -> handleUndo mid user state
-      Redo                        -> handleRedo mid user state
-      Copy from to                -> handleCopy mid user state from to
-      Cut from to                 -> handleCut mid user state from to
-      ToggleProp prop rng         -> handleToggleProp mid user state prop rng
-      SetProp prop rng            -> handleSetProp mid user state prop rng
-      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user state i rng
-      Repeat sel                  -> handleRepeat mid user state sel
-      BugReport report            -> handleBugReport user report
-      -- JumpSelect            -> handleJumpSelect user state payload
-      MutateSheet mutateType      -> handleMutateSheet mid user state mutateType
-      Drag selRng dragRng         -> handleDrag mid user state selRng dragRng
-      Decouple                    -> handleDecouple mid user state
-      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user state cfru
-      GetBar bInd                 -> handleGetBar mid user state bInd
+      Get locs                    -> handleGet mid user curState locs
+      GetIsCoupled loc            -> handleIsCoupled mid user curState loc
+      Delete sel                  -> handleDelete mid user curState sel
+      ClearSheetServer sid        -> handleClear mid user curState sid
+      Undo                        -> handleUndo mid user curState
+      Redo                        -> handleRedo mid user curState
+      Copy from to                -> handleCopy mid user curState from to
+      Cut from to                 -> handleCut mid user curState from to
+      ToggleProp prop rng         -> handleToggleProp mid user curState prop rng
+      SetProp prop rng            -> handleSetProp mid user curState prop rng
+      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user curState i rng
+      Repeat sel                  -> handleRepeat mid user curState sel
+      BugReport report            -> handleBugReport mid user report
+      -- JumpSelect            -> handleJumpSelect mid user curState payload
+      MutateSheet mutateType      -> handleMutateSheet mid user curState mutateType
+      Drag selRng dragRng         -> handleDrag mid user curState selRng dragRng
+      Decouple                    -> handleDecouple mid user curState
+      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user curState cfru
+      GetBar bInd                 -> handleGetBar mid user curState bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
-      ImportCSV ind lang fileName -> handleCSVImport mid user state ind lang fileName
+      ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 
@@ -117,14 +117,16 @@ instance Client ASDaemonClient where
   removeClient dc s@(State ucs dcs dbc port)
     | dc `elem` dcs = State ucs (L.delete dc dcs) dbc port
     | otherwise = s
-  handleServerMessage daemon state message = case (serverAction message) of
-    Evaluate xpsAndIndices -> handleEval' (serverMessageId message) daemon state xpsAndIndices
+  handleServerMessage daemon mstate message = case (serverAction message) of
+    Evaluate xpsAndIndices -> do
+      state <- readMVar mstate
+      handleEval' mid daemon state xpsAndIndices
     where 
-      handleEval' :: MessageId -> ASDaemonClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+      handleEval' :: MessageId -> ASDaemonClient -> ServerState -> [EvalInstruction] -> IO ()
       handleEval' mid dm state evalInstructions  = do
         let xps  = map evalXp evalInstructions
             inds = map evalLoc evalInstructions 
-        conn <- view dbConn <$> readMVar state
+            conn = state^.dbConn
         oldProps <- mapM (getPropsAt conn) inds
         let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
         errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id

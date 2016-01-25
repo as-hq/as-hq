@@ -27,11 +27,11 @@ import qualified Data.Map as M
 import Database.Redis (Connection)
 
 -- | Used only for flag props. 
-handleToggleProp :: MessageId -> ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleToggleProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
 handleToggleProp mid uc state p rng = do
   let locs = rangeToIndices rng
       pt   =  propType p
-  conn <- view dbConn <$> readMVar state
+      conn = state^.dbConn
   cells <- getPossiblyBlankCells conn locs
   let (cellsWithProp, cellsWithoutProp) = partition (hasPropType pt . view cellProps) cells
   -- if there's a single prop present in the range, remove this prop from all the cells; 
@@ -52,12 +52,12 @@ handleToggleProp mid uc state p rng = do
     -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
     -- Said toad. (Alex 11/7)
 
-setPropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
+setPropEndware :: ServerState -> CellProp -> ASCell -> IO ()
 setPropEndware state (StreamInfo s) c = modifyDaemon state s (c^.cellLocation) evalMsg
   where evalMsg = ServerMessage daemon_message_id $ Evaluate [EvalInstruction (c^.cellExpression) (c^.cellLocation)]
 setPropEndware _ _ _ = return ()
 
-removePropEndware :: MVar ServerState -> CellProp -> ASCell -> IO ()
+removePropEndware :: ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (c^.cellLocation) state
 removePropEndware _ _ _ = return ()
 
@@ -67,10 +67,10 @@ removePropEndware _ _ _ = return ()
 -- so a future refactor of props should address this. 
 -- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
 -- to update when you change their precision. 
-transformPropsInDatabase :: MessageId -> (ASCell -> ASCellProps) -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
-transformPropsInDatabase mid f uc state rng = do
+handleTransformProp :: MessageId -> (ASCellProps -> ASCellProps) -> ASUserClient -> ServerState -> ASRange -> IO ()
+handleTransformProp f uc state rng = do
   let locs = rangeToIndices rng
-  conn <- view dbConn <$> readMVar state
+      conn = state^.dbConn
   cells <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 
   let cells' = map (f >>= (set cellProps)) cells
@@ -80,11 +80,11 @@ transformPropsInDatabase mid f uc state rng = do
   errOrUpdate <- DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
-handleSetProp :: MessageId -> ASUserClient -> MVar ServerState -> CellProp -> ASRange -> IO ()
+handleSetProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
 handleSetProp mid uc state prop rng = transformPropsInDatabase mid (setProp prop . view cellProps) uc state rng
 
 -- Change the decimal precision of all the values in a range
-handleChangeDecimalPrecision :: MessageId -> ASUserClient -> MVar ServerState -> Int ->  ASRange -> IO ()
+handleChangeDecimalPrecision :: MessageId -> ASUserClient -> ServerState -> Int ->  ASRange -> IO ()
 handleChangeDecimalPrecision mid uc state i rng = transformPropsInDatabase mid cellPropsUpdate uc state rng
   where
     getUpdatedFormat :: ASCell -> Maybe Format

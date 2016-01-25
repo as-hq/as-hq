@@ -40,9 +40,8 @@ import System.Posix.Daemon
 getDaemonName :: ASIndex -> String
 getDaemonName loc = (show loc) ++ "daemon"
 
-getConnByLoc :: ASIndex -> MVar ServerState -> IO (Maybe WS.Connection)
+getConnByLoc :: ASIndex -> ServerState -> IO (Maybe WS.Connection)
 getConnByLoc loc state = do 
-  state <- readMVar state
   let daemon = filter ((==) loc . daemonLoc) (state^.daemonClients)
   case daemon of 
     [] -> return Nothing
@@ -55,7 +54,7 @@ getStreamPropFromExpression :: ASExpression -> Maybe Stream
 getStreamPropFromExpression _ = Nothing
 
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
-possiblyCreateDaemon :: MVar ServerState -> ASUserId -> ASCell -> IO ()
+possiblyCreateDaemon :: ServerState -> ASUserId -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell = 
   let xp = cell^.cellExpression
       loc = cell^.cellLocation
@@ -69,7 +68,7 @@ possiblyCreateDaemon state owner cell =
 -- | Creates a streaming daemon to regularly update the cell at a location. 
 -- Does so by creating client that talks to server, pinging it with the regularity 
 -- specified by the user. 
-createDaemon :: MVar ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
+createDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
 createDaemon state s loc msg = do -- msg is the message that the daemon will send to the server regularly
   putStrLn $ "POTENTIALLY CREATING A daemon"
   let name = getDaemonName loc
@@ -80,8 +79,8 @@ createDaemon state s loc msg = do -- msg is the message that the daemon will sen
     else do 
       runDetached (Just name) def $ do 
         let daemonId = T.pack $ getDaemonName loc
-        let initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc-- this ServerMessage has no origin message Id, so give it a default
-        settings <- view appSettings <$> readMVar state
+            initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc
+            settings = state^.appSettings
         WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
           U.sendMessage initMsg conn
           regularlyReEval s loc msg conn -- is an eval message on the cell
@@ -92,7 +91,7 @@ regularlyReEval (Stream src x) loc msg conn = forever $ do
   U.sendMessage msg conn
   threadDelay (1000*x) -- microseconds to milliseconds
 
-removeDaemon :: ASIndex -> MVar ServerState -> IO ()
+removeDaemon :: ASIndex -> ServerState -> IO ()
 removeDaemon loc state = do 
   let name = getDaemonName loc
   running <- isRunning name
@@ -103,5 +102,5 @@ removeDaemon loc state = do
 
 -- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
 -- (Ideal implementation would look more like modifyUser, but this works for now.)
-modifyDaemon :: MVar ServerState -> Stream -> ASIndex -> ServerMessage-> IO ()
+modifyDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage-> IO ()
 modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)

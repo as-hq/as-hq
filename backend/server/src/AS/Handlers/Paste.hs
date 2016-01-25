@@ -27,28 +27,26 @@ import Database.Redis (Connection)
 import Control.Monad ((>=>))
 import Control.Lens
 
-handleCopy :: MessageId -> ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
+handleCopy :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
 handleCopy mid uc state from to = do
   putStrLn $ "IN HANDLE COPY"
-  conn <- view dbConn <$> readMVar state
-  toCells <- getCopyCells conn from to
+  toCells <- getCopyCells (state^.dbConn) from to
   errOrUpdate <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
-handleCut :: MessageId -> ASUserClient -> MVar ServerState -> ASRange -> ASRange -> IO ()
-handleCut mid uc mstate from to = do
-  state <- readMVar mstate
+handleCut :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
+handleCut mid uc state from to = do
   newCells <- getCutCells (state^.appSettings.graphDbAddress) (state^.dbConn) from to
-  errOrUpdate <- runDispatchCycle mstate newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mid mstate uc errOrUpdate
+  errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
 -- could restructure this in such a way that encapsulation is not broken. 
-performCopy :: MVar ServerState -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
-performCopy mstate from to cs = do 
-  conn <- view dbConn <$> readMVar mstate
+performCopy :: ServerState -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
+performCopy state from to cs = do 
+  let conn = state^.dbConn
   toCells <- getCopyCells conn from to
-  runDispatchCycle mstate toCells DescendantsWithParent cs id
+  runDispatchCycle state toCells DescendantsWithParent cs id
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers

@@ -88,10 +88,9 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
 -- #lenses
-runDispatchCycle :: MVar ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
-runDispatchCycle mstate cs descSetting src updateTransform = do
+runDispatchCycle :: ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
+runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
-  state <- readMVar mstate
   time <- getASTime 
   let conn = state^.dbConn
       graphAddress = state^.appSettings.graphDbAddress
@@ -105,9 +104,9 @@ runDispatchCycle mstate cs descSetting src updateTransform = do
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch state roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } 
-    finalCells <- EE.evalEndware mstate src transformedCtx
-    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } 
+    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
+    finalCells <- EE.evalEndware state src transformedCtx
+    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
     DT.updateDBWithContext state src ctx
     return $ updateAfterEval ctx
   either (const $ G.recompute graphAddress conn) (const $ return ()) errOrUpdate -- graph db may have changed during dispatch; if not committed, reset it

@@ -25,13 +25,12 @@ import Control.Lens hiding ((.=))
 
 
 -- | Here, we apply a stack of endwares for setting props post-eval, from e.g. streaming or conditional formatting
-evalEndware :: MVar ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
-evalEndware mstate (CommitSource sid uid) ctx = do 
-  state <- lift $ readMVar mstate
+evalEndware :: ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
+evalEndware state (CommitSource sid uid) ctx = do 
   let cells0 = newCellsInContext ctx
       cells1 = cells0 ++ blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
-      -- represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
-  mapM_ (lift . DM.possiblyCreateDaemon mstate uid) cells0
+      -- ^ represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
+  mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
   oldRules <- lift $ DB.getCondFormattingRulesInSheet (state^.dbConn) sid 
   let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
   cells2 <- conditionallyFormatCells state sid cells1 updatedRules ctx

@@ -29,10 +29,9 @@ import Control.Lens hiding ((.=))
 
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.
 -- Frontend already put the file in the static folder, and all cells created will have the default language passed in
-handleCSVImport :: MessageId -> ASUserClient -> MVar ServerState -> ASIndex -> ASLanguage -> String -> IO ()
-handleCSVImport mid uc mstate ind lang fileName = do 
+handleCSVImport :: MessageId -> ASUserClient -> ServerState -> ASIndex -> ASLanguage -> String -> IO ()
+handleCSVImport mid uc state ind lang fileName = do 
   csvData <- BL.readFile $ "static/" ++ fileName
-  state <- readMVar mstate
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
   case decoded of 
@@ -47,7 +46,7 @@ handleCSVImport mid uc mstate ind lang fileName = do
       commit <- generateCommitFromCells cells
       DT.updateDBWithCommit (state^.appSettings.graphDbAddress) (state^.dbConn) src commit
       -- send list of cells back to frontend
-      broadcastSheetUpdate mid mstate $ sheetUpdateFromCells cells
+      broadcastSheetUpdate mid state $ sheetUpdateFromCells cells
 
 -- Map a function over a 2D vector
 map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)

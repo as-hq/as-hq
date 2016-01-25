@@ -1765,8 +1765,9 @@ describe('backend', () => {
             _do([
               python('A1', '1'),
               python('A2', '2'),
-              python('B2', 'A1:A2'),
+              python('B1', 'A1:A2'),
               deleteRow(1),
+              decouple(),
               shouldBe('A1', valueI(2)),
               shouldBe('B1', valueI(2)),
               shouldBeNothing('B2'),

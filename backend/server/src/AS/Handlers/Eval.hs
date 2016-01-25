@@ -26,11 +26,11 @@ import Control.Monad.Trans.Either
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
 
-handleEval :: MessageId -> ASUserClient -> MVar ServerState -> [EvalInstruction] -> IO ()
+handleEval :: MessageId -> ASUserClient -> ServerState -> [EvalInstruction] -> IO ()
 handleEval mid uc state evalInstructions  = do
   let xps  = map evalXp evalInstructions
       inds = map evalLoc evalInstructions
-  conn <- view dbConn <$> readMVar state
+      conn = state^.dbConn
   oldProps <- mapM (getPropsAt conn) inds
   let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
   errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (userCommitSource uc) id
@@ -53,9 +53,14 @@ handleEvalHeader mid uc state evalHeader = do
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB
+<<<<<<< HEAD
 handleDecouple :: MessageId -> ASUserClient -> MVar ServerState -> IO ()
 handleDecouple mid uc mstate = do 
   state <- readMVar mstate
+=======
+handleDecouple :: ASUserClient -> ServerState -> IO ()
+handleDecouple uc state = do 
+>>>>>>> 44ef029... Removed extraneous uses of MVar Serverstate, propagated throughout code.
   let conn = state^.dbConn
       src = userCommitSource uc
   mCommit <- getTempCommit conn src
@@ -63,5 +68,9 @@ handleDecouple mid uc mstate = do
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
+<<<<<<< HEAD
       broadcastSheetUpdate mid mstate $ sheetUpdateFromCommit c
+=======
+      broadcastSheetUpdate state $ sheetUpdateFromCommit c
+>>>>>>> 44ef029... Removed extraneous uses of MVar Serverstate, propagated throughout code.
 

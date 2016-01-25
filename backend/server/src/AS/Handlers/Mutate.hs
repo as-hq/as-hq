@@ -29,10 +29,10 @@ import Control.Monad
 import Control.Lens
 import Data.Maybe hiding (fromJust)
 
-handleMutateSheet :: MessageId -> ASUserClient -> MVar ServerState -> MutateType -> IO ()
+handleMutateSheet :: MessageId -> ASUserClient -> ServerState -> MutateType -> IO ()
 handleMutateSheet mid uc state mutateType = do
   let sid = userSheetId uc
-  conn <- view dbConn <$> readMVar state
+      conn = state^.dbConn
   -- update cells 
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
 --   printObj "OLD CELLS: " oldCells

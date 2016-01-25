@@ -31,10 +31,10 @@ shouldKeepFormatAfterDelete _ = True
 removeBadFormats :: ASCell -> ASCell
 removeBadFormats = cellProps %~ filterProps shouldKeepFormatAfterDelete
 
-handleDelete :: MessageId -> ASUserClient -> MVar ServerState -> ASRange -> IO ()
+handleDelete :: MessageId -> ASUserClient -> ServerState -> ASRange -> IO ()
 handleDelete mid uc state rng = do
-  conn <- view dbConn <$> readMVar state
-  let inds = rangeToIndices rng
+  let conn = state^.dbConn
+      inds = rangeToIndices rng
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
   errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
   broadcastErrOrUpdate mid state uc errOrUpdate
