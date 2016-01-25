@@ -73,10 +73,13 @@ import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import ProgressStore from '../stores/ASProgressStore';
+
 import ws from '../AS/PersistentWebSocket';
 import * as ProgressActionCreators from '../actions/ASProgressActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
+import {addNotification} from '../actions/ASNotificationActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 
@@ -154,24 +157,6 @@ pws.onmessage = (event: MessageEvent) => {
     isRunningTest = false;
   }
 
-  if (action.tag == "AskDecouple") {
-    Dispatcher.dispatch({
-      _type: 'EVAL_TRIED_TO_DECOUPLE'
-    });
-    // Clear all progress indicator if we received a Decouple message.
-    // The reasoning is that Decouple messages are currently not tied
-    // to any particular cell in backend, since currently the logic
-    // for producing the Decouple message is simply to check if any existing
-    // coupled cells morphed to regular cells. Thus, the messageId sent for
-    // evaluation and the id after received after decoupling are not the same,
-    // and cannot be reconciled. The current workaround is to clear all progress
-    // upon receiving a Decouple message.
-    Dispatcher.dispatch({
-      _type: 'CLEAR_ALL_PROGRESS'
-    });
-    return;
-  }
-
   switch (action.tag) {
     // case 'New':
     //   if (action.payload.tag === "PayloadWorkbookSheets") {
@@ -197,6 +182,43 @@ pws.onmessage = (event: MessageEvent) => {
       Dispatcher.dispatch({
         _type: 'CLEARED_SHEET',
         sheetId: action.contents
+      });
+      break;
+    case 'AskDecouple':
+      Dispatcher.dispatch({
+        _type: 'EVAL_TRIED_TO_DECOUPLE'
+      });
+      // Clear all progress indicators if we received a Decouple message.
+      // The reasoning is that Decouple messages are currently not tied
+      // to any particular cell in backend, since currently the logic
+      // for producing the Decouple message is simply to check if any existing
+      // coupled cells morphed to regular cells. Thus, the messageId sent for
+      // evaluation and the id after received after decoupling are not the same,
+      // and cannot be reconciled. The current workaround is to clear all progress
+      // upon receiving a Decouple message.
+      Dispatcher.dispatch({
+        _type: 'CLEAR_ALL_PROGRESS'
+      });
+      break;
+    case 'AskTimeout':
+      const {serverActionType, timeoutMessageId} = action;
+      let operation = serverActionType;
+      if (serverActionType === 'Evaluate') {
+        // Reconcile the messageId with the location, using ProgressStore
+        const loc = ProgressStore.getLocationByMessageId(timeoutMessageId);
+        if (!! loc) {
+          const locStr = loc.toExcel().toString();
+          operation = `${serverActionType} at cell ${locStr}`;
+        }
+      }
+      addNotification({
+        title: 'Cancel operation',
+        message: `The operation ${operation} is still running. Cancel?`,
+        level: 'warning',
+        action: {
+          label: 'OK',
+          callback: () => API.timeout(timeoutMessageId)
+        }
       });
       break;
     case 'AskUserToOpen':
@@ -411,6 +433,14 @@ const API = {
       contents: []
     };
 
+    API.sendMessageWithAction(msg);
+  },
+
+  timeout(timeoutMessageId: string) {
+    const msg = {
+      tag: "Timeout",
+      timeoutMessageId
+    };
     API.sendMessageWithAction(msg);
   },
   /**************************************************************************************************************************/

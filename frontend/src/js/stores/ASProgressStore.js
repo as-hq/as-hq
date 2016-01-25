@@ -8,7 +8,9 @@
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 
-import type ASIndex from '../classes/ASIndex';
+import ASIndex from '../classes/ASIndex';
+
+import type NakedIndex from '../types/Eval';
 
 type MessageMetadata = {
   messageId: string;
@@ -76,6 +78,16 @@ const ProgressStore = Object.assign({}, BaseStore, {
   getLocationsInProgress(): ProgressStoreData {
     return _waitingIds;
   },
+
+  getLocationByMessageId(myMessageId: string): ?ASIndex {
+    for (const [col, colSet] of _waitingIds) {
+      for (const [row, {messageId}] of colSet) {
+        if  (messageId === myMessageId) {
+          return ASIndex.fromNaked({col, row});
+        }
+      }
+    }
+  }
 });
 
 export default ProgressStore;

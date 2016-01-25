@@ -316,9 +316,40 @@ export type ServerAction =
   | MutateSheet
   | Drag
   | Decouple
+  | Timeout
   | UpdateCondFormatRules
   | SetBarProp
   | ImportCSV;
+
+export type ServerActionType =
+    'Initialize'
+  | 'InitializeDaemon'
+  | 'Open'
+  | 'UpdateWindow'
+  | 'Export'
+  | 'Evaluate'
+  | 'EvaluateHeader'
+  | 'Get'
+  | 'GetBar'
+  | 'GetIsCoupled'
+  | 'Delete'
+  | 'ClearSheetServer'
+  | 'Undo'
+  | 'Redo'
+  | 'Copy'
+  | 'Cut'
+  | 'ToggleProp'
+  | 'SetProp'
+  | 'ChangeDecimalPrecision'
+  | 'Repeat'
+  | 'BugReport'
+  | 'MutateSheet'
+  | 'Drag'
+  | 'Decouple'
+  | 'Timeout'
+  | 'UpdateCondFormatRules'
+  | 'SetBarProp'
+  | 'ImportCSV';
 
 export type Initialize = {
   tag: "Initialize";
@@ -429,7 +460,7 @@ export type SetProp = {
 
 export type ChangeDecimalPrecision = {
   tag: "ChangeDecimalPrecision";
-  contents: [number, ASRangeObject]; 
+  contents: [number, ASRangeObject];
 };
 
 export type Repeat = {
@@ -457,6 +488,11 @@ export type Decouple = {
   tag: "Decouple";
   contents: Array<any>; // really want a type for [], but don't know how to
 };
+
+export type Timeout = {
+  tag: "Timeout";
+  timeoutMessageId: string;
+}
 
 export type UpdateCondFormatRules = {
   tag: "UpdateCondFormatRules";
@@ -489,6 +525,7 @@ export type ClientMessage = {
 export type ClientAction =
     NoAction
   | AskDecouple
+  | AskTimeout
   | SetInitialProperties
   | ShowFailureMessage
   | UpdateSheet
@@ -506,6 +543,12 @@ export type NoAction = {
 export type AskDecouple = {
   tag: "AskDecouple";
   contents: Array<any>; // really want a type for [], but don't know how to
+}
+
+export type AskTimeout = {
+  tag: "AskTimeout";
+  timeoutMessageId: string;
+  serverActionType: ServerActionType;
 }
 
 export type SetInitialProperties = {

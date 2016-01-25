@@ -45,9 +45,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
 
   _remove(uid: string) {
     const idx = _notifications.indexOf(uid);
-    if (idx < 0) {
-      throw new Error("Could not remove non-existent notification.");
-    } else {
+    if (! (idx < 0)) {
       delete _notifications[idx];
     }
   }
