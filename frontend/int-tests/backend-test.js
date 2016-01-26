@@ -2767,6 +2767,28 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+        it ('should undo bolding', (done) => {
+          _do([
+            python('A1', '1'),
+            toggleProp('A1', 'Bold'),
+            undo(),
+            shouldNotHaveProp('A1', 'Bold'),
+
+            python('A2', '2'),
+            toggleProp('A2', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+
+            toggleProp('A1:A2', 'Bold'),
+            shouldHaveProp('A1', 'Bold'),
+            shouldHaveProp('A2', 'Bold'),
+
+            undo(),
+            shouldHaveProp('A2', 'Bold'),
+            shouldNotHaveProp('A1', 'Bold'),
+            exec(done)
+          ]);
+        });
       });
 
       describe('setting props', () => {
@@ -2809,6 +2831,45 @@ describe('backend', () => {
             shouldHaveProp('A6', 'FontName'),
             shouldHaveProp('A7', 'ValueFormat'),
             shouldHaveProp('A8', 'URL'),
+            exec(done)
+          ]);
+        });
+        it ('should undo and redo on set props', (done) => {
+          _do([
+            python('A1', '1'),
+            setTextColor('A1', 'red'),
+            setFillColor('A1', 'blue'),
+            shouldHaveProp('A1', 'TextColor'),
+            shouldHaveProp('A1', 'FillColor'),
+
+            undo(),
+            shouldNotHaveProp('A1', 'FillColor'),
+            shouldHaveProp('A1', 'TextColor'),
+
+            undo(),
+            shouldNotHaveProp('A1', 'FillColor'),
+            shouldNotHaveProp('A1', 'TextColor'),
+
+            redo(),
+            shouldNotHaveProp('A1', 'FillColor'),
+            shouldHaveProp('A1', 'TextColor'),
+
+
+            python('A2', '1'),
+            undo(), 
+            shouldNotHaveProp('A1', 'FillColor'),
+            shouldHaveProp('A1', 'TextColor'),
+
+            setTextColor('A1:A3', 'red'),
+            shouldHaveProp('A1', 'TextColor'),
+            shouldHaveProp('A2', 'TextColor'),
+            shouldHaveProp('A3', 'TextColor'),
+
+            undo(),
+            shouldHaveProp('A1', 'TextColor'),
+            shouldNotHaveProp('A2', 'TextColor'),
+            shouldNotHaveProp('A3', 'TextColor'),
+
             exec(done)
           ]);
         });

@@ -38,7 +38,6 @@ data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, d
 ----------------------------------------------------------------------------------------------------------------------
 -- top-level functions
 
--- commiTransform is a function to be applied to the commit produced by evalContextToCommitWithDecoupleInfo
 updateDBWithContext :: ServerState -> CommitSource -> EvalContext -> EitherTExec ASCommit
 updateDBWithContext state src ctx = 
   let conn = state^.dbConn
