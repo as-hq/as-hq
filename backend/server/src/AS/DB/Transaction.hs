@@ -172,7 +172,8 @@ pushCommitWithDecoupleInfo addr conn src commitWithInfo =
     then setTempCommit conn src (baseCommit commitWithInfo)
     else updateDBWithCommit addr conn src (baseCommit commitWithInfo)
 
--- Do the writes to the DB
+-- | Both saves an ASCommit in the database for future undo/redo, and applies the diff (i.e. replace
+-- old values with new ones, as specified in the commit.)
 updateDBWithCommit :: GraphAddress -> Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit addr conn src c = do 
   applyUpdateToDB addr conn (srcSheetId src) (sheetUpdateFromCommit c)

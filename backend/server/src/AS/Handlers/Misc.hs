@@ -246,36 +246,18 @@ handleGetBar mid uc state bInd = do
   let msg = maybe (ClientMessage mid $ PassBarToTest $ Bar bInd BP.emptyProps) (ClientMessage mid . PassBarToTest) mBar
   sendToOriginal uc msg
 
--- Functions for setting bar props.
-updateBarPropsInDB :: Connection -> BarProp -> BarIndex -> IO (Bar, Bar)
-updateBarPropsInDB conn prop bInd = do
-  oldProps <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
-  let newProps = BP.setProp prop oldProps
-      newBar   = Bar bInd newProps
-      oldBar   = Bar bInd oldProps
-  DB.setBar conn newBar
-  return $ (oldBar, newBar)
-
-commitBars :: ASUserClient -> GraphAddress -> Connection -> [Bar] -> [Bar] ->  IO()
-commitBars uc graphAddress conn oldBars newBars = do
-  time <- getASTime
-  let bd     = Diff { beforeVals = oldBars, afterVals = newBars }
-      commit = (emptyCommitWithTime time) { barDiff = bd }
-  DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
-
-updateAndCommitBars :: ASUserClient -> GraphAddress -> Connection -> BarProp -> [BarIndex] -> IO()
-updateAndCommitBars uc graphAddress conn prop bInds  = do
-  oldNewPropPairs <- mapM (updateBarPropsInDB conn prop) bInds
-  let (oldProps, newProps) = unzip oldNewPropPairs
-  commitBars uc graphAddress conn oldProps newProps
-
 -- #needsrefactor Should eventually merge with handleSetProp. 
 handleSetBarProp :: MessageId -> ASUserClient -> ServerState -> BarIndex -> BarProp -> IO ()
 handleSetBarProp mid uc state bInd prop = do 
   let conn = state^.dbConn
       graphAddress = state^.appSettings.graphDbAddress
-  updateAndCommitBars uc graphAddress conn prop [bInd]
-  sendToOriginal uc $ ClientMessage mid NoAction
+  time <- getASTime
+  oldPropsAtInd <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
+  let newPropsAtInd = BP.setProp prop oldPropsAtInd
+      (oldBar, newBar) = (Bar bInd oldPropsAtInd, Bar bInd newPropsAtInd)
+      commit = (emptyCommitWithTime time) { barDiff = Diff { beforeVals = [oldBar], afterVals = [newBar] } } -- #lens
+  DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
+  broadcastSheetUpdate mid state (SheetUpdate emptyUpdate (Update [newBar] []) emptyUpdate emptyUpdate)
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
 -- import/export seems overkill given that it's a temporarily needed solution)
