@@ -148,9 +148,7 @@ pws.onmessage = (event: MessageEvent) => {
     // We currently don't have ASExecErrors tied to cells, so there's
     // currently no way to know what to clear.
     // https://app.asana.com/0/47051356043702/84248459839477
-    Dispatcher.dispatch({
-      _type: 'MARK_ALL_RECEIVED'
-    });
+    ProgressActions.markAllReceived();
 
     if (isRunningTest && currentCbs) {
       // sometimes we want to test whether it errors, so it fulfills anyways!
@@ -208,9 +206,7 @@ pws.onmessage = (event: MessageEvent) => {
       // and cannot be reconciled. The current workaround is to clear all progress
       // upon receiving a Decouple message.
       // https://app.asana.com/0/47051356043702/84248459839477
-      Dispatcher.dispatch({
-        _type: 'MARK_ALL_RECEIVED'
-      });
+      ProgressActions.markAllReceived();
       break;
     case 'AskTimeout':
       const {serverActionType, timeoutMessageId} = action;
