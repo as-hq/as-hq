@@ -1,6 +1,5 @@
 import React from 'react';
 import Constants from '../Constants';
-import ASCheckedButton from './basic-controls/ASCheckedButton.jsx';
 import Store from '../stores/ASFindStore';
 import {findBar as findBarZIndex} from '../styles/zIndex';
 
