@@ -141,6 +141,13 @@ pws.onmessage = (event: MessageEvent) => {
       errorMsg: action.contents
     });
 
+    // Clear all progress indicators if we received an Error message.
+    // We currently don't have ASExecErrors tied to cells, so there's
+    // currently no way to know what to clear.
+    Dispatcher.dispatch({
+      _type: 'CLEAR_ALL_PROGRESS'
+    });
+
     if (isRunningTest && currentCbs) {
       // sometimes we want to test whether it errors, so it fulfills anyways!
       logDebug('Fulfilling due to server failure');
@@ -202,6 +209,9 @@ pws.onmessage = (event: MessageEvent) => {
       break;
     case 'AskTimeout':
       const {serverActionType, timeoutMessageId} = action;
+      if (Constants.NonHaltingActions.indexOf(serverActionType) > -1) {
+        break;
+      }
       let operation = serverActionType;
       if (serverActionType === 'Evaluate') {
         // Reconcile the messageId with the location, using ProgressStore

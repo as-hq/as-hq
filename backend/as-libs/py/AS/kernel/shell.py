@@ -292,6 +292,7 @@ class ASShell(InteractiveShell):
 
             # having executed our code, read the result from the DisplayHook
             result.result = self.displayhook.exec_result
+            self.displayhook.exec_result = None
 
             # capture all stdout during eval
             result.display.insert(0,sys.stdout.getvalue())

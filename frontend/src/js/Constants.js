@@ -104,6 +104,16 @@ var Constants = Object.assign({
     SET_CONNECTING_STATE: null
   }),
 
+  NonHaltingActions: [
+    'Initialize',
+    'Open',
+    'UpdateWindow',
+    'ClearSheetServer',
+    'BugReport',
+    'Timeout',
+    'ImportCSV'
+  ],
+
   ActionSources: keyMirror({
     SERVER_ACTION: null,
     VIEW_ACTION: null
