@@ -16,7 +16,6 @@ import type {
   RangeDescriptor,
   RangeKey,
   NakedIndex,
-  NakedLocation
 } from './Eval';
 
 import type {

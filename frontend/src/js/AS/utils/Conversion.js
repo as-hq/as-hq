@@ -85,10 +85,10 @@ let CU = {
     };
   },
 
-  getLocationFromServerAction(action: ServerAction): Array<ASLocation> {
+  getLocationsFromServerAction(action: ServerAction): Array<ASLocation> {
     switch(action.tag) {
       case 'EvalInstruction': {
-        return [new action.evalLoc.index];
+        return [action.evalLoc.index];
       }
 
       case 'Evaluate': {

@@ -13,7 +13,7 @@ import Dispatcher from '../Dispatcher';
 
 export function markSent(msg: ServerMessage) {
   const {messageId, serverAction} = msg;
-  const locations = ConversionU.getLocationFromServerAction(serverAction);
+  const locations = ConversionU.getLocationsFromServerAction(serverAction);
   if (locations.length > 0) {
     Dispatcher.dispatch({
       _type: 'MARK_SENT',

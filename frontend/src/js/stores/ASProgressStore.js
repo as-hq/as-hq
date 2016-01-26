@@ -12,7 +12,6 @@ import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 
 import type {
-  NakedLocation,
   ASLocation
 } from '../types/Eval';
 
