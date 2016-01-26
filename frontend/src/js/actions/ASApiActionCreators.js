@@ -76,7 +76,7 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import ProgressStore from '../stores/ASProgressStore';
 
 import ws from '../AS/PersistentWebSocket';
-import * as ProgressActionCreators from '../actions/ASProgressActionCreators';
+import * as ProgressActions from '../actions/ASProgressActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
 import {addNotification} from '../actions/ASNotificationActionCreators';
@@ -108,7 +108,7 @@ let refreshDialogShown: boolean = false;
 
 pws.ondisconnect = () => {
   API.reinitialize(); // queue our handshake for the next time we reconnect
-  ProgressActionCreators.clearAllProgress();
+  ProgressActions.clearAllProgress();
   setConnectedState(false);
 };
 
@@ -133,7 +133,7 @@ pws.onmessage = (event: MessageEvent) => {
   const msg: ClientMessage = JSON.parse(event.data);
   const {clientAction: action} = msg;
 
-  ProgressActionCreators.markReceived(msg);
+  ProgressActions.markReceived(msg);
 
   if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
@@ -201,18 +201,18 @@ pws.onmessage = (event: MessageEvent) => {
       });
       break;
     case 'AskTimeout':
-      console.warn("Got timeout message!");
       const {serverActionType, timeoutMessageId} = action;
       let operation = serverActionType;
       if (serverActionType === 'Evaluate') {
         // Reconcile the messageId with the location, using ProgressStore
-        const loc = ProgressStore.getLocationByMessageId(timeoutMessageId);
+        const loc = ProgressStore.lookup(timeoutMessageId);
         if (!! loc) {
-          const locStr = loc.toExcel().toString();
+          const locStr = ASIndex.fromNaked(loc).toExcel().toString();
           operation = `${serverActionType} at cell ${locStr}`;
         }
       }
       addNotification({
+        uid: timeoutMessageId,
         title: 'Cancel operation',
         message: `The operation ${operation} is still running. Cancel?`,
         level: 'warning',
@@ -307,7 +307,7 @@ const API = {
       serverAction: action,
       messageId,
     };
-    ProgressActionCreators.markSent(msg);
+    ProgressActions.markSent(msg);
     logDebug(`Queueing ${msg.serverAction.tag} message, id ${messageId}`);
     pws.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${JSON.stringify(msg.serverAction)} message, id ${messageId}`);
@@ -433,7 +433,6 @@ const API = {
       tag: "Decouple",
       contents: []
     };
-
     API.sendMessageWithAction(msg);
   },
 
@@ -442,6 +441,7 @@ const API = {
       tag: "Timeout",
       contents: messageId
     };
+    ProgressActions.clearProgress(messageId);
     API.sendMessageWithAction(msg);
   },
   /**************************************************************************************************************************/

@@ -37,6 +37,10 @@ import type {
   BarIndex
 } from './Bar';
 
+import type {
+  NotificationSpec
+} from './Notifications';
+
 export type AddOverlayAction = {
   _type: 'ADD_OVERLAY';
   overlay: ASOverlaySpec;
@@ -216,9 +220,14 @@ export type ClearAllProgressAction = {
   _type: 'CLEAR_ALL_PROGRESS';
 };
 
+export type ClearProgressAction = {
+  _type: 'CLEAR_PROGRESS';
+  messageId: string;
+}
+
 export type AddNotificationAction = {
   _type: 'ADD_NOTIFICATION';
-  spec: ASNotificationSpec;
+  spec: NotificationSpec;
 };
 
 export type DismissNotificationAction = {
@@ -273,6 +282,7 @@ export type ASAction =
   | OpenChartingDialogAction
   | CloseChartingDialogAction
   | ClearAllProgressAction
+  | ClearProgressAction
   | MarkSentAction
   | MarkReceivedAction
   | AddNotificationAction

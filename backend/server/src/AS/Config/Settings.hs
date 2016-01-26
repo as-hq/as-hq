@@ -28,7 +28,7 @@ heartbeat_interval :: Milliseconds
 heartbeat_interval = 1000
 
 process_message_timeout :: Seconds
-process_message_timeout = 5
+process_message_timeout = 3
 
 main_dir :: String
 main_dir = $(I.getAppendedPath "")

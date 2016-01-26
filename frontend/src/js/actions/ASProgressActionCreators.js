@@ -35,6 +35,13 @@ export function markReceived(msg: ClientMessage) {
   }
 }
 
+export function clearProgress(messageId: string) {
+  Dispatcher.dispatch({
+    _type: 'CLEAR_PROGRESS',
+    messageId
+  });
+}
+
 export function clearAllProgress() {
   Dispatcher.dispatch({
     _type: 'CLEAR_ALL_PROGRESS'

@@ -20,6 +20,7 @@ import AS.DB.Transaction
 import AS.Reply
 
 import qualified Data.Map as M
+import qualified Data.Text as T
 
 import Control.Concurrent
 import Control.Lens hiding ((.=))
@@ -72,6 +73,7 @@ handleDecouple mid uc mstate = do
 handleTimeout :: MessageId -> MVar ServerState -> IO ()
 handleTimeout mid state = 
   modifyMVar_ state $ \curState -> do
+    putStrLn $ "Killing message ID: " ++ (T.unpack mid)
     maybe (return ()) killThread $
       M.lookup mid (view threads curState)
     return $ curState & threads %~ (M.delete mid)

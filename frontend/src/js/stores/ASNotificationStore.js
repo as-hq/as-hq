@@ -31,7 +31,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
       }
 
       // This updates the internal state of the store when the user dismissed a
-      // notification, and will not fire a change event.
+      // notification, and will not emit an event.
       case 'REMOVE_NOTIFICATION': {
         NotificationStore._remove(action.uid);
         break;
