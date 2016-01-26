@@ -290,6 +290,12 @@ condFormattingRulesMutate mt cfr = cfr'
 
 condFormatConditionMutate :: MutateType -> FormatMapConstructor -> FormatMapConstructor
 condFormatConditionMutate mt (BoolFormatMapConstructor boolCond prop) = BoolFormatMapConstructor (boolCondFormatConditionMutate mt boolCond) prop
+condFormatConditionMutate mt (LambdaFormatMapConstructor lExpr) = LambdaFormatMapConstructor lExpr'
+  where 
+    lExprPython  = Expression lExpr Python
+    lExprPython' = expressionMutate mt lExprPython
+    lExpr'       = lExprPython'^.expression
+    -- #expressiontypeclass would be much better if we had a typeclass which expressionMutate could be applied to
 
 boolCondFormatConditionMutate :: MutateType -> BoolCondition -> BoolCondition
 boolCondFormatConditionMutate mt (CustomBoolCond xp) = CustomBoolCond (expressionMutate mt xp)

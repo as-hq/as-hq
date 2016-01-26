@@ -107,7 +107,7 @@ evaluateBoolExpression state evalLoc ctx xp@(Expression str lang) = do
     CellValue v -> return v
 
 -- #needsrefactor should really have a typeclass that encompasses ASExpression and LambdaConditionExpr.
--- For now we're just shoehorning LambdaConditionExpr into an ASExpression. 
+-- For now we're just shoehorning LambdaConditionExpr into an ASExpression. #expressiontypeclass
 -- 
 -- | Evaluates a Python function that returns a format or an error, rather than an ASValue. 
 evaluateFormatExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EitherTExec FormatResult

@@ -3307,11 +3307,16 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeIsNotBetweenCondFormattingFontRuleExcel("A1:A10", "Bold", "=(A2+1)/2 - 0.01", "5")
             ),
+            updateCondFormattingRule(
+              makeLambdaRule("B1", "lambda x: Format(italic=(B1==1))"),
+            ),
+            python('B1', '1'),
             insertRow(1),
             dragCol(1, 2),
             python('B2', 'range(10)'),
             shouldHaveProp('B3', 'Bold'),
             shouldNotHaveProp('B4', 'Bold'),
+            shouldHaveProp('A2', 'Italic'),
             exec(done)
           ]);
         });
