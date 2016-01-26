@@ -16,7 +16,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
       case 'ADD_NOTIFICATION': {
-        const uid = shortid.generate();
+        const {uid} = action.spec;
         _notifications.push(uid);
         NotificationStore.emit('ADD', uid, action.spec);
         break;

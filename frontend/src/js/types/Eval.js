@@ -318,6 +318,8 @@ export type NakedRange = {
   br: NakedIndex;
 };
 
+export type NakedLocation = NakedIndex | NakedRange;
+
 export type ASSelectionObject = {
   origin: NakedIndex;
   range: NakedRange;

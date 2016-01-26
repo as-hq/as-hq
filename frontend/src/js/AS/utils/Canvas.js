@@ -6,6 +6,10 @@ import type {
   PXRectangle
 } from '../../types/Render';
 
+import type {
+  NakedIndex
+} from '../../types/Eval';
+
 import ASRange from '../../classes/ASRange';
 import RenderU from './Render';
 
@@ -83,8 +87,7 @@ export default {
   },
 
   showInProgress(
-    col: number,
-    row: number,
+    loc: NakedIndex,
     renderer: HGRendererElement,
     gc: GraphicsContext
   ) {
@@ -99,6 +102,7 @@ export default {
       lastVisibleRow
     } = RenderU.getGridSpec(renderer);
 
+    const {col, row} = loc;
     const x = col - 1 + fixedColCount;
     const y = row - 1 + fixedRowCount;
     const shape = renderer._getBoundsOfCell(x - scrollX, y - scrollY);

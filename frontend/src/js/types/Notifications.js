@@ -12,6 +12,7 @@ export type NotificationAction = {
 }
 
 export type NotificationSpec = {
+  uid: string;
   title: string;
   message: string;
   level: NotificationLevel;

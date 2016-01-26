@@ -45,6 +45,13 @@ import type {
   ASUserId
 } from './User';
 
+export type MessageId = string;
+
+export type MessageMetadata = {
+  locations: Array<ASLocation>;
+  messageTimestamp: number;
+};
+
 export type Direction = 'Down' | 'Up' | 'Left' | 'Right';
 
 export type ASBackendDirection = 'DDown' | 'DUp' | 'DLeft' | 'DRight';

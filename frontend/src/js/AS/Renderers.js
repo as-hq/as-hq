@@ -7,6 +7,10 @@ import type {
   RenderParams
 } from '../types/Render';
 
+import type {
+  MessageMetadata
+} from '../types/Messages';
+
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
@@ -263,7 +267,7 @@ const Renderers = {
       }
 
       // If there are > 10 decimal places, truncate to first 10, unless the number of
-      // decimal places to show is a cell property, in which case we truncate to that extent. 
+      // decimal places to show is a cell property, in which case we truncate to that extent.
       Util.Render.formatNumberOfDecimalPlaces(config, cell.props);
 
       // props take highest precedence
@@ -442,14 +446,24 @@ const Renderers = {
   },
 
   inProgressRenderer(gc: GraphicsContext) {
-    const locs = ProgressStore.getLocationsInProgress();
+    const msgs = ProgressStore.getMessagesInProgress();
     const now = Date.now();
-    for (const [col, colSet] of locs) {
-      for (const [row, { messageTimestamp }] of colSet) {
-        if (now - messageTimestamp > _renderParams.inProgressTimeout) {
-          Util.Canvas.showInProgress(col, row, this, gc);
+    for (const {messageTimestamp, locations} of msgs) {
+
+      if (now - messageTimestamp > _renderParams.inProgressTimeout) {
+
+        for (const loc of locations) {
+          if (loc instanceof ASIndex) {
+            Util.Canvas.showInProgress(loc.toNaked(), this, gc);
+          } else {
+            for (const idx of loc.toIndices()) {
+              Util.Canvas.showInProgress(idx.toNaked(), this, gc);
+            }
+          }
         }
+
       }
+
     }
   },
 };
