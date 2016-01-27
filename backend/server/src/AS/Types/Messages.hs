@@ -90,6 +90,7 @@ data ServerAction =
   | Decouple
   | UpdateCondFormatRules CondFormatRuleUpdate
   | SetBarProp BarIndex BarProp
+  | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
   | ChangeDecimalPrecision Int ASRange
   deriving (Show, Read, Eq, Generic)

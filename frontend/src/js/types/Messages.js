@@ -299,6 +299,7 @@ export type ServerAction =
   | Export
   | Evaluate
   | EvaluateHeader
+  | SetLanguagesInRange
   | Get
   | GetBar
   | GetIsCoupled
@@ -368,6 +369,11 @@ export type EvalHeader = {
 export type EvaluateHeader = {
   tag: "EvaluateHeader";
   contents: EvalHeader;
+};
+
+export type SetLanguagesInRange = {
+  tag: "SetLanguagesInRange";
+  contents: [ASLanguage, ASRangeObject];
 };
 
 export type Get = {

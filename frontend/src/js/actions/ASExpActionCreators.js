@@ -80,12 +80,7 @@ export default {
     });
 
     if (!ExpStore.getUserIsTyping() && ExpStore.getExpression() !== '') {
-      SelectionStore.withActiveSelection(({origin}) => {
-        API.evaluate(origin, {
-          expression: ExpStore.getExpression(),
-          language: lang
-        });
-      });
+      SelectionStore.withActiveSelection(({range}) => API.setLanguagesInRange(lang, range)); 
     }
   }
 };

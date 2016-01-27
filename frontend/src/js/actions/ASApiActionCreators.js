@@ -395,6 +395,15 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  setLanguagesInRange(language: ASLanguage, range: ASRange) {
+    let sid = SheetStateStore.getCurrentSheet().sheetId,
+        action = {
+          tag: "SetLanguagesInRange",
+          contents: [language, range.obj()],
+        };
+    API.sendMessageWithAction(action);
+  },
+
   // Currently not supporting (Alex 12/29)
   // evaluateRepl(xpObj: ASExpression) {
   //   let msg = U.Conversion.makeServerMessage(Constants.ServerActions.Repl, "PayloadXp", {

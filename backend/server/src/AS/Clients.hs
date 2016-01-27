@@ -100,6 +100,7 @@ instance Client ASUserClient where
       GetBar bInd                 -> handleGetBar mid user curState bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
       ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName
+      SetLanguagesInRange lang rng -> handleSetLanguagesInRange mid user curState lang rng
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 

@@ -23,6 +23,8 @@ import Control.Concurrent
 import Control.Lens hiding ((.=))
 import Control.Monad.Trans.Either
 
+import Data.Maybe (catMaybes)
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
 
@@ -63,3 +65,12 @@ handleDecouple mid uc state = do
     Just c -> do
       updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
       broadcastSheetUpdate mid state $ sheetUpdateFromCommit c
+
+handleSetLanguagesInRange :: MessageId -> ASUserClient -> ServerState -> ASLanguage -> ASRange -> IO ()
+handleSetLanguagesInRange mid uc state lang rng = do 
+  let inds = rangeToIndices rng
+      conn = state^.dbConn
+  cells <- catMaybes <$> getCells conn inds -- disregard cells that are empty
+  let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells
+  errOrUpdate <- runDispatchCycle state cellsWithLangsChanged DescendantsWithParent (userCommitSource uc) id
+  broadcastErrOrUpdate mid state uc errOrUpdate
