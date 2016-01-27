@@ -314,6 +314,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
       if (cell != null) {
         if (cell.expression != null) {
           ASExpStore.setExpression(cell.expression.expression);
+          ASExpStore.setLanguage(cell.expression.language);
         }
       } else {
         ASExpStore.setExpression('');

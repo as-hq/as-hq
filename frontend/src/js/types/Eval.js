@@ -189,7 +189,7 @@ export type ASLanguage = 'Python' | 'R' | 'SQL' | 'Excel';
 
 export type ASExpression = {
   expression: string;
-  language: ?ASLanguage;
+  language: ASLanguage;
   dependencies?: Array<ASRange>; // #mustrefactor TODO
 };
 

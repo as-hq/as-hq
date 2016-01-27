@@ -42,7 +42,7 @@ export default class ASCell {
             sheetId: "TEST_SHEET_ID",
             index:{row: -1, col:-1}
           }),
-        ce = {tag:"Expression",expression:"",language:null},
+        ce = {tag:"Expression",expression: '', language: 'Excel'},
         cv = {tag:"NoValue", contents: []},
         cp = [];
     return new ASCell({
