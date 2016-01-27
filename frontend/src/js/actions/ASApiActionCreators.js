@@ -221,11 +221,10 @@ pws.onmessage = (event: MessageEvent) => {
                         .locations
                         .map((loc) => loc.toExcel().toString())
                         .join(', ')
-        const operation = `${serverActionType} at ${locStr}`;
         NotificationActions.addNotification({
           uid: timeoutMessageId,
           title: 'Cancel operation',
-          message: `The operation ${operation} is still running. Cancel?`,
+          message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
           level: 'warning',
           action: {
             label: 'OK',
