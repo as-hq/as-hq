@@ -1016,7 +1016,7 @@ describe('backend', () => {
         it ('should expand ranges properly', (done) => {
           _do([
               python('A1', '[[x+2*y for x in range(2)] for y in range(2)]'),
-              excel('C1', 'A1:B2'),
+              excel('C1', '=A1:B2'),
               shouldBe('C1', valueI(0)),
               shouldBe('D1', valueI(1)),
               shouldBe('C2', valueI(2)),
