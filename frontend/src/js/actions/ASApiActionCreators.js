@@ -215,7 +215,6 @@ pws.onmessage = (event: MessageEvent) => {
       }
 
       // reconcile the timing out messageId with its locations, using ProgressStore
-      console.warn("Progress store: ", ProgressStore.getState());
       const metadata = ProgressStore.get(timeoutMessageId);
       if (!! metadata) {
         const locStr = metadata

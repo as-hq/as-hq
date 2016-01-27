@@ -9,7 +9,6 @@ import Immutable from 'immutable';
 import { MapStore } from 'flux/utils';
 
 import dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
 
 import type {
   ASLocation
