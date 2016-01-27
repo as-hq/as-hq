@@ -177,8 +177,8 @@ getHeight (RangeRef (Range _ (coord1,coord2))) = coord2^.row - coord1^.row + 1
 getWidth :: ASReference -> Int
 getWidth (IndexRef _) = 1
 getWidth (PointerRef _) = 1
-getWidth (RangeRef (Range _ (coord1,coord2))) = coord2^.col - coord2^.col + 1
-getWidth (ColRangeRef (ColRange _ (coord1, col2))) = coord1^.col - col2^.col + 1
+getWidth (RangeRef (Range _ (coord1,coord2))) = coord2^.col - coord1^.col + 1
+getWidth (ColRangeRef (ColRange _ (coord1, col2))) = col2^.col - coord1^.col + 1
 
 isRange :: ASReference -> Bool
 isRange (IndexRef _) = False
