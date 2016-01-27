@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
-
 module AS.Types.CellProps
   ( CellPropType(..), 
     CellProp(..),
@@ -25,6 +23,9 @@ module AS.Types.CellProps
     StreamSource(..), 
     Stream(..)
   ) where
+
+import AS.Prelude
+import Prelude()
 
 import AS.Types.User
 import AS.Types.Formats
@@ -75,11 +76,11 @@ data CellProp =
   | Bold | Italic | Underline
   | Volatile
   | Tracking
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 type Color = String -- represents hex color
-data HAlignType = LeftAlign | HCenterAlign | RightAlign deriving (Show, Read, Eq, Generic)
-data VAlignType = TopAlign | VCenterAlign | BottomAlign deriving (Show, Read, Eq, Generic)
+data HAlignType = LeftAlign | HCenterAlign | RightAlign deriving (Show, Read, Eq, Data, Typeable, Generic)
+data VAlignType = TopAlign | VCenterAlign | BottomAlign deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 propType :: CellProp -> CellPropType
 propType (TextColor _) = TextColorProp
@@ -156,9 +157,9 @@ filterProps f (ASCellProps up cp) = ASCellProps (M.filter f up) cp
 -- Streaming
 
 -- Stream sources
-data Bloomberg = Bloomberg {url :: String, bmbKey :: String} deriving (Show, Read, Eq, Generic)
-data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Generic)
-data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Generic)
+data Bloomberg = Bloomberg {url :: String, bmbKey :: String} deriving (Show, Read, Eq, Data, Typeable, Generic)
+data StreamSource = StreamB Bloomberg | NoSource deriving (Show, Read, Eq, Data, Typeable, Generic)
+data Stream = Stream {streamSource :: StreamSource, streamFreq :: Int} deriving (Show, Read, Eq, Data, Typeable, Generic)
 -- A stream just needs a source and a frequency
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

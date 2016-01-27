@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, DeriveGeneric, DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies, DefaultSignatures #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell
@@ -6,6 +6,9 @@ module AS.Types.Cell
   , module AS.Types.CellProps
   , module AS.Types.Values
   ) where
+
+import AS.Prelude
+import Prelude()
 
 import AS.ASJSON
 
@@ -29,9 +32,9 @@ import Control.Lens hiding ((.=))
 import Control.Applicative (liftA2)
 import Control.DeepSeq.Generics (genericRnf)
 
-data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Generic)
+data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Data, Typeable, Generic)
 
-data ASExpression = Expression { _expression :: String, _language :: ASLanguage } deriving (Show, Read, Eq, Generic)
+data ASExpression = Expression { _expression :: String, _language :: ASLanguage } deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data ASCell = Cell { _cellLocation :: ASIndex
                    , _cellExpression :: ASExpression

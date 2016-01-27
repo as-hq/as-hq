@@ -37,6 +37,10 @@ import type {
   BarIndex
 } from './Bar';
 
+import type {
+  NotificationSpec
+} from './Notifications';
+
 export type AddOverlayAction = {
   _type: 'ADD_OVERLAY';
   overlay: ASOverlaySpec;
@@ -216,6 +220,29 @@ export type ClearAllProgressAction = {
   _type: 'CLEAR_ALL_PROGRESS';
 };
 
+export type ClearProgressAction = {
+  _type: 'CLEAR_PROGRESS';
+  messageId: string;
+}
+
+export type AddNotificationAction = {
+  _type: 'ADD_NOTIFICATION';
+  spec: NotificationSpec;
+};
+
+// This is for programmatic dismissal.
+export type DismissNotificationAction = {
+  _type: 'DISMISS_NOTIFICATION';
+  uid: string;
+};
+
+// This updates the internal state of the store in response to the user
+// dismissing a notification, and will not emit an event.
+export type RemoveNotificationAction = {
+  _type: 'REMOVE_NOTIFICATION';
+  uid: string;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -258,5 +285,9 @@ export type ASAction =
   | OpenChartingDialogAction
   | CloseChartingDialogAction
   | ClearAllProgressAction
+  | ClearProgressAction
   | MarkSentAction
-  | MarkReceivedAction;
+  | MarkReceivedAction
+  | AddNotificationAction
+  | DismissNotificationAction
+  | RemoveNotificationAction;

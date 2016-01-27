@@ -279,10 +279,6 @@ class ASShell(InteractiveShell):
                     self.execution_count += 1
                 return error_before_exec(e)
 
-            # Give the displayhook a reference to our ExecutionResult so it
-            # can fill in the output value.
-            self.displayhook.exec_result = result
-
             # Execute the user code
             interactivity = "none" if silent else self.ast_node_interactivity
             self.run_ast_nodes(code_ast.body, 
@@ -294,12 +290,12 @@ class ASShell(InteractiveShell):
                                 result=result,
                                 isolated=isolated)
 
+            # having executed our code, read the result from the DisplayHook
+            result.result = self.displayhook.exec_result
+            self.displayhook.exec_result = None
+
             # capture all stdout during eval
             result.display.insert(0,sys.stdout.getvalue())
-
-            # Reset this so later displayed values do not modify the
-            # ExecutionResult
-            self.displayhook.exec_result = None
 
             self.events.trigger('post_execute')
             if not silent:
@@ -532,14 +528,11 @@ class ASShell(InteractiveShell):
         self.write_err('\n' + self.get_exception_only())
 
   def _init_eval_stdout(self):
-    # print("PRE EXEC", file=sys.__stdout__)
     sys.stdout = self.user_stdout
 
   def _close_eval_stdout(self):
-    # print("POST EXEC", file=sys.__stdout__)
-    # it's *actually* faster to declare a new StringIO than to flush the old one, because Python
+    # it's actually faster to declare a new StringIO than to flush the old one, because Python
     self.user_stdout = StringIO()
-    sys.stdout = sys.__stdout__
 
   def auto_rewrite_input(self, cmd):
     """Print to the screen the rewritten form of the user's command.

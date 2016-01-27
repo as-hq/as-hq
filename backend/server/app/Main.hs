@@ -10,7 +10,6 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 
-import AS.Config.Paths
 import AS.Config.Constants
 
 import AS.Clients()
@@ -25,6 +24,9 @@ import AS.Handlers.Misc (handleImportBinary)
 import AS.Types.Locations
 import qualified AS.Kernels.Python as KP
 
+import AS.Async
+
+import System.Directory (createDirectoryIfMissing)
 import System.Posix.Signals
 import Control.Exception
 import Control.Monad (forever, when, void)
@@ -37,6 +39,7 @@ import Data.Maybe hiding (fromJust)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.List as L
+import qualified Data.Map as M
 import Data.List.Split (chunksOf)
 import Data.String (fromString)
 
@@ -79,10 +82,12 @@ main = R.withEmbeddedR R.defaultConfig $ do
 
 initApp :: IO (MVar ServerState)
 initApp = do
+  -- init log path
+  createDirectoryIfMissing True S.log_dir
   -- init state
   settings <- S.getSettings 
   conn <- DI.connectRedis settings
-  state <- newMVar $ State [] [] conn settings 
+  state <- newMVar $ State [] [] conn settings M.empty
   -- init python kernel
   KP.initialize (settings^.pyKernelAddress) conn
   -- init R
@@ -151,8 +156,7 @@ shouldPreprocess = False
 preprocess :: WS.Connection -> MVar ServerState -> IO () 
 preprocess conn state = do
   -- prepare the preprocessing
-  logDir <- getServerLogDir
-  fileContents <- AS.Prelude.readFile (logDir ++ "client_messages")
+  fileContents <- AS.Prelude.readFile (S.log_dir ++ "client_messages")
   let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
       nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && $head l /= '#') fileLinesWithNumbers
 
@@ -180,25 +184,39 @@ talk client state = forever $ do
   case dmsg of 
     WS.Binary b -> handleImportBinary client state b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
-      Right m -> processMessage client state m
+      Right m -> processAsyncWithTimeout client state m
       Left s -> printWithTimeForced ("SERVER ERROR: unable to decode message " 
                                ++ show msg
                                ++ "\n\n due to parse error: " 
                                ++ s)
 
-forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
-forkHeartbeat conn interval = void $ forkIO (go 1 `catch` dieSilently)
-  where
-    go i = do
-      threadDelay (interval * 1000)
-      WS.sendTextData conn ("PING" :: T.Text)
-      go (i+1)
-    dieSilently e = case fromException e of 
-      Just asyncErr -> do
-        putStrLn ("Heartbeat error: " ++ show asyncErr)
-        throwIO (asyncErr :: AsyncException)
-        return ()
-      Nothing       -> return ()
+-- this functions runs an IO action in a forked thread, adds some thread bookkeeping to the server state, and 
+-- removes this bookkeeping upon success. Upon timeout, send an "AskTimeout" message to the client. The 
+-- client is expected to reply with a message with the same messageId, in order to reconcile the AskTimeout 
+-- with the relevant thread. Upon receiving the reply, kill it, and remove it from state.
+processAsyncWithTimeout :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
+processAsyncWithTimeout c state msg = case clientType c of 
+  User -> do
+    successLock <- newEmptyMVar 
+    tid <- timeoutAsync successLock $ processMessage c state msg
+    modifyMVar_ state $ \curState -> 
+      return $ curState & threads %~ (M.insert mid tid)
+    putMVar successLock ()
+    where
+      mid = serverMessageId msg
+      act = getServerActionType (serverAction msg)
+      timeoutAsync lock f = forkIO $ 
+        timeout S.process_message_timeout onTimeout (onSuccess lock) f
+      onTimeout = 
+        sendMessage 
+          (ClientMessage timeout_message_id $ AskTimeout mid act) 
+          (clientConn c)
+      onSuccess lock = do
+        -- block until the first modifyMVar_ above finishes.
+        takeMVar lock
+        modifyMVar_ state $ \curState -> 
+          return $ curState & threads %~ (M.delete mid)
+  Daemon -> void $ forkIO (processMessage c state msg)
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do

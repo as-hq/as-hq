@@ -104,6 +104,17 @@ var Constants = Object.assign({
     SET_CONNECTING_STATE: null
   }),
 
+  // We don't track the progress of these actions.
+  UntimedActions: [
+    'Initialize',
+    'Open',
+    'UpdateWindow',
+    'ClearSheetServer',
+    'BugReport',
+    'Timeout',
+    'ImportCSV'
+  ],
+
   ActionSources: keyMirror({
     SERVER_ACTION: null,
     VIEW_ACTION: null

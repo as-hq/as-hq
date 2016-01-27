@@ -16,10 +16,11 @@ import AS.Window
 import Data.Aeson
 import Data.Text
 import Data.Time.Clock (getCurrentTime)
+import qualified Data.Map as M
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
-import Control.Concurrent (MVar)
+import Control.Concurrent (MVar, ThreadId)
 import Control.Lens hiding ((.=))
 
 
@@ -28,10 +29,13 @@ import Control.Lens hiding ((.=))
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
+type ThreadMap = M.Map MessageId ThreadId 
+
 data ServerState = State  { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
-                          , _appSettings :: AppSettings}
+                          , _appSettings :: AppSettings
+                          , _threads :: ThreadMap}
 
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port

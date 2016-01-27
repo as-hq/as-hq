@@ -1,6 +1,6 @@
 module AS.Kernels.Excel.Compiler where
 
-import AS.Prelude
+import AS.Prelude hiding (Prefix, Infix)
 import Prelude()
 
 import AS.Types.CellProps

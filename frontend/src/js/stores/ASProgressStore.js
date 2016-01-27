@@ -8,7 +8,9 @@
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 
-import type ASIndex from '../classes/ASIndex';
+import type {
+  NakedIndex
+} from '../types/Eval';
 
 type MessageMetadata = {
   messageId: string;
@@ -66,6 +68,17 @@ const ProgressStore = Object.assign({}, BaseStore, {
         break;
       }
 
+      case 'CLEAR_PROGRESS': {
+        const loc = ProgressStore.lookup(action.messageId);
+        if (!! loc) {
+          let colSet = _waitingIds.get(loc.col);
+          if (!! colSet) {
+            colSet.delete(loc.row);
+          }
+          ProgressStore.emitChange();
+        }
+      }
+
       case 'CLEAR_ALL_PROGRESS': {
         _waitingIds = new Map();
         ProgressStore.emitChange();
@@ -76,6 +89,17 @@ const ProgressStore = Object.assign({}, BaseStore, {
   getLocationsInProgress(): ProgressStoreData {
     return _waitingIds;
   },
+
+  lookup(myMessageId: string): ?NakedIndex {
+    for (const [col, colSet] of _waitingIds) {
+      for (const [row, {messageId}] of colSet) {
+        if  (messageId === myMessageId) {
+          return {col, row};
+        }
+      }
+    }
+  }
+
 });
 
 export default ProgressStore;

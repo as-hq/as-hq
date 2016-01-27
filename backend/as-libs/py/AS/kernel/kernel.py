@@ -1,5 +1,10 @@
+from __future__ import print_function
+
+import sys
 import zmq
 import json
+import threading
+import traceback
 
 from .shell import ASShell
 
@@ -8,20 +13,19 @@ from IPython.core.pylabtools import import_pylab
 
 class ASKernel(object):
 
-  def __init__(self, address='tcp://*:20000'):
+  def __init__(self, address='tcp://*:20000', num_threads=30):
     self.init_shell()
-    self.init_zmq(address)
+    self.init_zmq(address, num_threads)
 
   def init_shell(self):
     init_ns = self.get_initial_ns()
     self.shell = ASShell(user_ns=init_ns)
 
-  def init_zmq(self, address):
-    context = zmq.Context()
-    self.socket = context.socket(zmq.REP)
-    self.address = address
-    print '\nKernel listening at address:', self.address, '\n'
-    self.socket.bind(self.address)
+  def init_zmq(self, address, num_threads):
+    self.context = zmq.Context()
+    self.url_client = address
+    self.url_worker = "inproc://workers"
+    self.num_threads = max(num_threads, 1)
 
   def get_initial_ns(self):
     import matplotlib
@@ -36,18 +40,55 @@ class ASKernel(object):
     import_pylab(ns)
     return ns
 
-  def handle_incoming(self):
-    recvMsg = json.loads(self.socket.recv())
-    try:
-      replyMsg = self.process_message(recvMsg)
-      self.socket.send(json.dumps(replyMsg))
-    except Exception as e:
-      replyMsg = {'type': 'error', 'error': repr(e)}
-      print "Kernel error: ", e
-      self.socket.send(json.dumps(replyMsg))
+  def listen(self):
+# the kernel topology:
+# 
+# [async requests]                                             [worker queue]  
+#                                                                     
+# ------>                                                        ---> worker 1 
+# ------>  Router (tcp://*:20000) ---> Dealer (inproc://workers) ---> worker 2 
+# ------>                                                        ---> worker n 
+#
+
+    print('\nKernel listening at address:', self.url_client, '\n', file=sys.__stdout__)
+
+    # bind addresses
+    self.router = self.context.socket(zmq.ROUTER)
+    self.router.bind(self.url_client)
+    self.dealer = self.context.socket(zmq.DEALER)
+    self.dealer.bind(self.url_worker)
+
+    # launch worker thread pool
+    for i in range(self.num_threads):
+      thread = threading.Thread(target=self.message_worker, args=(self.url_worker,i))
+      thread.start()
+
+    # attach the Router and Dealer in order to forward requests to a 
+    # worker queue, as seen in the art above
+    zmq.device(zmq.QUEUE, self.router, self.dealer) 
+
+    # clean up when finished
+    self.close()
+
+  def message_worker(self, worker_url, thread_id):
+    socket = self.context.socket(zmq.REP)
+    socket.connect(worker_url)
+    while True:
+      recvMsg = json.loads(socket.recv())
+      print('processing', recvMsg['type'], "on thread", thread_id, file=sys.__stdout__)
+      try:
+        replyMsg = self.process_message(recvMsg)
+        socket.send(json.dumps(replyMsg))
+      except KeyboardInterrupt: 
+        raise
+      except Exception as e:
+        replyMsg = {'type': 'error', 'error': repr(e)}
+        print("Kernel error: ", e, file=sys.__stdout__)
+        socket.send(json.dumps(replyMsg))
 
   def process_message(self, msg):
-    print 'processing', msg['type']
+  # messages are handled in an exactly isomorphic way with the KernelRequest/KernelReply 
+  # types in AS/Kernels/Python.hs in backend. 
     if msg['type'] == 'evaluate':
       result = None
       if msg['scope'] == 'Header':
@@ -60,7 +101,7 @@ class ASKernel(object):
 
     elif msg['type'] == 'evaluate_format':
       result = self.shell.run_raw(msg['code'], msg['sheet_id'])
-      # result.value can be any python datatype; we assume any call to "run_raw"
+      # result.result can be any python datatype; we assume any call to "run_raw"
       # expects a string in response. So, invoke repr.
       if result.result:
         result.result = repr(result.result) 
@@ -88,3 +129,9 @@ class ASKernel(object):
     if len(result.display) > 0:
       reply['display'] = "\n".join(result.display)
     return reply
+
+  def close(self):
+    # close the bound devices, and terminate the context.
+    self.router.close()
+    self.dealer.close()
+    self.context.term()

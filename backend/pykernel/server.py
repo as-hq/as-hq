@@ -34,8 +34,7 @@ if __name__ == '__main__':
     cprint("No environment specified, falling back on defaults\n")
     kernel = ASKernel()
 
-  while True:
-      kernel.handle_incoming()
+  kernel.listen()
 
 # debugging cruft
 # pls leave

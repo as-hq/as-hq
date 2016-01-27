@@ -118,6 +118,7 @@
     "react-hotkeys": "^0.7.1",
     "react-menu-bar": "~2.0.4",
     "react-native": "^0.17.0",
+    "react-notification-system": "^0.2.6",
     "react-resizable": "^1.0.1",
     "react-style": "^0.5.5",
     "react-tap-event-plugin": "^0.2.1",

@@ -2,6 +2,9 @@
 
 module AS.Types.CondFormat where
 
+import AS.Prelude
+import Prelude()
+
 import AS.ASJSON 
 
 import AS.Types.Cell
@@ -23,25 +26,25 @@ type CondFormatRuleId = T.Text
 data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , cellLocs :: [ASRange]
                                      , formatMapConstructor :: FormatMapConstructor }  
-                                     deriving (Show, Read, Generic, Eq)
+                                     deriving (Show, Read, Generic, Data, Typeable, Eq)
 
 type LambdaConditionExpr = String
 
 data FormatMapConstructor = BoolFormatMapConstructor { boolFormatMapCondition :: BoolCondition
                                                      , boolFormatMapProps :: [CellProp] }
                           | LambdaFormatMapConstructor LambdaConditionExpr
-                          deriving (Show, Read, Generic, Eq)
+                          deriving (Show, Read, Generic, Data, Typeable, Eq)
 
 data BoolCondition = 
     CustomBoolCond ASExpression
   | NoExprBoolCond NoExprBoolCondType
   | OneExprBoolCond OneExprBoolCondType ASExpression  
   | TwoExprBoolCond TwoExprBoolCondType ASExpression ASExpression
-  deriving (Show, Read, Generic, Eq)
+  deriving (Show, Read, Generic, Data, Typeable, Eq)
 
-data NoExprBoolCondType = IsEmpty | IsNotEmpty deriving (Show, Read, Generic, Eq)
-data OneExprBoolCondType = GreaterThan | LessThan | Geq | Leq | Equals | NotEquals deriving (Show, Read, Generic, Eq)
-data TwoExprBoolCondType = IsBetween | IsNotBetween deriving (Show, Read, Generic, Eq)
+data NoExprBoolCondType = IsEmpty | IsNotEmpty deriving (Show, Read, Generic, Data, Typeable, Eq)
+data OneExprBoolCondType = GreaterThan | LessThan | Geq | Leq | Equals | NotEquals deriving (Show, Read, Generic, Data, Typeable, Eq)
+data TwoExprBoolCondType = IsBetween | IsNotBetween deriving (Show, Read, Generic, Data, Typeable, Eq)
 
 symbolTableLookup0 :: NoExprBoolCondType -> (ASValue -> Bool)
 symbolTableLookup0 IsEmpty    = (== NoValue)

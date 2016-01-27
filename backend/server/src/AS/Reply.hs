@@ -34,7 +34,9 @@ broadcastErrOrUpdate mid state _ (Right update) = broadcastSheetUpdate mid state
 
 broadcastSheetUpdate :: MessageId -> ServerState -> SheetUpdate -> IO ()
 broadcastSheetUpdate mid state sheetUpdate =
-  mapM_ (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) (state^.userClients)
+  mapM_ 
+    (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) 
+    (state^.userClients)
 
 -- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
 -- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 

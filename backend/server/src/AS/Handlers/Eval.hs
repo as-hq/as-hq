@@ -19,6 +19,9 @@ import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
 
+import qualified Data.Map as M
+import qualified Data.Text as T
+
 import Control.Concurrent
 import Control.Lens hiding ((.=))
 import Control.Monad.Trans.Either
@@ -74,3 +77,12 @@ handleSetLanguagesInRange mid uc state lang rng = do
   let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells
   errOrUpdate <- runDispatchCycle state cellsWithLangsChanged DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
+
+-- | The user has pressed the "kill" button for an overlong operation;
+-- look up the relevant thread, and kill it if it exists.
+handleTimeout :: MessageId -> MVar ServerState -> IO ()
+handleTimeout mid state = 
+  modifyMVar_ state $ \curState -> do
+    maybe (return ()) killThread $
+      M.lookup mid (view threads curState)
+    return $ curState & threads %~ (M.delete mid)

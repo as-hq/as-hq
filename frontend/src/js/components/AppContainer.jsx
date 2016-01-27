@@ -1,20 +1,23 @@
+/* @flow */
+
 import React from 'react';
 import App from './App.jsx';
 
+import NotificationController from './NotificationController.jsx';
+
+// $FlowFixMe
 import injectTapEventPlugin from 'react-tap-event-plugin';
 injectTapEventPlugin();
 
-export default React.createClass({
 
-  componentDidMount() {
-  },
+export default class AppContainer extends React.Component<{}, {}, {}> {
 
-  componentWillUnmount() {
-  },
-
-  render() {
+  render(): React.Element {
     return (
-      <App />
+      <div style={{height: '100%', width: '100%'}}>
+        <App />
+        <NotificationController />
+      </div>
     );
   }
-});
+};

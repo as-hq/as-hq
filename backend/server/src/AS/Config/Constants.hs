@@ -24,3 +24,8 @@ initialization_failure_message_id = "FAILURE_MESSAGE_ID"
 -- new type for ImportMessage. 
 import_message_id :: Text
 import_message_id = "IMPORT_MESSAGE_ID"
+
+-- timeout messages are not associated with any messageId sent from the 
+-- client, and therefore have no concept of progress. 
+timeout_message_id :: Text
+timeout_message_id = "TIMEOUT_MESSAGE_ID"

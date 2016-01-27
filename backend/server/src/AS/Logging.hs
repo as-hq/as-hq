@@ -17,8 +17,7 @@ module AS.Logging
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.DB
-import AS.Config.Paths
-import AS.Config.Settings 
+import AS.Config.Settings as S
 
 import qualified Data.Text as T
 import Data.Aeson
@@ -63,9 +62,8 @@ printWithTimeT = lift . printWithTime
 
 writeToASLog :: String -> String -> IO ()
 writeToASLog logRootName msg = do
-  logDir <- getServerLogDir
   date <- getDate
-  let logPath = logDir ++ logRootName ++ date
+  let logPath = S.log_dir ++ logRootName ++ date
   appendFile' logPath ('\n':msg)
 
 writeToASLogWithMetadata :: String -> String -> CommitSource -> IO ()

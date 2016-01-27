@@ -73,10 +73,13 @@ import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import ProgressStore from '../stores/ASProgressStore';
+
 import ws from '../AS/PersistentWebSocket';
-import * as ProgressActionCreators from '../actions/ASProgressActionCreators';
+import * as ProgressActions from '../actions/ASProgressActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
+import {addNotification} from '../actions/ASNotificationActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 
@@ -105,7 +108,7 @@ let refreshDialogShown: boolean = false;
 
 pws.ondisconnect = () => {
   API.reinitialize(); // queue our handshake for the next time we reconnect
-  ProgressActionCreators.clearAllProgress();
+  ProgressActions.clearAllProgress();
   setConnectedState(false);
 };
 
@@ -130,12 +133,19 @@ pws.onmessage = (event: MessageEvent) => {
   const msg: ClientMessage = JSON.parse(event.data);
   const {clientAction: action} = msg;
 
-  ProgressActionCreators.markReceived(msg);
+  ProgressActions.markReceived(msg);
 
   if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
       _type: 'GOT_FAILURE',
       errorMsg: action.contents
+    });
+
+    // Clear all progress indicators if we received an Error message.
+    // We currently don't have ASExecErrors tied to cells, so there's
+    // currently no way to know what to clear.
+    Dispatcher.dispatch({
+      _type: 'CLEAR_ALL_PROGRESS'
     });
 
     if (isRunningTest && currentCbs) {
@@ -152,24 +162,6 @@ pws.onmessage = (event: MessageEvent) => {
     logDebug('Fulfilled server message normally');
     currentCbs.fulfill(msg);
     isRunningTest = false;
-  }
-
-  if (action.tag == "AskDecouple") {
-    Dispatcher.dispatch({
-      _type: 'EVAL_TRIED_TO_DECOUPLE'
-    });
-    // Clear all progress indicator if we received a Decouple message.
-    // The reasoning is that Decouple messages are currently not tied
-    // to any particular cell in backend, since currently the logic
-    // for producing the Decouple message is simply to check if any existing
-    // coupled cells morphed to regular cells. Thus, the messageId sent for
-    // evaluation and the id after received after decoupling are not the same,
-    // and cannot be reconciled. The current workaround is to clear all progress
-    // upon receiving a Decouple message.
-    Dispatcher.dispatch({
-      _type: 'CLEAR_ALL_PROGRESS'
-    });
-    return;
   }
 
   switch (action.tag) {
@@ -197,6 +189,48 @@ pws.onmessage = (event: MessageEvent) => {
       Dispatcher.dispatch({
         _type: 'CLEARED_SHEET',
         sheetId: action.contents
+      });
+      break;
+    case 'AskDecouple':
+      Dispatcher.dispatch({
+        _type: 'EVAL_TRIED_TO_DECOUPLE'
+      });
+      // Clear all progress indicators if we received a Decouple message.
+      // The reasoning is that Decouple messages are currently not tied
+      // to any particular cell in backend, since currently the logic
+      // for producing the Decouple message is simply to check if any existing
+      // coupled cells morphed to regular cells. Thus, the messageId sent for
+      // evaluation and the id after received after decoupling are not the same,
+      // and cannot be reconciled. The current workaround is to clear all progress
+      // upon receiving a Decouple message.
+      Dispatcher.dispatch({
+        _type: 'CLEAR_ALL_PROGRESS'
+      });
+      break;
+    case 'AskTimeout':
+      const {serverActionType, timeoutMessageId} = action;
+      if (Constants.UntimedActions.includes(serverActionType)) {
+        // We don't track the progress of these actions.
+        break;
+      }
+      let operation = serverActionType;
+      if (serverActionType === 'Evaluate') {
+        // Reconcile the messageId with the location, using ProgressStore
+        const loc = ProgressStore.lookup(timeoutMessageId);
+        if (!! loc) {
+          const locStr = ASIndex.fromNaked(loc).toExcel().toString();
+          operation = `${serverActionType} at cell ${locStr}`;
+        }
+      }
+      addNotification({
+        uid: timeoutMessageId,
+        title: 'Cancel operation',
+        message: `The operation ${operation} is still running. Cancel?`,
+        level: 'warning',
+        action: {
+          label: 'OK',
+          callback: () => API.timeout(timeoutMessageId)
+        }
       });
       break;
     case 'AskUserToOpen':
@@ -284,7 +318,7 @@ const API = {
       serverAction: action,
       messageId,
     };
-    ProgressActionCreators.markSent(msg);
+    ProgressActions.markSent(msg);
     logDebug(`Queueing ${msg.serverAction.tag} message, id ${messageId}`);
     pws.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${JSON.stringify(msg.serverAction)} message, id ${messageId}`);
@@ -419,7 +453,15 @@ const API = {
       tag: "Decouple",
       contents: []
     };
+    API.sendMessageWithAction(msg);
+  },
 
+  timeout(messageId: string) {
+    const msg = {
+      tag: "Timeout",
+      contents: messageId
+    };
+    ProgressActions.clearProgress(messageId);
     API.sendMessageWithAction(msg);
   },
   /**************************************************************************************************************************/

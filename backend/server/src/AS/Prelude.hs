@@ -1,5 +1,6 @@
 module AS.Prelude 
   ( module PreludeMinus
+  , module Data.Data
   , error
   , undefined
   , valAt
@@ -18,6 +19,7 @@ module AS.Prelude
 
 import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined)
 import qualified Prelude as P
+import Data.Data
 
 import Control.Lens
 import Language.Haskell.TH

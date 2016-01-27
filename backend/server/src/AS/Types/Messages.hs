@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
-
 module AS.Types.Messages where
 
 import AS.Prelude
@@ -49,6 +47,7 @@ failureMessage mid s = ClientMessage mid $ ShowFailureMessage s
 data ClientAction = 
     NoAction
   | AskDecouple
+  | AskTimeout { timeoutMessageId :: MessageId, serverActionType :: String }
   | SetInitialProperties SheetUpdate [EvalHeader] -- list of expressions in header
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
@@ -88,12 +87,13 @@ data ServerAction =
   | MutateSheet MutateType
   | Drag { initialRange :: ASRange, dragRange :: ASRange }
   | Decouple
+  | Timeout MessageId
   | UpdateCondFormatRules CondFormatRuleUpdate
   | SetBarProp BarIndex BarProp
   | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
   | ChangeDecimalPrecision Int ASRange
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
 -- data QueryList =
@@ -103,12 +103,12 @@ data ServerAction =
 --   deriving (Show, Read, Eq, Generic)
 
 -- Indicates where to eval and what to eval
-data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } deriving (Show, Read, Eq, Generic)
+data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
                   DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int }
-                  deriving (Show, Read, Eq, Generic)
+                  deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- should get renamed
 -- data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
@@ -168,3 +168,11 @@ generateErrorMessage e = case e of
 makeErrorMessage :: MessageId -> ASExecError -> ClientMessage
 makeErrorMessage mid DecoupleAttempt = ClientMessage mid AskDecouple 
 makeErrorMessage mid e = ClientMessage mid $ ShowFailureMessage $ generateErrorMessage e
+
+-- I only need a string here, because the ActionType is never used to construct anything -
+-- only to insert a field into one of the JSON messages (AskTimeout)
+-- For example, this function takes
+--        ToggleProp _ _ -> "ToggleProp"
+--        Decouple       -> "Decouple"
+getServerActionType :: ServerAction -> String
+getServerActionType = show . toConstr

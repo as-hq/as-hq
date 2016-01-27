@@ -1,6 +1,9 @@
-{-# LANGUAGE TypeFamilies, DeriveGeneric, StandaloneDeriving, TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies, StandaloneDeriving #-}
 
 module AS.Types.Updates where
+
+import AS.Prelude
+import Prelude()
 
 import GHC.Generics
 import Control.Applicative (liftA2)
@@ -22,7 +25,7 @@ flipDiff (Diff x y) = Diff y x
 -- a variable name) at (1,1), applying this update means deleting what's at (1,1), (1,2), and (1,3) 
 -- and adding CELL to (1,1). This is used both on the backend to update the DB and on the frontend
 -- to update the spreadsheet presented to the user. 
-data Update a b = Update { newVals :: [a], oldKeys :: [b] } deriving (Show, Read, Eq, Generic)
+data Update a b = Update { newVals :: [a], oldKeys :: [b] } deriving (Show, Read, Eq, Data, Typeable, Generic)
 -- You could write a constructor yourself (not sure if compiles) #anand
 --mkUpdate :: (HasKey a, Eq (KeyType b)) => [a] -> [KeyType b] -> Update a (KeyType b)
 --mkUpdate as bs = Update {newVals = as, oldKeys = bs}1
