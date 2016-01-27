@@ -5,10 +5,10 @@
 // attach a message id to requests sent to the backend. All requests have a
 // message id, but we only track evaluation requests here.
 
-// $FlowFixMe
 import Immutable from 'immutable';
+import { MapStore } from 'flux/utils';
 
-import Dispatcher from '../Dispatcher';
+import dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 
 import type {
@@ -20,12 +20,15 @@ import type {
   MessageId,
 } from '../types/Messages';
 
-type ProgressStoreData = Immutable.Map<MessageId, MessageMetadata>;
+import type {
+  ASAction
+} from '../types/Actions';
 
-let _waitingIds: ProgressStoreData = Immutable.Map();
+type ProgressState = Immutable.Map<MessageId, MessageMetadata>;
 
-const ProgressStore = Object.assign({}, BaseStore, {
-  dispatcherIndex: Dispatcher.register(action => {
+class ProgressStore extends MapStore<MessageId, MessageMetadata> {
+
+  reduce(state: ProgressState, action: ASAction): ProgressState {
     switch (action._type) {
       case 'MARK_SENT': {
         const { locations, messageId } = action;
@@ -33,9 +36,7 @@ const ProgressStore = Object.assign({}, BaseStore, {
           locations,
           messageTimestamp: Date.now(),
         };
-        _waitingIds = _waitingIds.set(messageId, metadata);
-        ProgressStore.emitChange();
-        break;
+        return state.set(messageId, metadata);
       }
 
       case 'MARK_RECEIVED': {
@@ -54,29 +55,23 @@ const ProgressStore = Object.assign({}, BaseStore, {
         // |___|___| M2 |
         //     |________| <-- mark received M2, but intersect(M1, M2) are still in progress
         //
-        const {messageId} = action;
-        if (_waitingIds.has(messageId)) {
-          _waitingIds = _waitingIds.delete(messageId);
-          ProgressStore.emitChange();
-        }
-        break;
+        const { messageId } = action;
+        return state.delete(messageId);
       }
 
       case 'MARK_ALL_RECEIVED': {
-        _waitingIds = Immutable.Map();
-        ProgressStore.emitChange();
-        break;
+        return Immutable.Map();
+      }
+
+      default: {
+        return state;
       }
     }
-  }),
+  }
 
   getMessagesInProgress(): Array<MessageMetadata> {
-    return _waitingIds.toArray();
-  },
-
-  get(messageId: MessageId): ?MessageMetadata {
-    return _waitingIds.get(messageId)
+    return this.getState().toArray();
   }
-});
+}
 
-export default ProgressStore;
+export default new ProgressStore(dispatcher);
