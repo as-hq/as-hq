@@ -15,7 +15,7 @@ import type {
   ASLanguage,
   RangeDescriptor,
   RangeKey,
-  NakedIndex
+  NakedIndex,
 } from './Eval';
 
 import type {
@@ -29,7 +29,8 @@ import type {
 import type {
   ASBackendWorkbookSheet,
   ClientMessage,
-  EvalHeader
+  EvalHeader,
+  MessageId
 } from './Messages';
 
 import type {
@@ -206,24 +207,18 @@ export type CloseChartingDialogAction = {
 
 export type MarkSentAction = {
   _type: 'MARK_SENT';
-  index: NakedIndex;
-  messageId: string;
+  locations: Array<ASLocation>;
+  messageId: MessageId;
 };
 
 export type MarkReceivedAction = {
   _type: 'MARK_RECEIVED';
-  index: NakedIndex;
-  messageId: string;
+  messageId: MessageId;
 };
 
-export type ClearAllProgressAction = {
-  _type: 'CLEAR_ALL_PROGRESS';
+export type MarkAllReceivedAction = {
+  _type: 'MARK_ALL_RECEIVED';
 };
-
-export type ClearProgressAction = {
-  _type: 'CLEAR_PROGRESS';
-  messageId: string;
-}
 
 export type AddNotificationAction = {
   _type: 'ADD_NOTIFICATION';
@@ -284,10 +279,9 @@ export type ASAction =
   | CloseCondFormattingDialogAction
   | OpenChartingDialogAction
   | CloseChartingDialogAction
-  | ClearAllProgressAction
-  | ClearProgressAction
   | MarkSentAction
   | MarkReceivedAction
+  | MarkAllReceivedAction
   | AddNotificationAction
   | DismissNotificationAction
   | RemoveNotificationAction;

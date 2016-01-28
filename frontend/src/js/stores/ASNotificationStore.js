@@ -16,13 +16,13 @@ const NotificationStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
       case 'ADD_NOTIFICATION': {
-        const uid = shortid.generate();
+        const {uid} = action.spec;
         _notifications.push(uid);
         NotificationStore.emit('ADD', uid, action.spec);
         break;
       }
 
-      // This is for programmatic dismissal.
+      // This is for programmatic dismissal
       case 'DISMISS_NOTIFICATION': {
         const {uid} = action;
         NotificationStore._remove(uid);

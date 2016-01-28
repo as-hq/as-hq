@@ -45,6 +45,13 @@ import type {
   ASUserId
 } from './User';
 
+export type MessageId = string;
+
+export type MessageMetadata = {
+  locations: Array<ASLocation>;
+  messageTimestamp: number;
+};
+
 export type Direction = 'Down' | 'Up' | 'Left' | 'Right';
 
 export type ASBackendDirection = 'DDown' | 'DUp' | 'DLeft' | 'DRight';
@@ -504,24 +511,24 @@ export type Timeout = {
 export type UpdateCondFormatRules = {
   tag: "UpdateCondFormatRules";
   contents: CondFormatRuleUpdate;
-};
+}
 
 export type SetBarProp = {
   tag: "SetBarProp";
   contents: [BarIndex, BarProp];
-};
+}
 
 export type ImportCSV = {
   tag: "ImportCSV";
   csvIndex: ASIndexObject;
   csvLang: ASLanguage;
   csvFileName: string;
-};
+}
 
 export type ASAPICallbackPair = {
   fulfill: (msg: ?ClientMessage) => void;
   reject: (msg: ?ClientMessage) => void;
-};
+}
 
 export type ClientMessage = {
   tag: "ClientMessage";

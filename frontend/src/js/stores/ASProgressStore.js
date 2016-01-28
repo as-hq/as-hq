@@ -5,101 +5,73 @@
 // attach a message id to requests sent to the backend. All requests have a
 // message id, but we only track evaluation requests here.
 
-import Dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
+import Immutable from 'immutable';
+// $FlowFixMe 
+import { MapStore } from 'flux/utils';
+
+import dispatcher from '../Dispatcher';
 
 import type {
-  NakedIndex
+  ASLocation
 } from '../types/Eval';
 
-type MessageMetadata = {
-  messageId: string;
-  messageTimestamp: number;
-};
+import type {
+  MessageMetadata,
+  MessageId,
+} from '../types/Messages';
 
-type ProgressStoreData = Map<number, Map<number, MessageMetadata>>;
+import type {
+  ASAction
+} from '../types/Actions';
 
-let _waitingIds: ProgressStoreData = new Map();
+type ProgressState = Immutable.Map<MessageId, MessageMetadata>;
 
-const ProgressStore = Object.assign({}, BaseStore, {
-  dispatcherIndex: Dispatcher.register(action => {
+class ProgressStore extends MapStore<MessageId, MessageMetadata> {
+
+  reduce(state: ProgressState, action: ASAction): ProgressState {
     switch (action._type) {
       case 'MARK_SENT': {
-        const { index, messageId } = action;
+        const { locations, messageId } = action;
         const metadata = {
-          messageId,
+          locations,
           messageTimestamp: Date.now(),
         };
-
-        let colSet = _waitingIds.get(index.col);
-        if (colSet !== undefined) {
-          colSet.set(index.row, metadata); // will modify _waitingIds. would be preferable to use ImmutableJS here
-        } else {
-          _waitingIds.set(
-            index.col,
-            new Map().set(index.row, metadata)
-          );
-        }
-        ProgressStore.emitChange();
-        break;
+        return state.set(messageId, metadata);
       }
 
       case 'MARK_RECEIVED': {
-        const { index, messageId } = action;
-
-        let colSet = _waitingIds.get(index.col);
-        if (colSet !== undefined) {
-          const metadata = colSet.get(index.row);
-
-          // The user might change the value of a cell before its evaluation has
-          // been returned.
-          //
-          // 1 <---- request ----> 1
-          //      2 <---- request ----> 2
-          //                            ^ mark finished here
-          //
-          // In which case we need to check that the message we received is the
-          // one we're waiting on.
-          if (metadata != undefined && metadata.messageId === messageId) {
-            colSet.delete(index.row);
-            ProgressStore.emitChange();
-          }
-        }
-        break;
+        // The user might change the value of a cell before its evaluation has
+        // been returned.
+        //
+        // 1 <---- request ----> 1
+        //      2 <---- request ----> 2
+        //                            ^ mark finished here
+        //
+        // In this case, we're fine, since multiple messageId's will share the
+        // same locations. Then, we've only deleted the in-progress locations
+        // corresponding to one particular message, and the overlapping are still going.
+        // ________
+        // | M1 ___|____
+        // |___|___| M2 |
+        //     |________| <-- mark received M2, but intersect(M1, M2) are still in progress
+        //
+        const { messageId } = action;
+        return state.delete(messageId);
       }
 
-      case 'CLEAR_PROGRESS': {
-        const loc = ProgressStore.lookup(action.messageId);
-        if (!! loc) {
-          let colSet = _waitingIds.get(loc.col);
-          if (!! colSet) {
-            colSet.delete(loc.row);
-          }
-          ProgressStore.emitChange();
-        }
+      case 'MARK_ALL_RECEIVED': {
+        return Immutable.Map();
       }
 
-      case 'CLEAR_ALL_PROGRESS': {
-        _waitingIds = new Map();
-        ProgressStore.emitChange();
-      }
-    }
-  }),
-
-  getLocationsInProgress(): ProgressStoreData {
-    return _waitingIds;
-  },
-
-  lookup(myMessageId: string): ?NakedIndex {
-    for (const [col, colSet] of _waitingIds) {
-      for (const [row, {messageId}] of colSet) {
-        if  (messageId === myMessageId) {
-          return {col, row};
-        }
+      default: {
+        return state;
       }
     }
   }
 
-});
+  getMessagesInProgress(): Array<MessageMetadata> {
+    return this.getState().toArray();
+  }
+}
 
-export default ProgressStore;
+export default new ProgressStore(dispatcher);

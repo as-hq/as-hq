@@ -82,6 +82,7 @@ class Client c where
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 
+type Seconds = Int
 type Milliseconds = Int
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

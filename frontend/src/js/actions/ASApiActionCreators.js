@@ -79,7 +79,7 @@ import ws from '../AS/PersistentWebSocket';
 import * as ProgressActions from '../actions/ASProgressActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
-import {addNotification} from '../actions/ASNotificationActionCreators';
+import * as NotificationActions from '../actions/ASNotificationActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 
@@ -108,7 +108,9 @@ let refreshDialogShown: boolean = false;
 
 pws.ondisconnect = () => {
   API.reinitialize(); // queue our handshake for the next time we reconnect
-  ProgressActions.clearAllProgress();
+  // Give up on progress on disconnect.
+  // https://app.asana.com/0/47051356043702/84248459839482
+  ProgressActions.markAllReceived();
   setConnectedState(false);
 };
 
@@ -133,7 +135,8 @@ pws.onmessage = (event: MessageEvent) => {
   const msg: ClientMessage = JSON.parse(event.data);
   const {clientAction: action} = msg;
 
-  ProgressActions.markReceived(msg);
+  ProgressActions.markReceived(msg.messageId);
+  NotificationActions.dismissNotification(msg.messageId);
 
   if (action.tag === "ShowFailureMessage") {
     Dispatcher.dispatch({
@@ -144,9 +147,8 @@ pws.onmessage = (event: MessageEvent) => {
     // Clear all progress indicators if we received an Error message.
     // We currently don't have ASExecErrors tied to cells, so there's
     // currently no way to know what to clear.
-    Dispatcher.dispatch({
-      _type: 'CLEAR_ALL_PROGRESS'
-    });
+    // https://app.asana.com/0/47051356043702/84248459839477
+    ProgressActions.markAllReceived();
 
     if (isRunningTest && currentCbs) {
       // sometimes we want to test whether it errors, so it fulfills anyways!
@@ -203,9 +205,8 @@ pws.onmessage = (event: MessageEvent) => {
       // evaluation and the id after received after decoupling are not the same,
       // and cannot be reconciled. The current workaround is to clear all progress
       // upon receiving a Decouple message.
-      Dispatcher.dispatch({
-        _type: 'CLEAR_ALL_PROGRESS'
-      });
+      // https://app.asana.com/0/47051356043702/84248459839477
+      ProgressActions.markAllReceived();
       break;
     case 'AskTimeout':
       const {serverActionType, timeoutMessageId} = action;
@@ -213,25 +214,26 @@ pws.onmessage = (event: MessageEvent) => {
         // We don't track the progress of these actions.
         break;
       }
-      let operation = serverActionType;
-      if (serverActionType === 'Evaluate') {
-        // Reconcile the messageId with the location, using ProgressStore
-        const loc = ProgressStore.lookup(timeoutMessageId);
-        if (!! loc) {
-          const locStr = ASIndex.fromNaked(loc).toExcel().toString();
-          operation = `${serverActionType} at cell ${locStr}`;
-        }
+
+      // reconcile the timing out messageId with its locations, using ProgressStore
+      const metadata = ProgressStore.get(timeoutMessageId);
+      if (!! metadata) {
+        const locStr = metadata
+                        .locations
+                        .map((loc) => loc.toExcel().toString())
+                        .join(', ')
+        NotificationActions.addNotification({
+          uid: timeoutMessageId,
+          title: 'Cancel operation',
+          message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
+          level: 'warning',
+          action: {
+            label: 'OK',
+            callback: () => API.timeout(timeoutMessageId)
+          }
+        });
       }
-      addNotification({
-        uid: timeoutMessageId,
-        title: 'Cancel operation',
-        message: `The operation ${operation} is still running. Cancel?`,
-        level: 'warning',
-        action: {
-          label: 'OK',
-          callback: () => API.timeout(timeoutMessageId)
-        }
-      });
+
       break;
     case 'AskUserToOpen':
       alert("Please refresh, and load the sheet named " + action.contents);
@@ -461,7 +463,16 @@ const API = {
       tag: "Timeout",
       contents: messageId
     };
-    ProgressActions.clearProgress(messageId);
+    ProgressActions.markReceived(messageId);
+    API.sendMessageWithAction(msg);
+  },
+
+  timeout(messageId: string) {
+    const msg = {
+      tag: "Timeout",
+      contents: messageId
+    };
+    ProgressActions.markReceived(messageId);
     API.sendMessageWithAction(msg);
   },
   /**************************************************************************************************************************/

@@ -1,14 +1,26 @@
 /* @flow */
 
+import type {
+  NotificationSpec
+} from '../types/Notifications';
+
+import type {
+  Callback
+} from '../types/Base';
+
 import React from 'react';
 import App from './App.jsx';
+// $FlowFixMe
+import NotificationSystem from 'react-notification-system';
+
+import NotificationStore from '../stores/ASNotificationStore';
+import * as NotificationActions from '../actions/ASNotificationActionCreators';
 
 import NotificationController from './NotificationController.jsx';
 
 // $FlowFixMe
 import injectTapEventPlugin from 'react-tap-event-plugin';
 injectTapEventPlugin();
-
 
 export default class AppContainer extends React.Component<{}, {}, {}> {
 
@@ -20,4 +32,5 @@ export default class AppContainer extends React.Component<{}, {}, {}> {
       </div>
     );
   }
+
 };

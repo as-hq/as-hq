@@ -11,7 +11,7 @@ import type {
 import type {
   ASLocation,
   ASSheet,
-  ASWorkbook
+  ASWorkbook,
 } from '../../types/Eval';
 
 import type {
@@ -23,12 +23,15 @@ import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
   ServerMessage,
-  EvalInstruction
+  EvalInstruction,
+  ServerAction
 } from '../../types/Messages';
 
 import Location from './Location';
 
 import ASIndex from '../../classes/ASIndex';
+import ASRange from '../../classes/ASRange';
+import ASSelection from '../../classes/ASSelection';
 
 import Constants from '../../Constants';
 import CellStore from '../../stores/ASCellStore';
@@ -80,6 +83,57 @@ let CU = {
         contents: []
       }
     };
+  },
+
+  getLocationsFromServerAction(action: ServerAction): Array<ASLocation> {
+    switch(action.tag) {
+      case 'EvalInstruction': {
+        return [action.evalLoc.index];
+      }
+
+      case 'Evaluate': {
+        return action.contents.map((instr) => {
+          return new ASIndex(instr.evalLoc);
+        });
+      }
+
+      case 'Get': {
+        return action.contents.map((idx) => {
+          return new ASIndex(idx);
+        });
+      }
+
+      case 'Delete': {
+        return [new ASRange(action.contents)];
+      }
+
+      case 'Copy': {
+        return [new ASRange(action.copyTo)];
+      }
+
+      case 'Cut': {
+        return [new ASRange(action.cutFrom),
+                new ASRange(action.cutTo)]
+      }
+
+      case 'ToggleProp':
+      case 'SetProp':
+      case 'ChangeDecimalPrecision': {
+        return [new ASRange(action.contents[1])];
+      }
+
+      case 'Repeat': {
+        return [new ASSelection(action.contents).range]
+      }
+
+      case 'Drag': {
+        return [new ASRange(action.dragRange)];
+      }
+
+      default: {
+        return [];
+      }
+    }
   },
 
   /**************************************************************************************************************************/

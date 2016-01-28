@@ -83,6 +83,7 @@ handleSetLanguagesInRange mid uc state lang rng = do
 handleTimeout :: MessageId -> MVar ServerState -> IO ()
 handleTimeout mid state = 
   modifyMVar_ state $ \curState -> do
+    putStrLn $ "Killing message ID: " ++ (T.unpack mid)
     maybe (return ()) killThread $
       M.lookup mid (view threads curState)
     return $ curState & threads %~ (M.delete mid)
