@@ -2,15 +2,18 @@ var path = require('path');
 var webpack = require('webpack');
 
 module.exports = {
-  devtool: 'source-map',
   context: __dirname,
-  entry: path.join(__dirname, 'src/js/index.jsx'),
+  entry: [
+    'webpack-hot-middleware/client',
+    path.join(__dirname, 'src/js/index.jsx'),
+  ],
   output: {
     path: path.join(__dirname, 'dist/js/'),
     filename: 'index.js',
-    // publicPath: gulpPaths.SCRIPT_SOURCEMAP_PREFIX,
+    publicPath: '/js/',
   },
   plugins: [
+    new webpack.HotModuleReplacementPlugin(),
     new webpack.NoErrorsPlugin(),
     new webpack.DefinePlugin({
       __DEV__: true,

@@ -1,3 +1,3 @@
 var gulp = require('gulp');
 
-gulp.task('build', ['browserify', 'styles', 'html']);
+gulp.task('build', ['webpack-prod', 'styles', 'html']);

@@ -1,2 +1,3 @@
 var gulp = require('gulp');
-gulp.task('default', ['build', 'watch', 'server']);
+
+gulp.task('default', ['webpack-watch', 'webpack-watch-hot', 'styles', 'html']);
