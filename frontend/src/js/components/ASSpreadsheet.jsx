@@ -116,10 +116,7 @@ export default class ASSpreadsheet
     this.mouseDownInBox = false;
     this.dragSelectionOrigin = null;
 
-    this.draggingCol = false;
-    this.draggingRow = false;
-    this.clickedColNum = null;
-    this.clickedRowNum = null;
+    
     this.resizedColNum = null;
     this.resizedRowNum = null;
 

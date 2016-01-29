@@ -86,7 +86,22 @@ const callbacks: Array<InitCallback> = [
           spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
           spreadsheet.props.setFocus('textbox');
         }
+      },
+
+      // This event is emitted by our fork to Hypergrid after row dragging has happened. We listen to them here
+      // and fire an API call in response.
+      'fin-row-dragged': function(event) {
+        let {startRow, endRow} = event.detail;
+        API.dragRow(startRow, endRow);
+      },
+
+      // This event is emitted by our fork to Hypergrid after col dragging has happened. We listen to them here
+      // and fire an API call in response.
+      'fin-column-dragged': function(event) {
+        let {startCol, endCol} = event.detail;
+        API.dragCol(startCol, endCol);
       }
+
     });
 
     _.forEach(callbacks, (v, k) => {
@@ -151,13 +166,6 @@ const callbacks: Array<InitCallback> = [
           // dragging selections
           spreadsheet.dragSelectionOrigin = ASIndex.fromGridCell(evt.gridCell);
         } else if (model.featureChain) {
-          let clickedCell = evt.gridCell;
-          // If the mouse is placed inside column header (not on a divider), we want to keep some extra state ourselves
-          if (spreadsheet._clickedCellIsInColumnHeader(clickedCell) && spreadsheet._isLeftClick(evt)) {
-           spreadsheet.clickedColNum = clickedCell.x;
-          } else if (spreadsheet._clickedCellIsInRowHeader(clickedCell) && spreadsheet._isLeftClick(evt)) {
-            spreadsheet.clickedRowNum = clickedCell.y;
-          }
           model.featureChain.handleMouseDown(grid, evt);
           model.setCursor(grid);
         }
@@ -223,13 +231,6 @@ const callbacks: Array<InitCallback> = [
         spreadsheet.scrollWithDraggables(grid);
         spreadsheet.repaint(); // show dotted lines
       } else if (model.featureChain) {
-        // If we've mouse down'ed on a column header, we're now dragging a column
-        if (spreadsheet.clickedColNum !== null && spreadsheet._isLeftClick(evt)) {
-          spreadsheet.draggingCol = true;
-        } else if (spreadsheet.clickedRowNum !== null && spreadsheet._isLeftClick(evt)) {
-          spreadsheet.draggingRow = true;
-        }
-        // do default
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
       }
@@ -299,26 +300,7 @@ const callbacks: Array<InitCallback> = [
 
           Render.setDragCorner(null);
           spreadsheet.mouseDownInBox = false;
-
-          // Clean up dragging a column, and send an API message to backend to swap data
-          if (spreadsheet.draggingCol) {
-            let destColNum = Math.max(1, evt.gridCell.x); // evt.gridCell.x can go negative...
-            if (spreadsheet.clickedColNum != null && spreadsheet.clickedColNum != destColNum) {
-              API.dragCol(spreadsheet.clickedColNum, destColNum);
-            }
-          } else if (spreadsheet.draggingRow) {
-            let destRowNum = Math.max(1, evt.gridCell.y);
-            if (spreadsheet.clickedRowNum != destRowNum && spreadsheet.clickedRowNum != null) {
-              API.dragRow(spreadsheet.clickedRowNum, destRowNum);
-            }
-          }
-
-          spreadsheet.clickedColNum = null;
-          spreadsheet.draggingCol = false;
-          spreadsheet.clickedRowNum = null;
-          spreadsheet.draggingRow = false;
-
-          // Ditto for resizing
+          
           spreadsheet.finishColumnResize();
           spreadsheet.finishRowResize();
         }
