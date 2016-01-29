@@ -22,7 +22,7 @@ var Constants = Object.assign({
     // note: "procotol" is "ws", "http", etc.
     return protocol + '://' + (Constants.isRemote ? Constants.BACKEND_REMOTE_HOST : 'localhost') + ':' + port;
   },
-  BACKEND_REMOTE_HOST: '18.102.225.27',
+  BACKEND_REMOTE_HOST: '159.203.127.80',
   BACKEND_WS_PORT: '5000',
   BACKEND_STATIC_PORT: '8000',
   BACKEND_IMPORT_PORT: '9000',
