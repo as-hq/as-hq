@@ -7,7 +7,6 @@
     "core-elements": "Polymer/core-elements#~0.5.6",
     "paper-elements": "Polymer/paper-elements#~0.5.6",
     "bootstrap": "~3.3.5",
-    "jquery": "~2.1.4",
     "svg-loaders": "~1.0.2"
   },
   "resolutions": {

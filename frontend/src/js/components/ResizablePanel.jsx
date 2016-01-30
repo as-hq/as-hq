@@ -5,8 +5,6 @@ import {logDebug} from '../AS/Logger';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Styles} from 'material-ui';
-// $FlowFixMe
-import $ from 'jquery';
 
 type ResizablePanelConfigType = {
   separatorSize: number;
@@ -89,13 +87,22 @@ export default class ResizablePanel
     document.addEventListener('mousemove', this._onMouseMove.bind(this));
     // $FlowFixMe what's going on here?
     document.addEventListener('mouseup', this._onMouseUp.bind(this));
-    let root = ReactDOM.findDOMNode(this.refs.root);
+
+    const root = ReactDOM.findDOMNode(this.refs.root);
+    const doc = document.documentElement;
+    const rect = root.getBoundingClientRect();
+    const computedStyle = window.getComputedStyle(root, null);
+
+    // TODO(joel) - is this necessary? are width and height what we want here?
     this.rootPosition = {
-      top:    $(root).offset().top,
-      left:   $(root).offset().left,
-      width:  $(root).width(),
-      height: $(root).height()
-    }
+      // use the bounding position + page scroll - page border
+      top:    rect.top + window.pageYOffset - doc.clientTop,
+      left:   rect.left + window.pageXOffset - doc.clientLeft,
+
+      // use computed size, minus "px"
+      width:  +computedStyle.getPropertyValue('width').slice(0, -2),
+      height: +computedStyle.getPropertyValue('height').slice(0, -2),
+    };
   }
 
   componentWillUnmount() {
