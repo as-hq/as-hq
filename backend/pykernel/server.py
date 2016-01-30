@@ -12,7 +12,7 @@ from AS.kernel.shell import ASShell
 # requested, because the shell temporarily changes sys.stdout
 # in order to capture prints). 
 def cprint(str):
-  print(str, sys.__stdout__)
+  print(str, file=sys.__stdout__)
 
 if __name__ == '__main__':
   cprint("\nPython kernel started.\n")
@@ -49,10 +49,11 @@ if __name__ == '__main__':
 #     self.x = 5
 # A()
 # """
-#   print shell.run_cell(expr, 'sheetid')
-#   print shell.run_cell(expr, 'sheetid2')
-#   print shell.run_cell('a=1\na', 'sheetid')
-#   print shell.run_cell('a', 'sheetid2')
+  # cprint(shell.run_cell(expr, 'sheetid'))
+  # cprint(shell2.run_cell(expr).result)
+#   cprint(shell.run_cell(expr, 'sheetid2'))
+  # cprint(shell.run_cell('a=1\na', 'sheetid'))
+  # cprint(shell.run_cell('a', 'sheetid'))
 
   # print shell.run_cell('plt.plot([1,2,3],[4,5,6])', 'sheetid')
 

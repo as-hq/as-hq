@@ -361,16 +361,15 @@ class ASShell(InteractiveShell):
 
     try:
         # the target namespace builds up for every line of cell code, 
-        # and is initially empty if run_cell is specified as running in isolated mode.
-        sheet_ns = self.sheet_nss[sheet_id]
-        target_ns = {} if isolated else sheet_ns
-        source_ns = sheet_ns
-
+        # and is a copy of the sheet namespace if running in isolated mode.
+        target_ns = copy.copy(self.sheet_nss[sheet_id]) if isolated else self.sheet_nss[sheet_id] 
+        def exec_function(code_obj):
+            exec(code_obj, target_ns)
 
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])
             code = compiler(mod, cell_name, "exec")
-            if self.run_code(code, source_ns, target_ns, result):
+            if self.run_code(code, exec_function, result):
                 return True
 
         # FIXME: currently, you cannot pickle classes defined interactively.
@@ -389,7 +388,7 @@ class ASShell(InteractiveShell):
         for i, node in enumerate(to_run_interactive):
             mod = ast.Interactive([node])
             code = compiler(mod, cell_name, "single")
-            if self.run_code(code, source_ns, target_ns, result):
+            if self.run_code(code, exec_function, result):
                 return True
 
         # add the newly created variables back into the sheet namespace
@@ -417,7 +416,7 @@ class ASShell(InteractiveShell):
 
     return False
 
-  def run_code(self, code_obj, source_ns, target_ns, result=None):
+  def run_code(self, code_obj, exec_function, result=None):
     """Execute a code object.
 
     When an exception occurs, self.showtraceback() is called to display a
@@ -427,10 +426,9 @@ class ASShell(InteractiveShell):
     ----------
     code_obj : code object
       A compiled code object, to be executed
-    source_ns : dict
-      The source namespace to run exec() against
-    target_ns : dict
-      The target namespace to inject newly created variables into
+    exec_function : Callable<code object>
+      A function that, when called, executes a code object against whatever 
+      namespace is specified in the function
     result : ExecutionResult, optional
       An object to store exceptions that occur during execution.
 
@@ -450,7 +448,8 @@ class ASShell(InteractiveShell):
     try:
         try:
             self.hooks.pre_run_code_hook()
-            exec(code_obj, source_ns, target_ns)
+            # print('running code with namespace:', target_ns, file=sys.__stdout__) # dbg
+            exec_function(code_obj)
         finally:
             # Reset our crash handler in place
             sys.excepthook = old_excepthook

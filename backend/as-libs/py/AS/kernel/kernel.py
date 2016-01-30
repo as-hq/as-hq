@@ -4,6 +4,7 @@ import sys
 import zmq
 import json
 import threading
+import signal
 import traceback
 
 from .shell import ASShell
@@ -41,14 +42,13 @@ class ASKernel(object):
     return ns
 
   def listen(self):
-# the kernel topology:
-# 
-# [async requests]                                             [worker queue]  
-#                                                                     
-# ------>                                                        ---> worker 1 
-# ------>  Router (tcp://*:20000) ---> Dealer (inproc://workers) ---> worker 2 
-# ------>                                                        ---> worker n 
-#
+  # the kernel topology:
+  # 
+  # [async requests]                                             [worker queue]  
+  #                                                                     
+  # ------>                                                        ---> worker 1 
+  # ------>  Router (tcp://*:20000) ---> Dealer (inproc://workers) ---> worker 2 
+  # ------>                                                        ---> worker n 
 
     print('\nKernel listening at address:', self.url_client, '\n', file=sys.__stdout__)
 
@@ -57,12 +57,17 @@ class ASKernel(object):
     self.router.bind(self.url_client)
     self.dealer = self.context.socket(zmq.DEALER)
     self.dealer.bind(self.url_worker)
+    self.threads = []
 
     # launch worker thread pool
     for i in range(self.num_threads):
       thread = threading.Thread(target=self.message_worker, args=(self.url_worker,i))
+      self.threads.append(thread)
       thread.start()
 
+    # forwards KeyboardInterrupt to a signal zmq will listen to
+    signal.signal(signal.SIGINT, signal.SIG_DFL);
+    
     # attach the Router and Dealer in order to forward requests to a 
     # worker queue, as seen in the art above
     zmq.device(zmq.QUEUE, self.router, self.dealer) 
@@ -131,6 +136,12 @@ class ASKernel(object):
     return reply
 
   def close(self):
+    # terminate the threads
+    try: 
+      self.threads = [t.join(1) for t in self.threads if t.isAlive()]
+    except KeyboardInterrupt:
+      for t in self.threads:
+        t.kill_received = True
     # close the bound devices, and terminate the context.
     self.router.close()
     self.dealer.close()
