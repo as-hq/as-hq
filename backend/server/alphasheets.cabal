@@ -33,7 +33,6 @@ library
                        AS.Dispatch.Expanding
                        AS.Clients
                        AS.Config.Constants
-                       AS.Config.Environment
                        AS.Config.Internal
                        AS.Config.Settings
                        AS.Eval.CondFormat

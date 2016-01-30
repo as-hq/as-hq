@@ -43,7 +43,7 @@ data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _pyKernelAddress :: KernelAddress
                                 , _redisPort :: Port
                                 , _redisHost :: Host
-                                , _shouldPrint :: Bool
+                                , _shouldWriteToConsole :: Bool
                                 , _shouldWriteToSlack :: Bool}
                                 deriving (Show)
 
@@ -53,17 +53,19 @@ type GraphAddress = String
 type KernelAddress = String
 type WsAddress = String
 
+-- default values represent what should happen on localhost; the Environment.json values *should* 
+-- all be set remotely. 
 instance FromJSON AppSettings where
   parseJSON (Object v) = do
-    wsAddr <- v .:? "backendWsAddress" .!= "0.0.0.0"
-    wsPort <- v .:? "backendWsPort" .!= 5000
-    graphAddr <- v .:? "graphDbAddress_haskell" .!= "tcp://localhost:5555"
-    pyAddr <- v .:? "pyKernelAddress_haskell" .!= "tcp://localhost:20000"
-    redisPort <- v .:? "redisPort" .!= 6379
-    redisHost <- v .:? "redisHost" .!= "localhost"
-    shouldPrint <- v .:? "shouldWriteToConsole" .!= True
-    shouldWriteToSlack <- v .:? "shouldWriteToSlack" .!= True
-    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldPrint shouldWriteToSlack
+    wsAddr <- v .: "backendWsAddress"
+    wsPort <- v .: "backendWsPort"
+    graphAddr <- v .: "graphDbAddress_haskell"
+    pyAddr <- v .: "pyKernelAddress_haskell"
+    redisPort <- v .: "redisPort"
+    redisHost <- v .: "redisHost"
+    shouldWriteToConsole <- v .: "shouldWriteToConsole"
+    shouldWriteToSlack <- v .: "shouldWriteToSlack"
+    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldWriteToConsole shouldWriteToSlack
   parseJSON _ = $error "expected environment to be an object"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

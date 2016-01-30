@@ -4,7 +4,6 @@ import Prelude()
 import AS.Prelude
 
 import AS.Types.Network
-import AS.Config.Environment
 
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Aeson hiding (Success)
@@ -23,7 +22,7 @@ import Language.Haskell.TH
 getPrintSetting :: Q Exp
 getPrintSetting = do
   settings <- runIO getSettings
-  return . ConE . mkName . show $ settings^.shouldPrint
+  return . ConE . mkName . show $ settings^.shouldWriteToConsole
 
 getShouldWriteToSlack :: Q Exp
 getShouldWriteToSlack = do
@@ -37,11 +36,15 @@ getSettings = catch readEnvironment handleException
     readEnvironment = do
       mainDir <- getCurrentDirectory
       env <- B.readFile $ mainDir </> env_dir
-      case (eitherDecode env) of 
-        Right settings -> putStrLn ("using settings from Environment.json: " ++ show env) >> return settings
+      case eitherDecode env of 
+        Right settings -> do 
+          putStrLn $ "using settings from Environment.json: "
+          putStrLn $ B.unpack env
+          putStrLn $ "Settings: " ++ show settings
+          return settings
         Left err -> $error $ "couldn't decode environment file, because: " ++ err
     handleException :: SomeException -> IO AppSettings
-    handleException _ = putStrLn "decoding Environment failed, falling back on defaults" >> return defaultSettings
+    handleException e = $error $ "decoding Environment failed with error: " ++ show e 
 
 -------------------------------------------------------------------------------------------------------------------------
 -- filepaths 
