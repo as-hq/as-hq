@@ -51,7 +51,7 @@ const ASReactUtils = {
       store: typeof BaseStore;
     }>
   ) {
-    component.$storeLinks = [];
+    component.$storeLinks = component.$storeLinks || [];
     storeLinks.forEach(({listener, store}) => {
       const fn = () => {
         component.forceUpdate();
@@ -61,6 +61,22 @@ const ASReactUtils = {
         store, listener: fn
       });
       store.addChangeListener(fn);
+    });
+  },
+
+  addStoreLinksWithoutForceUpdate(
+    component: StoreLinkedReactComponent,
+    storeLinks: Array<{
+      listener: Callback;
+      store: typeof BaseStore;
+    }>
+  ) {
+    component.$storeLinks = component.$storeLinks || [];
+    storeLinks.forEach(({listener, store}) => {
+      component.$storeLinks.push({
+        store, listener
+      });
+      store.addChangeListener(listener);
     });
   },
 
