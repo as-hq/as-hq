@@ -364,7 +364,7 @@ class ASShell(InteractiveShell):
         # and is a copy of the sheet namespace if running in isolated mode.
         target_ns = copy.copy(self.sheet_nss[sheet_id]) if isolated else self.sheet_nss[sheet_id] 
         def exec_function(code_obj):
-            exec(code_obj, target_ns)
+            exec code_obj in target_ns
 
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])

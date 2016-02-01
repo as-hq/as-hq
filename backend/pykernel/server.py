@@ -43,11 +43,12 @@ if __name__ == '__main__':
 #   print shell.run_header('print "hi"; a=1; a', 'sheetid2')
   # print shell.run_raw('["sdf"]', 'sheetid')
 #   print shell.run_cell('print "fuck you"', 'sheetid')
-#   expr = """
-# class A(object):
-#   def __init__(self):
-#     self.x = 5
-# A()
+  # expr = """
+# def f(x):
+  # return x ** 2
+# def g(x):
+#   return f(x)
+# g(10)
 # """
   # cprint(shell.run_cell(expr, 'sheetid'))
   # cprint(shell2.run_cell(expr).result)
