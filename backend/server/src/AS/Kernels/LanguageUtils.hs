@@ -232,21 +232,25 @@ lookUpRef conn lang context ref = showValue lang <$> DV.referenceToCompositeValu
 -- | Replaces all the Excel references in an expression with the valuesMap corresponding to them.
 -- TODO clean up SQL mess
 -- #mustrefactor IO String should be EitherTExec string
-insertValues :: Connection -> ASSheetId -> EvalContext -> ASExpression -> IO String
-insertValues conn sheetid ctx xp = 
-  let lang = xp^.language
-  in case lang of
-    SQL -> do
-      let exRefs = getExcelReferences xp
-          matchRefs = map (exRefToASRef sheetid) exRefs
-      context <- mapM (lookUpRef conn SQL ctx) matchRefs
-      let st = ["dataset"++(show i) | i<-[0..((L.length matchRefs)-1)]]
-          newExp = view expression $ replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
-          contextStmt = "setGlobals("++(show context) ++")\n"
-          evalStmt = "result = db(\'" ++ newExp ++ "\')"
-      return $ contextStmt ++ evalStmt
-    _ -> view expression <$> replaceRefsIO exRefToStringEval xp
-      where exRefToStringEval = (lookUpRef conn lang ctx) . (exRefToASRef sheetid) -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+insertValues :: Connection -> ASSheetId -> EvalContext -> ASExpression -> IO EvalCode
+insertValues conn sheetid ctx xp = do 
+  let exRefToStringEval = lookUpRef conn (xp^.language) ctx . exRefToASRef sheetid -- ExRef -> String. (Takes in ExRef, returns the ASValue corresponding to it, as a string.)
+  view expression <$> replaceRefsIO exRefToStringEval xp
+
+-- | We evaluate SQL expressions by converting them to Python code, and substituting it into a template
+-- file that imports pysql and defines helper functions for SQL.  
+-- 
+-- Note: this can probably be significantly optimized. 
+sqlToPythonCode :: Connection -> ASSheetId -> EvalContext -> ASExpression -> IO EvalCode
+sqlToPythonCode conn sheetid ctx xp = do 
+  let exRefs = getExcelReferences xp
+      matchedRefs = map (exRefToASRef sheetid) exRefs -- ASReferences found inside xp
+  context <- mapM (lookUpRef conn SQL ctx) matchedRefs
+  let st = ["dataset"++(show i) | i<-[0..((L.length matchedRefs)-1)]]
+      newExp = view expression $ replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
+      contextStmt = "setGlobals(" ++ show context ++ ")\n"
+      evalStmt = "db(\'" ++ newExp ++ "\')"
+  return $ contextStmt ++ evalStmt
 
 -----------------------------------------------------------------------------------------------------------------------
 -- | File management

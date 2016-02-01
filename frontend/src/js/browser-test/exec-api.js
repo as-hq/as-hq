@@ -168,7 +168,8 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
     let langMap = {
       'py': Constants.Languages.Python,
       'R': Constants.Languages.R,
-      'excel': Constants.Languages.Excel
+      'excel': Constants.Languages.Excel,
+      'sql': Constants.Languages.SQL,
     };
     let idx   = asIndex(loc),
         xpObj = { expression: xp, language: langMap[lang] };
@@ -186,6 +187,10 @@ export function r(loc: string, xp: string): Prf {
 
 export function excel(loc: string, xp: string): Prf {
   return cell(loc, xp, 'excel');
+}
+
+export function sql(loc: string, xp: string): Prf {
+  return cell(loc, xp, 'sql');
 }
 
 export function evalHeader(xp: string, lang: ASLanguage): Prf {

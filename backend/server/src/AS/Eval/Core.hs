@@ -63,10 +63,12 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
   case maybeShortCircuit of
     Just e -> return . return $ EvalResult (CellValue e) Nothing -- short-circuited, return this error
     Nothing -> case lang of
-      Excel -> do 
-        KE.evaluate conn str idx (virtualCellsMap ctx)
+      Excel -> KE.evaluate conn str idx (virtualCellsMap ctx)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
+      SQL -> do 
+        pythonSqlCode <- lift $ sqlToPythonCode conn sid ctx xp
+        return <$> KP.evaluateSql (state^.appSettings.pyKernelAddress) sid pythonSqlCode
       otherwise -> do 
         header <- lift $ getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues conn sid ctx xp
@@ -156,8 +158,7 @@ execEvalInLang settings evalHeader =
   case lang of
     Python  -> KP.evaluate (settings^.pyKernelAddress) sid
     R       -> KR.evaluate headerCode
-    SQL     -> KP.evaluateSql (settings^.pyKernelAddress) sid
-    OCaml   -> KO.evaluate headerCode
+    -- OCaml   -> KO.evaluate headerCode
   where 
     sid         = evalHeader^.evalHeaderSheetId
     lang        = evalHeader^.evalHeaderLang

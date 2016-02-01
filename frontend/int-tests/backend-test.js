@@ -62,6 +62,7 @@ describe('backend', () => {
     python,
     r,
     excel,
+    sql,
 
     evalHeader,
     pythonEvalHeader,
@@ -772,6 +773,29 @@ describe('backend', () => {
               ]);
             });
           });
+        });
+      });
+
+      // Note: currently existing only for demos. It is likely that SQL will get completely
+      // rewritten in the future, so don't feel bad at all about x-ing out these tests. 
+      // 
+      // Note #2: shouldBe('E2', valueI(0)) is not working for some reason and I can't figure
+      // out why, so this is x'd out. Just look at  http://puu.sh/mRlDF/3068d88564.png in the meantime.
+      xdescribe('sql', () => {
+        it ('should evaluate at all', (done) => {
+          _do([
+            excel('A1', 'hello'),
+            excel('B1', 'world'),
+            python('A2', '[[x+2*y for x in range(2)] for y in range(5)]'),
+            sql('D1', 'SELECT hello from A1:B6 LIMIT 4'),
+            shouldBe('E1', valueS('hello')),
+            shouldBe('E2', valueI(0)),
+            shouldBe('E3', valueI(2)),
+            shouldBe('E4', valueI(4)),
+            shouldBe('E5', valueI(6)),
+            shouldBeNothing('E6'), 
+            exec(done)
+          ]);
         });
       });
 

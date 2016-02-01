@@ -6,3 +6,4 @@ statistics
 ipython
 zmq
 colour
+pandasql
