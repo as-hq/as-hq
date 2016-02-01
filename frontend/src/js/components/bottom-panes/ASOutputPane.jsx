@@ -92,7 +92,7 @@ export default class ASOutputPane
     }
   }
 
-  _getFormattedContentHTML(content: string): Array<HTMLElement> {
+  _getFormattedContentHTML(content: string): Array<ReactElement> {
     return content
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')

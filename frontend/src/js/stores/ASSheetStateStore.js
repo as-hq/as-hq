@@ -98,13 +98,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         _data.viewingWindow = vWindow.extendByCache();
         API.updateViewingWindow(vWindow);
         break;
-      case 'GOT_FAILURE':
-        ASSheetStateStore.setExternalError(action.errorMsg);
-        if (action.action === "EvaluateRepl") {
-          ReplStore.advanceLine();
-        }
-        ASSheetStateStore.emitChange();
-        break;
     }
   }),
 
@@ -208,7 +201,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   /**************************************************************************************************************************/
   /* Data boundaries */
-  getDataBoundary(start: ASIndex, direction): ASIndex {
+  getDataBoundary(start: ASIndex, direction: string): ASIndex {
     let dr = 0, dc = 0;
 
     switch (direction) {
@@ -216,6 +209,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
       case "Left": dc = -1; break;
       case "Down": dr = 1; break;
       case "Up": dr = -1; break;
+      default: throw "Invalid direction passed in";
     }
 
     const shiftAmount = { dr: dr, dc: dc };
@@ -244,7 +238,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
   //If shift is not held down,
-  getDataBoundSelection(selection: ASSelection, direction): ASSelection {
+  getDataBoundSelection(selection: ASSelection, direction: string): ASSelection {
     let rng = selection.range,
         {tl, br} = rng,
         origin = selection.origin;

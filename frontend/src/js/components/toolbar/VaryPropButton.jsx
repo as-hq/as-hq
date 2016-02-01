@@ -58,8 +58,9 @@ export default class VaryPropButton
         API.setFormat("Percentage", rng);
         break;
       default:
+        // $FlowFixMe this.props.propTag shouldn't be of type string
+        let prop = { tag: this.props.propTag, contents: [] };
         // $FlowFixMe
-        let prop = (({ tag: this.props.propTag, contents: []}));
         API.toggleProp(prop, rng);
     }
   }

@@ -108,7 +108,7 @@ const Renderers = {
   },
 
   underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
-    let width : number = config.getTextWidth(gc, text);
+    let width = config.getTextWidth(gc, text);
 
     switch (gc.textAlign) {
       case 'center':
@@ -122,7 +122,8 @@ const Renderers = {
     //gc.beginPath();
     gc.lineWidth = thickness;
     gc.moveTo(x + 0.5, y + 0.5);
-    gc.lineTo(x + width + 0.5, y + 0.5);
+    gc.lineTo(x + Number(width) + 0.5, y + 0.5);
+    // for some reason, flow flips a shit if we don't put Number around width here (Alex 1/30)
   },
 
   /*************************************************************************************************************************/
@@ -284,6 +285,7 @@ const Renderers = {
 
   selectionRenderer(gc: GraphicsContext) {
     if (_renderParams.selection === null || _renderParams.selection === undefined) return;
+    // $FlowFixMe THIS IS VALID, FLOW, STOP BITCHING
     let {selection: {range, origin}} = _renderParams;
 
     let rect = Util.Canvas.drawRect(range, this, gc);

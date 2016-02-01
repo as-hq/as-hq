@@ -238,6 +238,11 @@ export type RemoveNotificationAction = {
   uid: string;
 };
 
+export type SetConnectingStateAction = {
+  _type: 'SET_CONNECTING_STATE';
+  isConnected: boolean;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -284,4 +289,5 @@ export type ASAction =
   | MarkAllReceivedAction
   | AddNotificationAction
   | DismissNotificationAction
-  | RemoveNotificationAction;
+  | RemoveNotificationAction
+  | SetConnectingStateAction;
