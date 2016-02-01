@@ -252,8 +252,9 @@ export default class ResizablePanel
     // For top, the sidebar first, then separator, then content. Etc.
     let firstDiv =  (this.props.side === 'top' || this.props.side === 'left') ? sidebar : content;
     let secondDiv = (this.props.side === 'top' || this.props.side === 'left') ? content : sidebar;
+
     return (
-      <div ref="root" style={styles.root}>
+      <div ref="root" style={{...styles.root, ...this.props.style}}>
         {firstDiv}
         <div style={styles.separator} onMouseDown={this._onMouseDown.bind(this)} />
         {secondDiv}

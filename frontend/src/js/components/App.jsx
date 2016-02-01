@@ -20,7 +20,7 @@ import ASBottomBar from './ASBottomBar.jsx';
 import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASChartDialog from './chart/ASChartDialog.jsx';
 
-import ResizablePanel from './ResizablePanel.jsx'
+import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
 
 import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
@@ -33,9 +33,10 @@ const {
 } = U;
 
 import ASIndex from '../classes/ASIndex';
+import * as flex from '../styles/flex';
 
 // $FlowFixMe: missing annotations
-import {AppCanvas, LeftNav, Paper, Styles} from 'material-ui';
+import {AppCanvas, LeftNav, Paper} from 'material-ui';
 
 import API from '../actions/ASApiActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
@@ -135,11 +136,16 @@ export default React.createClass({
       display: isConnected ? 'none' : 'block'
     };
 
-    // Note: it's OK to give things inside ResizablePanel height 100% because ResizablePanel uses it's own height as reference.
-    // Here, the height of the resizable panel is everything except top and bottom parts, so all percents in fullStyle are relative to that
-    // Also, it's essential to keep the outputPane component in the layout, and to make it invisible if necessary, rather than null
+    // Note: it's OK to give things inside ResizablePanel height 100% because
+    // ResizablePanel uses its own height as reference.
+    //
+    // Here, the height of the resizable panel is everything except top and
+    // bottom parts, so all percents in fullStyle are relative to that
+    //
+    // Also, it's essential to keep the outputPane component in the layout, and
+    // to make it invisible if necessary, rather than null
     let evalPane =
-      <div style={fullStyle}>
+      <div style={styles.eval}>
         <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
       </div>;
 
@@ -148,7 +154,10 @@ export default React.createClass({
         <div style={{
           ...fullStyle,
           ...(currentBottomPane === 'error' ? { } : {'display': 'none'})}}>
-          <ASErrorPane onRequestSelect={idx => this._handleRequestSelect(idx)} />
+          <ASErrorPane
+            onRequestSelect={idx => this._handleRequestSelect(idx)}
+            errors={[]}
+          />
         </div>
 
         <div style={{
@@ -165,8 +174,8 @@ export default React.createClass({
       </div>;
 
     return (
-      <div style={{width: '100%',height: '100%'}} >
-        <div style={connectionBarStyle}>
+      <div style={styles.app} >
+        <div style={isConnected ? {display: 'none'} : styles.connectionBar}>
           <ASConnectionBar />
         </div>
 
@@ -225,3 +234,38 @@ export default React.createClass({
     this.refs.evalPane.getASSpreadsheet().selectIndex(idx);
   }
 });
+
+
+const bottomBarHeight = 24;
+const topBarHeight = 60;
+const toolbarHeight = 50;
+const connectionBarHeight = 24;
+
+const styles = {
+  app: {
+    ...flex.column,
+    height: '100%',
+  },
+  eval: {
+    height: '100%',
+  },
+  errorAndOutputPane: {
+    height: '100%',
+  },
+  errorPane: {
+    height: '100%',
+  },
+  outputPane: {
+    height: '100%',
+  },
+  connectionBar: {
+    height: connectionBarHeight,
+  },
+  resizable: {
+    ...flex.column,
+    height: '100%',
+  },
+  bottomBar: {
+    height: bottomBarHeight,
+  },
+};

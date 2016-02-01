@@ -60,7 +60,6 @@ export default class ASToolbar
       // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
       toolbarStyle: {
         backgroundColor: '#333333',
-        width: '100%',
         position: 'relative',
         height: this.props.toolbarHeight // height of toolbar
       },
