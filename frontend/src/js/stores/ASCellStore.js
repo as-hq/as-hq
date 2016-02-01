@@ -39,12 +39,13 @@ import Render from '../AS/Renderers';
 import SheetStateStore from './ASSheetStateStore.js';
 import SelectionStore from './ASSelectionStore.js';
 import DescriptorStore from './ASRangeDescriptorStore.js';
+
 /*
 Private variable keeping track of a viewing window (cached) of cells. Stores:
-  1) Sheet name
-  2) All cells in viewing window, indexed [sheet][col][row]
-  3) Cells that were last updated by an eval or change event (so that components can easily access the update from the store)
-  4) Scroll position
+  1) All cells, indexed [sheet][col][row]
+  2) All errors
+  3) Cells that were last updated by an eval or change event (so that
+     components can easily access the update from the store)
 */
 
 type CellStoreData = {
