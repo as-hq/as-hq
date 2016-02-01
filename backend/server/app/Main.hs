@@ -29,7 +29,7 @@ import AS.Async
 import System.Directory (createDirectoryIfMissing)
 import System.Posix.Signals
 import Control.Exception
-import Control.Monad (forever, when, void)
+import Control.Monad (forever, when, unless, void)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
 import Control.Lens hiding ((.=))
@@ -223,9 +223,7 @@ handleRuntimeException user state e = do
   let logMsg = displayException e
   putStrLn logMsg
   -- don't log CloseRequest exceptions.
-  case (fromException e :: Maybe WS.ConnectionException) of 
-    Just _ -> return () 
-    _ -> logError logMsg (userCommitSource user)
+  unless (logMsg `elem` ignoredErrorMessages) $ logError logMsg (userCommitSource user)
   -- settings <- view appSettings <$> readMVar state
   purgeZombies state
   runServer state

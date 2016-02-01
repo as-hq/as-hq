@@ -22,6 +22,13 @@ shouldLogToSlack = $(I.getShouldWriteToSlack)
 largeSearchBound :: Int
 largeSearchBound = 1000
 
+ignoredErrorMessages :: [String]
+ignoredErrorMessages = ["Thread killed by Warp's timeout reaper", 
+                        "receiveloop: timeout (Connection timed out)", 
+                        "receiveloop: resource vanished (Connection reset by peer)",
+                        "send: resource vanished (Broken pipe)",
+                        "CloseRequest 1001 \"\""]
+
 headerLangs :: [ASLanguage]
 headerLangs = [Python, R] 
 
