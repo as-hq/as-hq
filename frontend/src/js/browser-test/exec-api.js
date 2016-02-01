@@ -120,15 +120,6 @@ export function apiExec(fn: () => void): Prf {
   });
 }
 
-export function apiSyncExec(fn: () => void): Prf {
-  return promise((fulfill, reject) => {
-    API.testSync(fn, {
-      fulfill: fulfill,
-      reject: reject
-    });
-  });
-}
-
 export function directAPIExec(fn: () => void): Promise {
   return new Promise((fulfill, reject) => {
     API.test(fn, {
@@ -372,7 +363,7 @@ export function makeLambdaRule(rng: string, lambda: string): ASCondFormatRule {
   return new ASCondFormatRule({
     tag: "CondFormatRule",
     condFormatRuleId: U.Render.getUniqueId(),
-    formatMapConstructor: { 
+    formatMapConstructor: {
       tag: "LambdaFormatMapConstructor",
       contents: lambda
     },
@@ -385,12 +376,12 @@ function makeCondFormattingRuleExcel(cond: BoolCondition, rng: string, prop: Boo
   return new ASCondFormatRule({
     tag: "CondFormatRule",
     condFormatRuleId: U.Render.getUniqueId(),
-    formatMapConstructor: { 
+    formatMapConstructor: {
       tag: "BoolFormatMapConstructor",
-      boolFormatMapCondition: cond, 
+      boolFormatMapCondition: cond,
       boolFormatMapProps: [{
         // $FlowFixMe
-        tag: prop, 
+        tag: prop,
         contents: []
       }]
     },
@@ -810,14 +801,6 @@ export function shouldBeL(locs: Array<string>, vals: Array<ASValue>): Prf {
       reject: reject
     });
   });
-}
-
-export function setUITestMode() {
-  API.setUITestMode();
-}
-
-export function unsetUITestMode() {
-  API.unsetUITestMode();
 }
 
 export function waitForResponse(act: () => void) : Prf {

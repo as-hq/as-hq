@@ -6,7 +6,8 @@ import type {
 } from '../types/Actions';
 
 import type {
-  Callback
+  Callback,
+  Dict
 } from '../types/Base';
 
 import type {
@@ -94,10 +95,52 @@ let ActionTypes = Constants.ActionTypes;
 console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 
-let currentCbs: ?ASAPICallbackPair = undefined;
-let uiTestMode: boolean = false;
-let isRunningTest: boolean = false;
-let isRunningSyncTest: boolean = false;
+let testState: ({
+  awaitingHook: false;
+} | {
+  awaitingHook: true;
+  currentCbs: ASAPICallbackPair;
+}) = {
+  awaitingHook: false
+};
+
+let callbackStore: Dict<ASAPICallbackPair> = {};
+
+// This function sees if we're in test mode, and if so, it sets the callbacks
+// for the messageId that was generated.
+// It's called when messages are sent to the server, so that the cbs can await
+// a response.
+function setCallbacks(messageId: string) {
+  if (testState.awaitingHook) {
+    callbackStore[messageId] = testState.currentCbs;
+  }
+}
+
+// This function fulfills and deletes the callbacks for the specified message,
+// if they're found.
+// It's called when a message comes back from the server, so that we trigger the
+// integration tests to continue from the current promise
+function fulfillCallbacks(msg: ClientMessage | ServerMessage) {
+  const {messageId} = msg;
+  const cbs = callbackStore[messageId];
+
+  if (cbs) {
+    cbs.fulfill(msg);
+    delete callbackStore[messageId];
+  }
+}
+
+// Same as above but for rejection
+function rejectCallbacks(msg: ClientMessage | ServerMessage) {
+  const {messageId} = msg;
+  const cbs = callbackStore[messageId];
+
+  if (cbs) {
+    cbs.reject(msg);
+    delete callbackStore[messageId];
+  }
+}
+
 let refreshDialogShown: boolean = false;
 
 
@@ -150,21 +193,14 @@ pws.onmessage = (event: MessageEvent) => {
     // https://app.asana.com/0/47051356043702/84248459839477
     ProgressActions.markAllReceived();
 
-    if (isRunningTest && currentCbs) {
-      // sometimes we want to test whether it errors, so it fulfills anyways!
-      logDebug('Fulfilling due to server failure');
-      currentCbs.fulfill(msg);
-      isRunningTest = false;
-    }
+    logDebug('Fulfilling due to server failure');
+    fulfillCallbacks(msg);
 
     return;
   }
 
-  if (isRunningTest && (!uiTestMode || (action.tag != 'SetInitialProperties')) && currentCbs) {
-    logDebug('Fulfilled server message normally');
-    currentCbs.fulfill(msg);
-    isRunningTest = false;
-  }
+  logDebug('Fulfilled server message normally');
+  fulfillCallbacks(msg);
 
   switch (action.tag) {
     // case 'New':
@@ -318,9 +354,12 @@ const API = {
     const messageId = shortid.generate();
     const msg = {
       serverAction: action,
-      messageId,
+      messageId
     };
+
     ProgressActions.markSent(msg);
+    setCallbacks(msg.messageId);
+
     logDebug(`Queueing ${msg.serverAction.tag} message, id ${messageId}`);
     pws.waitForConnection((innerClient: WebSocket) => {
       logDebug(`Sending ${JSON.stringify(msg.serverAction)} message, id ${messageId}`);
@@ -328,13 +367,8 @@ const API = {
       logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
       innerClient.send(JSON.stringify(msg));
 
-      /* for testing */
-      if ((msg.serverAction.tag === 'Acknowledge' || msg.serverAction.tag === 'Initialize') && isRunningTest && currentCbs) {
-        isRunningTest = false;
-        currentCbs.fulfill();
-      } else if (isRunningSyncTest && currentCbs) {
-        isRunningSyncTest = false;
-        currentCbs.fulfill();
+      if (msg.serverAction.tag === 'Acknowledge' || msg.serverAction.tag === 'Initialize') {
+        fulfillCallbacks(msg);
       }
     });
   },
@@ -887,25 +921,18 @@ const API = {
   },
 
   test(f: Callback, cbs: ASAPICallbackPair) {
-    currentCbs = cbs;
-    isRunningTest = true;
+    /*  NOTE: this function is only to be used on an (f: Callback) which is
+        one API action that will solicit *exactly one* response from the backend
+      */
+
+    testState = {
+      awaitingHook: true,
+      currentCbs: cbs
+    };
 
     f();
-  },
 
-  testSync(f: Callback, cbs: ASAPICallbackPair) {
-    currentCbs = cbs;
-    isRunningSyncTest = true;
-
-    f();
-  },
-
-  setUITestMode() {
-    uiTestMode = true;
-  },
-
-  unsetUITestMode() {
-    uiTestMode = false;
+    testState = { awaitingHook: false };
   }
 };
 
