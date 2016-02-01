@@ -11,5 +11,5 @@
   "shouldWriteToSlack": true,
   "frontendPort": 8280,
   "fileInputHandlerPort": 9200,
-  "host": "18.102.225.27"
+  "host": "159.203.127.80"
 }
