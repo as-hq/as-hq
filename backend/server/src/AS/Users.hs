@@ -6,7 +6,6 @@ import AS.Types.Network
 import Prelude()
 import AS.Prelude
 
-import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.List as L
 import qualified Data.Text as T 
@@ -28,8 +27,8 @@ getUserByClientId cid state = case (filter (\c -> (sessionId c == cid)) (state^.
   l -> Just $ $head l
 
 -- | Applies a (user -> user) function to a user in the server state
-modifyUser :: (ASUserClient -> ASUserClient) -> ASUserClient -> MVar ServerState -> IO ()
-modifyUser func user state = modifyMVar_ state $ \state ->
+modifyUser :: (ASUserClient -> ASUserClient) -> ASUserClient -> State -> IO ()
+modifyUser func user state = modifyState_ state $ \state ->
   do 
     let users' = flip map (state^.userClients) (\u -> if (u == user) then (func u) else u)
     return $ state & userClients .~ users'

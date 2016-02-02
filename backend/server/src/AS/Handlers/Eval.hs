@@ -80,9 +80,9 @@ handleSetLanguagesInRange mid uc state lang rng = do
 
 -- | The user has pressed the "kill" button for an overlong operation;
 -- look up the relevant thread, and kill it if it exists.
-handleTimeout :: MessageId -> MVar ServerState -> IO ()
+handleTimeout :: MessageId -> State -> IO ()
 handleTimeout mid state = 
-  modifyMVar_ state $ \curState -> do
+  modifyState_ state $ \curState -> do
     putStrLn $ "Killing message ID: " ++ (T.unpack mid)
     maybe (return ()) killThread $
       M.lookup mid (view threads curState)

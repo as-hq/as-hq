@@ -17,7 +17,7 @@ module AS.Handlers.JumpSelect where -- (handleJumpSelect) where
 -- import Control.Concurrent
 
 -- -- #incomplete the logic here is actually wrong. Also isn't hooked up to anything on frontend yet. 
--- handleJumpSelect :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleJumpSelect :: ASUserClient -> State -> ASPayload -> IO ()
 -- handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) = 
 --   let 
 --     (Range sid (tl, br)) = sel
@@ -79,7 +79,7 @@ module AS.Handlers.JumpSelect where -- (handleJumpSelect) where
 --           else jumpSelect conn iters startExists
               
 --   in do
---     conn <- dbConn <$> readMVar state
+--     conn <- dbConn <$> readState state
 --     newSel <- case dir of 
 --       DirRight -> do
 --         nextExists <- DB.locationExists conn (Index sid (hExtremum+1,row tl))

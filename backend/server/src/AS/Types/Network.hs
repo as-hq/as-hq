@@ -20,8 +20,8 @@ import qualified Data.Map as M
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
-import Control.Concurrent (MVar, ThreadId)
 import Control.Lens hiding ((.=))
+import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readMVar, putMVar, newEmptyMVar)
 
 
 -- Deals with server and client stuff
@@ -29,13 +29,29 @@ import Control.Lens hiding ((.=))
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
-type ThreadMap = M.Map MessageId ThreadId 
+-- An API for state that abstracts away MVar.
 
-data ServerState = State  { _userClients :: [ASUserClient]
+data State = State (MVar ServerState)
+
+readState :: State -> IO ServerState
+readState (State m) = readMVar m
+
+modifyState_ :: State -> (ServerState -> IO ServerState) -> IO ()
+modifyState_ (State m) = modifyMVar_ m
+
+data ServerState = ServerState  { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
                           , _appSettings :: AppSettings
                           , _threads :: ThreadMap}
+emptyServerState :: R.Connection -> AppSettings -> ServerState
+emptyServerState conn settings = ServerState [] [] conn settings M.empty
+
+-- Wrapper for MVar Serverstate, and a small API for accessing States. This way,
+-- the rest of the code doesn't have to care about whether we're using MVar or TVar
+-- or anything else.
+
+type ThreadMap = M.Map MessageId ThreadId 
 
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port
@@ -80,7 +96,7 @@ class Client c where
   clientId :: c -> ClientId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  handleServerMessage :: c -> MVar ServerState -> ServerMessage -> IO ()
+  handleServerMessage :: c -> State -> ServerMessage -> IO ()
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 

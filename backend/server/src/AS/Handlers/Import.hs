@@ -24,7 +24,7 @@ import qualified AS.DB.Transaction as DT
 import Control.Lens hiding ((.=))
 
 -- used for importing arbitrary files 
--- handleImport :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleImport :: ASUserClient -> State -> ASPayload -> IO ()
 -- handleImport uc state msg = return () -- TODO
 
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.

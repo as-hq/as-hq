@@ -15,6 +15,7 @@ import AS.Types.CondFormat
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp)
 import AS.Types.Selection
+import AS.Types.Network (State)
 import AS.Types.Updates
 import qualified AS.Types.BarProps as BP
 
@@ -56,7 +57,6 @@ import Data.Maybe
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
-import Control.Concurrent
 import Control.Exception
 import Control.Applicative
 import Control.Lens
@@ -70,22 +70,22 @@ handleInitialize :: ASUserClient -> IO ()
 handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 -- #needsrefactor currently incomplete, and inactive. 
--- handleNew :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleNew :: ASUserClient -> State -> ASPayload -> IO ()
 -- handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
---   conn <- dbConn <$> readMVar state
+--   conn <- dbConn <$> readState state
 --   wbs' <- DB.createWorkbookSheet conn wbs
 --   broadcastTo state (wsSheets wbs') $ ClientMessage New Success (PayloadWorkbookSheets [wbs'])
 -- handleNew uc state (PayloadWB wb) = do
---   conn <- dbConn <$> readMVar state
+--   conn <- dbConn <$> readState state
 --   wb' <- DB.createWorkbook conn (workbookSheets wb)
 --   broadcastTo state (wsSheets wb') $ ClientMessage New Success (PayloadWB wb')
 --   return () -- TODO determine whether users should be notified
 
-handleOpen :: MessageId -> ASUserClient -> MVar ServerState -> ASSheetId -> IO ()
+handleOpen :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpen mid uc state sid = do 
   -- update state
-  conn <- view dbConn <$> readMVar state
-  settings <- view appSettings <$> readMVar state
+  conn <- view dbConn <$> readState state
+  settings <- view appSettings <$> readState state
   let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
       startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
   US.modifyUser makeNewWindow uc state
@@ -112,7 +112,7 @@ handleOpen mid uc state sid = do
 handleUpdateWindow :: MessageId -> ASUserClient -> ServerState -> ASWindow -> IO ()
 handleUpdateWindow mid uc state w = sendToOriginal uc $ ClientMessage mid NoAction
 -- handleUpdateWindow cid mstate w = do
-  -- state <- readMVar mstate
+  -- state <- readState mstate
 --   let conn = state^.dbConn
 --   let (Just user') = US.getUserByClientId cid state -- user' is to get latest user on server; if this fails then somehow your connection isn't stored in the state
 --   let oldWindow = userWindow user'
@@ -137,15 +137,15 @@ handleGet mid uc state locs = do
   mcells <- DB.getCells (state^.dbConn) locs
   sendToOriginal uc $ ClientMessage mid $ PassCellsToTest $ catMaybes mcells
 -- handleGet uc state (PayloadList Sheets) = do
---   curState <- readMVar state
+--   curState <- readState state
 --   ss <- DB.getAllSheets (dbConn curState)
 --   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadSS ss)
 -- handleGet uc state (PayloadList Workbooks) = do
---   curState <- readMVar state
+--   curState <- readState state
 --   ws <- DB.getAllWorkbooks (dbConn curState)
 --   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWBS ws)
 -- handleGet uc state (PayloadList WorkbookSheets) = do
---   curState <- readMVar state
+--   curState <- readState state
 --   wss <- DB.getAllWorkbookSheets (dbConn curState)
 --   printWithTime $ "getting all workbooks: "  ++ (show wss)
 --   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWorkbookSheets wss)
@@ -153,7 +153,7 @@ handleGet mid uc state locs = do
 
 -- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
 -- (Alex 11/3)
--- handleClose :: ASUserClient -> MVar ServerState -> ASPayload -> IO ()
+-- handleClose :: ASUserClient -> State -> ASPayload -> IO ()
 -- handleClose _ _ _ = return ()
 
 handleIsCoupled :: MessageId -> ASUserClient -> ServerState -> ASIndex -> IO ()
@@ -263,9 +263,9 @@ handleSetBarProp mid uc state bInd prop = do
 -- import/export seems overkill given that it's a temporarily needed solution)
 -- so we just send alphasheets files as binary data over websockets and immediately load
 -- into the current sheet.
-handleImportBinary :: (Client c) => c -> MVar ServerState -> BL.ByteString -> IO ()
+handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
 handleImportBinary c mstate bin = do
-  state <- readMVar mstate
+  state <- readState mstate
   case (S.decodeLazy bin :: Either String ExportData) of
     Left s ->
       let msg = failureMessage import_message_id $ "could not process binary file, decode error: " ++ s

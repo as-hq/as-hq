@@ -87,7 +87,7 @@ initApp = do
   -- init state
   settings <- S.getSettings 
   conn <- DI.connectRedis settings
-  state <- newMVar $ State [] [] conn settings M.empty
+  state <- newMVar $ emptyServerState conn settings
   -- init python kernel
   KP.initialize (settings^.pyKernelAddress) conn
   -- init R
@@ -182,7 +182,7 @@ talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
   dmsg <- WS.receiveDataMessage (clientConn client)
   case dmsg of 
-    WS.Binary b -> handleImportBinary client state b
+    WS.Binary b -> handleImportBinary client (State state) b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processAsyncWithTimeout client state m
       Left s -> printWithTimeForced ("SERVER ERROR: unable to decode message " 
@@ -250,7 +250,7 @@ processMessage client state message = do
   dbConnection <- view dbConn <$> readMVar state -- state stores connection to db; pull it out
   isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
   if isPermissible || isDebug
-    then handleServerMessage client state message
+    then handleServerMessage client (State state) message
     else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn client)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()

@@ -8,7 +8,6 @@ module AS.Dispatch.Repl where
 -- import AS.Types.Eval
 
 -- import AS.Eval.Core as R (evaluateLanguageRepl)
--- import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 
 -- import AS.Util
 

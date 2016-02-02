@@ -27,7 +27,7 @@ import AS.Logging
 import qualified Data.List as L
 import qualified Data.Text as T
 
-import Control.Concurrent
+--import Control.Concurrent
 import Control.Monad (when)
 import Control.Lens hiding ((.=))
 
@@ -62,7 +62,7 @@ instance Client ASUserClient where
     when (shouldPrintMessage message) $ do 
       putStrLn "=========================================================="
       printObjForced "Server received message" message
-    curState <- readMVar state
+    curState <- readState state
     storeLastMessage (curState^.dbConn) message (userCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
@@ -121,7 +121,7 @@ instance Client ASDaemonClient where
     | otherwise = s
   handleServerMessage daemon mstate message = case (serverAction message) of
     Evaluate xpsAndIndices -> do
-      state <- readMVar mstate
+      state <- readState mstate
       handleEval' (serverMessageId message) daemon state xpsAndIndices
     where 
       handleEval' :: MessageId -> ASDaemonClient -> ServerState -> [EvalInstruction] -> IO ()
