@@ -34,6 +34,7 @@ export default class ToolbarController
 {
 
   _boundCellChangeListener: () => void;
+  _cellStoreToken: { remove: () => void };
 
   constructor(props: ToolbarController) {
     super(props);
@@ -42,12 +43,12 @@ export default class ToolbarController
   componentDidMount() {
     this._boundCellChangeListener = () => this._onActiveCellChange();
     SelectionStore.addChangeListener(this._boundCellChangeListener);
-    CellStore.addChangeListener(this._boundCellChangeListener);
+    this._cellStoreToken = CellStore.addListener(this._boundCellChangeListener);
   }
 
   componentWillUnmount() {
     SelectionStore.removeChangeListener(this._boundCellChangeListener);
-    CellStore.removeChangeListener(this._boundCellChangeListener);
+    this._cellStoreToken.remove();
   }
 
   /*

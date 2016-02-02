@@ -42,6 +42,9 @@ type ASChartState = {
 };
 
 export default class ASChart extends React.Component<{}, ASChartProps, ASChartState> {
+
+  _cellStoreToken: { remove: () => void };
+
   constructor(props: ASChartProps) {
     super(props);
 
@@ -51,11 +54,11 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   componentDidMount() {
-    CellStore.addChangeListener(this._onDataChange.bind(this));
+    this._cellStoreToken = CellStore.addListener(() => this._onDataChange());
   }
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._onDataChange.bind(this));
+    this._cellStoreToken.remove();
   }
 
   componentWillReceiveProps(newProps: ASChartProps) {

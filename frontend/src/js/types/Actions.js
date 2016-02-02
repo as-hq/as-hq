@@ -341,4 +341,5 @@ export type ASAction =
   | SetFocusCallbacksAction
   | ToggledFocusF2Action
   | ResetLastUpdatedCells
-  | SetActiveSelectionAction;
+  | SetActiveSelectionAction
+  ;

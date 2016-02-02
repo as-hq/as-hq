@@ -13,6 +13,7 @@ import ASOutputPane from './ASOutputPane.jsx';
 
 class ASCellPaneController extends React.Component<{}, {}, {}> {
   _storeListener: () => void;
+  _cellStoreToken: { remove: () => void };
 
   constructor(props: {}) {
     super(props);
@@ -20,12 +21,12 @@ class ASCellPaneController extends React.Component<{}, {}, {}> {
   }
 
   componentDidMount() {
-    CellStore.addChangeListener(this._storeListener);
+    this._cellStoreToken = CellStore.addListener(this._storeListener);
     SelectionStore.addChangeListener(this._storeListener);
   }
 
   componentWillUnmount() {
-    CellStore.removeChangeListener(this._storeListener);
+    this._cellStoreToken.remove();
     SelectionStore.removeChangeListener(this._storeListener);
   }
 

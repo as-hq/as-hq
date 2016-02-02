@@ -91,6 +91,7 @@ export default class ASEvalPane
   _boundOnSheetStateChange: () => void;
   _boundOnFindChange: () => void;
   _boundOnExpChange: () => void;
+  _cellStoreToken: { remove: () => void };
 
   /***************************************************************************************************************************/
   // React methods
@@ -123,8 +124,7 @@ export default class ASEvalPane
     this._boundHandleCutEvent = event => this.handleCutEvent(event);
     window.addEventListener('cut', this._boundHandleCutEvent);
 
-    this._boundOnCellsChange = () => this._onCellsChange();
-    CellStore.addChangeListener(this._boundOnCellsChange);
+    this._cellStoreToken = CellStore.addListener(() => this._onCellsChange());
 
     this._boundOnSheetStateChange = () => this._onSheetStateChange();
     SheetStateStore.addChangeListener(this._boundOnSheetStateChange);
@@ -152,7 +152,7 @@ export default class ASEvalPane
     window.removeEventListener('paste', this._boundHandlePasteEvent);
     window.removeEventListener('cut', this._boundHandleCutEvent);
     API.close();
-    CellStore.removeChangeListener(this._boundOnCellsChange);
+    this._cellStoreToken.remove();
     SheetStateStore.addChangeListener(this._boundOnSheetStateChange);
     FindStore.removeChangeListener(this._boundOnFindChange);
     ExpStore.removeChangeListener(this._boundOnExpChange);

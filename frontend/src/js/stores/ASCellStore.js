@@ -1,43 +1,33 @@
 /* @flow */
 
 import type {
-  ASClientError
+  ASClientError,
 } from '../types/Errors';
 
+import type {ASAction} from '../types/Actions';
 import type {
-  ASLocation,
-  ASSheet,
   ASLanguage,
-  RangeDescriptor
+  ASLocation,
 } from '../types/Eval';
 
 import type {
   ASCellGrid,
-  ASFocusType
 } from '../types/State';
 
-import type {
-  ASUserId
-} from '../types/User';
-
-import _ from 'lodash';
-
-import {logDebug} from '../AS/Logger';
+import {List, Map, Record} from 'immutable';
+// $FlowFixMe declare this library
+import {ReduceStore} from 'flux/utils';
 
 import Dispatcher from '../Dispatcher';
-import BaseStore from './BaseStore';
-import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
 
 import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
-import ASSelection from '../classes/ASSelection';
 
 import Render from '../AS/Renderers';
 import ExpStore from './ASExpStore';
-import SheetStateStore from './ASSheetStateStore.js';
 import SelectionStore from './ASSelectionStore.js';
 import DescriptorStore from './ASRangeDescriptorStore.js';
 
@@ -49,73 +39,71 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
      components can easily access the update from the store)
 */
 
-type CellStoreData = {
+type CellStoreDataFields = {
   allCells: ASCellGrid;
   allErrors: Array<ASClientError>;
   lastUpdatedCells: Array<ASCell>;
 };
 
-let _data: CellStoreData = {
-  allCells: {},
-  allErrors: [],
-  lastUpdatedCells: []
-};
+type CellStoreData = Record & CellStoreDataFields;
 
-const ASCellStore = Object.assign({}, BaseStore, {
+const CellStoreDataRecord = Record({
+  allCells: Map(),
+  allErrors: List(),
+  lastUpdatedCells: List(),
+});
 
-  /* This function describes the actions of the ASCellStore upon recieving a message from Dispatcher */
-  dispatcherIndex: Dispatcher.register((action) => {
-    logDebug('Cell store received action', action);
+class ASCellStore extends ReduceStore<CellStoreData> {
+  getInitialState(): CellStoreData {
+    // $FlowFixMe
+    return new CellStoreDataRecord();
+  }
+
+  reduce(state: CellStoreData, action: ASAction): CellStoreData {
     switch (action._type) {
-      /*
-        The cells have been fetched from the server for a get request (for example, when scrolling)
-        We now need to update the store based on these new values
-        Called from Dispatcher, fired by API response from server
-      */
-      case 'GOT_UPDATED_CELLS':
-        // The expanding types that we put into the cells depends on the updated range descriptors
+      case 'GOT_UPDATED_CELLS': {
+        // The expanding types that we put into the cells depends on the
+        // updated range descriptors
         Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
 
-        _data.lastUpdatedCells = [];
-        removeLocations(action.oldLocs);
+        let state_ = state.set('lastUpdatedCells', List());
+        state_ = removeLocations(state_, action.oldLocs);
+        return updateCells(state_, action.newCells);
+      }
 
-        // NOTE: removed the following line because expanding types are set in the constructor of ASCell now
-        // let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells);
-        updateCells(action.newCells);
-        // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASCellStore.emitChange();
-        break;
       /*
         The server has cleared everything from the DB
         Need to delete the store
         Called from Dispatcher, fired by API response from server
       */
-      case 'CLEARED':
-        _data.lastUpdatedCells = [];
-        var cellsToRemove = [];
-        for (var s in _data.allCells) {
-          _data.allCells[s].forEach((colArray) => {
-            colArray.forEach((cell) => {
-              cellsToRemove.push(cell);
-            });
+      case 'CLEARED': {
+        let state_ = state.set('lastUpdatedCells', List());
+
+        let cellsToRemove = [];
+        function getCellsToRemove(colArray) {
+          colArray.forEach((cell) => {
+            cellsToRemove.push(cell);
           });
         }
 
+        for (const s of state_.allCells) {
+          state_.getIn(['allCells', s]).forEach(getCellsToRemove);
+        }
+
         // remove possibly null cells
-        cellsToRemove = cellsToRemove.filter((cell) => !!cell);
+        cellsToRemove = cellsToRemove.filter(cell => !!cell);
 
-        removeCells(cellsToRemove);
-        _data.allCells = {};
-        // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-        ASCellStore.emitChange();
-        break;
+        state_ = removeCells(state_, cellsToRemove);
+        return state_.set('allCells', Map());
+      }
 
-      case 'CLEARED_SHEET':
-        _data.lastUpdatedCells = [];
+      case 'CLEARED_SHEET': {
+        let state_ = state.set('lastUpdatedCells', List());
+        const {sheetId} = action;
 
-        if (_data.allCells[action.sheetId]) {
+        if (state_.getIn(['allCells', sheetId])) {
           let cr = [];
-          _data.allCells[action.sheetId].forEach((colArray) => {
+          state_.allCells.get(sheetId).forEach((colArray) => {
             colArray.forEach((cell) => {
               cr.push(cell);
             });
@@ -124,270 +112,257 @@ const ASCellStore = Object.assign({}, BaseStore, {
           // remove possibly null cells
           cr = cr.filter((cell) => !!cell);
 
-          removeCells(cr);
-          _data.allCells[action.sheetId] = [];
-          // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
-          ASCellStore.emitChange();
+          state_ = removeCells(state_, cr);
+          state_ = state_.setIn(['allCells', sheetId], []);
         }
 
-        break;
+        return state_;
+      }
 
       case 'TEXTBOX_CHANGED':
       case 'GRID_KEY_PRESSED': {
+        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
         const {language} = waitForLanguageAndExpression();
         const deps = U.Parsing.parseDependencies(action.xpStr, language);
-        setActiveCellDependencies(deps);
+        // XXX
+        // Render.setDependencies(deps);
+        return setActiveCellDependencies(state, deps);
         break;
       }
 
       case 'PARTIAL_REF_CHANGE_WITH_GRID':
       case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
       case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX': {
+        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
         const {lang, expression} = waitForLanguageAndExpression();
         const deps: Array<ASRange> =
           U.Parsing.parseDependencies(expression, lang);
-        setActiveCellDependencies(deps);
-        break;
+        Render.setDependencies(deps);
+        return setActiveCellDependencies(state, deps);
       }
 
       case 'GOT_SELECTION': {
         const {newSelection: {origin}} = action;
-        ASCellStore._sideEffectingSetCellDependencies(origin);
-        ASCellStore.emitChange();
-        break;
+        return this._sideEffectingSetCellDependencies(state, origin);
       }
 
       case 'SET_ACTIVE_SELECTION': {
+        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
         const {selection: {origin}} = action;
-        ASCellStore._sideEffectingSetCellDependencies(origin);
-        ASCellStore.emitChange();
-        break;
+        return this._sideEffectingSetCellDependencies(state, origin);
       }
+      default:
+        return state;
     }
-  }),
+  }
 
   // Side-effects by first waiting for ExpStore, then modifying the active
   // cell's dependencies
-  _sideEffectingSetCellDependencies(origin: ASIndex) {
+  _sideEffectingSetCellDependencies(
+    state: CellStoreData,
+    origin: ASIndex,
+  ): CellStoreData {
     const {language, expression} = waitForLanguageAndExpression();
     const activeCellDependencies: Array<ASRange> =
       U.Parsing.parseDependencies(expression, language);
-    const listDep: ?ASRange = ASCellStore.getParentList(origin);
+    const listDep: ?ASRange = getParentList(state, origin);
     if (listDep != null) {
       activeCellDependencies.push(listDep);
     }
-    setActiveCellDependencies(activeCellDependencies);
-  },
+    return setActiveCellDependencies(state, activeCellDependencies);
+  }
 
-  /**************************************************************************************************************************/
-  /* getter and setter methods */
-
-  getActiveCell() {
+  getActiveCell(): ?ASCell {
     return SelectionStore.withActiveSelection(({origin}) => {
-      return ASCellStore.getCell(origin);
+      return getCell(this.getState(), origin);
     });
-  },
-
-  getActiveCellDependencies() {
-    let cell = ASCellStore.getActiveCell();
-    if (cell) {
-      return (cell.expression.dependencies);
-    } else {
-      return null;
-    }
-  },
+  }
 
   getActiveCellDisplay(): ?string {
-    let cell = ASCellStore.getActiveCell();
-    if (!!cell) {
-      // #needsrefactor mgao can you flow this file with classes
-      return cell._display;
-    } else {
-      return null;
-    }
-  },
+    const cell = this.getActiveCell();
+    return !!cell ? cell._display : null;
+  }
 
-  getParentList(loc: ASIndex): ?ASRange {
-    let cell = ASCellStore.getCell(loc);
-    if (cell) {
-      let cProps = cell.props;
-      if (cProps) {
-        let listKeyTag =
-          cProps.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
-        if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
-          let {listKey} = listKeyTag;
-          let listHead = U.Conversion.listKeyToListHead(listKey);
-          let listDimensions = U.Conversion.listKeyToListDimensions(listKey);
-
-          return ASRange.fromNaked({
-            tl: {row: listHead.snd,
-                 col: listHead.fst} ,
-            br: {row: listHead.snd + listDimensions.fst - 1,
-                 col: listHead.fst + listDimensions.snd - 1}
-          });
-        }
-      }
-    }
-
-    return null;
-  },
-
-  /* Usually called by AS components so that they can get the updated values of the store */
+  // Usually called by AS components so that they can get the updated values of
+  // the store
   getLastUpdatedCells(): Array<ASCell> {
-    return _data.lastUpdatedCells;
-  },
+    return this.getState().lastUpdatedCells;
+  }
 
-  /**************************************************************************************************************************/
-  /* Copy paste helpers */
-
-  // Converts a range to a row major list of lists of values, represented by their underlying strings.
+  // Converts a range to a row major list of lists of values, represented by
+  // their underlying strings.
   getRowMajorCellValues(rng: ASRange): Array<Array<string>> {
-    let {tl, br} = rng,
-        height = br.row - tl.row + 1,
-        length = br.col - tl.col + 1,
-        self = ASCellStore,
-        rowMajorValues = U.Array.make2DArrayOf("", height, length); //
+    const {tl, br} = rng;
+    const height = br.row - tl.row + 1;
+    const length = br.col - tl.col + 1;
+    const rowMajorValues = U.Array.make2DArrayOf('', height, length);
+
     for (let i = 0; i < height; ++i) {
-      let currentRow = tl.row + i;
-      rowMajorValues[i] = rowMajorValues[i].map(function(value, index) {
-          let currentColumn = tl.col + index,
-              cell = self.getCell(ASIndex.fromNaked({
-                col: currentColumn, row: currentRow
-              }));
-          if (cell != null) {
-            return String(U.Render.showValue(cell.value));
-          } else {
-            return "";
-          };
+      const currentRow = tl.row + i;
+      rowMajorValues[i] = rowMajorValues[i].map((value, index) => {
+        const currentColumn = tl.col + index;
+        const cell = getCell(this.getState(), ASIndex.fromNaked({
+          col: currentColumn,
+          row: currentRow,
+        }));
+
+        return cell == null ? '' : '' + U.Render.showValue(cell.value);
       });
     }
     return rowMajorValues;
-  },
+  }
 
   getAllErrors(): Array<ASClientError> {
-    return _data.allErrors;
-  },
+    return this.getState().allErrors;
+  }
 
-  // @optional mySheetId
-  locationExists({col, row, sheetId}: ASIndex) {
-    return !!(_data.allCells[sheetId]
-      && _data.allCells[sheetId][col]
-      && _data.allCells[sheetId][col][row]);
-  },
-
-  isNonBlankCell(idx: ASIndex) {
+  isNonBlankCell(idx: ASIndex): boolean {
     const {col, row, sheetId} = idx;
+    const data = this.getState();
 
-    return ASCellStore.locationExists(idx) && _data.allCells[sheetId][col][row].expression.expression != "";
-  },
-
-  // @optional mySheetId
-  getCell(loc: ASIndex): ?ASCell {
-    if (ASCellStore.locationExists(loc))
-      return _data.allCells[loc.sheetId][loc.col][loc.row];
-    else {
-      return null;
-    }
-  },
+    return (
+      locationExists(data, idx) &&
+      data.getIn(['allCells', sheetId, col, row]).expression.expression != ''
+    );
+  }
 
   getCells(rng: ASRange): Array<Array<?ASCell>> {
-    return U.Array.map2d(rng.toIndices2d(), ASCellStore.getCell);
-  },
+    const data = this.getState();
+    return U.Array.map2d(rng.toIndices2d(), loc => getCell(data, loc));
+  }
 
-  cellToJSVal(c: ASCell): ?(string|number) {
-    switch (c.value.tag) {
-      case "ValueI":
-      case "ValueD":
-      case "ValueS":
-        return c.value.contents;
-      default:
-        return null;
-    };
-  },
-
-});
-
-// A lot of things listen to this store, eventemitter think's there's a memory
-// leak
-ASCellStore.setMaxListeners(100);
-
-function unsetErrors(c: ASCell) {
-  _data.allErrors = _data.allErrors.filter(
-    ({location}) => ! c.location.equals(location)
-  );
+  getCell(loc: ASIndex): ? ASCell {
+    return getCell(this.getState(), loc);
+  }
 }
 
-function setErrors(c: ASCell) {
-  unsetErrors(c);
+function unsetErrors(data: CellStoreData, cell: ASCell) {
+  return data.update('allErrors', allErrors => allErrors.filter(
+    ({location}) => ! cell.location.equals(location)
+  ));
+}
 
-  const {value: cv, expression: cxp, location: cl} = c;
+function setErrors(data: CellStoreData, cell: ASCell) {
+  const data_ = unsetErrors(data, cell);
+  const {value: cv, expression: cxp, location: cl} = cell;
+
   switch (cv.tag) {
     case 'ValueError':
-      _data.allErrors.push({
+      return data_.update('allErrors', errors => errors.push({
         location: cl,
         language: cxp.language,
         msg: cv.errorMsg,
-      });
-      break;
+      }));
     default:
-      return;
+      return data_;
   }
 }
 
-function setCell(c: ASCell) {
-  const {col, row, sheetId} = c.location;
-  if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
-  if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
-  _data.allCells[sheetId][col][row] = c;
+function setCell(data: CellStoreData, cell: ASCell) {
+  const {col, row, sheetId} = cell.location;
 
-  setErrors(c);
+  const data_ = data.setIn(['allCells', sheetId, col, row], cell);
+  return setErrors(data_, cell);
 }
 
 // Remove a cell at an ASIndex
-function removeIndex(loc: ASIndex) {
+function removeIndex(data: CellStoreData, loc: ASIndex): CellStoreData {
+  let data_ = data;
   const emptyCell = ASCell.emptyCellAt(loc);
-  if (ASCellStore.locationExists(loc)) {
-    delete _data.allCells[loc.sheetId][loc.col][loc.row];
+  if (locationExists(data_, loc)) {
+    data_ = data.deleteIn('allCells', loc.sheetId, loc.col, loc.row);
   }
 
-  _data.lastUpdatedCells.push(emptyCell);
-  unsetErrors(emptyCell);
+  data_ = data_.update('lastUpdatedCells', cells => cells.push(emptyCell));
+  return unsetErrors(data_, emptyCell);
 }
 
 
 // Replace cells with empty ones
-function removeCells(cells: Array<ASCell>) {
+function removeCells(
+  data: CellStoreData,
+  cells: Array<ASCell>
+): CellStoreData {
+  let data_ = data;
   cells.forEach((cell) => {
-    removeIndex(cell.location);
+    data_ = removeIndex(data, cell.location);
   });
+  return data_;
 }
 
 // Function to update cell related objects in store. Caller's responsibility to
 // clear lastUpdatedCells if necessary
-function updateCells(cells: Array<ASCell>) {
+function updateCells(
+  data: CellStoreData,
+  cells: Array<ASCell>
+): CellStoreData {
   const removedCells = [];
+  let data_ = data;
   cells.forEach(cell => {
     if (!cell.isEmpty()) {
-      setCell(cell);
-      _data.lastUpdatedCells.push(cell);
+      setCell(data_, cell);
+      data_ = data_.update('lastUpdatedCells', cells => cells.push(cell));
     } else {
-      removedCells.push(cell); // filter out all the blank cells passed back from the store
+      // filter out all the blank cells passed back from the store
+      removedCells.push(cell);
     }
-  }, ASCellStore);
-  removeCells(removedCells);
-}
-// Remove cells at a list of ASLocation's.
-function removeLocations(locs: Array<ASLocation>) {
-  U.Location.asLocsToASIndices(locs).forEach((i) => removeIndex(i), ASCellStore);
+  });
+  return removeCells(data_, removedCells);
 }
 
-function setActiveCellDependencies(deps) {
-  const cell = ASCellStore.getActiveCell();
-  Render.setDependencies(deps);
-  if (!cell || !cell.cellExpression) {
-    return;
+// Remove cells at a list of ASLocation's.
+function removeLocations(
+  data: CellStoreData,
+  locs: Array<ASLocation>
+): CellStoreData {
+  let data_ = data;
+  U.Location.asLocsToASIndices(locs).forEach(i => {
+    data_ = removeIndex(data, i);
+  });
+  return data_;
+}
+
+function locationExists(data: CellStoreData, index: ASIndex): boolean {
+  const {col, row, sheetId} = index;
+  return data.getIn(['allCells', sheetId, col, row], false);
+}
+
+function getCell(data: CellStoreData, loc: ASIndex): ?ASCell {
+  // if (locationExists(data, loc)) {
+  //   debugger;
+  // }
+  return locationExists(data, loc)
+    ? data.getIn(['allCells', loc.sheetId, loc.col, loc.row])
+    : null;
+}
+
+function getParentList(data: CellStoreData, loc: ASIndex): ?ASRange {
+  const cell = getCell(data, loc);
+
+  if (!cell || !cell.props) {
+    return null;
   }
-  cell.cellExpression.dependencies = deps;
+
+  const listKeyTag =
+    cell.props.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
+  if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
+    const {listKey} = listKeyTag;
+    const listHead = U.Conversion.listKeyToListHead(listKey);
+    const listDimensions = U.Conversion.listKeyToListDimensions(listKey);
+
+    return ASRange.fromNaked({
+      tl: {
+        row: listHead.snd,
+        col: listHead.fst,
+      },
+      br: {
+        row: listHead.snd + listDimensions.fst - 1,
+        col: listHead.fst + listDimensions.snd - 1,
+      },
+    });
+  }
+
+  return null;
 }
 
 type LanguageAndExpression = {
@@ -403,4 +378,33 @@ function waitForLanguageAndExpression(): LanguageAndExpression {
   };
 }
 
-export default ASCellStore;
+// *Warning*: Accesses SelectionStore. You must wait on SelectionStore to use
+// this.
+function setActiveCellDependencies(
+  state: CellStoreData,
+  deps: Array<ASRange>
+): CellStoreData {
+  const ret = SelectionStore.withActiveSelection(({origin}) =>  {
+    const {sheetId, col, row} = origin;
+    // TODO(joel): if cells were immutable records, this could be an easy
+    // setIn:
+    // ['allCells', sheetId, col, row, 'cellExpression', 'dependencies']
+    return locationExists(state, origin)
+      ? state.updateIn(
+          ['allCells', sheetId, col, row],
+          cell => { cell.cellExpression.dependencies = deps; }
+        )
+      : state;
+  });
+
+  // just keep the same state if ret is null or undefined (no active
+  // selection?)
+  return ret || state;
+}
+
+// A lot of things listen to this store, eventemitter think's there's a memory
+// leak
+// TODO(joel) - is this an eventemitter? how does this work?
+// ASCellStore.setMaxListeners(100);
+//
+export default new ASCellStore(Dispatcher);

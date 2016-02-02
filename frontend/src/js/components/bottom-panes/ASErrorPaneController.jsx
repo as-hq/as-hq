@@ -31,6 +31,7 @@ export default class ASErrorPaneController
   extends React.Component<{}, ASErrorPaneControllerProps, ASErrorPaneControllerState>
 {
   $storeLinks: Array<StoreLink>;
+  _cellStoreToken: { remove: () => void };
 
   constructor(props: ASErrorPaneControllerProps) {
     super(props);
@@ -41,13 +42,14 @@ export default class ASErrorPaneController
   }
 
   componentDidMount() {
+    this._cellStoreToken = CellStore.addListener(() => this.forceUpdate());
     Util.React.addStoreLinks(this, [
-      { store: SelectionStore }, 
-      { store: CellStore }
+      { store: SelectionStore },
     ]);
   }
 
   componentWillUnmount() {
+    this._cellStoreToken.remove();
     Util.React.removeStoreLinks(this);
   }
 
@@ -55,7 +57,7 @@ export default class ASErrorPaneController
     let errors = this._getCurrentErrorList();
     let {onlyShowCurSelErrs} = this.state;
 
-    return <ASErrorPane 
+    return <ASErrorPane
       errors={errors}
       onlyShowCurSelErrs={onlyShowCurSelErrs}
       onErrorSelect={(errRow) => this._onErrorSelect(errRow)}
@@ -77,11 +79,11 @@ export default class ASErrorPaneController
     }
   }
 
-  // What to do after you click on the nth error in the list of errors in the pane. 
+  // What to do after you click on the nth error in the list of errors in the pane.
   _onErrorSelect(errRow: number) {
     let errors = this._getCurrentErrorList();
     let {location} = errors[errRow];
- 
+
     this.props.selectCellAtLocation(location);
   }
 }

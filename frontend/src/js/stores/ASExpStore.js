@@ -103,7 +103,7 @@ const ASExpStore = Object.assign({}, BaseStore, {
       case 'GOT_UNDO':
       case 'GOT_REDO':
       case 'GOT_UPDATED_CELLS':
-        Dispatcher.waitFor([CellStore.dispatcherIndex]);
+        Dispatcher.waitFor([CellStore.getDispatchToken()]);
         SelectionStore.withActiveSelection(({origin}) => {
           let cell = CellStore.getCell(origin);
           ASExpStore.updateOnBackendChange(cell);

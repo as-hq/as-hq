@@ -17,7 +17,8 @@ type ASOutputPaneProps = {
   title: ?string;
 };
 
-class ASOutputPane extends React.Component<{}, ASOutputPaneProps, {}> {
+export default class ASOutputPane
+  extends React.Component<{}, ASOutputPaneProps, {}> {
 
   shouldComponentUpdate(nextProps: ASOutputPaneProps, _: {}): boolean {
     return (
@@ -111,5 +112,3 @@ const styles = {
     color: 'grey'
   },
 };
-
-export default ASOutputPane;
