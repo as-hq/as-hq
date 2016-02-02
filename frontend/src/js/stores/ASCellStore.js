@@ -36,6 +36,7 @@ import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
 import Render from '../AS/Renderers';
+import ExpStore from './ASExpStore';
 import SheetStateStore from './ASSheetStateStore.js';
 import SelectionStore from './ASSelectionStore.js';
 import DescriptorStore from './ASRangeDescriptorStore.js';
@@ -76,11 +77,11 @@ const ASCellStore = Object.assign({}, BaseStore, {
         Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
 
         _data.lastUpdatedCells = [];
-        ASCellStore.removeLocations(action.oldLocs);
+        removeLocations(action.oldLocs);
 
         // NOTE: removed the following line because expanding types are set in the constructor of ASCell now
         // let newCellsWithExpandingTypes = ASCellStore._addExpandingTypesToCells(action.newCells);
-        ASCellStore.updateCells(action.newCells);
+        updateCells(action.newCells);
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
         break;
@@ -103,7 +104,7 @@ const ASCellStore = Object.assign({}, BaseStore, {
         // remove possibly null cells
         cellsToRemove = cellsToRemove.filter((cell) => !!cell);
 
-        ASCellStore.removeCells(cellsToRemove);
+        removeCells(cellsToRemove);
         _data.allCells = {};
         // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
         ASCellStore.emitChange();
@@ -123,15 +124,60 @@ const ASCellStore = Object.assign({}, BaseStore, {
           // remove possibly null cells
           cr = cr.filter((cell) => !!cell);
 
-          ASCellStore.removeCells(cr);
+          removeCells(cr);
           _data.allCells[action.sheetId] = [];
           // logDebug("Last updated cells: " + JSON.stringify(_data.lastUpdatedCells));
           ASCellStore.emitChange();
         }
 
         break;
+
+      case 'TEXTBOX_CHANGED':
+      case 'GRID_KEY_PRESSED': {
+        const {language} = waitForLanguageAndExpression();
+        const deps = U.Parsing.parseDependencies(action.xpStr, language);
+        setActiveCellDependencies(deps);
+        break;
+      }
+
+      case 'PARTIAL_REF_CHANGE_WITH_GRID':
+      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
+      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX': {
+        const {lang, expression} = waitForLanguageAndExpression();
+        const deps: Array<ASRange> =
+          U.Parsing.parseDependencies(expression, lang);
+        setActiveCellDependencies(deps);
+        break;
+      }
+
+      case 'GOT_SELECTION': {
+        const {newSelection: {origin}} = action;
+        ASCellStore._sideEffectingSetCellDependencies(origin);
+        ASCellStore.emitChange();
+        break;
+      }
+
+      case 'SET_ACTIVE_SELECTION': {
+        const {selection: {origin}} = action;
+        ASCellStore._sideEffectingSetCellDependencies(origin);
+        ASCellStore.emitChange();
+        break;
+      }
     }
   }),
+
+  // Side-effects by first waiting for ExpStore, then modifying the active
+  // cell's dependencies
+  _sideEffectingSetCellDependencies(origin: ASIndex) {
+    const {language, expression} = waitForLanguageAndExpression();
+    const activeCellDependencies: Array<ASRange> =
+      U.Parsing.parseDependencies(expression, language);
+    const listDep: ?ASRange = ASCellStore.getParentList(origin);
+    if (listDep != null) {
+      activeCellDependencies.push(listDep);
+    }
+    setActiveCellDependencies(activeCellDependencies);
+  },
 
   /**************************************************************************************************************************/
   /* getter and setter methods */
@@ -140,15 +186,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
     return SelectionStore.withActiveSelection(({origin}) => {
       return ASCellStore.getCell(origin);
     });
-  },
-
-  setActiveCellDependencies(deps) {
-    let cell = ASCellStore.getActiveCell();
-    Render.setDependencies(deps);
-    if (!cell || !cell.cellExpression) {
-      return;
-    }
-    cell.cellExpression.dependencies = deps;
   },
 
   getActiveCellDependencies() {
@@ -200,10 +237,6 @@ const ASCellStore = Object.assign({}, BaseStore, {
     return _data.lastUpdatedCells;
   },
 
-  resetLastUpdatedCells() {
-    _data.lastUpdatedCells = [];
-  },
-
   /**************************************************************************************************************************/
   /* Copy paste helpers */
 
@@ -231,100 +264,8 @@ const ASCellStore = Object.assign({}, BaseStore, {
     return rowMajorValues;
   },
 
-
-  /**************************************************************************************************************************/
-  /*
-    Update methods to allCells and lastUpdatedCells.
-    A cell in this class and stored in _data has the format from CellConverter, returned from eval
-  */
-
-  // xcxc: why exactly is this taking sheetid, col, and row when those are already going to be in the cell
-  // TODO
-  addCell(cell, sheetid, col, row) {
-    if (!_data.allCells[sheetid])
-      _data.allCells[sheetid] = [];
-    if (!_data.allCells[sheetid][col])
-      _data.allCells[sheetid][col] = [];
-    _data.allCells[sheetid][col][row] = cell;
-  },
-
-  /* Function to update cell related objects in store. Caller's responsibility to clear lastUpdatedCells if necessary */
-  updateCells(cells: Array<ASCell>) {
-    let removedCells = [];
-    cells.forEach((c) => {
-      if (!c.isEmpty()) {
-        ASCellStore.setCell(c);
-        _data.lastUpdatedCells.push(c);
-      } else {
-        removedCells.push(c); // filter out all the blank cells passed back from the store
-      }
-    }, ASCellStore);
-    ASCellStore.removeCells(removedCells);
-  },
-
   getAllErrors(): Array<ASClientError> {
     return _data.allErrors;
-  },
-
-  setErrors(c: ASCell) {
-    ASCellStore.unsetErrors(c);
-
-    const { value: cv, expression: cxp, location: cl } = c;
-    switch (cv.tag) {
-      case 'ValueError':
-        _data.allErrors.push({
-          location: cl,
-          language: cxp.language,
-          msg: cv.errorMsg
-        });
-        break;
-      default:
-        return;
-    }
-  },
-
-  unsetErrors(c: ASCell) {
-    _data.allErrors = _data.allErrors.filter(
-      ({ location }) => ! c.location.equals(location)
-    );
-  },
-
-  /* Set an ASCell */
-  setCell(c: ASCell) { //error here
-    let {col, row, sheetId} = c.location;
-    if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
-    if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
-    _data.allCells[sheetId][col][row] = c;
-
-    ASCellStore.setErrors(c);
-  },
-
-  // Replace cells with empty ones
-  removeCells(cells: Array<ASCell>) {
-    cells.forEach((cell) => {
-      ASCellStore.removeIndex(cell.location);
-    });
-  },
-
-  // Remove a cell at an ASIndex
-  removeIndex(loc: ASIndex) { //error here
-    let emptyCell = ASCell.emptyCellAt(loc);
-    if (ASCellStore.locationExists(loc)) {
-      delete _data.allCells[loc.sheetId][loc.col][loc.row];
-    }
-
-    _data.lastUpdatedCells.push(emptyCell);
-
-    ASCellStore.unsetErrors(emptyCell);
-  },
-
-  // Remove cells at a list of ASLocation's.
-  removeLocations(locs: Array<ASLocation>) {
-    U.Location.asLocsToASIndices(locs).forEach((i) => ASCellStore.removeIndex(i), ASCellStore);
-  },
-
-  clearSheetCacheById(sheetId) {
-    _data.allCells[sheetId] = null;
   },
 
   // @optional mySheetId
@@ -362,26 +303,104 @@ const ASCellStore = Object.assign({}, BaseStore, {
       default:
         return null;
     };
-  }
-
-/*
-  // When we receive cell updates from the backend, we're given a list of *all* the cells that have changed,
-  // including those that have gotten coupled/gotten decoupled. We need to figure out the expandingType's of these
-  // cells, for rendering.
-  _addExpandingTypesToCells(cs: Array<ASCell>): Array<ASCell> {
-    let foos = cs.map((c) => ASCellStore._addExpandingTypeToCell(c));
-    return foos;
   },
 
-  _addExpandingTypeToCell(c: ASCell): ASCell {
-    c.getExpandingType(); // TODO: xcxc: temporary hack until render directly calls getExpandingType
-
-    return c;
-  }, */
 });
 
 // A lot of things listen to this store, eventemitter think's there's a memory
 // leak
 ASCellStore.setMaxListeners(100);
+
+function unsetErrors(c: ASCell) {
+  _data.allErrors = _data.allErrors.filter(
+    ({location}) => ! c.location.equals(location)
+  );
+}
+
+function setErrors(c: ASCell) {
+  unsetErrors(c);
+
+  const {value: cv, expression: cxp, location: cl} = c;
+  switch (cv.tag) {
+    case 'ValueError':
+      _data.allErrors.push({
+        location: cl,
+        language: cxp.language,
+        msg: cv.errorMsg,
+      });
+      break;
+    default:
+      return;
+  }
+}
+
+function setCell(c: ASCell) {
+  const {col, row, sheetId} = c.location;
+  if (!_data.allCells[sheetId]) _data.allCells[sheetId] = [];
+  if (!_data.allCells[sheetId][col]) _data.allCells[sheetId][col] = [];
+  _data.allCells[sheetId][col][row] = c;
+
+  setErrors(c);
+}
+
+// Remove a cell at an ASIndex
+function removeIndex(loc: ASIndex) {
+  const emptyCell = ASCell.emptyCellAt(loc);
+  if (ASCellStore.locationExists(loc)) {
+    delete _data.allCells[loc.sheetId][loc.col][loc.row];
+  }
+
+  _data.lastUpdatedCells.push(emptyCell);
+  unsetErrors(emptyCell);
+}
+
+
+// Replace cells with empty ones
+function removeCells(cells: Array<ASCell>) {
+  cells.forEach((cell) => {
+    removeIndex(cell.location);
+  });
+}
+
+// Function to update cell related objects in store. Caller's responsibility to
+// clear lastUpdatedCells if necessary
+function updateCells(cells: Array<ASCell>) {
+  const removedCells = [];
+  cells.forEach(cell => {
+    if (!cell.isEmpty()) {
+      setCell(cell);
+      _data.lastUpdatedCells.push(cell);
+    } else {
+      removedCells.push(cell); // filter out all the blank cells passed back from the store
+    }
+  }, ASCellStore);
+  removeCells(removedCells);
+}
+// Remove cells at a list of ASLocation's.
+function removeLocations(locs: Array<ASLocation>) {
+  U.Location.asLocsToASIndices(locs).forEach((i) => removeIndex(i), ASCellStore);
+}
+
+function setActiveCellDependencies(deps) {
+  const cell = ASCellStore.getActiveCell();
+  Render.setDependencies(deps);
+  if (!cell || !cell.cellExpression) {
+    return;
+  }
+  cell.cellExpression.dependencies = deps;
+}
+
+type LanguageAndExpression = {
+  language: ASLanguage;
+  expression: string;
+};
+
+function waitForLanguageAndExpression(): LanguageAndExpression {
+  Dispatcher.waitFor([ExpStore.dispatcherIndex]);
+  return {
+    language: ExpStore.getLanguage(),
+    expression: ExpStore.getExpression(),
+  };
+}
 
 export default ASCellStore;

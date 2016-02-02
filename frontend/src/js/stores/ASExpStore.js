@@ -287,7 +287,6 @@ const ASExpStore = Object.assign({}, BaseStore, {
     let lang = ASExpStore.getLanguage(),
         deps = Util.Parsing.parseDependencies(xpStr, lang);
     logDebug("DEPS: " + JSON.stringify(deps));
-    CellStore.setActiveCellDependencies(deps);
     ASExpStore.emitChange();
   },
 
@@ -305,7 +304,6 @@ const ASExpStore = Object.assign({}, BaseStore, {
     ASExpStore.setLastRef(excelStr);
     ASExpStore.setExpression(xpStr);
     let lang = ASExpStore.getLanguage();
-    CellStore.setActiveCellDependencies(Util.Parsing.parseDependencies(xpStr, lang));
     ASExpStore.emitChange();
   },
 

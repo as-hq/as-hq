@@ -20,6 +20,7 @@ import {findDOMNode} from 'react-dom';
 
 import ActionCreator from '../actions/ASSpreadsheetActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
+import * as CellActionCreators from '../actions/ASCellActionCreators';
 
 import API from '../actions/ASApiActionCreators';
 
@@ -386,7 +387,6 @@ export default class ASSpreadsheet
     });
 
     model.changed(); // causes hypergrid to show updated values
-    CellStore.resetLastUpdatedCells();
   }
 
   /*************************************************************************************************************************/

@@ -281,6 +281,17 @@ export type ToggledFocusF2Action = {
   _type: 'TOGGLED_FOCUS_F2';
 };
 
+export type ResetLastUpdatedCells = {
+  _type: 'RESET_LAST_UPDATED_CELLS';
+};
+
+export type SetActiveSelectionAction = {
+  _type: 'SET_ACTIVE_SELECTION';
+  selection: ASSelection;
+  expression: string;
+  language: ?ASLanguage;
+};
+
 export type ASAction =
   AddOverlayAction
   | GotFailureAction
@@ -328,4 +339,6 @@ export type ASAction =
   | SetConnectingStateAction
   | FocusedAction
   | SetFocusCallbacksAction
-  | ToggledFocusF2Action;
+  | ToggledFocusF2Action
+  | ResetLastUpdatedCells
+  | SetActiveSelectionAction;

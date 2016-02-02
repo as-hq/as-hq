@@ -1,32 +1,10 @@
 /* @flow */
 
-import type {
-  Maybe
-} from '../AS/Maybe';
-
-import React from 'react';
 import Dispatcher from '../Dispatcher';
-
-import U from '../AS/Util';
-
 import ASSelection from '../classes/ASSelection';
-
-import {logDebug} from '../AS/Logger';
 import Render from '../AS/Renderers';
-
 import BaseStore from './BaseStore';
-import SheetStateStore from './ASSheetStateStore';
-import CellStore from './ASCellStore';
-
 import {Just} from '../AS/Maybe';
-
-import type {
-  ASLanguage
-} from '../types/Eval';
-
-import type {
-  Callback
-} from '../types/Base';
 
 type SelectionStoreData = {
   activeSelection: ?ASSelection;
@@ -40,31 +18,18 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
       case 'GOT_SELECTION':
-        ASSelectionStore.setActiveSelection(action.newSelection, "", null);
+        setActiveSelection(action.newSelection);
+        ASSelectionStore.emitChange();
+        break;
+      case 'SET_ACTIVE_SELECTION':
+        setActiveSelection(action.selection);
+        ASSelectionStore.emitChange();
         break;
     }
   }),
 
   /**************************************************************************************************************************/
   /* getter and setter methods */
-
-  setActiveSelection(sel: ASSelection, xp: string, lang: ?ASLanguage) {
-    // Render.setSelection() is for speed purposes only. Ideally we would be
-    // getting the selection from this store during render, but getting the
-    // variable from the store is empirically much slower than just setting
-    // its value directly in the file. (Relayed from Anand -- Alex 12/9)
-    Render.setSelection(sel);
-    let origin = sel.origin,
-        activeCellDependencies = U.Parsing.parseDependencies(xp, lang),
-        listDep = CellStore.getParentList(origin);
-    _data.activeSelection = sel;
-    if (listDep != null) {
-      activeCellDependencies.push(listDep);
-    }
-    CellStore.setActiveCellDependencies(activeCellDependencies);
-    ASSelectionStore.emitChange();
-  },
-
   getActiveSelection(): ?ASSelection {
     return _data.activeSelection;
   },
@@ -74,8 +39,20 @@ const ASSelectionStore = Object.assign({}, BaseStore, {
   },
 });
 
+
 // A lot of things listen to this store, eventemitter think's there's a memory
 // leak
 ASSelectionStore.setMaxListeners(100);
+
+
+function setActiveSelection(sel: ASSelection) {
+  // Render.setSelection() is for speed purposes only. Ideally we would be
+  // getting the selection from this store during render, but getting the
+  // variable from the store is empirically much slower than just setting
+  // its value directly in the file. (Relayed from Anand -- Alex 12/9)
+  Render.setSelection(sel);
+  _data.activeSelection = sel;
+}
+
 
 export default ASSelectionStore;

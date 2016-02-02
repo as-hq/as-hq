@@ -34,6 +34,7 @@ import FocusStore from '../stores/ASFocusStore';
 import API from '../actions/ASApiActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 import FocusActionCreators from '../actions/ASFocusActionCreators';
+import * as CellActionCreators from '../actions/ASCellActionCreators';
 
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
@@ -492,13 +493,13 @@ export default class ASEvalPane
         throw new Error('Language invalid!');
       }
 
-      SelectionStore.setActiveSelection(sel, expression, language);
+      CellActionCreators.setActiveSelection(sel);
       ExpActionCreator.handleSelChange(language, expression);
       this.hideToast();
 
     } else if (changeSelToNewCell) {
       const language = ExpStore.getDefaultLanguage();
-      SelectionStore.setActiveSelection(sel, "", null);
+      CellActionCreators.setActiveSelection(sel);
       this.getASSpreadsheet().repaint();
       ExpActionCreator.handleSelChange(language, '');
       this.hideToast();
@@ -513,10 +514,9 @@ export default class ASEvalPane
       // Otherwise the eval result shows up in the new sel
       this.handleEvalRequest(xpObj, null, null);
       if (cell && cell.cellExpression) {
-        let {expression, language} = cell.cellExpression;
-        SelectionStore.setActiveSelection(sel, expression, language);
+        CellActionCreators.setActiveSelection(sel);
       } else {
-         SelectionStore.setActiveSelection(sel, "", null);
+         CellActionCreators.setActiveSelection(sel);
          this.hideToast();
       }
 
