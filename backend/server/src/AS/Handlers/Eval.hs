@@ -19,6 +19,8 @@ import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
 
+import AS.Parsing.Show (showValue)
+
 import qualified Data.Map as M
 import qualified Data.Text as T
 
@@ -52,7 +54,11 @@ handleEvalHeader mid uc state evalHeader = do
   result <- runEitherT $ evaluateHeader (state^.appSettings) evalHeader
   sendToOriginal uc $ case result of 
         Left e -> failureMessage mid $ generateErrorMessage e
-        Right v -> ClientMessage mid $ ShowHeaderResult v
+        Right (EvalResult value display) -> 
+          let lang = evalHeader^.evalHeaderLang
+              valueStr = showValue lang value
+              headerResult = HeaderResult valueStr display
+          in ClientMessage mid (ShowHeaderResult headerResult) 
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB

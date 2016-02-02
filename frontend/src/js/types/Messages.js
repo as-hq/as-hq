@@ -28,7 +28,7 @@ import type {
   ASIndexObject,
   ASSheet,
   ASValue,
-  EvalResult,
+  HeaderResult,
   ASExpression,
   ASWorkbook,
   ASCellProp,
@@ -595,5 +595,5 @@ export type LoadImportedCells = {
 
 export type ShowHeaderResult = {
   tag: "ShowHeaderResult";
-  contents: EvalResult;
+  contents: HeaderResult;
 }

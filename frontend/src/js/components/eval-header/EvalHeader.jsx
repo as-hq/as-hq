@@ -4,12 +4,13 @@ import React from 'react';
 import EvalHeaderEditor from '../EvalHeaderEditor.jsx';
 import Constants from '../../Constants.js';
 
+import HeaderStore from '../../stores/ASHeaderStore';
+import HeaderActions from '../../actions/ASHeaderActionCreators';
+
 // $FlowFixMe
 import {AppBar, Toolbar, DropDownMenu, Styles, FlatButton} from 'material-ui';
 // $FlowFixMe
 let NavigationClose = require('material-ui/lib/svg-icons/navigation/close');
-
-import API from '../../actions/ASApiActionCreators';
 
 import type {
   ASLanguage
@@ -24,71 +25,101 @@ require('brace/mode/ocaml');
 // $FlowFixMe
 require('brace/theme/monokai');
 
-let languages = []; 
-
-for (var key in Constants.Languages) {
-  languages.push({
-    payload: Constants.Languages[key],
-    text: Constants.Languages[key]
-  });
+type EvalHeaderProps = {
+  language: ASLanguage;
+  expression: string;
+  onSave: (xp: string) => void;
 }
 
-type EvalHeaderDefaultProps = {
-  evalHeaderLanguage: ASLanguage; 
-};
+type LanguageItem = {
+  payload: string;
+  text: string;
+}
 
-type EvalHeaderProps = {
-  evalHeaderLanguage: ASLanguage; 
-  evalHeaderValue: string; 
-  onSubmitEvalHeader: () => void; 
-  // $FlowFixMe no idea why ASLanguage is incompatible with string literals...
-  onEvalHeaderLanguageChange: (e: {}, index: number, menuItem: { payload: ASLanguage }) => void; 
-};
+class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
+  _languages: Array<LanguageItem>;
 
-type EvalHeaderState = {};
-
-export default class EvalHeader
-  extends React.Component<EvalHeaderDefaultProps, EvalHeaderProps, EvalHeaderState>
-{
-  constructor(props: EvalHeaderDefaultProps) { 
-    super(props); 
+  constructor(props: EvalHeaderProps) {
+    super(props);
+    this._languages = [];
+    for (const key in Constants.Languages) {
+      this._languages.push({ payload: key, text: key });
+    }
   }
 
-  saveAndEval() { 
-    API.evaluateHeader(this.refs.editor.getRawEditor().getValue(), this.props.evalHeaderLanguage);
+  shouldComponentUpdate(nextProps: EvalHeaderProps, _: {}): boolean {
+    return (
+      this.props.language !== nextProps.language &&
+      this.props.expression !== nextProps.expression
+    );
   }
 
   render(): React.Element {
-    let languageInd = languages.map((l) => l.text).indexOf(this.props.evalHeaderLanguage);
+    const {language, expression} = this.props;
+
     return (
-      <div style={{width: '100%', height: '100%', marginLeft: '6px'}}>
+      <div style={styles.root}>
+
         <Toolbar
-          style={{backgroundColor: Styles.Colors.grey900}}
+          style={styles.toolbar}
           showMenuIconButton={false}>
+
           <DropDownMenu
-            menuItems={languages}
-            onChange={this.props.onEvalHeaderLanguageChange}
-            selectedIndex={languageInd}
-            underlineStyle={{ display: 'none' }} />
-          <FlatButton 
+            menuItems={this._languages}
+            onChange={(_,__,{payload}) =>
+                            HeaderActions.setLanguage(payload)}
+            selectedIndex={this._getLanguageIndex(language)}
+            underlineStyle={styles.dropdownUnderline} />
+
+          <FlatButton
             label="Save"
-            style={{
-              fontFamily: '"Lucida Console", Monaco, monospace'
-            }}
-            onClick={this.props.onSubmitEvalHeader} />
-        </Toolbar>
+            style={styles.saveButton}
+            onClick={() => this._onSave()} />
+
+        </Toolbar >
+
         <EvalHeaderEditor
           ref="editor" name="evalHeader"
-          saveAndEval={this.saveAndEval.bind(this)}
-          mode={Constants.AceMode[this.props.evalHeaderLanguage]}
-          language={this.props.evalHeaderLanguage}
-          value={this.props.evalHeaderValue}
+          onSave={() => this._onSave()}
+          mode={Constants.AceMode[language]}
+          language={language}
+          value={expression}
           height="100%" />
+
       </div>
     );
   }
-}
 
-EvalHeader.defaultProps = { 
-  evalHeaderLanguage: Constants.Languages.Python,
+  _getValue(): string {
+    return this.refs.editor.getRawEditor().getValue();
+  }
+
+  _onSave() {
+    const expression = this._getValue();
+    this.props.onSave(expression);
+  }
+
+  _getLanguageIndex(language: ASLanguage): number {
+    return this._languages.map(l => l.text).indexOf(language);
+  }
+
 };
+
+const styles = {
+  root: {
+    width: '100%',
+    height: '100%',
+    marginLeft: '6px'
+  },
+  toolbar: {
+    backgroundColor: Styles.Colors.grey900
+  },
+  dropdownUnderline: {
+    display: 'none'
+  },
+  saveButton: {
+    fontFamily: '"Lucida Console", Monaco, monospace'
+  }
+};
+
+export default EvalHeader;

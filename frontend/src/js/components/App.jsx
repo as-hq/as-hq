@@ -24,7 +24,8 @@ import ResizablePanel from './ResizablePanel.jsx'
 import Toolbar from './toolbar/Toolbar.jsx';
 
 import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
-import ASOutputPane from './bottom-panes/ASOutputPane.jsx';
+import ASCellPane from './bottom-panes/ASCellPaneController.jsx';
+import ASHeaderPane from './bottom-panes/ASHeaderPaneController.jsx';
 
 import U from '../AS/Util';
 const {
@@ -49,6 +50,16 @@ import ModalStore from '../stores/ASModalStore';
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
 // $FlowFixMe: missing annotations
 import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
+
+type BottomPane = 'header' | 'error' | 'cell';
+
+type AppState = {
+  currentPane: string; // TODO this really really should be refactored out
+  currentBottomPane: ?BottomPane;
+  // object passed from splash pane specifying initial params: opened sheet, etc
+  initEvalInfo: any;
+  isConnected: boolean;
+};
 
 export default React.createClass({
   $storeLinks: ([]: Array<StoreLink>),
@@ -86,19 +97,14 @@ export default React.createClass({
     U.React.removeStoreLinks(this);
   },
 
-  getInitialState() {
+  getInitialState(): AppState {
     return {
       currentPane: 'eval',
       // object passed from splash pane specifying initial params: opened sheet, etc
       initEvalInfo: {},
-      errorPaneOpen: true,
-      outputPaneOpen: false,
+      currentBottomPane: null,
       isConnected: true
     }
-  },
-
-  getDefaultProps() {
-    return {}
   },
 
   childContextTypes: {
@@ -116,7 +122,7 @@ export default React.createClass({
 
   render(): React.Element {
     // TODO: these heights should be in a config file, not here
-    const {errorPaneOpen, outputPaneOpen, isConnected} = this.state;
+    const {currentBottomPane, isConnected} = this.state;
     const bottomBarHeight = 24;
     const topBarHeight = 60;
     const toolbarHeight = 50;
@@ -136,17 +142,25 @@ export default React.createClass({
       <div style={fullStyle}>
         <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
       </div>;
-    let errorAndOutputPane =
+
+    let bottomPane =
       <div style={fullStyle}>
         <div style={{
           ...fullStyle,
-          ...(errorPaneOpen ? { } : {'display': 'none'})}}>
-          <ASErrorPane open={errorPaneOpen} onRequestSelect={idx => this._handleRequestSelect(idx)} />
+          ...(currentBottomPane === 'error' ? { } : {'display': 'none'})}}>
+          <ASErrorPane onRequestSelect={idx => this._handleRequestSelect(idx)} />
         </div>
+
         <div style={{
           ...fullStyle,
-          ...(outputPaneOpen ? { } : {'display': 'none'})}}>
-          <ASOutputPane open={outputPaneOpen} />
+          ...(currentBottomPane === 'cell' ? { } : {'display': 'none'})}}>
+          <ASCellPane />
+        </div>
+
+        <div style={{
+          ...fullStyle,
+          ...(currentBottomPane === 'header' ? { } : {'display': 'none'})}}>
+          <ASHeaderPane />
         </div>
       </div>;
 
@@ -168,13 +182,15 @@ export default React.createClass({
         <Toolbar />
 
         <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight + connectionBarHeight}px)`}}>
-          <ResizablePanel content={evalPane} sidebar={errorAndOutputPane} sidebarVisible={errorPaneOpen || outputPaneOpen} side="bottom" />
+          <ResizablePanel content={evalPane}
+                          sidebar={bottomPane}
+                          sidebarVisible={!! currentBottomPane}
+                          side="bottom" />
         </div>
 
-        <div style={{width: '100%', height: `${bottomBarHeight}px`}}>
-          <ASBottomBar
-            toggleErrorPane={() => this._toggleErrorPane()}
-            toggleOutputPane={() => this._toggleOutputPane()} />
+        <div style={{width: '100%', height: `${bottomBarHeight}px`}} >
+          <ASBottomBar toggleBottomPane={(pane: BottomPane) =>
+                                      this._toggleBottomPane(pane)} />
         </div>
 
       </div>
@@ -191,22 +207,17 @@ export default React.createClass({
     this.refs.evalPane.toggleEvalHeader();
   },
 
-  _toggleErrorPane() {
-    this.setState({
-      errorPaneOpen: ! this.state.errorPaneOpen,
-      outputPaneOpen: false
-    });
-  },
-
-  _toggleOutputPane() {
-    this.setState({
-      outputPaneOpen: ! this.state.outputPaneOpen,
-      errorPaneOpen: false
-    });
+  _toggleBottomPane(pane: BottomPane) {
+    const {currentBottomPane} = this.state;
+    if (pane !== currentBottomPane) {
+      this.setState({currentBottomPane: pane});
+    } else {
+      this.setState({currentBottomPane: null});
+    }
   },
 
   _onConnectionStateChange() {
-    let isConnected = ConnectionStore.getIsConnected();
+    const isConnected = ConnectionStore.getIsConnected();
     this.setState({isConnected: isConnected});
   },
 
