@@ -140,8 +140,8 @@ export default class ASSpreadsheet
   componentDidMount() {
     U.React.addStoreLinksWithoutForceUpdate(this, [
       { store: ExpStore, listener: () => this._onExpressionChange() },
-      { store: BarStore, listener: () => this._boundOnBarPropsChange() },
-      { store: OverlayStore, listener: () => this._boundOnOverlaysChange() },
+      { store: BarStore, listener: () => this._onBarPropsChange() },
+      { store: OverlayStore, listener: () => this._onOverlaysChange() },
     ]);
 
     // Hypergrid initialization
