@@ -53,7 +53,7 @@ lookUpDBCellsByCol conn sid column =  do
 
 -- filters for the indices in the EvalContext corresponding to a particular column number.
 evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
-evalContextCellsByCol (EvalContext virtualCellsMap _ _) sid column = cellMapCellsByCol virtualCellsMap sid column
+evalContextCellsByCol ctx sid column = cellMapCellsByCol (ctx^.virtualCellsMap) sid column
 
 cellMapCellsByCol :: CellMap -> ASSheetId -> Col -> [ASCell]
 cellMapCellsByCol virtualCellsMap sid column = filter isInMyColumn cellsInCtx 
@@ -139,7 +139,7 @@ colRangeWithCellMapToRange cellMap cr =
 -- Used in evaluateLanguage.
 colRangeWithContextToIndicesRowMajor2D :: EvalContext -> ASColRange -> [[ASIndex]]
 colRangeWithContextToIndicesRowMajor2D ctx c =
-  rangeToIndicesRowMajor2D $ colRangeWithCellMapToRange (virtualCellsMap ctx) c
+  rangeToIndicesRowMajor2D $ colRangeWithCellMapToRange (ctx^.virtualCellsMap) c
 
 -- For use in conditional formatting and shortCircuit.
 -- TODO: timchu, 12/29/15. Haven't checked that anything works with cond format.

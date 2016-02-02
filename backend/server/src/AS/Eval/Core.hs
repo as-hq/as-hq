@@ -63,7 +63,7 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) = catchEit
   case maybeShortCircuit of
     Just e -> return . return $ EvalResult (CellValue e) Nothing -- short-circuited, return this error
     Nothing -> case lang of
-      Excel -> KE.evaluate conn str idx (virtualCellsMap ctx)
+      Excel -> KE.evaluate conn str idx (ctx^.virtualCellsMap)
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       SQL -> do 
@@ -137,7 +137,7 @@ onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip d
   otherwise               -> Nothing
   where
     lang           = xp^.language
-    values         = map (maybe NoValue (view cellValue) . (`M.lookup` (virtualCellsMap ctx))) depInds
+    values         = map (maybe NoValue (view cellValue) . (`M.lookup` (ctx^.virtualCellsMap))) depInds
 
 
 -- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.

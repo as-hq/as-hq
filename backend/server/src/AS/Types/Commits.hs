@@ -15,6 +15,8 @@ import GHC.Generics
 import Data.List
 import qualified Data.Text as T
 import Data.SafeCopy
+import Control.Lens
+import Control.Lens.TH
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -49,12 +51,13 @@ flipCommit (Commit cd bd rdd cfrd time) = Commit cd' bd' rdd' cfrd' time
     cfrd' = flipDiff cfrd 
 
 -- Represents a set of collections of a sheet. 
-data SheetUpdate = SheetUpdate { cellUpdates :: CellUpdate
-                               , barUpdates :: BarUpdate
-                               , descriptorUpdates :: DescriptorUpdate 
-                               , condFormatRulesUpdates :: CondFormatRuleUpdate
+data SheetUpdate = SheetUpdate { _cellUpdates :: CellUpdate
+                               , _barUpdates :: BarUpdate
+                               , _descriptorUpdates :: DescriptorUpdate 
+                               , _condFormatRulesUpdates :: CondFormatRuleUpdate
                                }
                                deriving (Eq, Show, Read, Generic)
+makeLenses ''SheetUpdate
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
 sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
@@ -102,7 +105,7 @@ generateCommitFromCells cells = do
 -- Instances
 
 asToJSON ''ASTime
-asToJSON ''SheetUpdate
+asLensedToJSON ''SheetUpdate
 
 deriveSafeCopy 1 'base ''ASCommit
 deriveSafeCopy 1 'base ''ASTime

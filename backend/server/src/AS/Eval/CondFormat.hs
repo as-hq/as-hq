@@ -84,15 +84,16 @@ ruleToCellTransform state sid ctx (CondFormatRule _ rngs condMapConstructor) c =
 -- in the expression that are not already in the context. This is the context that will be
 -- used to evaluate said expression. 
 updatedContextForEval :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec EvalContext
-updatedContextForEval state sid ctx xp = do 
-  let valMap = virtualCellsMap ctx
+updatedContextForEval state sid ctx xp = do
+  let valMap = ctx^.virtualCellsMap
       deps = getDependencies sid xp 
       conn = state^.dbConn
   depInds <- concat <$> mapM (refToIndices conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-  return ctx { virtualCellsMap = valMap' } 
+  -- #RoomForImprovement. Can probably use %~ and make this cleaner.
+  return $ ctx & virtualCellsMap .~ valMap'
 
 evaluateBoolExpression :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EitherTExec ASValue
 evaluateBoolExpression state evalLoc ctx xp@(Expression str lang) = do

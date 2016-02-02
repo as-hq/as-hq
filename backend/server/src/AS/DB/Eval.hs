@@ -31,9 +31,9 @@ import Control.Monad.Trans.Either
 -- looks up cells in the given context, then in the database, in that precedence order
 -- this function is order-preserving
 getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext conn EvalContext { virtualCellsMap = mp } locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
+getCellsWithContext conn ctx locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
   where
-    replaceWithContext (l, c) = maybe c Just $ M.lookup l mp
+    replaceWithContext (l, c) = maybe c Just $ M.lookup l (ctx^.virtualCellsMap)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Reference conversions/lookups
@@ -42,10 +42,10 @@ getCellsWithContext conn EvalContext { virtualCellsMap = mp } locs = map replace
 --  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
 --  #mustrefactor why isn't this left IndexOfPointerNonExistant
 referenceToCompositeValue :: Connection -> EvalContext -> ASReference -> IO CompositeValue
-referenceToCompositeValue _ (EvalContext { virtualCellsMap = mp }) (IndexRef i) = return $ CellValue . view cellValue $ $valAt i mp 
+referenceToCompositeValue _ ctx (IndexRef i) = return $ CellValue . view cellValue $ $valAt i $ ctx^.virtualCellsMap
 referenceToCompositeValue conn ctx (PointerRef p) = do 
   let idx = pointerIndex p
-  let mp = virtualCellsMap ctx
+  let mp = ctx^.virtualCellsMap
   let cell = $valAt idx mp
   case cell^.cellRangeKey of 
     Nothing -> $error "Pointer to normal expression!" 
@@ -54,7 +54,7 @@ referenceToCompositeValue conn ctx (PointerRef p) = do
         Nothing -> $error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = rangeKeyToIndices rKey
-              cells  = map ((virtualCellsMap ctx) M.!) indices
+              cells  = map ((ctx^.virtualCellsMap) M.!) indices
               fatCell = FatCell cells descriptor
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
@@ -65,14 +65,14 @@ referenceToCompositeValue conn ctx (ColRangeRef cr) = return $ Expanding . VList
     -- The only case where the index is not in the virtualCellsMap is when the
     -- current dispatch created new cells in the bottom of a column whose
     -- colRange is being evaluated.
-    indToVal ind = case M.member ind (virtualCellsMap ctx) of
-                        True -> view cellValue $ $valAt ind (virtualCellsMap ctx)
+    indToVal ind = case M.member ind (ctx^.virtualCellsMap) of
+                        True -> view cellValue $ $valAt ind (ctx^.virtualCellsMap)
                         False -> NoValue
     vals    = map (map indToVal) indices
 referenceToCompositeValue conn ctx (RangeRef r) = return . Expanding . VList . M $ vals
   where
     indices = rangeToIndicesRowMajor2D r
-    indToVal ind = view cellValue $ $valAt ind (virtualCellsMap ctx)
+    indToVal ind = view cellValue $ $valAt ind (ctx^.virtualCellsMap)
     vals    = map (map indToVal) indices
 
 -- Only used in conditional formatting.
@@ -101,9 +101,9 @@ refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference ->
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextDuringEval conn ctx (ColRangeRef cr) = lift $ colRangeWithDBAndContextToIndices conn ctx cr
-refToIndicesWithContextDuringEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do 
+refToIndicesWithContextDuringEval conn ctx (PointerRef p) = do 
   let index = pointerIndex p
-  case (M.lookup index mp) of
+  case (M.lookup index $ ctx^.virtualCellsMap) of
     Just c -> maybe (left PointerToNormalCell) (return . rangeKeyToIndices) $ c^.cellRangeKey
     Nothing -> do
       cell <- lift $ DB.getCell conn index 
@@ -119,9 +119,9 @@ refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference ->
 refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
 refToIndicesWithContextBeforeEval conn ctx (ColRangeRef r) = colRangeWithDBAndContextToIndices conn ctx r
-refToIndicesWithContextBeforeEval conn (EvalContext { virtualCellsMap = mp }) (PointerRef p) = do 
+refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do 
   let index = pointerIndex p
-  case (M.lookup index mp) of 
+  case (M.lookup index $ ctx^.virtualCellsMap) of 
     Just c -> return $ maybe [] rangeKeyToIndices $ c^.cellRangeKey
     Nothing -> do
       cell <- DB.getCell conn index 

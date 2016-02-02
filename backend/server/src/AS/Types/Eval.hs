@@ -35,10 +35,11 @@ data CompositeCell = Single ASCell | Fat FatCell
 type CellMap = M.Map ASIndex ASCell
 
 -- This should be thought of as a mini spreadsheet used by eval as a cache (which can be updated)
-data EvalContext = EvalContext { virtualCellsMap :: CellMap
-                               , rangeDescriptorsInSheet :: [RangeDescriptor] -- so we only have to get it once (pulling from DB is relatively expensive)
-                               , updateAfterEval :: SheetUpdate }
+data EvalContext = EvalContext { _virtualCellsMap :: CellMap
+                               , _rangeDescriptorsInSheet :: [RangeDescriptor] -- so we only have to get it once (pulling from DB is relatively expensive)
+                               , _updateAfterEval :: SheetUpdate }
                                deriving (Show, Read, Eq)
+makeLenses ''EvalContext
 
 emptyContext :: EvalContext
 emptyContext = EvalContext M.empty [] (SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate)
@@ -63,19 +64,19 @@ asLensedToJSON ''EvalResult -- only used for sending header
 --  where parts = splitBy keyPartDelimiter key
 
 virtualRangeDescriptors :: EvalContext -> [RangeDescriptor]
-virtualRangeDescriptors = applyUpdate <$> (descriptorUpdates . updateAfterEval) <*> rangeDescriptorsInSheet
+virtualRangeDescriptors = applyUpdate <$> ((view descriptorUpdates) . (view updateAfterEval)) <*> (view rangeDescriptorsInSheet)
 
 virtualRangeDescriptorAt :: EvalContext -> RangeKey -> Maybe RangeDescriptor
 virtualRangeDescriptorAt ctx rk = headMay $ filter ((== rk) . descriptorKey) $ virtualRangeDescriptors ctx
 
 newCellsInContext :: EvalContext -> [ASCell]
-newCellsInContext = newVals . cellUpdates . updateAfterEval
+newCellsInContext = newVals . (view cellUpdates) . (view updateAfterEval)
 
 newRangeDescriptorsInContext :: EvalContext -> [RangeDescriptor]
-newRangeDescriptorsInContext = newVals . descriptorUpdates . updateAfterEval
+newRangeDescriptorsInContext = newVals . (view descriptorUpdates) . (view updateAfterEval)
 
 oldRangeKeysInContext :: EvalContext -> [RangeKey]
-oldRangeKeysInContext = oldKeys . descriptorUpdates . updateAfterEval
+oldRangeKeysInContext = oldKeys . (view descriptorUpdates) . (view updateAfterEval)
 
 indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'

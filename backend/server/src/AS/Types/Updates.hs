@@ -40,14 +40,14 @@ filterUpdateByKey f (Update newVals oldKeys) = Update newVals' oldKeys'
     oldKeys' = filter f oldKeys
 
 -- Assumes beforeVals is a subset of the thing you're taking a diff of. 
-addValue :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> a -> Update a (KeyType a)
-addValue update d = if (inRemoved $ key d) 
+addValue :: (HasKey a, Eq (KeyType a)) => a -> Update a (KeyType a) -> Update a (KeyType a)
+addValue d update = if (inRemoved $ key d) 
   then update { oldKeys = L.delete (key d) (oldKeys update) }
   else update { newVals = d:(newVals update) } 
     where inRemoved x = x `L.elem` (oldKeys update)
 
-removeKey :: (HasKey a, Eq (KeyType a)) => Update a (KeyType a) -> (KeyType a) -> Update a (KeyType a)
-removeKey update d = if (inAdded d)
+removeKey :: (HasKey a, Eq (KeyType a)) => (KeyType a) -> Update a (KeyType a) -> Update a (KeyType a)
+removeKey d update = if (inAdded d)
     then update { newVals = L.filter ((/=) d . key) (newVals update) } 
   else update { oldKeys = d:(oldKeys update) } 
     where inAdded x = x `L.elem` (map key $ newVals update)

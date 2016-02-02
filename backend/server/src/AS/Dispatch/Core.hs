@@ -104,11 +104,14 @@ runDispatchCycle state cs descSetting src updateTransform = do
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch state roots initialContext descSetting
     printWithTimeT "finished dispatch"
-    let transformedCtx = ctxAfterDispatch { updateAfterEval = updateTransform (updateAfterEval ctxAfterDispatch) } -- #lenses
+    let transformedCtx = ctxAfterDispatch & updateAfterEval %~ updateTransform -- #lenses
+
     finalCells <- EE.evalEndware state src transformedCtx
-    let ctx = transformedCtx { updateAfterEval = (updateAfterEval transformedCtx) { cellUpdates = (cellUpdates . updateAfterEval $ transformedCtx) { newVals = finalCells } } } -- #lens
+
+    let ctx = transformedCtx & (updateAfterEval . cellUpdates) %~ (\update ->  update {newVals = finalCells})
+
     DT.updateDBWithContext state src ctx
-    return $ updateAfterEval ctx
+    return $ ctx^.updateAfterEval
   either (const $ G.recompute graphAddress conn) (const $ return ()) errOrUpdate -- graph db may have changed during dispatch; if not committed, reset it
   return errOrUpdate
 
@@ -176,10 +179,10 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithCo
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
    ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
-   let nonContextAncIndices = filter (not . (flip M.member (virtualCellsMap oldContext))) ancIndices
+   let nonContextAncIndices = filter (not . (flip M.member (oldContext^.virtualCellsMap))) ancIndices
    cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
-   let oldMap = virtualCellsMap oldContext
-       newContext = oldContext { virtualCellsMap = insertMultiple oldMap nonContextAncIndices cells }
+   let oldMap = oldContext^.virtualCellsMap
+       newContext = oldContext & virtualCellsMap .~ insertMultiple oldMap nonContextAncIndices cells
    return newContext
 
 retrieveValue :: Maybe CompositeCell -> CompositeValue
@@ -212,7 +215,7 @@ evalChainWithException state cells ctx =
 evalChain :: ServerState -> [ASCell] -> EvalTransform
 evalChain state cells ctx = evalChain' state cells' ctx
   where 
-    hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (virtualCellsMap ctx) of
+    hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (ctx^.virtualCellsMap) of
       Nothing -> False
       Just c' -> (isCoupled c') && (not $ isFatCellHead c')
     cells' = filter (liftA2 (&&) isEvaluable (not . hasCoupledCounterpartInMap)) cells
@@ -236,34 +239,33 @@ evalChain' state (c@(Cell loc xp val ps rk disp):cs) ctx = do
 -- #needsrefactor the maybe logic sholdn't be dealt with here
 -- Helper function that removes a maybe descriptor from a context and returns the updated context. #lens
 removeMaybeDescriptorFromContext :: Maybe RangeDescriptor -> PureEvalTransform
-removeMaybeDescriptorFromContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } } 
-  where 
-    ddiff = descriptorUpdates $ updateAfterEval ctx
-    ddiff' = case descriptor of
-      Nothing -> ddiff
-      Just d -> removeKey ddiff (key d)
+removeMaybeDescriptorFromContext descriptor ctx =
+  ctx & (updateAfterEval . descriptorUpdates) %~ descriptorTransform
+    where 
+      descriptorTransform = case descriptor of
+        Nothing -> id
+        Just d -> (removeKey . key) d
 
 -- Helper function that removes multiple descriptors from the ddiff of the context. #lens
 removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
-removeMultipleDescriptorsFromContext descriptors ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiffWithbeforeVals } } 
-  where
-    ddiff = descriptorUpdates $ updateAfterEval ctx
-    ddiffWithbeforeVals = L.foldl' removeKey ddiff (map key descriptors)
+removeMultipleDescriptorsFromContext descriptors ctx =
+  ctx & (updateAfterEval . descriptorUpdates) %~ descriptorTransform
+    where
+      descriptorTransform = \ddiff -> L.foldl' (flip removeKey) ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform
-addValueToContext descriptor ctx = ctx { updateAfterEval = (updateAfterEval ctx) { descriptorUpdates = ddiff' } }
-  where
-    ddiff  = descriptorUpdates $ updateAfterEval ctx
-    ddiff' = addValue ddiff descriptor
+addValueToContext descriptor ctx =
+  ctx & (updateAfterEval . descriptorUpdates) %~ (addValue descriptor)
 
 -- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens
 addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx = ctx { virtualCellsMap = newMap, updateAfterEval = (updateAfterEval ctx) { cellUpdates = Update newAddedCells [] } } 
-  where
-    newAddedCells = mergeCells cells (newCellsInContext ctx)
-    newMap   = insertMultiple (virtualCellsMap ctx) (mapCellLocation cells) cells
+addCellsToContext cells ctx =
+  ctx & virtualCellsMap .~ newMap & (updateAfterEval . cellUpdates) .~ Update newAddedCells []
+    where
+      newAddedCells = mergeCells cells (newCellsInContext ctx)
+      newMap   = insertMultiple (ctx^.virtualCellsMap) (mapCellLocation cells) cells
 
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 
@@ -354,7 +356,7 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map (flip $valAt $ virtualCellsMap ctxWithEvalCells) inds
+                        Just inds -> map (flip $valAt $ ctxWithEvalCells^.virtualCellsMap) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch state dispatchCells ctxWithEvalCells ProperDescendants
       -- propagate the descendants of the expanded cells (except for the list head)

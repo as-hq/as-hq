@@ -28,11 +28,10 @@ import Control.Lens hiding ((.=))
 evalEndware :: ServerState -> CommitSource -> EvalContext -> EitherTExec [ASCell]
 evalEndware state (CommitSource sid uid) ctx = do 
   let cells0 = newCellsInContext ctx
-      cells1 = cells0 ++ blankCellsAt (refsToIndices . oldKeys . cellUpdates . updateAfterEval $ ctx)
+      cells1 = cells0 ++ blankCellsAt (refsToIndices . oldKeys $ ctx^.( updateAfterEval . cellUpdates))
       -- ^ represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
   mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
   oldRules <- lift $ DB.getCondFormattingRulesInSheet (state^.dbConn) sid 
-  let updatedRules = applyUpdate (condFormatRulesUpdates $ updateAfterEval ctx) oldRules
+  let updatedRules = applyUpdate (ctx^.(updateAfterEval . condFormatRulesUpdates)) oldRules
   cells2 <- conditionallyFormatCells state sid cells1 updatedRules ctx
   return cells2 -- we added blank cells at the deleted locations -- we don't want the actual Update to remember these. 
-   

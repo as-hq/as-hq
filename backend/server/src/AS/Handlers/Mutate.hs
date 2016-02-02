@@ -52,7 +52,7 @@ handleMutateSheet mid uc state mutateType = do
       (oldCondFormatRules', newCondFormatRules') = keepUnequal $ zip oldCondFormatRules newCondFormatRules
       cfru = Update { oldKeys = map condFormatRuleId oldCondFormatRules', newVals = newCondFormatRules' }
   -- propagate changes
-  let updateTransform update = update { barUpdates = bu, condFormatRulesUpdates = cfru }
+  let updateTransform update = update & barUpdates .~ bu & condFormatRulesUpdates .~ cfru
   errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
   broadcastErrOrUpdate mid state uc errOrUpdate
 

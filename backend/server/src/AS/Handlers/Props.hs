@@ -84,7 +84,7 @@ injectCells cells cu = cu {newVals = mergeCells cells (newVals cu)}
 
 -- #Lenses.
 injectCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
-injectCellsIntoSheetUpdate cells su = su {cellUpdates = injectCells cells (cellUpdates su)}
+injectCellsIntoSheetUpdate cells su = su & cellUpdates %~ (injectCells cells)
 
 handleSetProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
 handleSetProp mid uc state prop rng = transformPropsInDatabase mid (setProp prop . view cellProps) uc state rng
