@@ -493,10 +493,11 @@ export default class ASEvalPane
 
       this.hideToast();
     } else if (changeSelToNewCell) {
-      logDebug("Selected empty cell to move to");
+      const language = ExpStore.getDefaultLanguage();
       SelectionStore.setActiveSelection(sel, "", null);
       this.getASSpreadsheet().repaint();
-      ExpStore.setLanguage(ExpStore.getDefaultLanguage());
+      ExpStore.setLanguage(language);
+      HeaderActions.setLanguage(language);
       ExpActionCreator.handleSelChange('');
       this.hideToast();
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable

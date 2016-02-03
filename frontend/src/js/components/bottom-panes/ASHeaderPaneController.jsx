@@ -29,8 +29,6 @@ class ASHeaderPaneController extends React.Component<{}, {}, {}> {
     // Get ANSI-formatted string to display
     const ansiContent = HeaderStore.getCurrentOutput();
     const language = HeaderStore.getCurrentLanguage();
-
-    debugger;
     return (
       <ASOutputPane ansiContent={ansiContent}
                     title={`Header: ${language}`} />

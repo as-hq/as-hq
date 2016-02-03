@@ -21,7 +21,7 @@ class ASOutputPane extends React.Component<{}, ASOutputPaneProps, {}> {
 
   shouldComponentUpdate(nextProps: ASOutputPaneProps, _: {}): boolean {
     return (
-      this.props.ansiContent !== nextProps.ansiContent &&
+      this.props.ansiContent !== nextProps.ansiContent ||
       this.props.title !== nextProps.title
     );
   }
@@ -96,7 +96,7 @@ const styles = {
   outputLine: {
     lineHeight: '14px',
     fontFamily: 'monospace',
-    color: '#f8f8f2' // as the default un-formatted text color
+    color: '#f8f8f2' // the default un-formatted text color
   },
   contentContainer: {
     paddingTop: '5px',

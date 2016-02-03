@@ -222,6 +222,7 @@ pws.onmessage = (event: MessageEvent) => {
         NotificationActions.addNotification({
           uid: timeoutMessageId,
           title: 'Cancel operation',
+          autoDismiss: 0, // set timeout to 0, do not auto-dismiss
           message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
           level: 'warning',
           action: {

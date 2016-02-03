@@ -62,7 +62,6 @@ export default class AppContainer extends React.Component<{}, {}, {}> {
     this._notificationSystem.addNotification({
       uid,
       position: 'br',
-      autoDismiss: false,
       dismissible: true,
       onRemove: (notification) => {
         NotificationActions.removeNotification(notification.uid);

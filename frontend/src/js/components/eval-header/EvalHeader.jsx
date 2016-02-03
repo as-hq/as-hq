@@ -28,7 +28,7 @@ require('brace/theme/monokai');
 type EvalHeaderProps = {
   language: ASLanguage;
   expression: string;
-  onSave: (xp: string) => void;
+  onEvaluate: (xp: string) => void;
 }
 
 type LanguageItem = {
@@ -49,13 +49,14 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
 
   shouldComponentUpdate(nextProps: EvalHeaderProps, _: {}): boolean {
     return (
-      this.props.language !== nextProps.language &&
+      this.props.language !== nextProps.language ||
       this.props.expression !== nextProps.expression
     );
   }
 
   render(): React.Element {
     const {language, expression} = this.props;
+    const {onEvaluate} = this.props;
 
     return (
       <div style={styles.root}>
@@ -72,19 +73,21 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
             underlineStyle={styles.dropdownUnderline} />
 
           <FlatButton
-            label="Save"
-            style={styles.saveButton}
-            onClick={() => this._onSave()} />
+            label={buttonText}
+            style={styles.evalButton}
+            onClick={() =>
+              onEvaluate(this._getValue())} />
 
         </Toolbar >
 
-        <EvalHeaderEditor
-          ref="editor" name="evalHeader"
-          onSave={() => this._onSave()}
-          mode={Constants.AceMode[language]}
-          language={language}
-          value={expression}
-          height="100%" />
+        <EvalHeaderEditor ref="editor"
+                          name="evalHeader"
+                          onSave={(xp) =>
+                            HeaderActions.update(xp, language)}
+                          mode={Constants.AceMode[language]}
+                          language={language}
+                          value={expression}
+                          height="100%" />
 
       </div>
     );
@@ -94,16 +97,13 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
     return this.refs.editor.getRawEditor().getValue();
   }
 
-  _onSave() {
-    const expression = this._getValue();
-    this.props.onSave(expression);
-  }
-
   _getLanguageIndex(language: ASLanguage): number {
     return this._languages.map(l => l.text).indexOf(language);
   }
 
 };
+
+const buttonText = 'Evaluate';
 
 const styles = {
   root: {
@@ -117,7 +117,7 @@ const styles = {
   dropdownUnderline: {
     display: 'none'
   },
-  saveButton: {
+  evalButton: {
     fontFamily: '"Lucida Console", Monaco, monospace'
   }
 };

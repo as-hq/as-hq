@@ -6,9 +6,14 @@ import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
+import HeaderStore from '../stores/ASHeaderStore';
 import FindStore from '../stores/ASFindStore';
+
 import API from '../actions/ASApiActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
+import HeaderActions from '../actions/ASHeaderActionCreators';
+import {addSimpleNotification} from '../actions/ASNotificationActionCreators';
+
 import U from './Util';
 
 import ASIndex from '../classes/ASIndex';
@@ -86,20 +91,26 @@ export default {
     SU.add('evalPane', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
       // Upon a shortcut, call toggle language, which will update the ExpStore's language and
       // inform the language dropdown in the toolbar of an update
+      let language;
       switch(wildcard) {
           case '1':
-            ExpActionCreator.handleToggleLanguage(Constants.Languages.Excel);
+            language = 'Excel';
             break;
           case '2':
-            ExpActionCreator.handleToggleLanguage(Constants.Languages.Python);
+            language = 'Python';
             break;
           case '3':
-            ExpActionCreator.handleToggleLanguage(Constants.Languages.R);
+            language = 'R';
             break;
           case '4':
-            ExpActionCreator.handleToggleLanguage(Constants.Languages.SQL);
+            language = 'SQL';
+            break;
+          default:
+            language = ExpStore.getLanguage();
             break;
         }
+      ExpActionCreator.handleToggleLanguage(language);
+      HeaderActions.setLanguage(language);
     });
     SU.add('evalPane', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
@@ -455,7 +466,10 @@ export default {
 
     // eval header shortcuts -------------------------------------------------------------------------------
     SU.add('evalHeader', 'save', 'Ctrl+S', (wildcard: string) => {
-      self.refs.evalHeader.saveAndEval();
+      addSimpleNotification('Evaluated!');
+      const expression = HeaderStore.getCurrentExpression();
+      const language = HeaderStore.getCurrentLanguage();
+      API.evaluateHeader(expression, language);
     });
 
     // top level shortcuts -------------------------------------------------------------------------------

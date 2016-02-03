@@ -14,7 +14,8 @@ export type NotificationAction = {
 export type NotificationSpec = {
   uid: string;
   title: string;
-  message: string;
+  autoDismiss: number;
+  message: ?string;
   level: NotificationLevel;
-  action: NotificationAction;
+  action: ?NotificationAction;
 }

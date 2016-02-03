@@ -10,7 +10,7 @@ import EvalHeader from './EvalHeader.jsx';
 
 import HeaderStore from '../../stores/ASHeaderStore';
 
-import HeaderActions from '../../actions/ASHeaderActionCreators';
+import {addSimpleNotification} from '../../actions/ASNotificationActionCreators';
 import API from '../../actions/ASApiActionCreators';
 
 class EvalHeaderController extends React.Component<{}, {}, {}> {
@@ -24,8 +24,8 @@ class EvalHeaderController extends React.Component<{}, {}, {}> {
   componentDidMount() {
     this._storeListener = HeaderStore.addListener(() => this.forceUpdate());
     // focus upon mount
-    // TODO integrate with @joel's focus manager
-    ReactDOM.findDOMNode(this._view).focus();
+    // TODO this has no effect, integrate with @joel's focus manager
+    // ReactDOM.findDOMNode(this._view).focus();
   }
 
   componentWillUnmount() {
@@ -39,15 +39,24 @@ class EvalHeaderController extends React.Component<{}, {}, {}> {
       <EvalHeader ref={elem => this._view = elem}
                   expression={expression}
                   language={language}
-                  onSave={(newExpression) =>
-                    this._onSave(newExpression, language)} />
-    )
+                  onEvaluate={(newExpression) =>
+                    this._onEvaluate(newExpression, language)} />
+    );
   }
 
-  _onSave(expression: string, language: ASLanguage) {
-    HeaderActions.update(expression, language);
+  _onEvaluate(expression: string, language: ASLanguage) {
+    addSimpleNotification(evaluateMessage);
     API.evaluateHeader(expression, language);
   }
 }
+
+const evaluateMessage = 'Evaluated!';
+
+const styles = {
+  root: {
+    width: '100%',
+    height: '100%'
+  }
+};
 
 export default EvalHeaderController;

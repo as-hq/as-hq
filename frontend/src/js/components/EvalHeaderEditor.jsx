@@ -51,12 +51,10 @@ type EvalHeaderEditorDefaultProps = {
 type EvalHeaderEditorProps = {
   mode: string;
   value: string;
-  height: string;
-  width: string;
   name: string;
   maxLines: ?number;
   language: ASLanguage;
-  saveAndEval: () => void;
+  onSave: (xp: string) => void;
 };
 
 type EvalHeaderEditorState = {};
@@ -91,33 +89,34 @@ export default class EvalHeaderEditor
     onPropsSet(this.editor, nextProps);
   }
 
-  handleKeyDown(e: SyntheticKeyboardEvent) {
+
+  render(): React.Element {
+    const {name} = this.props;
+    return (
+      <div id={name}
+           style={styles.root}
+           onKeyDown={(e) => this._handleKeyDown(e)}
+           onKeyUp={(e) => this._handleKeyUp(e)}>
+      </div>);
+  }
+
+  _handleKeyDown(e: SyntheticKeyboardEvent) {
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
       U.Shortcut.tryEvalHeaderShortcut(e);
     }
   }
 
-  render(): React.Element {
-    let divStyle = {
-      width: this.props.width,
-      height: this.props.height,
-      zIndex: 0
-    };
-    return (<div
-        id={this.props.name}
-        style={divStyle}>
-      </div>);
+  _handleKeyUp(e: SyntheticKeyboardEvent) {
+    this.props.onSave(this.editor.getValue());
   }
 }
 
-EvalHeaderEditor.propTypes = {
-  mode     : React.PropTypes.string,
-  value    : React.PropTypes.string,
-  height   : React.PropTypes.string,
-  width    : React.PropTypes.string,
-  maxLines : React.PropTypes.number,
-  language : React.PropTypes.string
+const styles = {
+  root: {
+    width: '100%',
+    height: '100%'
+  }
 };
 
 EvalHeaderEditor.defaultProps = {

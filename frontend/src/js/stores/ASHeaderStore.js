@@ -46,8 +46,8 @@ class HeaderStore extends ReduceStore<HeaderState> {
       case 'HEADER_UPDATED': {
         const {language, expression} = action;
         return state.setIn(
-          ['data', language],
-          Immutable.fromJS({ expression, output: null })
+          ['data', language, 'expression'],
+          expression
         );
       }
 
