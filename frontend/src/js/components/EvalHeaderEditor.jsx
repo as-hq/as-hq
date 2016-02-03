@@ -42,8 +42,6 @@ function onPropsSet(editor, props) {
 type EvalHeaderEditorDefaultProps = {
   mode: string;
   value: string;
-  height: string;
-  width: string;
   name: string;
   maxLines: ?number;
 };
@@ -54,7 +52,7 @@ type EvalHeaderEditorProps = {
   name: string;
   maxLines: ?number;
   language: ASLanguage;
-  onSave: (xp: string) => void;
+  onChange: (xp: string) => void;
 };
 
 type EvalHeaderEditorState = {};
@@ -108,7 +106,7 @@ export default class EvalHeaderEditor
   }
 
   _handleKeyUp(e: SyntheticKeyboardEvent) {
-    this.props.onSave(this.editor.getValue());
+    this.props.onChange(this.editor.getValue());
   }
 }
 

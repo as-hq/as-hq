@@ -61,28 +61,25 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
     return (
       <div style={styles.root}>
 
-        <Toolbar
-          style={styles.toolbar}
-          showMenuIconButton={false}>
+        <Toolbar style={styles.toolbar}
+                 showMenuIconButton={false}>
 
-          <DropDownMenu
-            menuItems={this._languages}
-            onChange={(_,__,{payload}) =>
+          <DropDownMenu menuItems={this._languages}
+                        onChange={(_,__,{payload}) =>
                             HeaderActions.setLanguage(payload)}
-            selectedIndex={this._getLanguageIndex(language)}
-            underlineStyle={styles.dropdownUnderline} />
+                        selectedIndex={this._getLanguageIndex(language)}
+                        underlineStyle={styles.dropdownUnderline} />
 
-          <FlatButton
-            label={buttonText}
-            style={styles.evalButton}
-            onClick={() =>
-              onEvaluate(this._getValue())} />
+          <FlatButton label={buttonText}
+                      style={styles.evalButton}
+                      onClick={() =>
+                        onEvaluate(this._getValue())} />
 
         </Toolbar >
 
         <EvalHeaderEditor ref="editor"
                           name="evalHeader"
-                          onSave={(xp) =>
+                          onChange={(xp) =>
                             HeaderActions.update(xp, language)}
                           mode={Constants.AceMode[language]}
                           language={language}
