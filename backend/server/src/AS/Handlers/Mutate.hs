@@ -45,14 +45,14 @@ handleMutateSheet mid uc state mutateType = do
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = map (barMutate mutateType) oldBars
       (oldBars', newBars') = keepUnequal $ zip oldBars newBars
-      bu = Update { oldKeys = map barIndex oldBars', newVals = newBars' }
+      bu = emptyUpdate & newVals .~ newBars' & oldKeys .~ map barIndex oldBars' 
   -- update conditional formatting rules
   oldCondFormatRules <- DB.getCondFormattingRulesInSheet conn sid
   let newCondFormatRules = map (condFormattingRulesMutate mutateType) oldCondFormatRules
       (oldCondFormatRules', newCondFormatRules') = keepUnequal $ zip oldCondFormatRules newCondFormatRules
-      cfru = Update { oldKeys = map condFormatRuleId oldCondFormatRules', newVals = newCondFormatRules' }
+      cfru = emptyUpdate & newVals .~ newCondFormatRules' & oldKeys .~ map condFormatRuleId oldCondFormatRules'
   -- propagate changes
-  let updateTransform update = update & barUpdates .~ bu & condFormatRulesUpdates .~ cfru
+  let updateTransform update = update & barUpdates .~ bu & condFormatRuleUpdate .~ cfru
   errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
   broadcastErrOrUpdate mid state uc errOrUpdate
 

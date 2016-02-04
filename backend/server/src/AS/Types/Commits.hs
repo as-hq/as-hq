@@ -54,10 +54,18 @@ flipCommit (Commit cd bd rdd cfrd time) = Commit cd' bd' rdd' cfrd' time
 data SheetUpdate = SheetUpdate { _cellUpdates :: CellUpdate
                                , _barUpdates :: BarUpdate
                                , _descriptorUpdates :: DescriptorUpdate 
-                               , _condFormatRulesUpdates :: CondFormatRuleUpdate
+                               , _condFormatRuleUpdate :: CondFormatRuleUpdate
                                }
                                deriving (Eq, Show, Read, Generic)
 makeLenses ''SheetUpdate
+
+emptySheetUpdate :: SheetUpdate
+emptySheetUpdate = SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate
+
+-- #RoomForImprovement: some data.data magic to have the args be [ValType CellUpdate]
+-- instead of [ASCell]?
+makeSheetUpdateWithNoOldKeys :: [ASCell] -> [Bar] -> [RangeDescriptor] -> [CondFormatRule] -> SheetUpdate
+makeSheetUpdateWithNoOldKeys cells bars ds cfs = SheetUpdate (Update cells []) (Update bars []) (Update ds []) (Update cfs [])
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
 sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
@@ -68,11 +76,10 @@ sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
     cfru = diffToUpdate cfrd
 
 sheetUpdateFromCells :: [ASCell] -> SheetUpdate
-sheetUpdateFromCells cs = SheetUpdate (Update cs []) emptyUpdate emptyUpdate emptyUpdate
+sheetUpdateFromCells cs = emptySheetUpdate & cellUpdates.newVals .~ cs
 
--- This would be better written using lenses, but this seems OK for now. 
 addCellsToUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
-addCellsToUpdate cs (SheetUpdate (Update a b) x y z) = SheetUpdate (Update (a ++ cs) b) x y z
+addCellsToUpdate cs = cellUpdates.newVals %~ (++ cs)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
