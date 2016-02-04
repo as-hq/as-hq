@@ -11,7 +11,7 @@ import ConversionU from '../AS/utils/Conversion';
 
 import Dispatcher from '../Dispatcher';
 
-export function markSent(msg: ServerMessage) {
+export function markSent(msg: any) { // should be ServerMessage but flow is fucking up
   const {messageId, serverAction} = msg;
   const locations = ConversionU.getLocationsFromServerAction(serverAction);
   if (locations.length > 0) {
