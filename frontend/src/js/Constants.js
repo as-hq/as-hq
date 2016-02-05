@@ -99,7 +99,6 @@ var Constants = Object.assign({
     BACKEND_UPDATED_AND_CELLS_CHANGED: null,
     EVAL_TRIED_TO_DECOUPLE: null,
     DROPDOWN_CLICKED: null,
-    LANGUAGE_TOGGLED: null,
     ADD_OVERLAY: null,
     SET_CONNECTING_STATE: null
   }),

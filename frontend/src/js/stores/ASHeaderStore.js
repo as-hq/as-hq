@@ -21,30 +21,42 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 
 
-type HeaderData = {
+type HeaderData = Immutable.Record & {
   expression: string;
   output: ?string;
 };
 
-type StateKeys = 'data' | 'currentLanguage';
-type StateValues = ASLanguage | HeaderData;
-type HeaderState = Immutable.Map<StateKeys, StateValues>;
+type HeaderStoreData = Immutable.Record & {
+  data: Immutable.Map<ASLanguage, HeaderData>;
+  currentLanguage: ASLanguage;
+};
 
-class HeaderStore extends ReduceStore<HeaderState> {
+const HeaderRecord = Immutable.Record({
+  expression: '',
+  output: null
+});
 
-  getInitialState(): HeaderState {
-    let data = {};
+const HeaderStoreRecord = Immutable.Record({
+  data: Immutable.Map().withMutations(mut => {
     for (const key in Constants.Languages) {
-      data[key] = { expression: '', output: null };
+      mut.set(key, new HeaderRecord());
     }
-    return Immutable.fromJS({data, currentLanguage: 'Python'});
+  }),
+  currentLanguage: 'Python'
+});
+
+class HeaderStore extends ReduceStore<HeaderStoreData> {
+
+  getInitialState(): HeaderStoreData {
+    // $FlowFixMe immutable declaration
+    return new HeaderStoreRecord();
   }
 
-  reduce(state: HeaderState, action: ASAction) {
+  reduce(state: HeaderStoreData, action: ASAction): HeaderStoreData {
     switch (action._type) {
-
       case 'HEADER_UPDATED': {
         const {language, expression} = action;
+        // $FlowFixMe immutable declaration
         return state.setIn(
           ['data', language, 'expression'],
           expression
@@ -52,6 +64,7 @@ class HeaderStore extends ReduceStore<HeaderState> {
       }
 
       case 'HEADER_EVALUATED': {
+        // $FlowFixMe immutable declaration
         const language = state.get('currentLanguage');
         const {value, display} = action;
         const output = `${value}\n-------------------\n${display}`;
@@ -62,17 +75,19 @@ class HeaderStore extends ReduceStore<HeaderState> {
         );
       }
 
+      case 'NORMAL_SEL_CHANGED':
+      case 'LANGUAGE_CHANGED':
       case 'HEADER_LANGUAGE_CHANGED': {
         return state.set('currentLanguage', action.language);
       }
 
       case 'HEADER_DATA_RESET': {
-        return state.withMutations(mutState => {
-          action.headers.forEach(({evalHeaderLang, evalHeaderExpr}) => {
           // $FlowFixMe immutable declaration
-            mutState.setIn(
+        return state.withMutations(mut => {
+          action.headers.forEach(({evalHeaderLang, evalHeaderExpr}) => {
+            mut.setIn(
               ['data', evalHeaderLang],
-              Immutable.fromJS({ expression: evalHeaderExpr, output: null })
+              new HeaderRecord({expression: evalHeaderExpr})
             );
           });
         });
@@ -85,7 +100,7 @@ class HeaderStore extends ReduceStore<HeaderState> {
   }
 
   getCurrentExpression(): string {
-    return this._getCurrentData().get('expression');
+    return this._getCurrentHeader().get('expression');
   }
 
   getCurrentLanguage(): ASLanguage {
@@ -93,10 +108,10 @@ class HeaderStore extends ReduceStore<HeaderState> {
   }
 
   getCurrentOutput(): ?string {
-    return this._getCurrentData().get('output');
+    return this._getCurrentHeader().get('output');
   }
 
-  _getCurrentData(): HeaderData {
+  _getCurrentHeader(): HeaderData {
     const state = this.getState();
     const language = state.get('currentLanguage');
     return state.getIn(['data', language]);

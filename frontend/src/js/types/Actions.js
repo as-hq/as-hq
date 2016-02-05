@@ -11,7 +11,6 @@ import type {
   ASExpression,
   ASValue,
   ASCompositeValue,
-  EvalResult,
   ASLanguage,
   RangeDescriptor,
   RangeKey,
@@ -100,6 +99,11 @@ export type GotUpdatedRulesAction = {
   oldRuleIds: Array<string>;
 };
 
+export type LanguageChangedAction = {
+  _type: 'LANGUAGE_CHANGED';
+  language: ASLanguage;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Header actions
 
@@ -169,7 +173,8 @@ export type TextboxChangedAction = {
 
 export type NormalSelChangedAction = {
   _type: 'NORMAL_SEL_CHANGED';
-  xpStr: string;
+  expression: string;
+  language: ASLanguage;
 };
 
 export type PartialRefChangeWithEditorAction = {
@@ -267,6 +272,7 @@ export type ASAction =
   | GotUpdatedBarsAction
   | ClearedAction
   | ClearedSheetAction
+  | LanguageChangedAction
   | HeaderEvaluatedAction
   | HeaderDataResetAction
   | HeaderUpdatedAction

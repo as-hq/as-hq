@@ -238,7 +238,7 @@ export default class ASEvalPane
       ExpStore.disableRefInsertionBypass();
     }
     // If the language was toggled (shortcut or dropdown) then set focus correctly
-    if (ExpStore.getXpChangeOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
+    if (ExpStore.getXpChangeOrigin() === 'LANGUAGE_CHANGED'){
       this.setFocus(SheetStateStore.getFocus());
     }
   }
@@ -487,19 +487,16 @@ export default class ASEvalPane
       }
 
       SelectionStore.setActiveSelection(sel, expression, language);
-      ExpStore.setLanguage(language);
-      ExpActionCreator.handleSelChange(expression);
-      HeaderActions.setLanguage(language);
-
+      ExpActionCreator.handleSelChange(language, expression);
       this.hideToast();
+
     } else if (changeSelToNewCell) {
       const language = ExpStore.getDefaultLanguage();
       SelectionStore.setActiveSelection(sel, "", null);
       this.getASSpreadsheet().repaint();
-      ExpStore.setLanguage(language);
-      HeaderActions.setLanguage(language);
-      ExpActionCreator.handleSelChange('');
+      ExpActionCreator.handleSelChange(language, '');
       this.hideToast();
+
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
       logDebug("Change sel while typing no insert");
       let xpObj = {
@@ -516,6 +513,7 @@ export default class ASEvalPane
          SelectionStore.setActiveSelection(sel, "", null);
          this.hideToast();
       }
+      
     } else if (userIsTyping) {
       let excelStr = range.toExcel().toString();
       if (editorCanInsertRef) { // insert cell ref in editor
@@ -724,7 +722,7 @@ export default class ASEvalPane
 
     return (
       <ResizablePanel content={leftEvalPane}
-                      sidebar={( <EvalHeaderController /> )}
+                      sidebar={( <EvalHeaderController open={headerOpen} /> )}
                       sidebarVisible={headerOpen} />
     );
   }

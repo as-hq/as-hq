@@ -756,7 +756,7 @@ export default class ASSpreadsheet
       case Constants.ActionTypes.GOT_UPDATED_CELLS:
         this.props.setFocus('grid');
         break;
-      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+      case 'LANGUAGE_CHANGED':
         this.refs.textbox.updateLanguage();
         break;
       default:

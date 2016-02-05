@@ -42,14 +42,12 @@ function onPropsSet(editor, props) {
 type EvalHeaderEditorDefaultProps = {
   mode: string;
   value: string;
-  name: string;
   maxLines: ?number;
 };
 
 type EvalHeaderEditorProps = {
   mode: string;
   value: string;
-  name: string;
   maxLines: ?number;
   language: ASLanguage;
   onChange: (xp: string) => void;
@@ -74,7 +72,7 @@ export default class EvalHeaderEditor
   }
 
   componentDidMount() {
-    this.editor = ace.edit(this.props.name);
+    this.editor = ace.edit(view_name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this.props.value, 1);
     onPropsSet(this.editor, this.props);
@@ -89,9 +87,8 @@ export default class EvalHeaderEditor
 
 
   render(): React.Element {
-    const {name} = this.props;
     return (
-      <div id={name}
+      <div id={view_name}
            style={styles.root}
            onKeyDown={(e) => this._handleKeyDown(e)}
            onKeyUp={(e) => this._handleKeyUp(e)}>
@@ -110,9 +107,10 @@ export default class EvalHeaderEditor
   }
 }
 
+const view_name = "EVAL_HEADER_EDITOR";
+
 const styles = {
   root: {
-    width: '100%',
     height: '100%'
   }
 };
@@ -120,8 +118,5 @@ const styles = {
 EvalHeaderEditor.defaultProps = {
   mode     : 'python',
   value    : '',
-  height   : '100px',
-  width    : '100%',
-  name     : 'brace-editor',
   maxLines : null
 };

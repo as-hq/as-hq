@@ -26,6 +26,7 @@ require('brace/mode/ocaml');
 require('brace/theme/monokai');
 
 type EvalHeaderProps = {
+  open: boolean;
   language: ASLanguage;
   expression: string;
   onEvaluate: (xp: string) => void;
@@ -49,6 +50,7 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
 
   shouldComponentUpdate(nextProps: EvalHeaderProps, _: {}): boolean {
     return (
+      this.props.open !== nextProps.open ||
       this.props.language !== nextProps.language ||
       this.props.expression !== nextProps.expression
     );
@@ -78,13 +80,11 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
         </Toolbar >
 
         <EvalHeaderEditor ref="editor"
-                          name="evalHeader"
                           onChange={(xp) =>
                             HeaderActions.update(xp, language)}
                           mode={Constants.AceMode[language]}
                           language={language}
-                          value={expression}
-                          height="100%" />
+                          value={expression} />
 
       </div>
     );
@@ -104,7 +104,6 @@ const buttonText = 'Evaluate';
 
 const styles = {
   root: {
-    width: '100%',
     height: '100%',
     marginLeft: '6px'
   },

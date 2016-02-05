@@ -109,8 +109,7 @@ export default {
             language = ExpStore.getLanguage();
             break;
         }
-      ExpActionCreator.handleToggleLanguage(language);
-      HeaderActions.setLanguage(language);
+      ExpActionCreator.setLanguage(language);
     });
     SU.add('evalPane', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {

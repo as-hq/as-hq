@@ -13,11 +13,15 @@ import HeaderStore from '../../stores/ASHeaderStore';
 import {addSimpleNotification} from '../../actions/ASNotificationActionCreators';
 import API from '../../actions/ASApiActionCreators';
 
-class EvalHeaderController extends React.Component<{}, {}, {}> {
+// the 'open' prop ensures that the editor re-renders upon being opened.
+// otherwise, ace will not attach itself until the next render.
+type Props = { open: boolean };
+
+class EvalHeaderController extends React.Component<{}, Props, {}> {
   _view: ReactComponent;
   _storeListener: any;
 
-  constructor(props: {}) {
+  constructor(props: Props) {
     super(props);
   }
 
@@ -37,6 +41,7 @@ class EvalHeaderController extends React.Component<{}, {}, {}> {
     const language = HeaderStore.getCurrentLanguage();
     return (
       <EvalHeader ref={elem => this._view = elem}
+                  open={this.props.open}
                   expression={expression}
                   language={language}
                   onEvaluate={(newExpression) =>
@@ -51,12 +56,5 @@ class EvalHeaderController extends React.Component<{}, {}, {}> {
 }
 
 const evaluateMessage = 'Evaluated!';
-
-const styles = {
-  root: {
-    width: '100%',
-    height: '100%'
-  }
-};
 
 export default EvalHeaderController;

@@ -73,7 +73,6 @@ class ASOutputPane extends React.Component<{}, ASOutputPaneProps, {}> {
 const styles = {
   root: {
     height: '100%',
-    width: '100%'
   },
   topBar: {
     height: '26px',
