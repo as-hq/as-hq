@@ -12,7 +12,7 @@ import FindStore from '../stores/ASFindStore';
 import API from '../actions/ASApiActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import HeaderActions from '../actions/ASHeaderActionCreators';
-import {addSimpleNotification} from '../actions/ASNotificationActionCreators';
+import * as NotificationActions from '../actions/ASNotificationActionCreators';
 
 import U from './Util';
 
@@ -465,7 +465,7 @@ export default {
 
     // eval header shortcuts -------------------------------------------------------------------------------
     SU.add('evalHeader', 'save', 'Ctrl+S', (wildcard: string) => {
-      addSimpleNotification('Evaluated!');
+      NotificationActions.addSimpleNotification('Evaluated!');
       const expression = HeaderStore.getCurrentExpression();
       const language = HeaderStore.getCurrentLanguage();
       API.evaluateHeader(expression, language);

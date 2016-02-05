@@ -37,7 +37,7 @@ export default function ASBottomBar(props: ASBottomBarProps): React.Element {
         tooltip="Cell output"
         tooltipPosition="top-right"
         tooltipStyles={styles.tooltip}>
-        code_greater_than
+        label_outline
       </IconButton>
 
       <IconButton
@@ -47,7 +47,7 @@ export default function ASBottomBar(props: ASBottomBarProps): React.Element {
         tooltip="Header output"
         tooltipPosition="top-right"
         tooltipStyles={styles.tooltip}>
-        code_not_equal_variant
+        input
       </IconButton>
 
     </Paper>
