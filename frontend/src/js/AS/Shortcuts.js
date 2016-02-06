@@ -32,6 +32,7 @@ import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
 import FocusStore from '../stores/ASFocusStore';
 import FocusActionCreators from '../actions/ASFocusActionCreators';
+import ShortcutHelperActionCreator from '../actions/ShortcutHelperActionCreators';
 
 export default {
   addShortcuts(evalPane: ASEvalPane) {
@@ -483,6 +484,10 @@ export default {
 
     SU.add('toplevel', 'toggle_header', 'Alt+H', (wildcard: string) => {
       self.toggleEvalHeader();
+    });
+
+    SU.add('toplevel', 'shortcut_helper', 'Ctrl+/', (wildcard: string) => {
+      ShortcutHelperActionCreator.toggleShortcutHelper();
     });
 
   }

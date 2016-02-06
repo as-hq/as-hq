@@ -47,6 +47,9 @@ let contextChecks = {
   'isTyping': () => { return ExpStore.getUserIsTyping(); }
 };
 
+const token_split = "+";
+const option_split = "|";
+
 export default {
   add(config: string, name: string, keyStr: (string|Array<string>), callback: Callback<string>) {
     var self = this;
@@ -200,8 +203,8 @@ export default {
 
   // assumes fornat: modifier + modifer + .. + key/key/key/key..
   parseKeysIntoShortcut(s: ASKeyCombination, keyStr: string): ASKeyCombination {
-    let tokens = keyStr.split("+"),
-        options = tokens[tokens.length-1].split("/");
+    let tokens = keyStr.split(token_split),
+        options = tokens[tokens.length-1].split(option_split);
     if (options.length == 1)
       s.keyCode = KeyUtils.stringToKey(options[0]);
     else
