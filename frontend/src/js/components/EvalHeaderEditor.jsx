@@ -4,7 +4,6 @@ import {logDebug} from '../AS/Logger';
 
 import {evalHeaderEditor as zIndex} from '../styles/zIndex';
 import CellStore from '../stores/ASCellStore';
-import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
@@ -44,21 +43,15 @@ function onPropsSet(editor, props) {
 type EvalHeaderEditorDefaultProps = {
   mode: string;
   value: string;
-  height: string;
-  width: string;
-  name: string;
   maxLines: ?number;
 };
 
 type EvalHeaderEditorProps = {
   mode: string;
   value: string;
-  height: string;
-  width: string;
-  name: string;
   maxLines: ?number;
   language: ASLanguage;
-  saveAndEval: () => void;
+  onChange: (xp: string) => void;
 };
 
 type EvalHeaderEditorState = {};
@@ -80,7 +73,7 @@ export default class EvalHeaderEditor
   }
 
   componentDidMount() {
-    this.editor = ace.edit(this.props.name);
+    this.editor = ace.edit(view_name);
     this.editor.$blockScrolling = Infinity;
     this.editor.setValue(this.props.value, 1);
     onPropsSet(this.editor, this.props);
@@ -93,48 +86,38 @@ export default class EvalHeaderEditor
     onPropsSet(this.editor, nextProps);
   }
 
-  handleKeyDown(e: SyntheticKeyboardEvent) {
+
+  render(): React.Element {
+    return (
+      <div id={view_name}
+           style={styles.root}
+           onKeyDown={(e) => this._handleKeyDown(e)}
+           onKeyUp={(e) => this._handleKeyUp(e)}>
+      </div>);
+  }
+
+  _handleKeyDown(e: SyntheticKeyboardEvent) {
     if (U.Shortcut.evalHeaderShouldDeferKey(e)) {
       U.Key.killEvent(e);
       U.Shortcut.tryEvalHeaderShortcut(e);
     }
   }
 
-  handleKeyUp(e: SyntheticKeyboardEvent) {
-    let lang = this.props.language,
-        val = this.editor.getValue();
-    EvalHeaderActionCreator.storeEvalHeaderExpression(lang, val);
-  }
-
-  render(): React.Element {
-    let divStyle = {
-      width: this.props.width,
-      height: this.props.height,
-      zIndex,
-    };
-    return (<div
-        id={this.props.name}
-        style={divStyle}
-        onKeyDown={this.handleKeyDown.bind(this)}
-        onKeyUp={this.handleKeyUp.bind(this)}>
-      </div>);
+  _handleKeyUp(e: SyntheticKeyboardEvent) {
+    this.props.onChange(this.editor.getValue());
   }
 }
 
-EvalHeaderEditor.propTypes = {
-  mode     : React.PropTypes.string,
-  value    : React.PropTypes.string,
-  height   : React.PropTypes.string,
-  width    : React.PropTypes.string,
-  maxLines : React.PropTypes.number,
-  language : React.PropTypes.string
+const view_name = "EVAL_HEADER_EDITOR";
+
+const styles = {
+  root: {
+    height: '100%'
+  }
 };
 
 EvalHeaderEditor.defaultProps = {
   mode     : 'python',
   value    : '',
-  height   : '100px',
-  width    : '100%',
-  name     : 'brace-editor',
   maxLines : null
 };

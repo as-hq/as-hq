@@ -78,6 +78,7 @@ import ProgressStore from '../stores/ASProgressStore';
 
 import ws from '../AS/PersistentWebSocket';
 import * as ProgressActions from '../actions/ASProgressActionCreators';
+import * as HeaderActions from '../actions/ASHeaderActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
 import * as NotificationActions from '../actions/ASNotificationActionCreators';
@@ -215,10 +216,7 @@ pws.onmessage = (event: MessageEvent) => {
       break;
     case 'SetInitialProperties':
       dispatchSheetUpdate(action.contents[0]);
-      Dispatcher.dispatch({
-        _type: 'GOT_OPEN',
-        evalHeaders: action.contents[1],
-      });
+      HeaderActions.resetData(action.contents[1]);
       break;
     case 'UpdateSheet':
       dispatchSheetUpdate(action.contents);
@@ -261,6 +259,7 @@ pws.onmessage = (event: MessageEvent) => {
         NotificationActions.addNotification({
           uid: timeoutMessageId,
           title: 'Cancel operation',
+          autoDismiss: 0, // set timeout to 0, do not auto-dismiss
           message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
           level: 'warning',
           action: {
@@ -281,10 +280,8 @@ pws.onmessage = (event: MessageEvent) => {
       });
       break;
     case 'ShowHeaderResult':
-      Dispatcher.dispatch({
-        _type: 'GOT_EVAL_HEADER_RESPONSE',
-        response: action.contents
-      });
+      const {headerValue, headerDisplay} = action.contents;
+      HeaderActions.setOutput(headerValue, headerDisplay);
       break;
     case 'Find':
       // TODO
@@ -489,15 +486,6 @@ const API = {
       tag: "Decouple",
       contents: []
     };
-    API.sendMessageWithAction(msg);
-  },
-
-  timeout(messageId: string) {
-    const msg = {
-      tag: "Timeout",
-      contents: messageId
-    };
-    ProgressActions.markReceived(messageId);
     API.sendMessageWithAction(msg);
   },
 

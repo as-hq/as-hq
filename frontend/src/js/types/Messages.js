@@ -28,7 +28,7 @@ import type {
   ASIndexObject,
   ASSheet,
   ASValue,
-  EvalResult,
+  HeaderResult,
   ASExpression,
   ASWorkbook,
   ASCellProp,
@@ -225,10 +225,10 @@ export type PayloadFind = {
   contents: Array<ASIndexObject>;
 };
 
-export type PayloadValue = {
-  tag: 'PayloadValue';
-  contents: [EvalResult, ASLanguage];
-};
+// export type PayloadValue = {
+//   tag: 'PayloadValue';
+//   contents: [EvalResult, ASLanguage];
+// };
 
 export type PayloadCondFormatUpdate = {
   tag: 'PayloadCondFormatUpdate';
@@ -602,5 +602,5 @@ export type LoadImportedCells = {
 
 export type ShowHeaderResult = {
   tag: "ShowHeaderResult";
-  contents: EvalResult;
+  contents: HeaderResult;
 }

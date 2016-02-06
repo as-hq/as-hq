@@ -20,6 +20,7 @@ import qualified Data.Map as M
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
+import Control.Concurrent (MVar, ThreadId)
 import Control.Lens hiding ((.=))
 import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readMVar, putMVar, newEmptyMVar)
 
@@ -30,6 +31,9 @@ import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readM
 -- State
 
 -- An API for state that abstracts away MVar.
+-- Wrapper for MVar Serverstate, and a small API for accessing States. This way,
+-- the rest of the code doesn't have to care about whether we're using MVar or TVar
+-- or anything else.
 
 data State = State (MVar ServerState)
 
@@ -39,19 +43,17 @@ readState (State m) = readMVar m
 modifyState_ :: State -> (ServerState -> IO ServerState) -> IO ()
 modifyState_ (State m) = modifyMVar_ m
 
-data ServerState = ServerState  { _userClients :: [ASUserClient]
+type ThreadMap = M.Map MessageId ThreadId 
+
+data ServerState = ServerState { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
                           , _appSettings :: AppSettings
                           , _threads :: ThreadMap}
+
 emptyServerState :: R.Connection -> AppSettings -> ServerState
 emptyServerState conn settings = ServerState [] [] conn settings M.empty
 
--- Wrapper for MVar Serverstate, and a small API for accessing States. This way,
--- the rest of the code doesn't have to care about whether we're using MVar or TVar
--- or anything else.
-
-type ThreadMap = M.Map MessageId ThreadId 
 
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port

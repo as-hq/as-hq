@@ -78,7 +78,8 @@ const ASExpStore = Object.assign({}, BaseStore, {
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr, action.cursorPos);
         break;
       case 'NORMAL_SEL_CHANGED':
-        ASExpStore.updateStoreSelChange(action.xpStr);
+        const {language, expression} = action;
+        ASExpStore.updateStoreSelChange(language, expression);
         break;
       case 'PARTIAL_REF_CHANGE_WITH_GRID':
         let curXpStr = ASExpStore.getExpression(),
@@ -110,9 +111,9 @@ const ASExpStore = Object.assign({}, BaseStore, {
         break;
       // This action is called when the toolbar's language picker or a shortcut toggles a language.
       // In this case, we want the default language to reflect this user change, in addition to the current language.
-      case 'LANGUAGE_TOGGLED':
-        ASExpStore.setLanguage(action.lang);
-        ASExpStore.setDefaultLanguage(action.lang);
+      case 'LANGUAGE_CHANGED':
+        ASExpStore.setLanguage(action.language);
+        ASExpStore.setDefaultLanguage(action.language);
         ASExpStore.setXpChangeOrigin(action._type);
         ASExpStore.emitChange();
         break;
@@ -290,10 +291,11 @@ const ASExpStore = Object.assign({}, BaseStore, {
     ASExpStore.emitChange();
   },
 
-  updateStoreSelChange(xpStr : string) {
+  updateStoreSelChange(language: ASLanguage, expression: string) {
     ASExpStore.setUserIsTyping(false);
     ASExpStore.setXpChangeOrigin(Constants.ActionTypes.NORMAL_SEL_CHANGED);
-    ASExpStore.setExpression(xpStr);
+    ASExpStore.setExpression(expression);
+    ASExpStore.setLanguage(language);
     ASExpStore.setLastRef(null); // no longer have a "last ref"
     ASExpStore.emitChange();
   },

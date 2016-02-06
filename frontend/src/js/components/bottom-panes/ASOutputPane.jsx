@@ -1,74 +1,48 @@
 /* @flow */
 
-import type {
-  Callback,
-} from '../../types/Base';
+/*
+  This view component renders ANSI-formatted text in a bottom pane with a title.
+*/
 
 import React from 'react';
-
 import {Paper} from 'material-ui';
-
-import _Styles from '../../styles/ASOutputPane';
 
 // $FlowFixMe declaring this is not urgent right now
 import Ansi from 'ansi_up';
 
-import U from '../../AS/Util';
-
 import ASIndex from '../../classes/ASIndex';
 
-import CellStore from '../../stores/ASCellStore';
-import SelectionStore from '../../stores/ASSelectionStore';
-
-import _ from 'lodash';
-
 type ASOutputPaneProps = {
+  ansiContent: ?string;
+  title: ?string;
 };
 
-type ASOutputPaneState = {
-  content: ?string;
-  selection: ?string;
-};
+class ASOutputPane extends React.Component<{}, ASOutputPaneProps, {}> {
 
-export default class ASOutputPane
-  extends React.Component<{}, ASOutputPaneProps, ASOutputPaneState>
-{
-  constructor(props: ASOutputPaneProps) {
-    super(props);
-
-    this.state = {
-      content: null,
-      selection: null
-    };
-  }
-
-  componentDidMount() {
-    CellStore.addChangeListener(this._handleCellChange.bind(this));
-    SelectionStore.addChangeListener(this._handleSelectionChange.bind(this));
-  }
-
-  componentWillUnmount() {
-    CellStore.removeChangeListener(this._handleCellChange.bind(this));
-    SelectionStore.addChangeListener(this._handleSelectionChange.bind(this));
+  shouldComponentUpdate(nextProps: ASOutputPaneProps, _: {}): boolean {
+    return (
+      this.props.ansiContent !== nextProps.ansiContent ||
+      this.props.title !== nextProps.title
+    );
   }
 
   render(): React.Element {
-    let {content, selection} = this.state;
+    let {ansiContent, title} = this.props;
 
     return (
-      <div style={_Styles.root} >
+      <div style={styles.root} >
 
-        <Paper style={_Styles.topBar}>
-          <span style={_Styles.topBarTitle}>
-            {`Active cell: ${selection || ''}`}
+        <Paper style={styles.topBar}>
+          <span style={styles.topBarTitle}>
+            {title}
           </span>
         </Paper>
 
-        <Paper style={_Styles.contentPane}>
-          <div style={_Styles.contentContainer} >
-            {content ?
-              this._getFormattedContentHTML(content)
-              : <h3 style={_Styles.altMessage}>Nothing to display.</h3>}
+        <Paper style={styles.contentPane}>
+          <div style={styles.contentContainer} >
+            {ansiContent ?
+              this._getFormattedAnsiHTML(ansiContent)
+              : <h3 style={styles.altMessage}>Nothing to display.</h3>}
           </div>
         </Paper>
 
@@ -76,23 +50,8 @@ export default class ASOutputPane
     );
   }
 
-  _handleCellChange() {
-    this.setState({ content: CellStore.getActiveCellDisplay() });
-  }
-
-  _handleSelectionChange() {
-    this._handleCellChange(); // also get the new active cell's display
-    let sel = SelectionStore.getActiveSelection();
-    if (!!sel) {
-      let {origin} = sel;
-      let rng = origin.toRange();
-      this.setState({
-        selection: rng.toExcel().toString()
-      });
-    }
-  }
-
-  _getFormattedContentHTML(content: string): Array<ReactElement> {
+  // transform an ANSI-formatted string into a list of formatted div's
+  _getFormattedAnsiHTML(content: string): Array<ReactElement> {
     return content
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -102,7 +61,7 @@ export default class ASOutputPane
             .map((line) =>
       (
         <div
-          style={_Styles.outputLine}
+          style={styles.outputLine}
           dangerouslySetInnerHTML={
             {__html: Ansi.ansi_to_html(line, {use_classes: true})}
           } />
@@ -110,3 +69,41 @@ export default class ASOutputPane
     );
   }
 }
+
+const styles = {
+  root: {
+    height: '100%',
+  },
+  topBar: {
+    height: '26px',
+    width: '100%',
+    background: '#212121'
+  },
+  topBarTitle: {
+    color: '#f8f8f2',
+    fontSize: '12',
+    lineHeight: '26px',
+    fontWeight: 'bold',
+    position: 'inline',
+    paddingLeft: '10px'
+  },
+  contentPane: {
+    height: 'calc(100% - 26px)',
+    width: '100%',
+    overflow: 'auto'
+  },
+  outputLine: {
+    lineHeight: '14px',
+    fontFamily: 'monospace',
+    color: '#f8f8f2' // the default un-formatted text color
+  },
+  contentContainer: {
+    paddingTop: '5px',
+    paddingLeft: '10px'
+  },
+  altMessage: {
+    color: 'grey'
+  }
+};
+
+export default ASOutputPane;

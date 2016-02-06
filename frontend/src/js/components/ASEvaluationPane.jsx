@@ -26,15 +26,13 @@ import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
 // import ReplStore from '../stores/ASReplStore';
-import EvalHeaderStore from '../stores/ASEvalHeaderStore';
 import FindStore from '../stores/ASFindStore';
 import ExpStore from '../stores/ASExpStore';
 import ToolbarStore from '../stores/ASToolbarStore';
 
 import API from '../actions/ASApiActionCreators';
-// import ReplActionCreator from '../actions/ASReplActionCreators';
-import EvalHeaderActionCreator from '../actions/ASEvalHeaderActionCreators';
 import ExpActionCreator from '../actions/ASExpActionCreators';
+import HeaderActions from '../actions/ASHeaderActionCreators';
 
 import U from '../AS/Util';
 import Shortcuts from '../AS/Shortcuts';
@@ -55,7 +53,7 @@ import {Snackbar} from 'material-ui';
 import * as BrowserTests from '../browser-test/index';
 
 // import Repl from './repl/Repl.jsx'
-import EvalHeader from './eval-header/EvalHeader.jsx'
+import EvalHeaderController from './eval-header/EvalHeaderController.jsx'
 import ResizablePanel from './ResizablePanel.jsx'
 import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
@@ -73,12 +71,11 @@ type ASEvalPaneState = {
   toastAction: ?string;
   expression: string;
   expressionWithoutLastRef: string;
-  evalHeaderOpen: boolean;
-  evalHeaderLanguage: ASLanguage;
   showFindBar: boolean;
   userIsTyping: boolean;
   showFindModal: boolean;
   testMode: boolean;
+  headerOpen: boolean;
 };
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
@@ -92,7 +89,6 @@ export default class ASEvalPane
   _boundOnCellsChange: () => void;
   _boundOnSheetStateChange: () => void;
   _boundOnFindChange: () => void;
-  _boundOnEvalHeaderUpdate: () => void;
   _boundOnExpChange: () => void;
 
   /***************************************************************************************************************************/
@@ -109,15 +105,11 @@ export default class ASEvalPane
       toastAction: '',
       expression: '',
       expressionWithoutLastRef: '',
-      // replOpen: false,
-      // replLanguage: Constants.Languages.Python,
-      // replSubmittedLanguage: null,
       userIsTyping: false,
-      evalHeaderOpen: false,
-      evalHeaderLanguage: Constants.Languages.Python,
       showFindBar:false,
       showFindModal:false,
-      testMode: false
+      testMode: false,
+      headerOpen: false
     };
   }
 
@@ -140,14 +132,8 @@ export default class ASEvalPane
     this._boundOnFindChange = () => this._onFindChange();
     FindStore.addChangeListener(this._boundOnFindChange);
 
-    this._boundOnEvalHeaderUpdate = () => this._onEvalHeaderUpdate();
-    EvalHeaderStore.addChangeListener(this._boundOnEvalHeaderUpdate);
-
     this._boundOnExpChange = () => this._onExpChange();
     ExpStore.addChangeListener(this._boundOnExpChange);
-
-    // this._boundOnReplChange = () => this._onReplChange();
-    // ReplStore.addChangeListener(this._boundOnReplChange);
 
     Shortcuts.addShortcuts(this);
     BrowserTests.install(window, this);
@@ -162,9 +148,7 @@ export default class ASEvalPane
     CellStore.removeChangeListener(this._boundOnCellsChange);
     SheetStateStore.addChangeListener(this._boundOnSheetStateChange);
     FindStore.removeChangeListener(this._boundOnFindChange);
-    EvalHeaderStore.removeChangeListener(this._boundOnEvalHeaderUpdate);
     ExpStore.removeChangeListener(this._boundOnExpChange);
-    // ReplStore.removeChangeListener(this._boundOnReplChange);
   }
 
 
@@ -187,14 +171,6 @@ export default class ASEvalPane
   _getDomEditor(): AEElement {
     let ele: AEElement = (ReactDOM.findDOMNode(this.refs.editorPane.refs.editor): any);
     return ele;
-  }
-
-  // _getReplEditor() {
-  //   return this.refs.repl.refs.editor.getRawEditor();
-  // }
-
-  _getEvalHeaderEditor(): AERawClass {
-    return this.refs.evalHeader.refs.editor.getRawEditor();
   }
 
   _getTextbox(): Textbox {
@@ -262,17 +238,9 @@ export default class ASEvalPane
       ExpStore.disableRefInsertionBypass();
     }
     // If the language was toggled (shortcut or dropdown) then set focus correctly
-    if (ExpStore.getXpChangeOrigin() === Constants.ActionTypes.LANGUAGE_TOGGLED){
+    if (ExpStore.getXpChangeOrigin() === 'LANGUAGE_CHANGED'){
       this.setFocus(SheetStateStore.getFocus());
     }
-  }
-
-  _onEvalHeaderUpdate() {
-    let msg = EvalHeaderStore.getDispMessage();
-    if (!! msg && msg !== "") {
-      this.setToast(msg);
-    }
-    this._getEvalHeaderEditor().focus();
   }
 
   enableTestMode() {
@@ -519,16 +487,16 @@ export default class ASEvalPane
       }
 
       SelectionStore.setActiveSelection(sel, expression, language);
-      ExpStore.setLanguage(language);
-      ExpActionCreator.handleSelChange(expression);
+      ExpActionCreator.handleSelChange(language, expression);
       this.hideToast();
+
     } else if (changeSelToNewCell) {
-      logDebug("Selected empty cell to move to");
+      const language = ExpStore.getDefaultLanguage();
       SelectionStore.setActiveSelection(sel, "", null);
       this.getASSpreadsheet().repaint();
-      ExpStore.setLanguage(ExpStore.getDefaultLanguage());
-      ExpActionCreator.handleSelChange('');
+      ExpActionCreator.handleSelChange(language, '');
       this.hideToast();
+
     } else if (changeSelWhileTypingNoInsert) { //click away while not parsable
       logDebug("Change sel while typing no insert");
       let xpObj = {
@@ -545,6 +513,7 @@ export default class ASEvalPane
          SelectionStore.setActiveSelection(sel, "", null);
          this.hideToast();
       }
+      
     } else if (userIsTyping) {
       let excelStr = range.toExcel().toString();
       if (editorCanInsertRef) { // insert cell ref in editor
@@ -650,72 +619,15 @@ export default class ASEvalPane
   }
 
   /**************************************************************************************************************************/
-  /* REPL handling methods */
-
-  // _replValue() {
-  //   return this._getReplEditor().getValue();
-  // }
-
-  _evalHeaderValue(): string {
-    return this._getEvalHeaderEditor().getValue();
-  }
-
-  _toggleRepl() {
-    logDebug('Not implemented.'); // TODO
-  }
-  // /* Method for tucking in/out the REPL. */
-  // _toggleRepl() {
-  //   /* Save expression in store if repl is about to close */
-  //   if (this.state.replOpen) {
-  //     ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
-  //   } else {
-  //     this._getReplEditor().focus();
-  //   }
-  //   this.setState({replOpen: !this.state.replOpen});
-  // }
+  /* Header handling methods */
 
   toggleEvalHeader() {
-    /* Save expression in store if repl is about to close */
-    if (this.state.evalHeaderOpen) {
-      // might be redundant? (Alex 11/24)
-      EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage,
-                                                        this._evalHeaderValue());
-    } else {
-      this._getEvalHeaderEditor().focus();
-    }
-    this.setState({evalHeaderOpen: !this.state.evalHeaderOpen});
+    this.setState({headerOpen: !this.state.headerOpen});
   }
 
   _submitDebug() {
     let bugReport = window.prompt("Please describe the bug you encountered.","");
     API.bugReport(bugReport);
-  }
-
-  // /*  When the REPL language changes, set state, save current text value, and set the next text value of the REPL editor */
-  // _onReplLanguageChange(e,index,menuItem) {
-  //   ReplActionCreator.storeReplExpression(this.state.replLanguage,this._replValue());
-  //   let newLang = menuItem.payload;
-  //   let newValue = ReplStore.getReplExp(newLang);
-  //   ReplStore.setLanguage(newLang);
-  //   // logDebug("REPL lang changed from " + this.state.replLanguage + " to " + newLang + ", new value: "+ newValue);
-  //   this.setState({replLanguage:newLang});
-  // }
-
-  _onEvalHeaderLanguageChange(e: {}, index: number, menuItem: { payload: ASLanguage; }) {
-    // If e is ever actually used, we will notice and remove the {} annotation.
-    EvalHeaderActionCreator.storeEvalHeaderExpression(this.state.evalHeaderLanguage,
-                                                      this._evalHeaderValue());
-    let newLang = menuItem.payload;
-    let newValue = EvalHeaderStore.getEvalHeaderExp(newLang);
-    EvalHeaderStore.setLanguage(newLang);
-    this.setState({evalHeaderLanguage: newLang});
-  }
-
-  _onSubmitEvalHeader() {
-    let lang       = this.state.evalHeaderLanguage,
-        expression = this._evalHeaderValue();
-
-    API.evaluateHeader(expression, lang);
   }
 
   /**************************************************************************************************************************/
@@ -758,7 +670,7 @@ export default class ASEvalPane
   }
 
   render() {
-    let {expression, focus} = this.state,
+    let {expression, focus, headerOpen} = this.state,
         highlightFind = this.state.showFindBar || this.state.showFindModal;
     let currentLanguage = ExpStore.getLanguage();
 
@@ -809,23 +721,10 @@ export default class ASEvalPane
         />
       </div>;
 
-    // let sidebarContent = <Repl
-    //   ref="repl"
-    //   replLanguage={this.state.replLanguage}
-    //   onDeferredKey={this._onReplDeferredKey}
-    //   onClick={this._toggleRepl}
-    //   replValue={ReplStore.getReplExp(this.state.replLanguage)}
-    //   onReplLanguageChange={this._onReplLanguageChange} />;
-
-    let sidebarContent = <EvalHeader
-      ref="evalHeader"
-      evalHeaderLanguage={this.state.evalHeaderLanguage}
-      evalHeaderValue={EvalHeaderStore.getEvalHeaderExp(this.state.evalHeaderLanguage)}
-      onEvalHeaderLanguageChange={this._onEvalHeaderLanguageChange.bind(this)}
-      onSubmitEvalHeader={event => this._onSubmitEvalHeader()} />;
-
     return (
-      <ResizablePanel content={leftEvalPane} sidebar={sidebarContent} sidebarVisible={this.state.evalHeaderOpen} />
+      <ResizablePanel content={leftEvalPane}
+                      sidebar={( <EvalHeaderController open={headerOpen} /> )}
+                      sidebarVisible={headerOpen} />
     );
   }
 

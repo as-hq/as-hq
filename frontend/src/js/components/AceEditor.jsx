@@ -223,7 +223,7 @@ export default class AceEditor
         }
         break;
       // When the user toggles the language by shortcut/toolbar, update language state, which will also update mode
-      case Constants.ActionTypes.LANGUAGE_TOGGLED:
+      case 'LANGUAGE_CHANGED':
         this.setState({language: ExpStore.getLanguage()});
         break;
       default:

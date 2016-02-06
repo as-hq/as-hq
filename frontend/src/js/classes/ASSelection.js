@@ -73,4 +73,5 @@ export default class ASSelection {
     return [rng.tl, rng.br, rng.getBL(), rng.getTR()].
       some((x) => x.equals(this._origin));
   }
+
 }

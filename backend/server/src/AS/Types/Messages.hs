@@ -54,7 +54,7 @@ data ClientAction =
   | ClearSheet ASSheetId
   | MakeSelection Selection
   | AskUserToOpen ASSheetId
-  | ShowHeaderResult EvalResult
+  | ShowHeaderResult HeaderResult
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
   | PassCellsToTest [ASCell]

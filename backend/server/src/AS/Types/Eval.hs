@@ -50,12 +50,14 @@ data AncestrySetting = SetAncestry | DontSetAncestry deriving (Show, Read, Eq)
 type EvalCode = String
 
 data EvalResult = EvalResult { _resultValue :: CompositeValue, _resultDisplay :: Maybe String } deriving (Show, Read, Eq, Generic)
+data HeaderResult = HeaderResult { _headerValue :: String, _headerDisplay :: Maybe String} deriving (Show, Read, Eq, Generic)
 
 emptyResult :: EvalResult
 emptyResult = EvalResult (CellValue NoValue) Nothing
 
 makeLenses ''EvalResult
-asLensedToJSON ''EvalResult -- only used for sending header
+makeLenses ''HeaderResult
+asLensedToJSON ''HeaderResult -- only used for sending header
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 

@@ -18,7 +18,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
       case 'ADD_NOTIFICATION': {
         const {uid} = action.spec;
         _notifications.push(uid);
-        NotificationStore.emit('ADD', uid, action.spec);
+        NotificationStore.emit('ADD', action.spec);
         break;
       }
 

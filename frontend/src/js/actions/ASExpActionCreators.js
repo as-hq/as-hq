@@ -37,10 +37,11 @@ export default {
     });
   },
 
-  handleSelChange(xpStr) {
+  handleSelChange(language, expression) {
     Dispatcher.dispatch({
      _type: Constants.ActionTypes.NORMAL_SEL_CHANGED,
-      xpStr: xpStr
+      language,
+      expression
     });
   },
 
@@ -73,14 +74,15 @@ export default {
     });
   },
 
-  handleToggleLanguage(lang) {
+  setLanguage(language) {
     Dispatcher.dispatch({
-     _type: Constants.ActionTypes.LANGUAGE_TOGGLED,
-     lang: lang
+     _type: 'LANGUAGE_CHANGED',
+     language
     });
 
     if (!ExpStore.getUserIsTyping() && ExpStore.getExpression() !== '') {
       SelectionStore.withActiveSelection(({range}) => API.setLanguagesInRange(lang, range)); 
     }
-  }
+  },
+
 };

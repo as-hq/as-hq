@@ -11,7 +11,6 @@ import type {
   ASExpression,
   ASValue,
   ASCompositeValue,
-  EvalResult,
   ASLanguage,
   RangeDescriptor,
   RangeKey,
@@ -57,11 +56,6 @@ export type ScrolledAction = {
   vWindow: ASViewingWindow;
 };
 
-export type GotOpenAction = {
-  _type: 'GOT_OPEN';
-  evalHeaders: Array<EvalHeader>;
-};
-
 export type GotSelectionAction = {
   _type: 'GOT_SELECTION';
   newSelection: ASSelection;
@@ -105,16 +99,38 @@ export type GotUpdatedRulesAction = {
   oldRuleIds: Array<string>;
 };
 
-// export type ReplLeftAction = {
-//   _type: 'REPL_LEFT';
-//   lang: ASLanguage;
-//   value: string;
-// };
-
-export type GotEvalHeaderResponseAction = {
-  _type: 'GOT_EVAL_HEADER_RESPONSE';
-  response: EvalResult;
+export type LanguageChangedAction = {
+  _type: 'LANGUAGE_CHANGED';
+  language: ASLanguage;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Header actions
+
+export type HeaderEvaluatedAction = {
+  _type: 'HEADER_EVALUATED';
+  value: string;
+  display: ?string;
+};
+
+export type HeaderDataResetAction = {
+  _type: 'HEADER_DATA_RESET';
+  headers: Array<EvalHeader>;
+};
+
+export type HeaderUpdatedAction = {
+  _type: 'HEADER_UPDATED';
+  expression: string;
+  language: ASLanguage;
+};
+
+export type HeaderLanguageChangedAction = {
+  _type: 'HEADER_LANGUAGE_CHANGED';
+  language: ASLanguage;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//
 
 export type GotFindAction = {
   _type: 'GOT_FIND';
@@ -157,7 +173,8 @@ export type TextboxChangedAction = {
 
 export type NormalSelChangedAction = {
   _type: 'NORMAL_SEL_CHANGED';
-  xpStr: string;
+  expression: string;
+  language: ASLanguage;
 };
 
 export type PartialRefChangeWithEditorAction = {
@@ -256,16 +273,18 @@ export type ASAction =
   | DeletedWorkbooksAction
   | GotUpdatedRulesAction
   | ScrolledAction
-  | GotOpenAction
+  | HeaderDataResetAction
   | GotSelectionAction
   | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
   | GotUpdatedBarsAction
   | ClearedAction
   | ClearedSheetAction
-  // | ReplLeftAction
-  // | GotReplResponseAction
-  | GotEvalHeaderResponseAction
+  | LanguageChangedAction
+  | HeaderEvaluatedAction
+  | HeaderDataResetAction
+  | HeaderUpdatedAction
+  | HeaderLanguageChangedAction
   | GotFindAction
   | FindIncrementedAction
   | FindDecrementedAction

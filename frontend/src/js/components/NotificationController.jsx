@@ -18,13 +18,13 @@ import * as NotificationActions from '../actions/ASNotificationActionCreators';
 
 export default class NotificationController extends React.Component<{}, {}, {}> {
   _notificationSystem: any;
-  _addNotificationListener: (uid: string, spec: NotificationSpec) => void;
+  _addNotificationListener: Callback<NotificationSpec>;
   _dismissNotificationListener: Callback<string>;
 
   constructor(props: {}) {
     super(props);
-    this._addNotificationListener = (uid, spec) =>
-      this._addNotification(uid, spec);
+    this._addNotificationListener = (spec) =>
+      this._addNotification(spec);
     this._dismissNotificationListener = (uid) =>
       this._dismissNotification(uid);
   }
@@ -43,11 +43,9 @@ export default class NotificationController extends React.Component<{}, {}, {}> 
     return <NotificationSystem ref={elem => this._notificationSystem = elem} />
   }
 
-  _addNotification(uid: string, spec: NotificationSpec) {
+  _addNotification(spec: NotificationSpec) {
     this._notificationSystem.addNotification({
-      uid,
       position: 'br',
-      autoDismiss: false,
       dismissible: true,
       onRemove: (notification) => {
         NotificationActions.removeNotification(notification.uid);
