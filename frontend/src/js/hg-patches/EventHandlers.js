@@ -92,14 +92,18 @@ const callbacks: Array<InitCallback> = [
       // and fire an API call in response.
       'fin-row-dragged': function(event) {
         let {startRow, endRow} = event.detail;
-        API.dragRow(startRow, endRow);
+        if (startRow !== endRow) {
+          API.dragRow(startRow, endRow);
+        }
       },
 
       // This event is emitted by our fork to Hypergrid after col dragging has happened. We listen to them here
       // and fire an API call in response.
       'fin-column-dragged': function(event) {
         let {startCol, endCol} = event.detail;
-        API.dragCol(startCol, endCol);
+        if (startCol !== endCol) {
+          API.dragCol(startCol, endCol);
+        }
       }
 
     });
