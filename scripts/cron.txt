@@ -1,0 +1,10 @@
+This is not a script, but lists the current cron configuration on the server
+These lines have been added to root's crontab (see crontab -e)
+Both of them run hourly
+
+# Backup redis dump files to S3 each hour
+0  * * * * sudo /usr/local/bin/redis-save.sh
+
+# Check network stats and slack Anand if something seems fishy
+0 * * * * sudo /usr/local/bin/monitor-stats.sh eth0
+
