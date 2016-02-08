@@ -115,7 +115,7 @@ instance HasKey CondFormatRule where
 
 asToFromJSON ''CondFormatRule
 asToFromJSON ''CondFormatRuleDiff
-asToFromJSON ''CondFormatRuleUpdate
+asLensedToFromJSON ''CondFormatRuleUpdate
 asToFromJSON ''FormatMapConstructor
 asToFromJSON ''NoExprBoolCondType
 asToFromJSON ''OneExprBoolCondType

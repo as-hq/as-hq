@@ -79,7 +79,7 @@ asToFromJSON ''ASLanguage
 
 asLensedToJSON ''ASCell
 asToJSON ''CellDiff
-asToJSON ''CellUpdate
+asLensedToJSON ''CellUpdate
 
 deriveSafeCopy 1 'base ''ASExpression
 deriveSafeCopy 1 'base ''ASLanguage

@@ -22,7 +22,7 @@ export type SheetUpdate = {
   tag: 'SheetUpdate';
   cellUpdates: CellUpdate;
   barUpdates: BarUpdate;
-  condFormatRulesUpdates: CondFormatRuleUpdate;
+  condFormatRuleUpdate: CondFormatRuleUpdate;
   descriptorUpdates: RangeDescriptorUpdate;
 };
 

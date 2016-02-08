@@ -50,7 +50,7 @@ asToJSON ''RangeDescriptor
 asToJSON ''ExpandingType
 asToJSON ''RangeKey
 asToJSON ''DescriptorDiff
-asToJSON ''DescriptorUpdate
+asLensedToJSON ''DescriptorUpdate
 asToJSON ''JSONField
 asToJSON ''JSONValue
 

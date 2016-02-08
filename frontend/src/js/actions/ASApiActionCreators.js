@@ -331,14 +331,14 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
     });
   }
 
-  if (!updateIsEmpty(sheetUpdate.condFormatRulesUpdates)) {
+  if (!updateIsEmpty(sheetUpdate.condFormatRuleUpdate)) {
     Dispatcher.dispatch({
       _type: 'GOT_UPDATED_RULES',
       newRules:
-        sheetUpdate.condFormatRulesUpdates.newVals.map(
+        sheetUpdate.condFormatRuleUpdate.newVals.map(
           (r) => new ASCondFormatRule(r)
         ),
-      oldRuleIds: sheetUpdate.condFormatRulesUpdates.oldKeys,
+      oldRuleIds: sheetUpdate.condFormatRuleUpdate.oldKeys,
     });
   }
 }

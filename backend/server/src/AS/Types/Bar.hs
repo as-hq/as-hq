@@ -46,5 +46,5 @@ deriveSafeCopy 1 'base ''BarType
 asToFromJSON ''BarType
 asToFromJSON ''BarIndex
 asToJSON ''BarDiff
-asToJSON ''BarUpdate
+asLensedToJSON ''BarUpdate
 asToJSON ''Bar
