@@ -32,7 +32,7 @@ gulp.task('webpack-watch', () => {
     res.sendFile(path.join(dist, 'index.html'));
   });
 
-  app.listen(PORT, 'localhost', err => {
+  app.listen(PORT, '0.0.0.0', err => {
     if (err) {
       throw new gutil.PluginError('webpack-dev-server', err);
     }
