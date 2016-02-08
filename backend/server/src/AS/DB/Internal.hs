@@ -53,19 +53,15 @@ import Network.Socket.Internal
 -- Settings
 
 connectRedis :: AppSettings -> IO Connection
-connectRedis settings = connect $ cInfo (settings^.redisHost) (settings^.redisPort) 
-
--- | Haskell Redis connection object
-cInfo :: Host -> Port -> ConnectInfo
-cInfo host port = ConnInfo
-    { connectHost           = host
-    , connectPort           = PortNumber $ fromIntegral port
-    , connectAuth           = Nothing
+connectRedis settings = connect $ ConnInfo
+    { connectHost           = settings^.redisHost
+    , connectPort           = PortNumber $ fromIntegral (settings^.redisPort)
+    , connectAuth           = settings^.redisPassword
     , connectDatabase       = 0
     , connectMaxConnections = 100
     , connectMaxIdleTime    = 1000000
     }
-
+    
 ----------------------------------------------------------------------------------------------------------------------
 -- Private DB functions
 

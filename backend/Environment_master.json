@@ -7,6 +7,7 @@
   "pyKernelAddress_python": "tcp://*:20000",
   "redisPort": 6379,
   "redisHost": "localhost",
+  "redisPassword": "40a00d6110873f61c786f28cd79cfa47302041a5",
   "shouldWriteToConsole": false,
   "shouldWriteToSlack": true,
   "frontendPort": 8080,

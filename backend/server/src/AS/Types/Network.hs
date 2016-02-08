@@ -17,6 +17,7 @@ import Data.Aeson
 import Data.Text
 import Data.Time.Clock (getCurrentTime)
 import qualified Data.Map as M
+import qualified Data.ByteString.Char8 as B
 import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
@@ -54,13 +55,13 @@ data ServerState = ServerState { _userClients :: [ASUserClient]
 emptyServerState :: R.Connection -> AppSettings -> ServerState
 emptyServerState conn settings = ServerState [] [] conn settings M.empty
 
-
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port
                                 , _graphDbAddress :: GraphAddress
                                 , _pyKernelAddress :: KernelAddress
                                 , _redisPort :: Port
                                 , _redisHost :: Host
+                                , _redisPassword :: Maybe B.ByteString
                                 , _shouldWriteToConsole :: Bool
                                 , _shouldWriteToSlack :: Bool}
                                 deriving (Show)
@@ -81,11 +82,21 @@ instance FromJSON AppSettings where
     pyAddr <- v .: "pyKernelAddress_haskell"
     redisPort <- v .: "redisPort"
     redisHost <- v .: "redisHost"
+    redisPassword <- v .:? "redisPassword"
     shouldWriteToConsole <- v .: "shouldWriteToConsole"
     shouldWriteToSlack <- v .: "shouldWriteToSlack"
-    return $ AppSettings wsAddr wsPort graphAddr pyAddr redisPort redisHost shouldWriteToConsole shouldWriteToSlack
+    return $ AppSettings 
+              wsAddr 
+              wsPort 
+              graphAddr 
+              pyAddr 
+              redisPort 
+              redisHost 
+              (B.pack <$> redisPassword) 
+              shouldWriteToConsole 
+              shouldWriteToSlack
   parseJSON _ = $error "expected environment to be an object"
-
+  
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 
