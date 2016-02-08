@@ -108,7 +108,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
 
     finalCells <- EE.evalEndware state src transformedCtx
 
-    let ctx = transformedCtx & (updateAfterEval . cellUpdates) %~ (\update ->  update {newVals = finalCells})
+    let ctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
 
     DT.updateDBWithContext state src ctx
     return $ ctx^.updateAfterEval
@@ -123,7 +123,7 @@ dispatch :: ServerState -> [ASCell] -> EvalContext -> DescendantsSetting -> Eith
 dispatch state [] context _ = printWithTimeT "empty dispatch" >> return context
 dispatch state roots oldContext descSetting = do
   let conn = state^.dbConn
-      graphAddress = state^.appSettings^.graphDbAddress
+      graphAddress = state^.appSettings.graphDbAddress
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations

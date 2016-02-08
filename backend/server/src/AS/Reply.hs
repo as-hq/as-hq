@@ -55,8 +55,8 @@ filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
     -- should never be applicable over multiple sheets.) It's currently ok to ask frontend to delete
     -- conditional formatting rules that don't exist on the sheet (currently a noop), but we *really*
     -- shouldn't tell it to add rules from a separate sheet. (Alex 1/25)
-    filteredCfrs = filter (all ((==) sid . rangeSheetId) . cellLocs) (newVals cfru)
-    update = SheetUpdate cu' bu' du' (Update filteredCfrs (oldKeys cfru))
+    filteredCfrs = filter (all ((==) sid . rangeSheetId) . cellLocs) (cfru^.newVals)
+    update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeys))
 
 sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
 sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (userConn uc)

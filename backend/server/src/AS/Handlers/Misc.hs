@@ -97,7 +97,7 @@ handleOpen mid uc state sid = do
   headers         <- mapM (DB.getEvalHeader conn sid) headerLangs
   -- pre-evaluate the headers
   mapM (runEitherT . evaluateHeader settings) headers
-  let sheetUpdate = SheetUpdate (Update cells []) (Update bars []) (Update rangeDescriptors []) (Update condFormatRules []) -- #exposed
+  let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
   sendToOriginal uc $ ClientMessage mid $ SetInitialProperties sheetUpdate headers
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
@@ -224,14 +224,16 @@ handleBugReport uc report = do
   WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> CondFormatRuleUpdate -> IO ()
-handleUpdateCondFormatRules mid uc state u@(Update updatedRules deleteRuleIds) = do
+handleUpdateCondFormatRules mid uc state u = do
   let conn = state^.dbConn
       graphAddress = state^.appSettings.graphDbAddress
       src = userCommitSource uc 
       sid = srcSheetId src
+      deleteRuleIds = u^.oldKeys
   rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
   oldRules <- DB.getCondFormattingRulesInSheet conn sid
-  let allRulesUpdated = applyUpdate u oldRules
+  let updatedRules = u^.newVals
+      allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
   errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext
@@ -257,7 +259,7 @@ handleSetBarProp mid uc state bInd prop = do
       (oldBar, newBar) = (Bar bInd oldPropsAtInd, Bar bInd newPropsAtInd)
       commit = (emptyCommitWithTime time) { barDiff = Diff { beforeVals = [oldBar], afterVals = [newBar] } } -- #lens
   DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
-  broadcastSheetUpdate mid state (SheetUpdate emptyUpdate (Update [newBar] []) emptyUpdate emptyUpdate)
+  broadcastSheetUpdate mid state $ emptySheetUpdate & barUpdates.newVals .~ [newBar]
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
 -- import/export seems overkill given that it's a temporarily needed solution)

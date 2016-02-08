@@ -40,13 +40,14 @@ handleDelete mid uc state rng = do
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
--- #lens
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
-modifyUpdateForDelete rng (SheetUpdate (Update cs locs) bu du cfu) = SheetUpdate (Update cs' locs') bu du cfu 
-  where 
-    rngs  = [rng] 
-    locs' = (map RangeRef rngs) ++ locs
-    cellContainedInRange r = rangeContainsIndex r . view cellLocation 
-    cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
-    cs'   = filter (not . liftA2 (&&) isEmptyCell cellContainedInRngs) cs
--- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells
+modifyUpdateForDelete rng =
+  cellUpdates %~ (& newVals %~ removeUpdateCellsInRange).(& oldKeys %~ addRangeRefs)
+    where 
+      rngs  = [rng] 
+      cellContainedInRange r = rangeContainsIndex r . view cellLocation 
+      cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
+      shouldKeepCell = not . liftA2 (&&) isEmptyCell cellContainedInRngs
+      addRangeRefs = (map RangeRef rngs ++ )
+      removeUpdateCellsInRange = filter shouldKeepCell
+  -- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells

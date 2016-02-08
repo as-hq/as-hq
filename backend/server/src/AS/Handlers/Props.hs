@@ -80,7 +80,7 @@ transformPropsInDatabase mid f uc state rng = do
 
 -- #Lenses
 injectCells :: [ASCell] -> CellUpdate -> CellUpdate
-injectCells cells cu = cu {newVals = mergeCells cells (newVals cu)}
+injectCells cells cu = cu & newVals %~ mergeCells cells
 
 -- #Lenses.
 injectCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate

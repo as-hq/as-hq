@@ -62,8 +62,8 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
   cfdiff <- updateToDiff cfru $ DB.getCondFormattingRules conn sid
   time   <- getASTime
   -- Doing this manually here instead of using updateToDiff, because we need mOldCells for didDecouple
-  let deletedLocs = refsToIndices (oldKeys cu)
-      newCells    = L.union (newVals cu) (blankCellsAt deletedLocs)
+  let deletedLocs = refsToIndices (cu^.oldKeys)
+      newCells    = L.union (cu^.newVals) (blankCellsAt deletedLocs)
   mOldCells <- DB.getCells conn $ mapCellLocation newCells
   let cdiff = Diff { beforeVals = catMaybes mOldCells, afterVals = newCells }
       commit = Commit cdiff bdiff ddiff cfdiff time
@@ -144,17 +144,17 @@ applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 applyUpdateToDBMaybePropagated :: Bool -> GraphAddress -> Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBMaybePropagated shouldPropagate addr conn sid u@(SheetUpdate cu bu du cfru) = do 
   let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated addr, deleteLocsPropagated addr) else (setCells, deleteLocs)
-      allUpdatedCells = L.unionBy isColocated (newVals cu) (blankCellsAt . refsToIndices $ oldKeys cu)
+      allUpdatedCells = L.unionBy isColocated (cu^.newVals) (blankCellsAt . refsToIndices $ cu^.oldKeys)
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
   deleteLocs' conn $ (mapCellLocation emptyCells)
   setCells' conn nonEmptyCells
-  mapM_ (deleteBarAt conn)      (oldKeys bu)
-  mapM_ (setBar conn)           (newVals bu)
-  mapM_ (deleteDescriptor conn) (oldKeys du)
-  mapM_ (setDescriptor conn)    (newVals du)
-  deleteCondFormattingRules conn sid $ oldKeys cfru
-  setCondFormattingRules conn sid $ newVals cfru
+  mapM_ (deleteBarAt conn)      (bu^.oldKeys)
+  mapM_ (setBar conn)           (bu^.newVals)
+  mapM_ (deleteDescriptor conn) (du^.oldKeys)
+  mapM_ (setDescriptor conn)    (du^.newVals)
+  deleteCondFormattingRules conn sid $ cfru^.oldKeys
+  setCondFormattingRules conn sid $ cfru^.newVals
   printObj "applied update to database" u
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()

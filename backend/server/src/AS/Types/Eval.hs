@@ -65,27 +65,28 @@ asLensedToJSON ''HeaderResult -- only used for sending header
 --getListType key = last parts
 --  where parts = splitBy keyPartDelimiter key
 
+-- #RoomForImprovement. Could use apply2way, from Data.Function.Tools
 virtualRangeDescriptors :: EvalContext -> [RangeDescriptor]
-virtualRangeDescriptors = applyUpdate <$> ((view descriptorUpdates) . (view updateAfterEval)) <*> (view rangeDescriptorsInSheet)
+virtualRangeDescriptors ctx = applyUpdate (ctx^.updateAfterEval.descriptorUpdates) (ctx^.rangeDescriptorsInSheet)
 
 virtualRangeDescriptorAt :: EvalContext -> RangeKey -> Maybe RangeDescriptor
 virtualRangeDescriptorAt ctx rk = headMay $ filter ((== rk) . descriptorKey) $ virtualRangeDescriptors ctx
 
 newCellsInContext :: EvalContext -> [ASCell]
-newCellsInContext = newVals . (view cellUpdates) . (view updateAfterEval)
+newCellsInContext = view (updateAfterEval.cellUpdates.newVals)
 
 newRangeDescriptorsInContext :: EvalContext -> [RangeDescriptor]
-newRangeDescriptorsInContext = newVals . (view descriptorUpdates) . (view updateAfterEval)
+newRangeDescriptorsInContext = view (updateAfterEval.descriptorUpdates.newVals)
 
 oldRangeKeysInContext :: EvalContext -> [RangeKey]
-oldRangeKeysInContext = oldKeys . (view descriptorUpdates) . (view updateAfterEval)
+oldRangeKeysInContext = view (updateAfterEval.descriptorUpdates.oldKeys)
 
 indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'
 
 rangeKeyToIndices :: RangeKey -> [ASIndex]
 rangeKeyToIndices k = rangeToIndices range
-  where range = Range (view locSheetId . keyIndex $ k) (rangeRect k)
+  where range = Range (view locSheetId.keyIndex $ k) (rangeRect k)
 
 rangeRect :: RangeKey -> Rect
 rangeRect (RangeKey idx dims) = (tl, br)
