@@ -77,11 +77,11 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import ProgressStore from '../stores/ASProgressStore';
 
 import ws from '../AS/PersistentWebSocket';
-import * as ProgressActions from '../actions/ASProgressActionCreators';
-import * as HeaderActions from '../actions/ASHeaderActionCreators';
+import * as ProgressActions from './ASProgressActionCreators';
+import * as HeaderActions from './ASHeaderActionCreators';
 
-import {setConnectedState} from '../actions/ASConnectionActionCreators';
-import * as NotificationActions from '../actions/ASNotificationActionCreators';
+import {setConnectedState} from './ASConnectionActionCreators';
+import * as NotificationActions from './ASNotificationActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 

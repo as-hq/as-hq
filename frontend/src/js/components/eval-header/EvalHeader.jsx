@@ -1,14 +1,16 @@
 /* @flow */
 
 import React from 'react';
-import EvalHeaderEditor from '../EvalHeaderEditor.jsx';
+
 import Constants from '../../Constants.js';
 
 import HeaderStore from '../../stores/ASHeaderStore';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 
 // $FlowFixMe
-import {AppBar, Toolbar, DropDownMenu, Styles, FlatButton} from 'material-ui';
+import {AppBar, Toolbar, Styles, FlatButton} from 'material-ui';
+import ASCodeField from '../basic-controls/ASCodeField.jsx';
+import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 // $FlowFixMe
 let NavigationClose = require('material-ui/lib/svg-icons/navigation/close');
 
@@ -27,9 +29,9 @@ require('brace/theme/monokai');
 
 type EvalHeaderProps = {
   open: boolean;
-  language: ASLanguage;
-  expression: string;
-  onEvaluate: (xp: string) => void;
+  languageLink: ReactLink<ASLanguage>;
+  expressionLink: ReactLink<string>;
+  onEvaluate: () => void;
 }
 
 type LanguageItem = {
@@ -51,14 +53,13 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
   shouldComponentUpdate(nextProps: EvalHeaderProps, _: {}): boolean {
     return (
       this.props.open !== nextProps.open ||
-      this.props.language !== nextProps.language ||
-      this.props.expression !== nextProps.expression
+      this.props.languageLink.value !== nextProps.languageLink.value ||
+      this.props.expressionLink.value !== nextProps.expressionLink.value
     );
   }
 
   render(): React.Element {
-    const {language, expression} = this.props;
-    const {onEvaluate} = this.props;
+    const {languageLink, expressionLink, onEvaluate} = this.props;
 
     return (
       <div style={styles.root}>
@@ -66,38 +67,27 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
         <Toolbar style={styles.toolbar}
                  showMenuIconButton={false}>
 
-          <DropDownMenu menuItems={this._languages}
-                        onChange={(_,__,{payload}) =>
-                            HeaderActions.setLanguage((payload: any))}
-                        selectedIndex={this._getLanguageIndex(language)}
-                        underlineStyle={styles.dropdownUnderline} />
+          <ASDropdownMenu
+            menuItems={this._languages}
+            valueLink={languageLink}
+            underlineStyle={styles.dropdownUnderline} />
 
           <FlatButton label={buttonText}
                       style={styles.evalButton}
-                      onClick={() =>
-                        onEvaluate(this._getValue())} />
+                      onClick={() => onEvaluate()} />
 
-        </Toolbar >
+        </Toolbar>
 
-        <EvalHeaderEditor ref="editor"
-                          onChange={(xp) =>
-                            HeaderActions.update(xp, language)}
-                          mode={Constants.AceMode[language]}
-                          language={language}
-                          value={expression} />
+        <ASCodeField
+          style={styles.codeField}
+          value={expressionLink.value}
+          requestChange={expressionLink.requestChange}
+          language={Constants.AceMode[languageLink.value]}
+        />
 
       </div>
     );
   }
-
-  _getValue(): string {
-    return this.refs.editor.getRawEditor().getValue();
-  }
-
-  _getLanguageIndex(language: ASLanguage): number {
-    return this._languages.map(l => l.text).indexOf(language);
-  }
-
 };
 
 const buttonText = 'Evaluate';
@@ -106,6 +96,9 @@ const styles = {
   root: {
     height: '100%',
     marginLeft: '6px'
+  },
+  codeField: {
+    height: '100%'
   },
   toolbar: {
     backgroundColor: Styles.Colors.grey900

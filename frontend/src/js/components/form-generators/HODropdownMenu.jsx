@@ -15,8 +15,6 @@ export default function HODropdownMenu(menuItems: Array<FSelectItem>): ReactClas
       const {valueLink} = this.props;
       const resolvedValue = valueLink.value ? valueLink.value : menuItems[0].payload;
 
-      console.log('RESOLVED VALUE', resolvedValue);
-
       return ({
         value: resolvedValue,
         requestChange: valueLink.requestChange

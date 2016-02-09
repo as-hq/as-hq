@@ -8,6 +8,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import EvalHeader from './EvalHeader.jsx';
 
+import HeaderActions from '../../actions/ASHeaderActionCreators';
 import HeaderStore from '../../stores/ASHeaderStore';
 
 import {addSimpleNotification} from '../../actions/ASNotificationActionCreators';
@@ -40,12 +41,23 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
     const expression = HeaderStore.getCurrentExpression();
     const language = HeaderStore.getCurrentLanguage();
     return (
-      <EvalHeader ref={elem => this._view = elem}
-                  open={this.props.open}
-                  expression={expression}
-                  language={language}
-                  onEvaluate={(newExpression) =>
-                    this._onEvaluate(newExpression, language)} />
+      <EvalHeader
+        ref={elem => this._view = elem}
+        open={this.props.open}
+        expressionLink={{
+          value: expression,
+          requestChange(newExpression) {
+            HeaderActions.update(newExpression, language);
+          }
+        }}
+        languageLink={{
+          value: language,
+          requestChange(newLanguage) {
+            HeaderActions.setLanguage(newLanguage);
+          }
+        }}
+        onEvaluate={() => this._onEvaluate(expression, language)}
+      />
     );
   }
 

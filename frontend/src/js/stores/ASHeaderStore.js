@@ -82,7 +82,7 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
       }
 
       case 'HEADER_DATA_RESET': {
-          // $FlowFixMe immutable declaration
+        // $FlowFixMe immutable declaration
         return state.withMutations(mut => {
           // $FlowFixMe flow literally doesn't understand this action
           action.headers.forEach(({evalHeaderLang, evalHeaderExpr}) => {
