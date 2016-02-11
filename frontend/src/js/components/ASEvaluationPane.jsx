@@ -67,7 +67,6 @@ type ASEvalPaneProps = {};
 type ASEvalPaneState = {
   replLanguage: ASLanguage;
   varName: string;
-  focus: ?ASFocusType;
   toastMessage: ?string;
   toastAction: ?string;
   expression: string;
@@ -101,7 +100,6 @@ export default class ASEvalPane
     this.state = {
       replLanguage: Constants.Languages.Python,
       varName: '',
-      focus: null,
       toastMessage: '',
       toastAction: '',
       expression: '',
@@ -247,7 +245,7 @@ export default class ASEvalPane
     }
     // If the language was toggled (shortcut or dropdown) then set focus correctly
     if (ExpStore.getXpChangeOrigin() === 'LANGUAGE_CHANGED'){
-      this.setFocus(FocusStore.getFocus());
+      FocusStore.refocus();
     }
   }
 
@@ -603,32 +601,12 @@ export default class ASEvalPane
   /**************************************************************************************************************************/
   /* Focus */
 
-  // TODO(joel) - Figure out where to put this.
-  // * Right now it's part of a component and called directly mostly when
-  //   shortcuts are triggered.
-  // * Ideally the focus store can just react to events and set focus directly
-  //   using its callbacks.
-  // * What do we use this.state.focus for? Do we need it? Does the focus store
-  //   obviate it?
-  setFocus(focus: ASFocusType) {
-    FocusStore._setFocus(focus);
-
-    // TODO(joel) / TODO(anand): "I'm pretty sure this sort of thing won't be
-    // necessary anymore, but I think Anand knows about the original
-    // motivations for this better than me." -- Ritesh
-    //
-    // so that we don't unnecessarily rerender
-    if (focus != this.state.focus) {
-      this.setState({focus});
-    }
-  }
-
   _handleEditorFocus() { // need to remove blinking cursor from textbox
     this.getASSpreadsheet().refs.textbox.editor.renderer.$cursorLayer.hideCursor();
   }
 
   _getCodeEditorMaxLines(): number {
-    return (this.state.focus == 'editor') ? 10 : 3;
+    return FocusStore.getFocus() === 'editor' ? 10 : 3;
   }
 
   /**************************************************************************************************************************/
@@ -683,9 +661,9 @@ export default class ASEvalPane
   }
 
   render() {
-    let {expression, focus, headerOpen} = this.state,
-        highlightFind = this.state.showFindBar || this.state.showFindModal;
-    let currentLanguage = ExpStore.getLanguage();
+    const {expression, headerOpen} = this.state;
+    const highlightFind = this.state.showFindBar || this.state.showFindModal;
+    const currentLanguage = ExpStore.getLanguage();
 
     // highlightFind is for the spreadsheet to know when to highlight found locs
     // display the find bar or modal based on state
@@ -714,11 +692,21 @@ export default class ASEvalPane
           onDeferredKey={event => this._onEditorDeferredKey(event)}
           value={expression}
           hideToast={() => this.hideToast()}
-          setFocus={elem => this.setFocus(elem)}
+          // TODO(joel):
+          // Change to FocusActionCreators.setFocus. Through a horrible,
+          // convoluted control flow this causes a dispatch from within a
+          // dispatch, since (believe it or not) this is called from within the
+          // selection change dispatch.
+          setFocus={FocusActionCreators.setFocus}
           width="100%" height={this.getEditorHeight()} />
         <ASSpreadsheet
           ref='spreadsheet'
-          setFocus={elem => this.setFocus(elem)}
+          // TODO(joel):
+          // Change to FocusActionCreators.setFocus. Through a horrible,
+          // convoluted control flow this causes a dispatch from within a
+          // dispatch, since (believe it or not) this is called from within the
+          // selection change dispatch.
+          setFocus={FocusActionCreators.setFocus}
           highlightFind={highlightFind}
           onNavKeyDown={event => this._onGridNavKeyDown(event)}
           onTextBoxDeferredKey={event => this._onTextBoxDeferredKey(event)}

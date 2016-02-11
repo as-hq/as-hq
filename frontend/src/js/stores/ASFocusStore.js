@@ -26,7 +26,7 @@ const _data: FocusStoreData = {
 const dispatcherIndex = Dispatcher.register(action => {
   switch (action._type) {
     case 'FOCUSED': {
-      FocusStore._setFocus(action.focus);
+      setFocus(action.focus);
       FocusStore.emitChange();
       break;
     }
@@ -87,6 +87,13 @@ const dispatcherIndex = Dispatcher.register(action => {
       break;
     }
 
+    // TODO(joel): I don't understand why we focus on GOT_UPDATED_CELLS
+    case 'GOT_UPDATED_CELLS':
+    case 'NORMAL_SEL_CHANGED':
+      setFocus('grid');
+      FocusStore.emitChange();
+      break;
+
     default:
       break;
   }
@@ -100,22 +107,18 @@ const FocusStore = Object.assign({}, BaseStore, {
       _data.callbacks[_data.activeFocus]();
     }
   },
-
-  // XXX(joel): we expose this semi-publicly intentionally, to get around a
-  // dataflow problem, where we were trying to dispatch a FOCUSED action from
-  // within a dispatch
-  _setFocus(focus: ASFocusType) {
-    _data.lastActiveFocus = _data.activeFocus;
-    _data.activeFocus = focus;
-
-    // actually set the focus
-    FocusStore.refocus();
-  },
-
   getFocus() {
     return _data.activeFocus;
   },
 
 });
+
+function setFocus(focus: ASFocusType) {
+  _data.lastActiveFocus = _data.activeFocus;
+  _data.activeFocus = focus;
+
+  // actually set the focus
+  FocusStore.refocus();
+}
 
 export default FocusStore;

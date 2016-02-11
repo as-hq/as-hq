@@ -740,10 +740,8 @@ export default class ASSpreadsheet
         this.repaint();
         this._getTextbox().updateTextBox(xpStr, cursorPos);
         break;
-      // hide textbox, if focus not already in grid, put it there
       case Constants.ActionTypes.NORMAL_SEL_CHANGED:
         this._getTextbox().hideTextBox();
-        this.props.setFocus('grid');
         break;
       case Constants.ActionTypes.BACKEND_UPDATED_AND_CELLS_CHANGED:
         break;
@@ -754,10 +752,6 @@ export default class ASSpreadsheet
       case Constants.ActionTypes.ESC_PRESSED:
         this._getTextbox().updateTextBox(xpStr);
         this._getTextbox().hideTextBox();
-        break;
-      // put focus on grid on get
-      case Constants.ActionTypes.GOT_UPDATED_CELLS:
-        this.props.setFocus('grid');
         break;
       case 'LANGUAGE_CHANGED':
         this.refs.textbox.updateLanguage();
