@@ -64,22 +64,28 @@ sheetWorkbookMatch = do
         Just _ -> (q2, q1)       -- sheet is inner-most parsed (it's q2), so return the reverse order
 
 -- | matches $AB15 type things
+-- We are currently matching (letters)(digits)(notletter) to Excel.
+-- There is still an issue where some python functions and variables, like
+-- plot3 or var2, will be interpreted as Excel.
 indexMatch :: Parser ExIndex
 indexMatch = do
   a <- optionMaybe dollar
   col <- many1 letter
   b <- optionMaybe dollar
   row <- many1 digit
+  notFollowedBy letter -- Prevents plot3d from being interpreted as Excel.
   return $ ExIndex (readRefType a b) col row
 
 outOfBoundsMatch :: Parser ExRef
 outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
 
 --matches $A type things.
+-- We are currently matching (letters)(notDigit) to columns in Excel.
 colMatch :: Parser ExCol
 colMatch = do
   dol  <- optionMaybe dollar
   rcol <- many1 letter
+  notFollowedBy digit -- prevents plot3d from being interpreted as Excel Col.
   return $ ExCol (readSingleRef dol) rcol
 
 -- | Three cases for colRange matching

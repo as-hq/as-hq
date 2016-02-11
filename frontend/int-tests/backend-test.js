@@ -171,6 +171,17 @@ describe('backend', () => {
           ]);
         });
 
+        it ('should not interpret a3d as an excel ref', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', 'a3d = 3; a3d'),
+            python('A3', 'var3d = 3; Noned'),
+            shouldBeError('A3'),
+            shouldBe('A2', valueI(3)),
+            exec(done)
+          ]);
+        });
+
         it ('should not escape excel strings', (done) => {
           _do([
             excel('A1', 'jan'),
