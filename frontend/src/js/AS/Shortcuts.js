@@ -54,7 +54,7 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, null, null);
     });
     SU.add('evalPane', 'cell_eval_up', 'Shift+Enter', (wildcard: string) => {
@@ -62,7 +62,7 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, -1);
     });
     SU.add('evalPane', 'cell_eval_left', 'Shift+Tab', (wildcard: string) => {
@@ -70,7 +70,7 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, -1, 0);
     });
     SU.add('evalPane', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
@@ -86,7 +86,7 @@ export default {
         expression: editorValue,
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, 0);
     });
 
@@ -292,14 +292,14 @@ export default {
       }
     });
     SU.add('grid,isTyping', 'grid_home_typing', ['Home', 'Ctrl+Home'], (wildcard: string) => {
-      self.setFocus('textbox');
+      FocusActionCreators.setFocus('textbox');
       self._getRawTextbox().navigateFileStart();
     });
     SU.add('grid,notTyping', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
       self.getASSpreadsheet().select(ASSelection.defaultSelection());
     });
     SU.add('grid,isTyping', 'grid_end_typing', 'End', (wildcard: string) => {
-      self.setFocus('textbox');
+      FocusActionCreators.setFocus('textbox');
       self._getRawTextbox().navigateFileEnd();
     });
     SU.add('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
@@ -390,7 +390,7 @@ export default {
             expression: self._getRawEditor().getValue(),
             language: ExpStore.getLanguage()
           };
-          self.setFocus('grid');
+          FocusActionCreators.setFocus('grid');
           self.handleEvalRequest(xpObj, null, null);
         } else self.setToast('No cell above.', 'Error');
       });
@@ -452,7 +452,7 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, 0, 1);
     });
 
@@ -461,7 +461,7 @@ export default {
         expression: self._getRawEditor().getValue(),
         language: ExpStore.getLanguage()
       };
-      self.setFocus('grid');
+      FocusActionCreators.setFocus('grid');
       self.handleEvalRequest(xpObj, 1, 0);
     });
 

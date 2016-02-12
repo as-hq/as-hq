@@ -194,7 +194,6 @@ export default class Textbox
 
   _onFocus(e: SyntheticKeyboardEvent) {
     this.props.hideToast();
-    this.props.setFocus('textbox');
     FocusStore.refocus();
     ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
     ExpStore.setLastRef(null);
