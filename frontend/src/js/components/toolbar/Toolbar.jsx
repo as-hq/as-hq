@@ -1,5 +1,8 @@
 /* @flow */
 
+import type {StoreLink} from '../../types/React';
+import type {StoreToken} from 'flux';
+
 import React from 'react';
 
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
@@ -18,14 +21,11 @@ import ColorPicker from './ColorPicker.jsx';
 import HAlignPicker from './HAlignPicker.jsx';
 import VAlignPicker from './VAlignPicker.jsx';
 
-import type {StoreLink} from '../../types/React';
-
-
-type ToolbarProps = {
+type Props = {
   toolbarHeight: number;
 };
 
-type ToolbarDefaultProps = {
+type DefaultProps = {
   toolbarHeight: number;
 };
 
@@ -51,20 +51,22 @@ function Separator() {
 
 
 export default class ASToolbar
-  extends React.Component<ToolbarDefaultProps, ToolbarProps, {}> {
+  extends React.Component<DefaultProps, Props, {}> {
   $storeLinks: Array<StoreLink>;
+  _cellStoreListener: StoreToken;
 
   componentDidMount() {
     Util.React.addStoreLinks(this, [
       { store: ToolbarStore },
       // listen to this store for the language picker
       { store: ExpStore },
-      { store: CellStore },
     ]);
+    this._cellStoreListener = CellStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
     Util.React.removeStoreLinks(this);
+    this._cellStoreListener.remove();
   }
 
   render(): React.Element {

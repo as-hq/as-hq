@@ -89,7 +89,9 @@ export default {
     });
 
     if (!ExpStore.getUserIsTyping() && ExpStore.getExpression() !== '') {
-      SelectionStore.withActiveSelection(({range}) => API.setLanguagesInRange(lang, range));
+      SelectionStore.withActiveSelection(({range}) =>
+        API.setLanguagesInRange(language, range)
+      );
     }
   },
 

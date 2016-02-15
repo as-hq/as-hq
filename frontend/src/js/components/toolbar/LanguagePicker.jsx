@@ -61,7 +61,7 @@ export default function LanguagePicker(
       toolbarControlWidth={85}
       visible={visible}
       value={language}
-      onSelect={lang => ExpActionCreator.handleToggleLanguage(lang)}
+      onSelect={lang => ExpActionCreator.setLanguage(lang)}
       onOpen={() => ToolbarActionCreators.openItem('LanguagePicker')}
       onClose={() => ToolbarActionCreators.closeItem('LanguagePicker')}
     />

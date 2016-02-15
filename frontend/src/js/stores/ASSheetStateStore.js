@@ -192,7 +192,7 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     };
 
     while (!curIdx.equals(next)) { // while you still have a next, and you haven't reached boundary
-      let [p, c, n] = [prev, curIdx, next].map(CellStore.isNonBlankCell);
+      let [p, c, n] = [prev, curIdx, next].map(i => CellStore.isNonBlankCell(i));
       if (checkWhetherCurrentIsBoundary(p, c, n)) {
         break;
       }

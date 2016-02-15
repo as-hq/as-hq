@@ -14,7 +14,7 @@ import type {
   ASCellGrid,
 } from '../types/State';
 
-import {List, Map, Record} from 'immutable';
+import {List, Map, Record, Record$Class} from 'immutable';
 // $FlowFixMe declare this library
 import {ReduceStore} from 'flux/utils';
 
@@ -45,7 +45,7 @@ type CellStoreDataFields = {
   lastUpdatedCells: Array<ASCell>;
 };
 
-type CellStoreData = Record & CellStoreDataFields;
+type CellStoreData = Record$Class;
 
 const CellStoreDataRecord = Record({
   allCells: Map(),
@@ -119,57 +119,23 @@ class ASCellStore extends ReduceStore<CellStoreData> {
         return state_;
       }
 
-      case 'TEXTBOX_CHANGED':
-      case 'GRID_KEY_PRESSED': {
-        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
-        const {language} = waitForLanguageAndExpression();
-        const deps = U.Parsing.parseDependencies(action.xpStr, language);
-        // XXX
-        // Render.setDependencies(deps);
-        return setActiveCellDependencies(state, deps);
-        break;
-      }
+      // Dependency highlighting temporarily disabled until ExpStore is
+      // refactored. (anand 2/15)
+      //
+      // case 'TEXTBOX_CHANGED':
+      // case 'GRID_KEY_PRESSED': {
+      //   Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
+      //   SelectionStore.withActiveSelection({origin} => {
+      //     const {language} = waitForLanguageAndExpression();
+      //     const deps = U.Parsing.parseDependencies(action.xpStr, language);
+      //     Render.setDependencies(deps);
+      //   })
+      //   break;
+      // }
 
-      case 'PARTIAL_REF_CHANGE_WITH_GRID':
-      case 'PARTIAL_REF_CHANGE_WITH_EDITOR':
-      case 'PARTIAL_REF_CHANGE_WITH_TEXTBOX': {
-        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
-        const {lang, expression} = waitForLanguageAndExpression();
-        const deps: Array<ASRange> =
-          U.Parsing.parseDependencies(expression, lang);
-        Render.setDependencies(deps);
-        return setActiveCellDependencies(state, deps);
-      }
-
-      case 'GOT_SELECTION': {
-        const {newSelection: {origin}} = action;
-        return this._sideEffectingSetCellDependencies(state, origin);
-      }
-
-      case 'SET_ACTIVE_SELECTION': {
-        Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
-        const {selection: {origin}} = action;
-        return this._sideEffectingSetCellDependencies(state, origin);
-      }
       default:
         return state;
     }
-  }
-
-  // Side-effects by first waiting for ExpStore, then modifying the active
-  // cell's dependencies
-  _sideEffectingSetCellDependencies(
-    state: CellStoreData,
-    origin: ASIndex,
-  ): CellStoreData {
-    const {language, expression} = waitForLanguageAndExpression();
-    const activeCellDependencies: Array<ASRange> =
-      U.Parsing.parseDependencies(expression, language);
-    const listDep: ?ASRange = getParentList(state, origin);
-    if (listDep != null) {
-      activeCellDependencies.push(listDep);
-    }
-    return setActiveCellDependencies(state, activeCellDependencies);
   }
 
   getActiveCell(): ?ASCell {
@@ -260,7 +226,6 @@ function setErrors(data: CellStoreData, cell: ASCell) {
 
 function setCell(data: CellStoreData, cell: ASCell) {
   const {col, row, sheetId} = cell.location;
-
   const data_ = data.setIn(['allCells', sheetId, col, row], cell);
   return setErrors(data_, cell);
 }
@@ -270,7 +235,7 @@ function removeIndex(data: CellStoreData, loc: ASIndex): CellStoreData {
   let data_ = data;
   const emptyCell = ASCell.emptyCellAt(loc);
   if (locationExists(data_, loc)) {
-    data_ = data.deleteIn('allCells', loc.sheetId, loc.col, loc.row);
+    data_ = data.deleteIn(['allCells', loc.sheetId, loc.col, loc.row]);
   }
 
   data_ = data_.update('lastUpdatedCells', cells => cells.push(emptyCell));
@@ -297,15 +262,17 @@ function updateCells(
   cells: Array<ASCell>
 ): CellStoreData {
   const removedCells = [];
-  let data_ = data;
-  cells.forEach(cell => {
-    if (!cell.isEmpty()) {
-      setCell(data_, cell);
-      data_ = data_.update('lastUpdatedCells', cells => cells.push(cell));
-    } else {
-      // filter out all the blank cells passed back from the store
-      removedCells.push(cell);
-    }
+  // for performance; so we don't make n versions of the state
+  const data_ = data.withMutations(data_ => {
+    cells.forEach(cell => {
+      if (!cell.isEmpty()) {
+        setCell(data_, cell);
+        data_.update('lastUpdatedCells', cells => cells.push(cell));
+      } else {
+        // filter out all the blank cells passed back from the store
+        removedCells.push(cell);
+      }
+    });
   });
   return removeCells(data_, removedCells);
 }
@@ -328,41 +295,9 @@ function locationExists(data: CellStoreData, index: ASIndex): boolean {
 }
 
 function getCell(data: CellStoreData, loc: ASIndex): ?ASCell {
-  // if (locationExists(data, loc)) {
-  //   debugger;
-  // }
   return locationExists(data, loc)
     ? data.getIn(['allCells', loc.sheetId, loc.col, loc.row])
     : null;
-}
-
-function getParentList(data: CellStoreData, loc: ASIndex): ?ASRange {
-  const cell = getCell(data, loc);
-
-  if (!cell || !cell.props) {
-    return null;
-  }
-
-  const listKeyTag =
-    cell.props.filter((cProp) => cProp.hasOwnProperty('listKey'))[0];
-  if (listKeyTag && listKeyTag.listKey) { // listKey flow hack
-    const {listKey} = listKeyTag;
-    const listHead = U.Conversion.listKeyToListHead(listKey);
-    const listDimensions = U.Conversion.listKeyToListDimensions(listKey);
-
-    return ASRange.fromNaked({
-      tl: {
-        row: listHead.snd,
-        col: listHead.fst,
-      },
-      br: {
-        row: listHead.snd + listDimensions.fst - 1,
-        col: listHead.fst + listDimensions.snd - 1,
-      },
-    });
-  }
-
-  return null;
 }
 
 type LanguageAndExpression = {
@@ -376,30 +311,6 @@ function waitForLanguageAndExpression(): LanguageAndExpression {
     language: ExpStore.getLanguage(),
     expression: ExpStore.getExpression(),
   };
-}
-
-// *Warning*: Accesses SelectionStore. You must wait on SelectionStore to use
-// this.
-function setActiveCellDependencies(
-  state: CellStoreData,
-  deps: Array<ASRange>
-): CellStoreData {
-  const ret = SelectionStore.withActiveSelection(({origin}) =>  {
-    const {sheetId, col, row} = origin;
-    // TODO(joel): if cells were immutable records, this could be an easy
-    // setIn:
-    // ['allCells', sheetId, col, row, 'cellExpression', 'dependencies']
-    return locationExists(state, origin)
-      ? state.updateIn(
-          ['allCells', sheetId, col, row],
-          cell => { cell.cellExpression.dependencies = deps; }
-        )
-      : state;
-  });
-
-  // just keep the same state if ret is null or undefined (no active
-  // selection?)
-  return ret || state;
 }
 
 // A lot of things listen to this store, eventemitter think's there's a memory
