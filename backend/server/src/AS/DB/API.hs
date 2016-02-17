@@ -24,11 +24,15 @@ import AS.Parsing.Substitutions (getDependencies)
 import AS.Window
 import AS.Logging
 
+import Control.Arrow((&&&))
+
 import Data.List (zip4,intercalate,find)
 import Data.List.Split
 import qualified Data.Map as M
 
 import Data.Maybe hiding (fromJust)
+
+import Data.SafeCopy (SafeCopy)
 
 import Control.Applicative
 import Control.Concurrent
@@ -43,7 +47,6 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
 import Data.Aeson hiding (Success)
 import Data.ByteString.Unsafe as BU
-import Data.List.Split
 
 -- EitherT
 import Control.Monad.Trans.Class
@@ -73,23 +76,33 @@ import Control.Monad.Trans.Either
 -- | Volatile locs
 -- stored as before, as a set with key volatileLocs
 
+runRedis_ :: Connection -> Redis a -> IO ()
+runRedis_ conn = void . runRedis conn
+
+-- Generic getter method for RedisKey
+lookUpRedisKeys :: (SafeCopy b) => Connection -> [RedisKey a] -> IO [Maybe b]
+lookUpRedisKeys conn = lookUpKeys conn . map toRedisFormat
+
+lookUpKeys :: (SafeCopy b) => Connection -> [B.ByteString] -> IO [Maybe b]
+lookUpKeys conn byteKeys = runRedis conn $ do
+  bs <- mget' byteKeys
+  return $ map (S.maybeDecode =<<) bs
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
 -- all of these functions are order-preserving unless noted otherwise.
 
 getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells _ [] = return []
-getCells conn locs = runRedis conn $ do
-  sCells <- map $fromRight <$> mapM (get . S.encode) locs
-  return $ map (S.maybeDecode =<<) sCells
+getCells conn locs = (lookUpKeys conn . map S.encode) locs
 
 setCells :: Connection -> [ASCell] -> IO ()
 setCells _ [] = return ()
-setCells conn cs = runRedis conn $ mapM_ (\c -> set (S.encode $ c^.cellLocation) (S.encode c)) cs
+setCells conn cs = 
+  runRedis_ conn $ mset $ map (S.encode . view cellLocation &&& S.encode) cs
 
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs _ [] = return ()
-deleteLocs conn locs = runRedis conn $ del (map S.encode locs) >> return ()
+deleteLocs conn locs = runRedis_ conn $ del $ map S.encode locs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Additional cell API methods
@@ -104,26 +117,25 @@ getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = $head <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
-getCellsInSheet conn sid = getCellsByKeyPattern conn $ "*" ++ (T.unpack sid) ++ "*"
+getCellsInSheet conn sid = getCellsByKeyPattern conn $ "*" ++ T.unpack sid ++ "*"
 
 getAllCells :: Connection -> IO [ASCell]
 getAllCells conn = getCellsByKeyPattern conn "*"
 
 deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
-deleteLocsInSheet conn sid = runRedis conn $ do
-  Right ks <- keys $ BC.pack $ "*" ++ (T.unpack sid) ++ "*"
-  let locKeys = catMaybes $ map readLocKey ks
-      readLocKey k = case (S.maybeDecode k) of 
+deleteLocsInSheet conn sid = runRedis_ conn $ do
+  Right ks <- keys $ BC.pack $ "*" ++ T.unpack sid ++ "*"
+  let locKeys = mapMaybe readLocKey ks
+      readLocKey k = case S.maybeDecode k of 
         Just (Index _ _) -> Just k
         _ -> Nothing
   del locKeys
-  return ()
 
 getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- DI.getKeysByPattern conn pattern
-  let locs = catMaybes $ map readLoc ks
-      readLoc k = case (S.maybeDecode k) of 
+  let locs = mapMaybe readLoc ks
+      readLoc k = case S.maybeDecode k of 
         Just l@(Index _ _) -> Just l
         _ -> Nothing
   return locs
@@ -152,7 +164,7 @@ getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 -- Locations
 
 locationsExist :: Connection -> [ASIndex] -> IO [Bool]
-locationsExist conn locs = runRedis conn $ map $fromRight <$> mapM (exists . S.encode) locs
+locationsExist conn locs = runRedis conn $ $fromRight <$> scriptExists (map S.encode locs)
 
 locationExists :: Connection -> ASIndex -> IO Bool
 locationExists conn loc = $head <$> locationsExist conn [loc] 
@@ -185,10 +197,14 @@ getRangeDescriptor conn key = runRedis conn $ do
   Right desc <- get . toRedisFormat $ RedisRangeKey key
   return $ S.maybeDecode =<< desc
 
+getRangeDescriptors :: Connection -> [RangeKey] -> IO [Maybe RangeDescriptor]
+getRangeDescriptors conn = lookUpRedisKeys conn . map RedisRangeKey
+
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet conn sid = do
   keys <- getRangeKeysInSheet conn sid
-  map $fromJust <$> mapM (getRangeDescriptor conn) keys
+  descs <- getRangeDescriptors conn keys
+  return $ map $fromJust descs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- WorkbookSheets (for frontend API)
@@ -242,18 +258,28 @@ getUniqueWbName conn = do
   return $ DI.getUniquePrefixedName "Workbook" $ map workbookName wbs
 
 getWorkbook :: Connection -> WorkbookName -> IO (Maybe ASWorkbook)
-getWorkbook conn name = do
-    runRedis conn $ do
-        mwb <- get . toRedisFormat $ WorkbookKey name
-        case mwb of
-            Right wb -> return $ DI.bStrToWorkbook wb
-            Left _   -> return Nothing
+getWorkbook conn name =
+  runRedis conn $ do
+      mwb <- get . toRedisFormat $ WorkbookKey name
+      case mwb of
+          Right wb -> return $ DI.bStrToWorkbook wb
+          Left _   -> return Nothing
+
+-- #NeedsRefactor: read is not great.
+-- If a key can't be found, there will not be an error thrown. Timchu, 2/15/16.
+mget' :: [B.ByteString] -> Redis [Maybe B.ByteString]
+mget' [] = return $ []
+mget' a = $fromRight <$> mget a
+
+lookUpReadableKeys :: (Read a, RedisCtx Redis (Either Reply)) => [B.ByteString] -> Redis [a]
+lookUpReadableKeys keys = do
+  x <- mget' keys
+  return $ mapMaybe (fmap $ $read . BC.unpack) x
 
 getAllWorkbooks :: Connection -> IO [ASWorkbook]
 getAllWorkbooks conn = runRedis conn $ do
   Right wbKeys <- smembers . toRedisFormat $ AllWorkbooksKey
-  wbs <- mapM get wbKeys
-  return $ map (\(Right (Just w)) -> $read (BC.unpack w) :: ASWorkbook) wbs
+  lookUpReadableKeys wbKeys
 
 setWorkbook :: Connection -> ASWorkbook -> IO ()
 setWorkbook conn wb = runRedis conn $ do
@@ -270,12 +296,11 @@ workbookExists conn wName = runRedis conn $ do
 
 -- only removes the workbook, not contained sheets
 deleteWorkbook :: Connection -> WorkbookName -> IO ()
-deleteWorkbook conn name = runRedis conn $ do
+deleteWorkbook conn name = runRedis_ conn $ do
   let workbookKey = toRedisFormat $ WorkbookKey name
   multiExec $ do
     del [workbookKey]
     srem (toRedisFormat AllWorkbooksKey) [workbookKey]
-  return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw sheets
@@ -290,8 +315,7 @@ getAllSheets conn =
   let readSheet (Right (Just s)) = $read (BC.unpack s) :: ASSheet
   in runRedis conn $ do
     Right sheetKeys <- smembers (toRedisFormat AllSheetsKey)
-    sheets <- mapM get sheetKeys
-    return $ map readSheet sheets
+    lookUpReadableKeys sheetKeys
 
 -- creates a sheet with unique id
 createSheet :: Connection -> ASSheet -> IO ASSheet
@@ -308,20 +332,20 @@ getUniqueSheetName conn = do
   return $ DI.getUniquePrefixedName "Sheet" $ map sheetName ss
 
 setSheet :: Connection -> ASSheet -> IO ()
-setSheet conn sheet = do
-    runRedis conn $ do
-        let sheetKey = toRedisFormat . SheetKey . sheetId $ sheet
-        TxSuccess _ <- multiExec $ do
-            set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
-            sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
-        return ()
+setSheet conn sheet =
+  runRedis conn $ do
+      let sheetKey = toRedisFormat . SheetKey . sheetId $ sheet
+      TxSuccess _ <- multiExec $ do
+          set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
+          sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
+      return ()
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASIndex]
 getVolatileLocs conn = runRedis conn $ do
-  vl <- (map S.maybeDecode) . $fromRight <$> (smembers $ toRedisFormat VolatileLocsKey)
+  vl <- map S.maybeDecode . $fromRight <$> smembers (toRedisFormat VolatileLocsKey)
   if any isNothing vl 
     then $error "Error decoding volatile locs!!!"
     else return $ map $fromJust vl
@@ -346,13 +370,13 @@ deleteChunkVolatileCells cells = do
 canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
 canAccessSheet conn uid sheetId = do
   mSheet <- getSheet conn sheetId
-  maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
+  return $ maybe False (hasPermissions uid . sheetPermissions) mSheet
 
 canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
 canAccess conn uid loc = canAccessSheet conn uid (loc^.locSheetId)
 
 canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
-canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
+canAccessAll conn uid locs = and <$> mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True
@@ -370,9 +394,9 @@ isPermissibleMessage uid conn _ = return True
 -- Repeat handlers
 
 storeLastMessage :: Connection -> ServerMessage -> CommitSource -> IO () 
-storeLastMessage conn msg src = case (serverAction msg) of 
+storeLastMessage conn msg src = case serverAction msg of 
   Repeat _ -> return ()
-  _ -> runRedis conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg)) >> return ()
+  _ -> runRedis_ conn (set (toRedisFormat $ LastMessageKey src) (S.encode msg))
 
 getLastMessage :: Connection -> CommitSource -> IO ServerMessage
 getLastMessage conn src = $error "Currently not implemented"
@@ -386,29 +410,26 @@ getLastMessage conn src = $error "Currently not implemented"
 -- Conditional formatting handlers
 
 getCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO [CondFormatRule] 
-getCondFormattingRules conn sid cfids = do 
-  let keys = map (toRedisFormat . CFRuleKey sid) cfids
-  eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
+getCondFormattingRules conn sid cfids = do
+  let keys = map (CFRuleKey sid) cfids
+  catMaybes <$> lookUpRedisKeys conn keys
 
 -- some replication with the above...
 getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
 getCondFormattingRulesInSheet conn sid = do 
   keys <- DI.getKeysInSheetByType conn sid CFRuleType
-  eitherMsg <- runRedis conn $ mget keys
-  return $ either (const []) (mapMaybe S.maybeDecode . catMaybes) eitherMsg
+  catMaybes <$> lookUpKeys conn keys
 
 deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
-deleteCondFormattingRules conn sid cfids = (runRedis conn $ del $ map (toRedisFormat . CFRuleKey sid) cfids) >> return ()
+deleteCondFormattingRules conn sid cfids = runRedis_ conn (del $ map (toRedisFormat . CFRuleKey sid) cfids)
 
 setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
-setCondFormattingRules conn sid rules = runRedis conn $ do
+setCondFormattingRules conn sid rules = runRedis_ conn $ do
   let cfids        = map condFormatRuleId rules 
       makeKey      = toRedisFormat . CFRuleKey sid 
       keys         = map makeKey cfids
       encodedRules = map S.encode rules 
   mset $ zip keys encodedRules
-  return ()
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Row/col getters/setters
@@ -419,20 +440,27 @@ getBar conn bInd  = runRedis conn $ do
   Right msg <- get . toRedisFormat $ BarKey bInd
   return $ S.maybeDecode =<< msg
 
+getBars :: Connection -> [BarIndex] -> IO [Maybe Bar] 
+getBars conn = lookUpRedisKeys conn . map BarKey
+
 setBar :: Connection -> Bar -> IO ()
-setBar conn bar = do
-  runRedis conn $ set (toRedisFormat $ BarKey (barIndex bar)) (S.encode bar)
-  return ()
+setBar conn bar = runRedis_ conn $ set (toRedisFormat $ BarKey (barIndex bar)) (S.encode bar)
+
+setBars :: Connection -> [Bar] -> IO ()
+setBars conn bars = do
+  let barKVPairs = map (toRedisFormat . BarKey . barIndex &&& S.encode) bars
+  runRedis_ conn $ mset barKVPairs
 
 deleteBarAt :: Connection -> BarIndex -> IO ()
-deleteBarAt conn bInd = do
-  runRedis conn $ del [toRedisFormat $ BarKey bInd]
-  return ()
+deleteBarAt conn bInd = runRedis_ conn $ del [toRedisFormat $ BarKey bInd]
+
+deleteBarsAt  :: Connection -> [BarIndex] -> IO()
+deleteBarsAt conn = runRedis_ conn . del . map (toRedisFormat . BarKey)
 
 replaceBars :: Connection -> [Bar] -> [Bar] -> IO ()
 replaceBars conn fromBars toBars = do
-  mapM_ ((deleteBarAt conn) . barIndex) fromBars
-  mapM_ (setBar conn) toBars
+  deleteBarsAt conn $ map barIndex fromBars
+  setBars conn toBars
 
 getBarsInSheet :: Connection -> ASSheetId -> IO [Bar]
 getBarsInSheet conn sid = do 
@@ -440,14 +468,13 @@ getBarsInSheet conn sid = do
       extractInd :: RedisKey BarType2 -> BarIndex
       extractInd (BarKey ind) = ind
   inds <- map (extractInd . readKey) <$> DI.getKeysInSheetByType conn sid BarType2
-  catMaybes <$> mapM (getBar conn) inds
+  catMaybes <$> getBars conn inds
 
 deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
 deleteBarsInSheet conn sid = do
   colKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid ColumnType)
   rowKeys <- $fromRight <$> runRedis conn (keys $ BC.pack $ barPropsKeyPattern sid RowType)
-  runRedis conn $ del (colKeys ++ rowKeys)
-  return ()
+  runRedis_ conn $ del (colKeys ++ rowKeys)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Header expressions handlers
@@ -461,9 +488,8 @@ getEvalHeader conn sid lang = runRedis conn $ do
     Left _            -> $error "Failed to retrieve eval header"
 
 setEvalHeader :: Connection -> EvalHeader -> IO ()
-setEvalHeader conn evalHeader = runRedis conn $ do
+setEvalHeader conn evalHeader = runRedis_ conn $ do
   let sid  = evalHeader^.evalHeaderSheetId
       lang = evalHeader^.evalHeaderLang
       xp   = evalHeader^.evalHeaderExpr
   set (toRedisFormat $ EvalHeaderKey sid lang) (BC.pack xp)
-  return ()
