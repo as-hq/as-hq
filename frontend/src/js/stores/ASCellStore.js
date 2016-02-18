@@ -55,7 +55,6 @@ const CellStoreDataRecord = Record({
 
 class ASCellStore extends ReduceStore<CellStoreData> {
   getInitialState(): CellStoreData {
-    // $FlowFixMe
     return new CellStoreDataRecord();
   }
 
@@ -226,7 +225,10 @@ function setErrors(data: CellStoreData, cell: ASCell) {
 
 function setCell(data: CellStoreData, cell: ASCell) {
   const {col, row, sheetId} = cell.location;
-  const data_ = data.setIn(['allCells', sheetId, col, row], cell);
+  // XXX this should definitely not need to happen according to Immutable's API
+  // but otherwise following line throws an invalid keyPath error.
+  let data_ = data.setIn(['allCells', sheetId], Map());
+  data_ = data_.setIn(['allCells', sheetId, col, row], cell);
   return setErrors(data_, cell);
 }
 
@@ -261,18 +263,16 @@ function updateCells(
   data: CellStoreData,
   cells: Array<ASCell>
 ): CellStoreData {
-  const removedCells = [];
-  // for performance; so we don't make n versions of the state
-  const data_ = data.withMutations(data_ => {
-    cells.forEach(cell => {
-      if (!cell.isEmpty()) {
-        setCell(data_, cell);
-        data_.update('lastUpdatedCells', cells => cells.push(cell));
-      } else {
-        // filter out all the blank cells passed back from the store
-        removedCells.push(cell);
-      }
-    });
+  let removedCells = [];
+  let data_ = data;
+  cells.forEach(cell => {
+    if (!cell.isEmpty()) {
+      data_ = setCell(data_, cell);
+      data_ = data_.update('lastUpdatedCells', cells => cells.push(cell));
+    } else {
+      // filter out all the blank cells passed back from the store
+      removedCells.push(cell);
+    }
   });
   return removeCells(data_, removedCells);
 }
