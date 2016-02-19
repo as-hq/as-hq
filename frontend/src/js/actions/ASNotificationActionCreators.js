@@ -14,13 +14,13 @@ export function addNotification(spec: NotificationSpec) {
   });
 }
 
-export function addSimpleNotification(title: string) {
+export function addSimpleNotification(title: string, timeout: number) {
   Dispatcher.dispatch({
     _type: 'ADD_NOTIFICATION',
     spec: {
       uid: shortid.generate(),
       title,
-      autoDismiss: 1, // auto-dismiss after 1 sec
+      autoDismiss: timeout, 
       level: 'success'
     }
   })

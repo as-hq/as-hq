@@ -9,6 +9,7 @@ import AS.Types.CondFormat
 import AS.Types.Updates
 import AS.Types.Bar
 import AS.Types.RangeDescriptor
+import AS.Types.User
 
 import GHC.Generics
 

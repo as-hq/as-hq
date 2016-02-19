@@ -1,22 +1,21 @@
 {-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
-module AS.Types.Sheets
-  ( module AS.Types.Sheets
-  , module AS.Types.User
-  ) where
+module AS.Types.Sheets where
 
-import AS.Types.User
+import AS.Prelude 
+import Prelude()
 
 import AS.ASJSON
 
 import GHC.Generics
 import Data.Text
+import Data.SafeCopy
 
 type WorkbookName = String
 type SheetName = String
 type ASSheetId = Text
 
-data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: SheetName, sheetPermissions :: ASPermissions} deriving (Show, Read, Eq, Generic)
+data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: SheetName} deriving (Show, Read, Eq, Generic)
 -- should probably be a list of ASSheet's rather than ASSheetId's. 
 data ASWorkbook = Workbook {workbookName :: WorkbookName, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
 -- this type needs to be refactored away. It's used in a frontend API in basically exactly the
@@ -26,3 +25,5 @@ data WorkbookSheet = WorkbookSheet {wsName :: WorkbookName, wsSheets :: [ASSheet
 asToFromJSON ''ASSheet
 asToFromJSON ''ASWorkbook
 asToFromJSON ''WorkbookSheet
+
+deriveSafeCopy 1 'base ''ASSheet

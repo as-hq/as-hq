@@ -20,7 +20,8 @@ import AS.Types.Network
 
 import AS.Parsing.Show
 
-import qualified AS.DB.API as DB
+import AS.DB.API (getEvalHeader)
+import AS.DB.Sheets (getAllSheets)
 
 import Data.Maybe (fromJust)
 import Data.Aeson 
@@ -43,8 +44,8 @@ import Database.Redis (Connection)
 initialize :: KernelAddress -> Connection -> IO ()
 initialize addr conn = do
   -- run all the headers in db to initialize the sheet namespaces
-  sids <- map sheetId <$> DB.getAllSheets conn
-  headers <- mapM (\sid -> DB.getEvalHeader conn sid Python) sids
+  sids <- map sheetId <$> getAllSheets conn
+  headers <- mapM (\sid -> getEvalHeader conn sid Python) sids
   mapM_ (\h -> runEitherT $ evaluateHeader addr (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
 
 evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult

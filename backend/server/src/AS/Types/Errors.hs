@@ -7,6 +7,7 @@ module AS.Types.Errors where
 import AS.ASJSON
 
 import AS.Types.Locations
+import AS.Types.User
 
 import GHC.Generics
 -- memory

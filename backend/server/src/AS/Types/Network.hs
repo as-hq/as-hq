@@ -10,8 +10,8 @@ import AS.Types.Sheets
 import AS.Types.Locations
 import AS.Types.Commits
 import AS.Types.Messages
-
-import AS.Window
+import AS.Types.User
+import AS.Types.Window
 
 import Data.Aeson
 import Data.Text
@@ -22,6 +22,9 @@ import qualified Database.Redis as R
 import qualified Network.WebSockets as WS
 
 import Control.Concurrent (MVar, ThreadId)
+import Data.UUID.V4 (nextRandom)
+import Data.UUID (toString)
+
 import Control.Lens hiding ((.=))
 import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readMVar, putMVar, newEmptyMVar)
 
@@ -100,13 +103,13 @@ instance FromJSON AppSettings where
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 
-type ClientId = Text
+type SessionId = Text
 
 class Client c where
   clientType :: c -> ClientType
   clientConn :: c -> WS.Connection
   ownerName :: c -> ASUserId
-  clientId :: c -> ClientId
+  sessionId :: c -> SessionId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
   handleServerMessage :: c -> State -> ServerMessage -> IO ()
@@ -116,15 +119,15 @@ class Client c where
 type Seconds = Int
 type Milliseconds = Int
 
+data ClientType = UserType | DaemonType
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- User client
 
-data ClientType = User | Daemon
-
-data ASUserClient = UserClient { userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, sessionId :: ClientId }
+data ASUserClient = UserClient { userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, userSessionId :: SessionId }
 
 instance Eq ASUserClient where
-  c1 == c2 = (sessionId c1) == (sessionId c2)
+  c1 == c2 = (userSessionId c1) == (userSessionId c2)
 
 userSheetId :: ASUserClient -> ASSheetId
 userSheetId (UserClient _ _ (Window sid _ _) _) = sid
@@ -134,11 +137,6 @@ userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
 
 updateWindow :: ASWindow -> ASUserClient -> ASUserClient
 updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid
-
-initUser :: WS.Connection -> ASUserId -> ASSheetId -> IO ASUserClient
-initUser c uid sid = do
-    time <- getCurrentTime
-    return $ UserClient uid c (Window sid (Coord (-1) (-1)) (Coord (-1) (-1))) $ pack ((show uid) ++ (show time))
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons

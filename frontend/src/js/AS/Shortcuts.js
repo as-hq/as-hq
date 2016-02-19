@@ -467,7 +467,7 @@ export default {
 
     // eval header shortcuts -------------------------------------------------------------------------------
     SU.add('evalHeader', 'save', 'Ctrl+S', (wildcard: string) => {
-      NotificationActions.addSimpleNotification('Evaluated!');
+      NotificationActions.addSimpleNotification('Evaluated!', 1);
       const expression = HeaderStore.getCurrentExpression();
       const language = HeaderStore.getCurrentLanguage();
       API.evaluateHeader(expression, language);

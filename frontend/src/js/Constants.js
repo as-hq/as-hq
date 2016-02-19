@@ -28,6 +28,9 @@ var Constants = Object.assign({
   BACKEND_IMPORT_PORT: '9000',
   FRONTEND_PORT: '8080', // maybe rename
 
+  // auth parameters
+  google_client_id: '347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com',
+
   // server config parameters
   isDebug: false,
   isProduction: true,

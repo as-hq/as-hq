@@ -17,6 +17,7 @@ import AS.Types.BarProps (BarProp)
 import AS.Types.Selection
 import AS.Types.Network (State)
 import AS.Types.Updates
+import AS.Types.Window
 import qualified AS.Types.BarProps as BP
 
 import AS.Config.Constants
@@ -29,7 +30,6 @@ import AS.Handlers.Delete
 import AS.Eval.CondFormat
 import AS.Eval.Core
 
-import AS.Window
 import AS.Logging
 import AS.Reply
 
@@ -63,11 +63,11 @@ import Control.Lens
 import Control.Monad.Trans.Either
 
 -- Used solely for acknowledging keepalive messages sent from the frontend. 
-handleAcknowledge :: ASUserClient -> IO ()
-handleAcknowledge = handleInitialize 
+--handleAcknowledge :: ASUserClient -> IO ()
+--handleAcknowledge = handleInitialize 
 
-handleInitialize :: ASUserClient -> IO ()
-handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
+--handleInitialize :: ASUserClient -> IO ()
+--handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
 
 -- #needsrefactor currently incomplete, and inactive. 
 -- handleNew :: ASUserClient -> State -> ASPayload -> IO ()

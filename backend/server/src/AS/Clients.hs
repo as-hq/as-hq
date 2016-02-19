@@ -3,11 +3,11 @@ module AS.Clients where
 import AS.Prelude
 import Prelude()
 
-import AS.Types.Network
+import AS.Types.Network 
 import AS.Types.Cell
-import AS.Types.Messages
+import AS.Types.Messages hiding (userId)
 import AS.Types.Eval
-import AS.Types.DB hiding (Clear)
+import AS.Types.DB hiding (Clear, UserType)
 
 import AS.Handlers.Mutate
 import AS.Handlers.Delete
@@ -35,19 +35,17 @@ import Control.Lens hiding ((.=))
 -- ASUserClient is a client
 
 shouldLogMessage :: ServerMessage -> Bool
-shouldLogMessage (ServerMessage _ Acknowledge)      = False
 shouldLogMessage (ServerMessage _ (UpdateWindow _)) = False
 shouldLogMessage (ServerMessage _ (Open _))         = False
 shouldLogMessage _                                = True
 
 shouldPrintMessage :: ServerMessage -> Bool
-shouldPrintMessage (ServerMessage _ Acknowledge) = False
 shouldPrintMessage _                           = True
 
 instance Client ASUserClient where
-  clientType uc = User
+  clientType _ = UserType
   clientConn = userConn
-  clientId = sessionId
+  sessionId = userSessionId
   ownerName = userId
   addClient uc s
     | uc `elem` (s^.userClients) = s
@@ -68,8 +66,6 @@ instance Client ASUserClient where
     -- but don't want to maintain them (Alex 12/28)
     let mid = serverMessageId message 
     case (serverAction message) of
-      Acknowledge                 -> handleAcknowledge user
-      Initialize _ _              -> handleInitialize user 
       -- New                -> handleNew user state payload
       Open sid                    -> handleOpen mid user state sid
       -- Close                 -> handleClose user curState payload
@@ -109,9 +105,9 @@ instance Client ASUserClient where
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where
-  clientType uc = Daemon
+  clientType _ = DaemonType
   clientConn = daemonConn
-  clientId = T.pack . DM.getDaemonName . daemonLoc
+  sessionId = T.pack . DM.getDaemonName . daemonLoc
   ownerName = daemonOwner
   addClient dc s
     | dc `elem` (s^.daemonClients) = s

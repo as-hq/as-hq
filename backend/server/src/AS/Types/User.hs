@@ -1,16 +1,23 @@
+
 {-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
 
 module AS.Types.User where
 
-import AS.ASJSON
+import AS.Types.Sheets
 
+import AS.ASJSON
+import Data.Set
 
 import GHC.Generics
 import Data.Text hiding (any)
+import Data.SafeCopy
+
+import Control.Lens
 
 type ASUserId = Text
 
-data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text} deriving (Show, Read, Eq, Generic)
+data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text}
+  deriving (Show, Read, Eq, Generic)
 data ASUserEntity = EntityGroup ASUserGroup |
                 EntityUser ASUserId
                 deriving (Show, Read, Eq, Generic)
@@ -19,6 +26,11 @@ data ASPermissions = Blacklist [ASUserEntity] |
                      Whitelist [ASUserEntity]
                       deriving (Show, Read, Eq, Generic)
 
+data ASUser = User {_sheetIds :: Set ASSheetId, _userId :: ASUserId, _lastOpenSheet :: ASSheetId}
+  deriving (Show, Read, Eq, Generic)
+
+makeLenses ''ASUser
+deriveSafeCopy 1 'base ''ASUser
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
 

@@ -57,3 +57,9 @@ env_path = $(I.getAppendedPath I.env_dir)
 
 log_dir :: String
 log_dir = $(I.getAppendedPath I.log_dir)
+
+google_token_verify_url :: String
+google_token_verify_url = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token="
+
+google_client_id :: String
+google_client_id = "347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com"

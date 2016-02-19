@@ -11,7 +11,7 @@ import EvalHeader from './EvalHeader.jsx';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 import HeaderStore from '../../stores/ASHeaderStore';
 
-import {addSimpleNotification} from '../../actions/ASNotificationActionCreators';
+import * as NotificationActions from '../../actions/ASNotificationActionCreators';
 import API from '../../actions/ASApiActionCreators';
 
 // the 'open' prop ensures that the editor re-renders upon being opened.
@@ -62,7 +62,7 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
   }
 
   _onEvaluate(expression: string, language: ASLanguage) {
-    addSimpleNotification(evaluateMessage);
+    NotificationActions.addSimpleNotification(evaluateMessage, 1);
     API.evaluateHeader(expression, language);
   }
 }

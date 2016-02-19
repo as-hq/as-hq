@@ -15,13 +15,14 @@ import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.CondFormat
 import AS.Types.Updates
+import AS.Types.User
+import AS.Types.Window
 
 import qualified AS.Config.Settings as Settings
 import qualified AS.DB.Internal as DI
 import qualified AS.Serialize as S
 import AS.Util as U
 import AS.Parsing.Substitutions (getDependencies)
-import AS.Window
 import AS.Logging
 
 import Control.Arrow((&&&))
@@ -87,6 +88,18 @@ lookUpKeys :: (SafeCopy b) => Connection -> [B.ByteString] -> IO [Maybe b]
 lookUpKeys conn byteKeys = runRedis conn $ do
   bs <- mget' byteKeys
   return $ map (S.maybeDecode =<<) bs
+
+-- #NeedsRefactor: read is not great.
+-- If a key can't be found, there will not be an error thrown. Timchu, 2/15/16.
+mget' :: [B.ByteString] -> Redis [Maybe B.ByteString]
+mget' [] = return []
+mget' a = $fromRight <$> mget a
+
+lookUpReadableKeys :: (Read a, RedisCtx Redis (Either Reply)) => [B.ByteString] -> Redis [a]
+lookUpReadableKeys keys = do
+  x <- mget' keys
+  return $ mapMaybe (fmap $ $read . BC.unpack) x
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
 -- all of these functions are order-preserving unless noted otherwise.
@@ -207,140 +220,6 @@ getRangeDescriptorsInSheet conn sid = do
   return $ map $fromJust descs
 
 ----------------------------------------------------------------------------------------------------------------------
--- WorkbookSheets (for frontend API)
-
-matchSheets :: [ASWorkbook] -> [ASSheet] -> [WorkbookSheet]
-matchSheets ws ss = [WorkbookSheet (workbookName w) (catMaybes $ lookUpSheets w ss) | w <- ws]
-  where
-    findSheet sid = find (\sh -> sid == sheetId sh) ss
-    lookUpSheets workbook sheets = map findSheet (workbookSheets workbook)
-
-getAllWorkbookSheets :: Connection -> IO [WorkbookSheet]
-getAllWorkbookSheets conn = do
-  ws <- getAllWorkbooks conn
-  ss <- getAllSheets conn
-  return $ matchSheets ws ss
-
-createWorkbookSheet :: Connection -> WorkbookSheet -> IO WorkbookSheet
-createWorkbookSheet conn wbs = do
-  let newSheets = wsSheets wbs
-  newSheets' <- mapM (createSheet conn) newSheets
-  let newSheetIds = map sheetId newSheets'
-  wbResult <- getWorkbook conn $ wsName wbs
-  case wbResult of
-    Just wb -> do
-      modifyWorkbookSheets conn (\ss -> nub $ newSheetIds ++ ss) (workbookName wb)
-      return wbs
-    Nothing -> do
-      wb <- createWorkbook conn newSheetIds
-      return $ WorkbookSheet (workbookName wb) newSheets'
-
-modifyWorkbookSheets :: Connection -> ([ASSheetId] -> [ASSheetId]) -> String -> IO ()
-modifyWorkbookSheets conn f wName = do
-  (Just (Workbook wsName sheetIds)) <- getWorkbook conn wName
-  let wbNew = Workbook wsName $ f sheetIds
-  setWorkbook conn wbNew
-
-
-----------------------------------------------------------------------------------------------------------------------
--- Raw workbooks
-
-createWorkbook :: Connection -> [ASSheetId] -> IO ASWorkbook
-createWorkbook conn sheetids = do
-  wbName <- getUniqueWbName conn
-  let wb = Workbook wbName sheetids
-  setWorkbook conn wb
-  return wb
-
-getUniqueWbName :: Connection -> IO WorkbookName
-getUniqueWbName conn = do
-  wbs <- getAllWorkbooks conn
-  return $ DI.getUniquePrefixedName "Workbook" $ map workbookName wbs
-
-getWorkbook :: Connection -> WorkbookName -> IO (Maybe ASWorkbook)
-getWorkbook conn name =
-  runRedis conn $ do
-      mwb <- get . toRedisFormat $ WorkbookKey name
-      case mwb of
-          Right wb -> return $ DI.bStrToWorkbook wb
-          Left _   -> return Nothing
-
--- #NeedsRefactor: read is not great.
--- If a key can't be found, there will not be an error thrown. Timchu, 2/15/16.
-mget' :: [B.ByteString] -> Redis [Maybe B.ByteString]
-mget' [] = return $ []
-mget' a = $fromRight <$> mget a
-
-lookUpReadableKeys :: (Read a, RedisCtx Redis (Either Reply)) => [B.ByteString] -> Redis [a]
-lookUpReadableKeys keys = do
-  x <- mget' keys
-  return $ mapMaybe (fmap $ $read . BC.unpack) x
-
-getAllWorkbooks :: Connection -> IO [ASWorkbook]
-getAllWorkbooks conn = runRedis conn $ do
-  Right wbKeys <- smembers . toRedisFormat $ AllWorkbooksKey
-  lookUpReadableKeys wbKeys
-
-setWorkbook :: Connection -> ASWorkbook -> IO ()
-setWorkbook conn wb = runRedis conn $ do
-  let workbookKey = toRedisFormat . WorkbookKey . workbookName $ wb
-  TxSuccess _ <- multiExec $ do
-      set workbookKey (BC.pack . show $ wb)  -- set the workbook as key-value
-      sadd (toRedisFormat AllWorkbooksKey) [workbookKey]  -- add the workbook key to the set of all sheets
-  return ()
-
-workbookExists :: Connection -> WorkbookName -> IO Bool
-workbookExists conn wName = runRedis conn $ do
-  Right result <- exists . toRedisFormat $ WorkbookKey wName
-  return result
-
--- only removes the workbook, not contained sheets
-deleteWorkbook :: Connection -> WorkbookName -> IO ()
-deleteWorkbook conn name = runRedis_ conn $ do
-  let workbookKey = toRedisFormat $ WorkbookKey name
-  multiExec $ do
-    del [workbookKey]
-    srem (toRedisFormat AllWorkbooksKey) [workbookKey]
-
-----------------------------------------------------------------------------------------------------------------------
--- Raw sheets
-
-getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
-getSheet conn sid = runRedis conn $ do
-  Right sheet <- get . toRedisFormat $ SheetKey sid
-  return $ DI.bStrToSheet sheet
-
-getAllSheets :: Connection -> IO [ASSheet]
-getAllSheets conn = 
-  let readSheet (Right (Just s)) = $read (BC.unpack s) :: ASSheet
-  in runRedis conn $ do
-    Right sheetKeys <- smembers (toRedisFormat AllSheetsKey)
-    lookUpReadableKeys sheetKeys
-
--- creates a sheet with unique id
-createSheet :: Connection -> ASSheet -> IO ASSheet
-createSheet conn (Sheet sid _ sperms) = do
-    sid' <- T.pack <$> U.getUniqueId
-    sname <- getUniqueSheetName conn
-    let newSheet = Sheet sid' sname sperms
-    setSheet conn newSheet
-    return newSheet
-
-getUniqueSheetName :: Connection -> IO String
-getUniqueSheetName conn = do
-  ss <- getAllSheets conn
-  return $ DI.getUniquePrefixedName "Sheet" $ map sheetName ss
-
-setSheet :: Connection -> ASSheet -> IO ()
-setSheet conn sheet =
-  runRedis conn $ do
-      let sheetKey = toRedisFormat . SheetKey . sheetId $ sheet
-      TxSuccess _ <- multiExec $ do
-          set sheetKey (BC.pack . show $ sheet)  -- set the sheet as key-value
-          sadd (toRedisFormat AllSheetsKey) [sheetKey]  -- add the sheet key to the set of all sheets
-      return ()
-
-----------------------------------------------------------------------------------------------------------------------
 -- Volatile cell methods
 
 getVolatileLocs :: Connection -> IO [ASIndex]
@@ -367,16 +246,16 @@ deleteChunkVolatileCells cells = do
 ----------------------------------------------------------------------------------------------------------------------
 -- Permissions
 
-canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
-canAccessSheet conn uid sheetId = do
-  mSheet <- getSheet conn sheetId
-  return $ maybe False (hasPermissions uid . sheetPermissions) mSheet
+--canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
+--canAccessSheet conn uid sheetId = do
+--  mSheet <- getSheet conn sheetId
+--  maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
 
-canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
-canAccess conn uid loc = canAccessSheet conn uid (loc^.locSheetId)
+--canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
+--canAccess conn uid loc = canAccessSheet conn uid (loc^.locSheetId)
 
-canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
-canAccessAll conn uid locs = and <$> mapM (canAccess conn uid) locs
+--canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
+--canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
 isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True

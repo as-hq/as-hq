@@ -133,7 +133,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
             simple({
               title: 'Save',
               callback() {
-                API.export(SheetStateStore.getCurrentSheet());
+                API.export(SheetStateStore.getCurrentSheetId());
               }
             })
           ]},

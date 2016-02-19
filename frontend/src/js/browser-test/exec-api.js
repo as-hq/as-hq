@@ -56,6 +56,7 @@ import {
 
 import _ from 'lodash';
 
+import {API_test} from '../actions/ASApiActionCreators';
 import API from '../actions/ASApiActionCreators';
 
 import U from '../AS/Util';
@@ -151,7 +152,7 @@ export function clear(): Prf {
 export function init(): Prf {
   API.isTesting = true;
   return apiExec(() => {
-    API.initialize();
+    API_test.login();
   });
 }
 
@@ -658,17 +659,16 @@ export function barShouldSatisfy(barInd: BarIndex, fn: (bar: Bar) => void): Prf 
 
 export function colShouldHaveDimension(ind: number, dim: number): Prf {
   return barShouldSatisfy(colIndex(ind), (bar) => {
-    logDebug(`${bar} should have dimension ${dim}`);
-
+    console.log(`${bar} should have dimension ${dim}`);
     let dimInd = bar.barProps.map(({tag}) => tag).indexOf("Dimension");
     expect(dimInd >= 0).toBe(true);
     expect(bar.barProps[dimInd].contents).toBe(dim);
   });
 }
 
-export function colShouldNotHaveDimensionProp(ind: number, dim: number): Prf {
+export function colShouldNotHaveDimensionProp(ind: number): Prf {
   return barShouldSatisfy(colIndex(ind), (bar) => {
-    logDebug(`${bar} should not have a dimension prop`);
+    logDebug(`${JSON.stringify(bar)} should not have a dimension prop`);
 
     expect(bar.barProps.map(({tag}) => tag).indexOf("Dimension")).toBe(-1);
 

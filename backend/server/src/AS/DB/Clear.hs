@@ -15,6 +15,7 @@ import AS.Types.Eval
 import AS.Types.CondFormat
 import AS.Types.Updates
 import AS.Types.Network
+import AS.Types.Window
 
 import qualified AS.DB.API as DB
 import qualified AS.Config.Settings as Settings
@@ -22,7 +23,6 @@ import AS.Util as U
 import qualified AS.DB.Internal as DI
 import qualified AS.Kernels.Python as KP
 import AS.Parsing.Substitutions (getDependencies)
-import AS.Window
 import AS.Logging
 
 import Data.List (zip4,head,nub,intercalate)

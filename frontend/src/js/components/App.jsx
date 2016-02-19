@@ -8,6 +8,10 @@ import type {
   StoreLink
 } from '../types/React';
 
+import type {
+  RoutedComponentProps
+} from '../types/Router';
+
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
@@ -52,9 +56,14 @@ import ThemeManager from 'material-ui/lib/styles/theme-manager';
 // $FlowFixMe: missing annotations
 import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
+// $FlowFixMe
+import injectTapEventPlugin from 'react-tap-event-plugin';
+injectTapEventPlugin();
+
 type BottomPane = 'header' | 'error' | 'cell';
 
-type AppState = {
+type Props = RoutedComponentProps;
+type State = {
   currentPane: string; // TODO this really really should be refactored out
   currentBottomPane: ?BottomPane;
   // object passed from splash pane specifying initial params: opened sheet, etc
@@ -62,71 +71,49 @@ type AppState = {
   isConnected: boolean;
 };
 
-export default React.createClass({
-  $storeLinks: ([]: Array<StoreLink>),
 
-  /* When mounting, send a message to the backend to signify a connection */
-  componentWillMount() {
-    let sheetId, userId;
-    const promptUser = !(Constants.sheetId || Constants.userId);
+class App extends React.Component<{}, Props, State> {
+  $storeLinks: Array<StoreLink>;
 
-    if (Constants.isProduction || promptUser) {
-      sheetId = window.prompt("Enter the name of your sheet. Your data on this sheet will persist -- you can access it again by entering the same sheet name on this prompt when you reload AlphaSheets. \n\nNOTE: Anyone can access your sheet by typing in its name.", "INIT_SHEET_ID");
-      userId = window.prompt("Enter your username.","TEST_USER_ID");
-    } else {
-      sheetId = Constants.sheetId || "INIT_SHEET_ID";
-      userId = Constants.userId || "TEST_USER_ID";
-    }
-
-    SheetStateStore.setCurrentSheetById(sheetId);
-    SheetStateStore.setUserId(userId);
-    ConnectionStore.addChangeListener(() => this._onConnectionStateChange());
-    API.initialize();
-  },
-
-  componentDidMount() {
-    U.React.addStoreLinks(this, [
-      { store: ModalStore }
-    ]);
-
-    window.addEventListener('contextmenu', (evt) => {
-      evt.preventDefault();
-    });
-  },
-
-  componentWillUnmount() {
-    U.React.removeStoreLinks(this);
-  },
-
-  getInitialState(): AppState {
-    return {
+  constructor(props: Props) {
+    super(props);
+    this.$storeLinks = [];
+    this.state = {
       currentPane: 'eval',
       // object passed from splash pane specifying initial params: opened sheet, etc
       initEvalInfo: {},
       currentBottomPane: null,
       isConnected: true
-    }
-  },
+    };
+  }
 
-  childContextTypes: {
-    muiTheme: React.PropTypes.object
-  },
+  componentDidMount() {
+    ConnectionStore.addChangeListener(() => this._onConnectionStateChange());
+    U.React.addStoreLinks(this, [
+      { store: ModalStore }
+    ]);
+
+    // #anand what does this do?
+    window.addEventListener('contextmenu', (evt) => {
+      evt.preventDefault();
+    });
+  }
+
+  componentWillUnmount() {
+    U.React.removeStoreLinks(this);
+  }
 
   getChildContext(): any {
     return {
       muiTheme: ThemeManager.getMuiTheme(DarkTheme)
     };
-  },
+  }
 
   /**************************************************************************************************************************/
   /* Core render method for the whole app */
 
   render(): React.Element {
-    // TODO: these heights should be in a config file, not here
     const {currentBottomPane, isConnected} = this.state;
-    const bottomBarHeight = 24;
-    const topBarHeight = 60;
-    const toolbarHeight = 50;
     const connectionBarHeight = isConnected ? 0 : 24; // #needsrefactor would be better to use flexbox than a conditional height.
     const fullStyle = {width: '100%', height: '100%'};
 
@@ -145,8 +132,8 @@ export default React.createClass({
     // Also, it's essential to keep the outputPane component in the layout, and
     // to make it invisible if necessary, rather than null
     let evalPane =
-      <div style={styles.eval}>
-        <ASEvaluationPane behavior="default" ref="evalPane" initInfo={this.state.initEvalInfo} />
+      <div style={fullStyle}>
+        <ASEvaluationPane ref="evalPane" initInfo={this.state.initEvalInfo} />
       </div>;
 
     let bottomPane =
@@ -201,20 +188,16 @@ export default React.createClass({
           <ASBottomBar toggleBottomPane={(pane: BottomPane) =>
                                       this._toggleBottomPane(pane)} />
         </div>
-
       </div>
     );
-
-  },
-
-
+  }
 
 /**************************************************************************************************************************/
 /* Top-level ui state changes */
 
   _toggleEvalHeader() {
     this.refs.evalPane.toggleEvalHeader();
-  },
+  }
 
   _toggleBottomPane(pane: BottomPane) {
     const {currentBottomPane} = this.state;
@@ -223,18 +206,17 @@ export default React.createClass({
     } else {
       this.setState({currentBottomPane: null});
     }
-  },
+  }
 
   _onConnectionStateChange() {
     const isConnected = ConnectionStore.getIsConnected();
     this.setState({isConnected: isConnected});
-  },
+  }
 
   _handleRequestSelect(idx: ASIndex) {
     this.refs.evalPane.getASSpreadsheet().selectIndex(idx);
   }
-});
-
+}
 
 const bottomBarHeight = 24;
 const topBarHeight = 60;
@@ -269,3 +251,9 @@ const styles = {
     height: bottomBarHeight,
   },
 };
+
+App.childContextTypes = {
+  muiTheme: React.PropTypes.object
+};
+
+export default App;

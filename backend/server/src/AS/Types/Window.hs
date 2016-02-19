@@ -1,4 +1,4 @@
-module AS.Window
+module AS.Types.Window
   ( ASWindow(..)
   , intersectViewingWindow
   , getScrolledLocs

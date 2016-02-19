@@ -222,7 +222,7 @@ export default class ASEvalPane
   _onCellsChange() {
     logDebug("Eval pane detected cells change from store");
     let updatedCellsOnSheet = CellStore.getLastUpdatedCells().filter((cell) => {
-      return cell.location.sheetId == SheetStateStore.getCurrentSheet().sheetId;
+      return cell.location.sheetId == SheetStateStore.getCurrentSheetId();
     });
 
     this.getASSpreadsheet().updateCellValues(updatedCellsOnSheet);
@@ -349,7 +349,7 @@ export default class ASEvalPane
     // copy/pasting across sheets.
     if (isAlphaSheets) { // From AS
       let clipboard = SheetStateStore.getClipboard(),
-          sheetId = SheetStateStore.getCurrentSheet().sheetId,
+          sheetId = SheetStateStore.getCurrentSheetId(),
           fromRange = ClipboardUtils.getAttrsFromHtmlString(e.clipboardData.getData("text/html")),
           fromSheetId = sel.range.sheetId,
           toASRange = sel.range;
@@ -462,7 +462,6 @@ export default class ASEvalPane
   // Deal with selection change from grid
 
   _onSelectionChange(sel: ASSelection) {
-
     let {range, origin} = sel,
         userIsTyping = ExpStore.getUserIsTyping(),
         cell = CellStore.getCell(origin);
@@ -699,6 +698,7 @@ export default class ASEvalPane
           // selection change dispatch.
           setFocus={FocusActionCreators.setFocus}
           width="100%" height={this.getEditorHeight()} />
+
         <ASSpreadsheet
           ref='spreadsheet'
           // TODO(joel):
@@ -715,6 +715,7 @@ export default class ASEvalPane
           hideToast={() => this.hideToast()}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
+          
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}

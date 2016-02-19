@@ -29,3 +29,12 @@ import_message_id = "IMPORT_MESSAGE_ID"
 -- client, and therefore have no concept of progress. 
 timeout_message_id :: Text
 timeout_message_id = "TIMEOUT_MESSAGE_ID"
+
+initial_open_message_id :: Text
+initial_open_message_id = "INITIAL_OPEN_MESSAGE_ID"
+
+auth_message_id :: Text
+auth_message_id = "auth_message_id"
+
+new_sheet_name :: String
+new_sheet_name = "Sheet1"

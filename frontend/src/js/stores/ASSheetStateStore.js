@@ -13,6 +13,8 @@ import type {
   ASUserId
 } from '../types/User';
 
+// $FlowFixMe
+import invariant from 'invariant';
 import {logDebug} from '../AS/Logger';
 
 import React from 'react';
@@ -32,12 +34,11 @@ import API from '../actions/ASApiActionCreators';
 import CellStore from './ASCellStore';
 
 type SheetStateStoreData = {
-  userId: ASUserId;
   decoupleAttempt: boolean;
   xscroll: number;
   yscroll: number;
   openSheets: Array<ASSheet>;
-  currentSheet: ASSheet;
+  currentSheetId: ?string;
   clipboard: {
     area: ?ASSelection;
     isCut: boolean;
@@ -47,20 +48,11 @@ type SheetStateStoreData = {
 };
 
 let _data: SheetStateStoreData = {
-  userId: "TEST_USER_ID",
   decoupleAttempt: false,
   xscroll: 0,
   yscroll: 0,
   openSheets: [],
-  currentSheet: {
-    tag: 'Sheet',
-    sheetId: "INIT_SHEET_ID",
-    sheetName: "Sheet1",
-    sheetPermissions: {
-      tag: 'Blacklist',
-      contents: []
-    }
-  },
+  currentSheetId: null,
   clipboard: {
     area: null,
     isCut: false
@@ -71,8 +63,12 @@ let _data: SheetStateStoreData = {
 
 const ASSheetStateStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
-    logDebug('Sheet state store received action', action);
     switch (action._type) {
+      case 'LOGIN_SUCCESS':
+        _data.currentSheetId = action.sheetId;
+        console.warn('login success, got sheetId: ', action.sheetId);
+        ASSheetStateStore.emitChange();
+        break;
       case 'FIND_INCREMENTED':
         break;
       case 'FIND_DECREMENTED':
@@ -107,36 +103,10 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     _data.decoupleAttempt = b;
   },
 
-  getUserId() {
-    return _data.userId;
-  },
-
-  setUserId(id) {
-    _data.userId = id;
-  },
-
-  getCurrentSheet() {
-    return _data.currentSheet;
-  },
-
   getCurrentSheetId(): string {
-    return ASSheetStateStore.getCurrentSheet().sheetId;
-  },
-
-  setCurrentSheet(sht) {
-    _data.currentSheet = sht;
-  },
-
-  setCurrentSheetById(sheetId) {
-    _data.currentSheet = {
-      tag: 'Sheet',
-      sheetId: sheetId,
-      sheetName: "",
-      sheetPermissions: {
-        tag: 'Blacklist',
-        contents: []
-      }
-    };
+    const sid = _data.currentSheetId;
+    invariant(sid, 'Authenticated user does not have a sheet ID!');
+    return sid;
   },
 
   setClipboard(rng, isCut) {

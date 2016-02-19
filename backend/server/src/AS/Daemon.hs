@@ -9,15 +9,17 @@ import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.CellProps
+import AS.Types.User
 
-import Data.Char (isPunctuation, isSpace)
-import Data.Monoid (mappend)
-import Data.Text (Text)
 import Control.Exception 
 import Control.Monad 
 import Control.Monad.Loops
 import Control.Concurrent 
 import Control.Monad.IO.Class (liftIO)
+
+import Data.Char (isPunctuation, isSpace)
+import Data.Monoid (mappend)
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Aeson hiding (Success)

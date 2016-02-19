@@ -3,9 +3,9 @@ module AS.Types.Messages where
 import AS.Prelude
 import Prelude()
 
-import AS.Window
 import AS.ASJSON
 
+import AS.Types.Window
 import AS.Types.Commits
 import AS.Types.Selection
 import AS.Types.Cell
@@ -20,6 +20,7 @@ import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.CondFormat
 import AS.Types.Updates 
+import AS.Types.User
 
 import GHC.Generics
 import Data.Aeson
@@ -28,6 +29,13 @@ import Data.SafeCopy
 import qualified Data.Text as T
 
 type MessageId = T.Text
+
+data LoginMessage = Login AuthStrategy deriving (Show, Read, Generic)
+
+data AuthStrategy = 
+    GoogleAuth { idToken :: T.Text }
+  | TestAuth
+  deriving (Show, Read, Generic)
 
 data ServerMessage = ServerMessage {
     serverMessageId :: MessageId
@@ -44,6 +52,8 @@ failureMessage :: MessageId -> String -> ClientMessage
 failureMessage mid s = ClientMessage mid $ ShowFailureMessage s
 
 -- the constructors (i.e. the first words) are verbs telling client what action to take
+-- (anand 2/05) I think this is a bad design principle. Not all messages exchanged with 
+-- the client are verbs, such as authentication status.
 data ClientAction = 
     NoAction
   | AskDecouple
@@ -58,12 +68,12 @@ data ClientAction =
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
   | PassCellsToTest [ASCell]
+  | AuthFailure { failureReason :: String }
+  | AuthSuccess { authUserId :: ASUserId, defaultSheetId :: ASSheetId }
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
-    Acknowledge
-  | Initialize { connUserId :: ASUserId, connSheetId :: ASSheetId }
-  | InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
+    InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
   | Open ASSheetId
   | UpdateWindow ASWindow
   -- | Import 
@@ -140,6 +150,9 @@ instance ToJSON ClientMessage where
 
 -- are legit.
 asToJSON ''ClientAction
+
+asFromJSON ''LoginMessage
+asFromJSON ''AuthStrategy
 
 deriveSafeCopy 1 'base ''ServerMessage
 deriveSafeCopy 1 'base ''ServerAction

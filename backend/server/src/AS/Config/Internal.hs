@@ -46,6 +46,9 @@ getSettings = catch readEnvironment handleException
     handleException :: SomeException -> IO AppSettings
     handleException e = $error $ "decoding Environment failed with error: " ++ show e 
 
+--readConfiguration :: String -> Q Exp
+--readConfiguration filepath = 
+
 -------------------------------------------------------------------------------------------------------------------------
 -- filepaths 
 

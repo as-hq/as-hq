@@ -1,5 +1,5 @@
 
-{-# LANGUAGE OverloadedStrings, DataKinds, KindSignatures, GADTs, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE DataKinds, KindSignatures, GADTs #-}
 
 module AS.Types.DB
   ( module AS.Types.DB
@@ -17,6 +17,7 @@ import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.Bar
 import AS.Types.CondFormat
+import AS.Types.User
 
 import Debug.Trace
 
@@ -227,6 +228,7 @@ data RedisKeyType =
   | AllSheetsType
   | VolatileLocsType
   | RangeType
+  | UserType
   deriving (Show, Read)
 
 data RedisKey :: RedisKeyType -> * where
@@ -244,6 +246,7 @@ data RedisKey :: RedisKeyType -> * where
   AllSheetsKey    :: RedisKey AllSheetsType
   VolatileLocsKey :: RedisKey VolatileLocsType
   RedisRangeKey   :: RangeKey -> RedisKey RangeType
+  UserKey         :: ASUserId -> RedisKey UserType
 
 instance Show2 (RedisKey a) where
   show2 k = case k of 
@@ -261,6 +264,7 @@ instance Show2 (RedisKey a) where
     AllSheetsKey                      -> keyPrefix AllSheetsType
     VolatileLocsKey                   -> keyPrefix VolatileLocsType
     RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter ++ (show2 dims)
+    UserKey uid                       -> (keyPrefix UserType) ++ (T.unpack uid)
 
 -- value-dependent instances mothafucka!
 instance Read2 (RedisKey RangeType) where

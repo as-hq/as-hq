@@ -14,11 +14,11 @@ export function convert(
             renderer      = hg.getRenderer(),
             cellProvider  = model.getCellProvider();
       cb({
-        spreadsheet: spreadsheet,
-        hg: hg,
-        model: model,
-        renderer: renderer,
-        cellProvider: cellProvider
+        spreadsheet,
+        hg,
+        model,
+        renderer,
+        cellProvider
       });
     };
   });

@@ -304,7 +304,7 @@ const callbacks: Array<InitCallback> = [
 
           Render.setDragCorner(null);
           spreadsheet.mouseDownInBox = false;
-          
+
           spreadsheet.finishColumnResize();
           spreadsheet.finishRowResize();
         }

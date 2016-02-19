@@ -16,4 +16,8 @@ declare module flux {
     dispatch(payload: P): void;
     isDispatching(): boolean;
   }
+
+  declare type StoreToken = {
+    remove: () => void;
+  }
 }

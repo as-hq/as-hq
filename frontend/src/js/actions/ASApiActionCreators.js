@@ -80,8 +80,9 @@ import ws from '../AS/PersistentWebSocket';
 import * as ProgressActions from './ASProgressActionCreators';
 import * as HeaderActions from './ASHeaderActionCreators';
 
-import {setConnectedState} from './ASConnectionActionCreators';
-import * as NotificationActions from './ASNotificationActionCreators';
+import {setConnectedState} from '../actions/ASConnectionActionCreators';
+import LoginActions from '../actions/ASLoginActionCreators';
+import * as NotificationActions from '../actions/ASNotificationActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 
@@ -163,11 +164,9 @@ pws.onreconnect = () => {
 };
 
 pws.onmessage = (event: MessageEvent) => {
-  logDebug("Client received data from server: " + event.data.toString());
-
   if (event.data instanceof Blob) {
     logDebug("Received binary data from server.");
-    let fName = SheetStateStore.getCurrentSheet().sheetId + ".as";
+    let fName = SheetStateStore.getCurrentSheetId() + ".as";
     // #anand event.data typecasts to Blob, because we already checked the instance above
     // and flow doesn't understand that event.data is type DOMString | Blob | ...
     let f = U.File.blobToFile(((event.data: any): Blob), fName);
@@ -296,6 +295,16 @@ pws.onmessage = (event: MessageEvent) => {
         findLocs:clientLocs
       }); */
       break;
+    case 'AuthSuccess':
+      const {authUserId, defaultSheetId} = action;
+      LoginActions.onLoginSuccess(authUserId, defaultSheetId);
+      break;
+    case 'AuthFailure':
+      NotificationActions.addSimpleNotification(
+        'Authentication failure: ' + action.failureReason,
+        3
+      );
+      break;
   }
 };
 
@@ -346,10 +355,28 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
 /**************************************************************************************************************************/
 /* API */
 
+const API_test = {
+  login() {
+    console.log('about to login');
+    const msg = {
+      tag: 'TestAuth',
+      contents: []
+    };
+    API.send(msg);
+    setCallbacks('auth_message_id');
+  }
+};
+
 const API = {
   // #needsrefactor a stateful variable indicating whether or not the app is being tested.
   // this exists to slightly fork logic when necessary during testing. e.g. see ASCellStore.
   isTesting: false,
+
+  send(msg: any) {
+    pws.waitForConnection((innerClient: WebSocket) => {
+      innerClient.send(JSON.stringify(msg));
+    });
+  },
 
   sendMessageWithAction(action: any) {
     const messageId = shortid.generate();
@@ -360,42 +387,26 @@ const API = {
 
     ProgressActions.markSent(msg);
     setCallbacks(msg.messageId);
-
-    logDebug(`Queueing ${msg.serverAction.tag} message, id ${messageId}`);
-    pws.waitForConnection((innerClient: WebSocket) => {
-      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message, id ${messageId}`);
-      logDebug(JSON.stringify(msg));
-      logDebug(`Sending ${JSON.stringify(msg.serverAction)} message`);
-      innerClient.send(JSON.stringify(msg));
-
-      if (msg.serverAction.tag === 'Acknowledge' || msg.serverAction.tag === 'Initialize') {
-        fulfillCallbacks(msg);
-      }
-    });
+    API.send(msg);
   },
 
-  initMessage() {
-    let msg = {
-      tag: "Initialize",
-      connUserId: SheetStateStore.getUserId(),
-      connSheetId: SheetStateStore.getCurrentSheet().sheetId
+  // TODO (anand) for now, this function only accepts Google OAuth id tokens
+  login(idToken: string) {
+    const msg = {
+      tag: 'GoogleAuth',
+      idToken
     };
-
-    API.sendMessageWithAction(msg);
+    API.send(msg);
   },
 
   reinitialize() {
-    API.initMessage();
+    LoginActions.relogin();
     API.openSheet();
 
     const vWindow = SheetStateStore.getViewingWindow();
     if (vWindow) {
       API.updateViewingWindow(vWindow);
     }
-  },
-
-  initialize() {
-    API.initMessage();
   },
 
   /**************************************************************************************************************************/
@@ -412,10 +423,10 @@ const API = {
     pws.close();
   },
 
-  export(sheet: ASSheet) {
+  export(sheetId: string) {
     let msg = {
       tag: "Export",
-      contents: sheet.sheetId
+      contents: sheetId
     };
     API.sendMessageWithAction(msg);
   },
@@ -453,7 +464,7 @@ const API = {
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId,
+    let sid = SheetStateStore.getCurrentSheetId(),
         msg = {
           tag: "EvaluateHeader",
           contents: {
@@ -467,7 +478,7 @@ const API = {
   },
 
   setLanguagesInRange(language: ASLanguage, range: ASRange) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId,
+    let sid = SheetStateStore.getCurrentSheetId(),
         action = {
           tag: "SetLanguagesInRange",
           contents: [language, range.obj()],
@@ -521,7 +532,7 @@ const API = {
   },
 
   clearSheet() {
-    let sid = SheetStateStore.getCurrentSheet().sheetId,
+    let sid = SheetStateStore.getCurrentSheetId(),
         msg: ClearSheetServer = {
           tag: "ClearSheetServer",
           contents: sid
@@ -594,7 +605,7 @@ const API = {
   },
 
   setColumnWidth(col: number, width: number) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId,
+    let sid = SheetStateStore.getCurrentSheetId(),
         msg = {
           tag: "SetBarProp",
           contents: [
@@ -607,7 +618,7 @@ const API = {
   },
 
   setRowHeight(row: number, height: number) {
-    let sid = SheetStateStore.getCurrentSheet().sheetId,
+    let sid = SheetStateStore.getCurrentSheetId(),
         msg = {
           tag: "SetBarProp",
           contents: [
@@ -842,12 +853,11 @@ const API = {
   },
 
   // @optional mySheet
-  openSheet(mySheet?: ASSheet) {
-    let sheet = mySheet || SheetStateStore.getCurrentSheet(),
-        msg = {
-          tag: "Open",
-          contents: sheet.sheetId
-        };
+  openSheet(mySheetId?: string) {
+    const msg = {
+      tag: "Open",
+      contents: mySheetId || SheetStateStore.getCurrentSheetId()
+    };
     API.sendMessageWithAction(msg);
   },
 
@@ -928,4 +938,5 @@ const API = {
   }
 };
 
+export { API_test };
 export default API;

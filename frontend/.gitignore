@@ -1,5 +1,6 @@
 /bower_components/
-/dist/
+/dist/*
+!/dist/redist/
 /node_modules/
 **/npm-debug.*
 **/.DS_Store

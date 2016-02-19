@@ -167,7 +167,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
     let hasError = Object.keys(errorMessages).length > 0;
     if (valueRange !== null && valueRange !== undefined && !hasError) {
       let ctx = this._generateContext();
-      let sheetId = SheetStore.getCurrentSheet().sheetId;
+      let sheetId = SheetStore.getCurrentSheetId();
       this.props.onCreate({
         id: U.Render.getUniqueId(),
         renderElem: (style) =>
@@ -326,7 +326,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
               <ASChart
                 ref="generatedChart"
                 valueRange={valueRange}
-                sheetId={SheetStore.getCurrentSheet().sheetId}
+                sheetId={SheetStore.getCurrentSheetId()}
                 chartContext={this._generateContext()}
                 chartStyle={{width: "100%", height: "100%"}}
                 showLegend={showLegend}

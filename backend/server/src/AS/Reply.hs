@@ -10,8 +10,8 @@ import AS.Types.Network
 import AS.Types.RangeDescriptor
 import AS.Types.User
 import AS.Types.Errors
+import AS.Types.Window
 import AS.Util
-import AS.Window
 
 import Control.Concurrent
 import Control.Lens

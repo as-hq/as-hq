@@ -9,19 +9,20 @@ import AS.Config.Settings as S
 
 import AS.Types.Messages
 import AS.Types.Network
+import AS.Types.Window
+import AS.Types.Locations
 
 import AS.Config.Constants
 
 import AS.Clients()
 import AS.Logging
-import AS.Window
 import AS.Util
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Internal as DI
+import AS.DB.Users (createUserClient)
 import AS.Users as US
 import AS.Handlers.Misc (handleImportBinary)
-import AS.Types.Locations
 import qualified AS.Kernels.Python as KP
 
 import AS.Async
@@ -96,11 +97,6 @@ initApp = do
     [r|library("rjson")|]
     [r|library("ggplot2")|]
     return ()
-  -- init data
-  let sheet = Sheet "INIT_SHEET_ID" "Sheet1" (Blacklist [])
-  DB.setSheet conn sheet
-  DB.setWorkbook conn $ Workbook "Workbook1" ["INIT_SHEET_ID"]
-
   return state
 
 -- |  for debugging. Only called if isDebug is true.
@@ -135,17 +131,25 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
 handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
-handleFirstMessage state conn msg =
-  case (decode msg :: Maybe ServerMessage) of
-    Just (ServerMessage _ (Initialize cuid csid)) -> do -- first mesage is user init
-      user <- initUser conn cuid csid
-      catch (initClient user state) (handleRuntimeException user state)
-    Just (ServerMessage _ (InitializeDaemon pid pLoc)) -> do -- first message is daemon init
-      let daemon = initDaemonFromMessageAndConn conn pid pLoc
-      initClient daemon state
+handleFirstMessage state wsConn msg =
+  case (decode msg :: Maybe LoginMessage) of
+    Just (Login auth) -> do -- first message must be user auth
+      authResult <- US.authenticateUser auth
+      case authResult of 
+        Right uid -> do
+          dbConn <- view dbConn <$> readMVar state
+          userClient <- createUserClient dbConn wsConn uid 
+          let defaultSid = windowSheetId . userWindow $ userClient
+          let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
+          sendMessage successMsg wsConn
+          catch (initClient userClient state) (handleRuntimeException userClient state)
+        Left authErr -> do
+          putStrLn $ "Authentication error: " ++ authErr
+          let failMsg = ClientMessage auth_message_id $ AuthFailure authErr
+          sendMessage failMsg wsConn
     _ -> do -- first message is neither
-      putStrLn $ "First message not an initialization message, received: " ++ (show msg)
-      sendMessage (failureMessage initialization_failure_message_id "Cannot connect") conn -- failure messages are not associated with any send message id.
+      putStrLn $ "First message not a login message, received: " ++ (show msg)
+      sendMessage (failureMessage initialization_failure_message_id "Cannot connect") wsConn -- failure messages are not associated with any send message id.
 
 -- #needsrefactor should move to Environment.hs, or something
 shouldPreprocess :: Bool
@@ -163,10 +167,11 @@ preprocess conn state = do
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ show i ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
     let win = Window (T.pack sid) (Coord (-1) (-1)) (Coord (-1) (-1))
-        cid = T.pack uid
-        mockUc = UserClient cid conn win (T.pack "")
+        uid' = T.pack uid
+        -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
+        mockUc = UserClient uid' conn win uid'
     curState <- readMVar state
-    when (isNothing $ US.getUserByClientId cid curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
+    when (isNothing $ US.getUserBySessionId uid' curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
     processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
@@ -196,7 +201,7 @@ talk client state = forever $ do
 -- with the relevant thread. Upon receiving the reply, kill it, and remove it from state.
 processAsyncWithTimeout :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processAsyncWithTimeout c state msg = case clientType c of 
-  User -> do
+  UserType -> do
     successLock <- newEmptyMVar 
     tid <- timeoutAsync successLock $ processMessage c state msg
     modifyMVar_ state $ \curState -> 
@@ -216,7 +221,7 @@ processAsyncWithTimeout c state msg = case clientType c of
         takeMVar lock
         modifyMVar_ state $ \curState -> 
           return $ curState & threads %~ (M.delete mid)
-  Daemon -> void $ forkIO (processMessage c state msg)
+  DaemonType -> void $ forkIO (processMessage c state msg)
 
 handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
 handleRuntimeException user state e = do

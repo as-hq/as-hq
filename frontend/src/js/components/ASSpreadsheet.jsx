@@ -59,25 +59,18 @@ import hgPatches from '../hg-patches/index';
 
 let finRect: HGRectangleElement = (document.createElement('fin-rectangle'): any);
 
-type ASSpreadsheetDefaultProps = {
-  behavior: string;
-  onReady: () => void;
-};
-
-type ASSpreadsheetProps = {
+type Props = {
   hideToast: () => void;
   setFocus: (elem: ASFocusType) => void;
-  onReady: () => void;
   onTextBoxDeferredKey: (e: SyntheticKeyboardEvent) => void;
   onFileDrop: (files: Array<File>) => void;
   onSelectionChange: (sel: ASSelection) => void;
   onNavKeyDown: (e: SyntheticKeyboardEvent) => void;
-  behavior: string;
   width?: string;
   height?: string;
 };
 
-type ASSpreadsheetState = {
+type State = {
   scroll: HGPoint;
   scrollPixels: HGPoint;
   overlays: Array<ASOverlaySpec>;
@@ -85,9 +78,7 @@ type ASSpreadsheetState = {
 };
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
-export default class ASSpreadsheet
-  extends React.Component<ASSpreadsheetDefaultProps, ASSpreadsheetProps, ASSpreadsheetState>
-{
+export default class ASSpreadsheet extends React.Component<{}, Props, State> {
   /*************************************************************************************************************************/
   // Non-rendering state
 
@@ -111,7 +102,7 @@ export default class ASSpreadsheet
   /*************************************************************************************************************************/
   // React methods
 
-  constructor(props: ASSpreadsheetDefaultProps) {
+  constructor(props: Props) {
     super(props);
 
     this.mousePosition = null;
@@ -146,9 +137,8 @@ export default class ASSpreadsheet
       { store: OverlayStore, listener: () => this._onOverlaysChange() },
     ]);
 
-    // Hypergrid initialization
-    document.addEventListener('polymer-ready', () => {
-      this.props.onReady();
+    // apply hypergrid customizations when its canvas is ready.
+    document.addEventListener('fin-ready', () => {
       this.initHypergrid();
       this.pullInitialData();
     });
@@ -364,7 +354,7 @@ export default class ASSpreadsheet
 
   // expects that the current sheet has already been set
   pullInitialData() {
-    API.openSheet(SheetStateStore.getCurrentSheet());
+    API.openSheet(SheetStateStore.getCurrentSheetId());
     ActionCreator.scroll(this.getViewingWindow());
   }
 
@@ -777,7 +767,7 @@ export default class ASSpreadsheet
   // Render
 
   render(): ReactElement {
-    const {behavior, width, height} = this.props; //should also have onReady
+    const {behavior, width, height} = this.props;
     const {onTextBoxDeferredKey, setFocus, hideToast, onFileDrop} = this.props;
     const {scrollPixels, scroll, overlays, cursorStyle} = this.state;
 
@@ -861,7 +851,6 @@ const styles = {
 // TODO: is behavior actually needed?
 ASSpreadsheet.defaultProps = {
   behavior: 'default',
-  onReady() { }
 }
 
 ASSpreadsheet.propTypes = {

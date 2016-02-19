@@ -294,6 +294,17 @@ export type SetVAlign = {
   alignment: VAlignType;
 };
 
+export type LoginAttemptAction = {
+  _type: 'LOGIN_ATTEMPT';
+  token: string;
+};
+
+export type LoginSuccessAction = {
+  _type: 'LOGIN_SUCCESS';
+  userId: string;
+  sheetId: string;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -381,4 +392,6 @@ export type ASAction =
   | SetFont
   | SetHAlign
   | SetVAlign
+  | LoginAttemptAction
+  | LoginSuccessAction
   ;
