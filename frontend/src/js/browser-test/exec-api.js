@@ -149,6 +149,7 @@ export function clear(): Prf {
 }
 
 export function init(): Prf {
+  API.isTesting = true;
   return apiExec(() => {
     API.initialize();
   });

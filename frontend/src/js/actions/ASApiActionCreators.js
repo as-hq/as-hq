@@ -347,6 +347,10 @@ function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
 /* API */
 
 const API = {
+  // #needsrefactor a stateful variable indicating whether or not the app is being tested.
+  // this exists to slightly fork logic when necessary during testing. e.g. see ASCellStore.
+  isTesting: false,
+
   sendMessageWithAction(action: any) {
     const messageId = shortid.generate();
     const msg = {

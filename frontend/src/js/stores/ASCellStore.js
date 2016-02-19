@@ -21,6 +21,7 @@ import {ReduceStore} from 'flux/utils';
 import Dispatcher from '../Dispatcher';
 
 import U from '../AS/Util';
+import API from '../actions/ASApiActionCreators';
 
 import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
@@ -225,9 +226,13 @@ function setErrors(data: CellStoreData, cell: ASCell) {
 
 function setCell(data: CellStoreData, cell: ASCell) {
   const {col, row, sheetId} = cell.location;
-  // XXX this should definitely not need to happen according to Immutable's API
-  // but otherwise following line throws an invalid keyPath error.
-  let data_ = data.setIn(['allCells', sheetId], Map());
+  let data_ = data;
+  if (API.isTesting) {
+    // XXX this should definitely not need to happen according to Immutable's API
+    // but when testing (and ONLY then), if you don't initialize this path with an empty Map,
+    // immutable throws an invalid keyPath error.
+    data_ = data_.setIn(['allCells', sheetId], Map());
+  }
   data_ = data_.setIn(['allCells', sheetId, col, row], cell);
   return setErrors(data_, cell);
 }
