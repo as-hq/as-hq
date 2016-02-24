@@ -30,12 +30,8 @@ import ASEvalPane from '../components/ASEvaluationPane.jsx';
 
 import ExpStore from '../stores/ASExpStore';
 import ExpActionCreator from '../actions/ASExpActionCreators';
-<<<<<<< HEAD
 import FocusStore from '../stores/ASFocusStore';
 import FocusActionCreators from '../actions/ASFocusActionCreators';
-=======
-import ShortcutHelperActionCreator from '../actions/ShortcutHelperActionCreators';
->>>>>>> template for shortcut indicator is done, still need to group/add the actual shortcuts
 
 export default {
   addShortcuts(evalPane: ASEvalPane) {
@@ -487,10 +483,6 @@ export default {
 
     SU.add('toplevel', 'toggle_header', 'Alt+H', (wildcard: string) => {
       self.toggleEvalHeader();
-    });
-
-    SU.add('toplevel', 'shortcut_helper', 'Ctrl+/', (wildcard: string) => {
-      ShortcutHelperActionCreator.toggleShortcutHelper();
     });
 
   }

@@ -26,7 +26,6 @@ import ASChartDialog from './chart/ASChartDialog.jsx';
 
 import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
-import ShortcutHelper from './shortcut-helper/ShortcutHelper.jsx';
 
 import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
 import ASCellPane from './bottom-panes/ASCellPaneController.jsx';
@@ -189,9 +188,6 @@ class App extends React.Component<{}, Props, State> {
           <ASBottomBar toggleBottomPane={(pane: BottomPane) =>
                                       this._toggleBottomPane(pane)} />
         </div>
-
-        <ShortcutHelper />
-
       </div>
     );
   }

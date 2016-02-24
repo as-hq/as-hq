@@ -45,14 +45,6 @@ import type {
   NotificationSpec
 } from './Notifications';
 
-export type ToggleShortcutHelper = {
-  _type: 'TOGGLE_SHORTCUT_HELPER';
-};
-
-export type CloseShortcutHelper = {
-  _type: 'CLOSE_SHORTCUT_HELPER';
-};
-
 export type AddOverlayAction = {
   _type: 'ADD_OVERLAY';
   overlay: ASOverlaySpec;
@@ -344,9 +336,7 @@ export type SetActiveSelectionAction = {
 };
 
 export type ASAction =
-  ToggleShortcutHelper
-  | CloseShortcutHelper
-  | AddOverlayAction
+  AddOverlayAction
   | GotFailureAction
   | GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
