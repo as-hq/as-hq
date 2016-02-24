@@ -1,0 +1,10 @@
+diff a/backend/server/app/Main.hs b/backend/server/app/Main.hs	(rejected hunks)
+@@ -22,7 +22,7 @@
+ import AS.DB.Internal as DI
+ import AS.DB.Users (createUserClient)
+ import AS.Users as US
+-import AS.Handlers.Misc (handleImportBinary)
++import AS.Handlers.Import (handleImportBinary)
+ import qualified AS.Kernels.Python as KP
+ 
+ import AS.Async
