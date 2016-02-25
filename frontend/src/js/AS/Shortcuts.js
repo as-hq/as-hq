@@ -91,7 +91,7 @@ export default {
       self.handleEvalRequest(xpObj, 0, 0);
     });
 
-    SU.add('evalPane', 'set_language', 'Ctrl+1/2/3/4', (wildcard: string) => {
+    SU.add('evalPane', 'set_language', 'Ctrl+1|2|3|4', (wildcard: string) => {
       // Upon a shortcut, call toggle language, which will update the ExpStore's language and
       // inform the language dropdown in the toolbar of an update
       let language;
@@ -114,7 +114,7 @@ export default {
         }
       ExpActionCreator.setLanguage(language);
     });
-    SU.add('evalPane', 'format_value', 'Ctrl+Shift+2/3/4/5/6', (wildcard: string) => {
+    SU.add('evalPane', 'format_value', 'Ctrl+Shift+2|3|4|5|6', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let formatType;
         // TODO other wildcards
@@ -251,7 +251,7 @@ export default {
       DialogActions.openCondFormattingDialog();
     });
 
-    SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up/Down/Left/Right', (dir) => {
+    SU.add('grid', 'moveto_data_boundary', 'Ctrl+Up|Down|Left|Right', (dir) => {
       // Needs to work even when you're selecting references while typing in the textbox
       // grid, which is why we're getting the spreadsheet's selection rather than the store's.
       // Might not be robust. (Alex 11/4)
@@ -259,7 +259,7 @@ export default {
       let newInd = SheetStateStore.getDataBoundary(oldInd, dir);
       self.getASSpreadsheet().select(newInd.toSelection());
     });
-    SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up/Down/Left/Right', (dir) => {
+    SU.add('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up|Down|Left|Right', (dir) => {
       // same comment as in moveto_data_boundary applies.
       // let oldSelection = SelectionStore.getActiveSelection();
       let oldSelection = self.getASSpreadsheet().getSelectionArea();
