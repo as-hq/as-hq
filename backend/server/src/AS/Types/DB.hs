@@ -1,13 +1,19 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 
-{-# LANGUAGE DataKinds, KindSignatures, GADTs #-}
-
-module AS.Types.DB
-  ( module AS.Types.DB
-  , module AS.Types.Commits
-  ) where
+module AS.Types.DB where
 
 import Prelude()
 import AS.Prelude
+import Data.Maybe
+import qualified Data.ByteString.Char8         as BC
+import qualified Data.ByteString               as B
+import Data.ByteString (ByteString)
+import Data.SafeCopy
+import GHC.Generics
+import Control.DeepSeq
+import Control.DeepSeq.Generics (genericRnf)
+import Control.Lens hiding (index, context, set)
+import Database.Redis 
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -18,294 +24,283 @@ import AS.Types.CellProps
 import AS.Types.Bar
 import AS.Types.CondFormat
 import AS.Types.User
+import AS.Types.Messages
+import AS.Types.BarProps
+import AS.Types.Formats
+import AS.Types.Updates
+import AS.Types.Window
+import AS.Types.Selection
+import AS.Serialize as S 
 
-import Debug.Trace
+data DBSheetGroupKey = 
+    SheetRangesKey       ASSheetId
+  | SheetTempCommitsKey  ASSheetId  
+  | SheetLastMessagesKey ASSheetId 
+  | SheetLocsKey         ASSheetId
+  | SheetCFRulesKey      ASSheetId 
+  | SheetBarsKey         ASSheetId
+  deriving (Generic, Show)
 
-import GHC.Generics
-import Data.List.Split (splitOn)
-import Data.List.Split (splitOn)
-import qualified Data.Text as T 
-import qualified Data.List as L
-import qualified Data.ByteString.Char8         as BC
-import qualified Data.ByteString               as B
-import Data.SafeCopy
+data DBKey = 
+    SheetKey             ASSheetId             
+  | EvalHeaderKey        ASSheetId  ASLanguage        
+  | TempCommitKey        CommitSource        
+  | PushCommitKey        CommitSource        
+  | PopCommitKey         CommitSource         
+  | LastMessageKey       CommitSource       
+  | SheetGroupKey        DBSheetGroupKey
+  | CFRuleKey            ASSheetId CondFormatRuleId
+  | BarKey               BarIndex             
+  | UserKey              ASUserId
+  | IndexKey             ASIndex  
+  | WorkbookKey          WorkbookName
+  | RedisRangeKey        RangeKey   
+  | AllSheetsKey
+  | SharedSheetsKey
+  deriving (Generic, Show)
 
-import Control.Lens hiding (index, context)
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Graph queries
+data DBValue = 
+    KeyValue DBKey
+  | UserValue ASUser
+  | SheetValue ASSheet
+  | WorkbookValue ASWorkbook
+  | HeaderValue ByteString
+  | CommitValue ASCommit 
+  | CellDBValue ASCell 
+  | ServerMessageValue ServerMessage
+  | BarValue Bar
+  | CFValue CondFormatRule
+  | IndexValue ASIndex
+  | RangeDescriptorValue RangeDescriptor 
+  deriving (Generic, Show)
+  
+---------------------------------------------------------------------------------------------------------------
+-- Conversion from DBValue 
 
--- A relation (toLoc,[fromLoc]); a toLoc must be an index, a fromLoc can be any ancestor
-type ASRelation = (ASIndex, [GraphAncestor])
+dbValToKey :: DBValue -> Maybe DBKey 
+dbValToKey (KeyValue k) = Just k
+dbValToKey _ = Nothing
 
--- Graph read (getX) and write (setX) requests
-data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors deriving (Show)
+dbValToCell :: DBValue -> Maybe ASCell 
+dbValToCell (CellDBValue c) = Just c 
+dbValToCell _ = Nothing
 
-data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
+dbValToUser :: DBValue -> Maybe ASUser
+dbValToUser (UserValue u) = Just u 
+dbValToUser _ = Nothing
 
--- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
--- of a range = descendants of decomposed indices in ranges
-data GraphReadInput  = IndexInput ASIndex | RangeInput ASRange
+dbValToCFRule :: DBValue -> Maybe CondFormatRule 
+dbValToCFRule (CFValue c) = Just c 
+dbValToCFRule _ =  Nothing
 
--- The output of a graph descendant can only be an index (currently)
--- One can imagine in the future that there's a constant in A1 that gets dragged down in an absolute reference
--- In this case, that constant would have a lot of descendants, and it might be better to have a range for its
--- returned descendants. If this or ancestor changes, need to change show2 and read2 as well. 
-data GraphDescendant = IndexDesc ASIndex 
+dbValToRDesc :: DBValue -> Maybe RangeDescriptor 
+dbValToRDesc (RangeDescriptorValue rd) = Just rd 
+dbValToRDesc _ = Nothing
 
--- The output of a graph ancestor can be an index, pointer, or range, because that's what are in 
--- user-defined expressions
-type GraphAncestor   = ASReference
+dbValToSheet :: DBValue -> Maybe ASSheet 
+dbValToSheet (SheetValue s) = Just s 
+dbValToSheet _ = Nothing 
 
-descendantsToIndices :: [GraphDescendant] -> [ASIndex]
-descendantsToIndices = map dToI
-  where
-    dToI (IndexDesc i) = i 
+dbValToBar :: DBValue -> Maybe Bar 
+dbValToBar (BarValue b) = Just b 
+dbValToBar _ = Nothing
 
-indicesToGraphReadInput :: [ASIndex] -> [GraphReadInput]
-indicesToGraphReadInput = map IndexInput
+dbValToEvalHeaderBStr :: DBValue -> Maybe ByteString 
+dbValToEvalHeaderBStr (HeaderValue b) = Just b 
+dbValToEvalHeaderBStr _ = Nothing
 
+dbValToCommit :: DBValue -> Maybe ASCommit 
+dbValToCommit (CommitValue c) = Just c 
+dbValToCommit _ = Nothing
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Delimiters
-----------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+-- Conversion helpers 
 
-data ExportData = ExportData { exportCells           :: [ASCell]
-                             , exportBars            :: [Bar]
-                             , exportDescriptors     :: [RangeDescriptor]
-                             , exportCondFormatRules :: [CondFormatRule]
-                             , exportHeaders         :: [EvalHeader] } deriving (Show, Read, Eq, Generic)
+fromBS :: (SafeCopy a) => (a -> Maybe b) -> [Maybe ByteString] -> [Maybe b]
+fromBS conv = map (\b -> b >>=  S.maybeDecode >>= conv)
 
--- #incomplete Assumes the export has at least one cell. 
-exportDataSheetId :: ExportData -> ASSheetId
-exportDataSheetId = (view (cellLocation.locSheetId)) . $head . exportCells
+fromBS' :: (SafeCopy a) => (a -> Maybe b) -> [ByteString] -> [b]
+fromBS' conv = mapMaybe (\b -> S.maybeDecode b >>= conv)
 
+---------------------------------------------------------------------------------------------------------------
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Delimiters
+-- Given a function producing a SheetGroupKey from a SheetId, and a value decoder, get all X in a sheet
+-- First gets all of the keys in the set associated with the SheetGroupKey
+-- Then does an mget on those keys to get the associated values in this sheet, and decodes them. 
+getInSheet :: (ASSheetId -> DBSheetGroupKey) -> (DBValue -> Maybe b) -> Connection -> ASSheetId -> IO [b]
+getInSheet toSheetGroupKey fromDBValue conn sid = runRedis conn $ do
+  -- get all the dbKeys associated with the sheetGroupKey
+  Right dbValKeys <- smembers (S.encode $ SheetGroupKey $ toSheetGroupKey sid)
+  if dbValKeys == []
+    then return []
+    else do 
+      let dbKeys = fromBS' dbValToKey dbValKeys
+      Right vals <- mget $ map S.encode dbKeys 
+      return $ catMaybes $ fromBS fromDBValue vals
 
-msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
-relationDelimiter = "&"
-keyPartDelimiter :: String
-keyPartDelimiter = "?"
+-- Given a SheetGroupKey, a list of keys, and a list of vals, 
+-- (1) mset the list of keys and values
+-- (2) add all of the encoded keys to the set of keys associated with the SheetGroupKey
+setWithSheet :: Connection -> DBSheetGroupKey -> [DBKey] -> [DBValue] -> IO ()
+setWithSheet conn sheetKey keys vals = runRedis conn $ do 
+  let encKeys = map S.encode keys
+  let encVals = map S.encode vals
+  let encKeyValues = map (S.encode . KeyValue) keys
+  mset $ zip encKeys encVals
+  sadd (S.encode (SheetGroupKey sheetKey)) encKeyValues
+  return ()
 
--- TODO: should require real parsing instead of never-used unicode chars at some point
-refDelimiter = '/'
-keyTypeSeparator = "~"
+-- Similar as above, but takes some function helpers
+-- We want to set a list of b's in the DB, while also preserving sheet groupings
+setWithSheetFunc :: (a -> DBSheetGroupKey) -> (a -> DBKey) -> (b -> DBValue) -> (b -> a) -> Connection -> [b] -> IO ()
+setWithSheetFunc toSidKey toKey toValue valToKey conn vals = do 
+  multiSet toKey toValue valToKey conn vals 
+  runRedis conn $ do 
+    let encSheetKey = S.encode . SheetGroupKey . toSidKey . valToKey
+    let encKeyValue =  S.encode . KeyValue . toKey . valToKey
+    let addSet x = sadd (encSheetKey x) [encKeyValue x]
+    mapM addSet vals
+  return ()
 
--- TODO: hide this on export
-splitBy :: (Eq a) => a -> [a] -> [[a]]
-splitBy delimiter = foldr f [[]]
-  where f c l@(x:xs) | c == delimiter = []:l
-                     | otherwise = (c:x):xs
+-- Delete all keys in the provided list of keys, and all keys associated with the SheetGroupKey
+delWithSheet :: Connection -> DBSheetGroupKey -> [DBKey] -> IO ()
+delWithSheet conn sheetKey keys = runRedis conn $ do 
+  let encKeys = map S.encode keys
+  let encKeyValues = map (S.encode . KeyValue) keys
+  del encKeys
+  srem (S.encode (SheetGroupKey sheetKey)) encKeyValues 
+  return ()
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- instances
+-- Similar to above, but takes in some function helpers
+delWithSheetFunc :: (a -> DBSheetGroupKey) -> (a -> DBKey) -> Connection -> [a] -> IO ()
+delWithSheetFunc toSidKey toKey conn keys = do 
+  multiDel toKey conn keys 
+  runRedis conn $ do 
+    let encSheetKey = S.encode . SheetGroupKey . toSidKey 
+    let encKeyValue = S.encode . KeyValue . toKey 
+    let remSet x = srem (encSheetKey x) [encKeyValue x]
+    mapM remSet keys
+  return ()
 
-deriveSafeCopy 1 'base ''ExportData
+-- Delete everything associated with a SheetGroupKey in a given sheet
+-- Get all of the keys in the set associated with the SheetGroupKey and delete them
+delInSheet :: (ASSheetId -> DBSheetGroupKey) -> Connection -> ASSheetId -> IO ()
+delInSheet toKey conn sid = runRedis conn $ do  
+  let sheetKey = S.encode $ SheetGroupKey $ toKey sid
+  Right keyStrings <- smembers sheetKey
+  let keys = map S.encode $ fromBS' dbValToKey keyStrings
+  del $ sheetKey:keys
+  return ()
 
--- compressed show
+---------------------------------------------------------------------------------------------------------------
 
-class Show2 a where
-  show2 :: a -> String
+-- Given a key encoder and value decoder, get a bunch of objects from the db that are direct key-value pairs
+multiGet :: (a -> DBKey) -> (DBValue -> Maybe b) -> Connection -> [a] -> IO [Maybe b]
+multiGet _ _ _ [] = return []
+multiGet toDBKey fromDBValue conn [x] = runRedis conn $ do 
+  Right val <- get $ S.encode $ toDBKey x
+  return $ fromBS fromDBValue [val] 
+multiGet toDBKey fromDBValue conn xs = runRedis conn $ do 
+  Right vals <- mget $ map (S.encode . toDBKey) xs
+  return $ fromBS fromDBValue vals
 
-class Read2 a where
-  read2 :: (Show2 a) => String -> a
+-- Given a key encoder, a value decoder, and a function to produce a key, set a bunch of objects in the DB as
+-- direct key-value pairs
+multiSet :: (a -> DBKey) -> (b -> DBValue) -> (b -> a) -> Connection -> [b] -> IO ()
+multiSet _ _ _ _ [] = return ()
+multiSet toDBKey toDBValue valToKey conn [x] = runRedis conn $ do 
+  set (S.encode $ toDBKey $ valToKey x) (S.encode $ toDBValue x)
+  return ()
+multiSet toDBKey toDBValue valToKey conn xs = runRedis conn $ do 
+  let keys = map (S.encode . toDBKey . valToKey) xs
+  let vals = map (S.encode . toDBValue) xs
+  mset $ zip keys vals
+  return ()
 
-instance Show2 Coord where
-  show2 coord = "(" ++ show (coord^.col) ++ "," ++ show (coord^.row) ++ ")"
+-- Delete multiple keys at once
+multiDel :: (a -> DBKey) -> Connection -> [a] -> IO ()
+multiDel _ _ [] = return ()
+multiDel toDBKey conn xs = runRedis conn $ do 
+  del $ map (S.encode . toDBKey) xs
+  return ()
 
-instance Show2 InfiniteRowCoord where
-  show2 infiniteRowCoord = show $ infiniteRowCoord^.col
+-- Given a key and a value decoder, simply get a key-value pair
+getV :: Connection -> DBKey -> (DBValue -> Maybe b) -> IO (Maybe b)
+getV conn key fromDBValue = runRedis conn $ do 
+  Right val <- get $ S.encode key
+  return $ val >>= S.maybeDecode >>= fromDBValue
 
-instance Show2 Rect where
-  show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
+-- Given a dbkey and dbvalue, just set that pair in the DB 
+setV :: Connection -> DBKey -> DBValue -> IO ()
+setV conn key val = runRedis conn $ set (S.encode key) (S.encode val) >> return ()
 
-instance Show2 (Coord, InfiniteRowCoord) where
-  show2 (coord1, infRowCoord2) = "(" ++ show2 coord1 ++ "," ++ show2 infRowCoord2 ++ ")" 
+-- Given a key and a value decoder, get all of the values in the set associated with this key
+getS :: DBKey -> (DBValue -> Maybe b) -> Connection -> IO [b]
+getS key fromDBValue conn = runRedis conn $ do 
+  Right vals <- smembers (S.encode key)
+  let dbVals = map S.maybeDecode vals
+  return $ mapMaybe (fromDBValue =<<) dbVals
 
-instance (Show2 ASIndex) where 
-  show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+-- Add a value to a set associated with the key
+addS :: Connection -> DBKey -> DBValue -> IO ()
+addS conn key val = runRedis conn $ do 
+  sadd (S.encode key) [S.encode val]
+  return ()
 
-instance (Show2 ASPointer) where
-  show2 (Pointer (Index sid a)) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+---------------------------------------------------------------------------------------------------------------
+-- Instances 
 
-instance (Show2 ASRange) where 
-  show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+deriveSafeCopy 1 'base ''DBSheetGroupKey
+deriveSafeCopy 1 'base ''DBValue
+deriveSafeCopy 1 'base ''DBKey
+deriveSafeCopy 1 'base ''CommitSource
+deriveSafeCopy 1 'base ''ASWorkbook
 
-instance (Show2 ASColRange) where 
-  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
-
-instance (Show2 GraphReadInput) where
-  show2 (IndexInput i) = show2 i
-  show2 (RangeInput r) = show2 r
-
-instance (Show2 GraphDescendant) where
-  show2 (IndexDesc i) = show2 i
-
-instance (Show2 ASReference) where
-  show2 (IndexRef il) = show2 il 
-  show2 (RangeRef rl) = show2 rl
-  show2 (ColRangeRef cr) = show2 cr
-  show2 (PointerRef p) = show2 p
-  show2 (OutOfBounds) = "OUTOFBOUNDS"
-
-instance (Show2 Dimensions) where
-  show2 dims = show (width dims, height dims)
-
-instance (Read2 ASReference) where
-  read2 str = loc
-    where
-      loc = case str of 
-        "OUTOFBOUNDS" -> OutOfBounds
-        _ -> loc' 
-          where 
-            (tag, sid, locstr) = case splitBy refDelimiter str of 
-              [tag', sid', locstr'] -> (tag', sid', locstr')
-              _ -> $error ("read2 :: ASReference failed to split string " ++ str)
-            loc' = case tag of 
-              "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
-              "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: Rect)
-              "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
-
-pairToCoord :: (Int, Int) -> Coord
-pairToCoord (x, y) = Coord x y
-
-instance (Read2 Coord) where
-  read2 str = pairToCoord ($read str :: (Int, Int))
-
-instance (Read2 InfiniteRowCoord) where
-  read2 str = InfiniteRowCoord $ ($read str)
-
-instance (Read2 Rect) where
-  read2 str =  (pairToCoord pair1, pairToCoord pair2)
-    where
-      (pair1, pair2) = $read str :: ((Int, Int), (Int, Int))
-
-instance (Read2 (Coord, InfiniteRowCoord)) where
-  read2 str = (pairToCoord pair, InfiniteRowCoord col)
-    where
-      (pair, col) = $read str :: ((Int, Int), Int)
-
-instance (Read2 ASIndex) where 
-  read2 str = case ((read2 :: String -> ASReference) str) of 
-    IndexRef i -> i
-
-instance (Read2 ASRange) where 
-  read2 str = case ((read2 :: String -> ASReference) str) of 
-    RangeRef r -> r
-
-instance (Read2 ASColRange) where 
-  read2 str = case ((read2 :: String -> ASReference) str) of 
-    ColRangeRef r -> r
-
-instance (Read2 ASPointer) where 
-  read2 str = case ((read2 :: String -> ASReference) str) of 
-    PointerRef p -> p
-
-instance (Read2 GraphDescendant) where
-  read2 s = IndexDesc (read2 s :: ASIndex)
-
-instance (Read2 Dimensions) where
-  read2 str = Dimensions { width = w, height = h }
-    where (w, h) = $read str :: (Int, Int)
-
-----------------------------------------------------------------------------------------------------------------------
--- Redis keys 
-
-data RedisKeyType = 
-    SheetRangesType 
-  | SheetType 
-  | WorkbookType 
-  | EvalHeaderType 
-  | TempCommitType
-  | PushCommitType 
-  | PopCommitType 
-  | LastMessageType 
-  | CFRuleType 
-  | BarType2 -- BarType is alreadry taken in Bar.hs :( Either this or renaming all these to SheetRangesKeyType etc. ...
-  | AllWorkbooksType 
-  | AllSheetsType
-  | VolatileLocsType
-  | RangeType
-  | UserType
-  deriving (Show, Read)
-
-data RedisKey :: RedisKeyType -> * where
-  SheetRangesKey  :: ASSheetId -> RedisKey SheetRangesType
-  SheetKey        :: ASSheetId -> RedisKey SheetType
-  WorkbookKey     :: WorkbookName -> RedisKey WorkbookType
-  EvalHeaderKey   :: ASSheetId -> ASLanguage -> RedisKey EvalHeaderType
-  TempCommitKey   :: CommitSource -> RedisKey TempCommitType
-  PushCommitKey   :: CommitSource -> RedisKey PushCommitType
-  PopCommitKey    :: CommitSource -> RedisKey PopCommitType
-  LastMessageKey  :: CommitSource -> RedisKey LastMessageType
-  CFRuleKey       :: ASSheetId -> CondFormatRuleId -> RedisKey CFRuleType
-  BarKey          :: BarIndex -> RedisKey BarType2
-  AllWorkbooksKey :: RedisKey AllWorkbooksType 
-  AllSheetsKey    :: RedisKey AllSheetsType
-  VolatileLocsKey :: RedisKey VolatileLocsType
-  RedisRangeKey   :: RangeKey -> RedisKey RangeType
-  UserKey         :: ASUserId -> RedisKey UserType
-
-instance Show2 (RedisKey a) where
-  show2 k = case k of 
-    SheetRangesKey sid                -> (keyPrefix SheetRangesType) ++ T.unpack sid
-    SheetKey sid                      -> (keyPrefix SheetType) ++ T.unpack sid
-    WorkbookKey wname                 -> (keyPrefix WorkbookType) ++ wname
-    EvalHeaderKey sid lang            -> (keyPrefix EvalHeaderType) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show lang)
-    TempCommitKey c                   -> (keyPrefix TempCommitType) ++ show c
-    PushCommitKey c                   -> (keyPrefix PushCommitType) ++ show c
-    PopCommitKey c                    -> (keyPrefix PopCommitType) ++ show c
-    LastMessageKey c                  -> (keyPrefix LastMessageType) ++ show c
-    CFRuleKey sid cfid                -> (keyPrefix CFRuleType) ++ T.unpack sid ++ T.unpack cfid
-    BarKey (BarIndex sid t ind)       -> (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show t) ++ keyPartDelimiter ++ (show ind) 
-    AllWorkbooksKey                   -> keyPrefix AllWorkbooksType
-    AllSheetsKey                      -> keyPrefix AllSheetsType
-    VolatileLocsKey                   -> keyPrefix VolatileLocsType
-    RedisRangeKey (RangeKey idx dims) -> (keyPrefix RangeType) ++ (show2 idx) ++ keyPartDelimiter ++ (show2 dims)
-    UserKey uid                       -> (keyPrefix UserType) ++ (T.unpack uid)
-
--- value-dependent instances mothafucka!
-instance Read2 (RedisKey RangeType) where
-  read2 s = RedisRangeKey rkey
-    where 
-      [typeStr, keyStr] = splitOn keyTypeSeparator s
-      [idxStr, dimsStr] = splitOn keyPartDelimiter keyStr
-      rkey = case ($read typeStr :: RedisKeyType) of 
-        RangeType -> RangeKey (read2 idxStr :: ASIndex) (read2 dimsStr :: Dimensions)
-
-instance Read2 (RedisKey BarType2) where
-    read2 s = BarKey (BarIndex sid typ ind)
-      where
-        [typeStr, keyStr] = splitOn keyTypeSeparator s
-        [sidStr, typStr, indStr] = splitOn keyPartDelimiter keyStr
-        sid = T.pack sidStr
-        typ = $read typStr :: BarType
-        ind = $read indStr :: Int
-
-instance Show CommitSource where
-  show (CommitSource sid uid) = (T.unpack sid) ++ keyPartDelimiter ++ (T.unpack uid)
-
-keyPrefix :: RedisKeyType -> String
-keyPrefix kt = (show kt) ++ keyTypeSeparator
-
-keyPattern :: RedisKeyType -> String
-keyPattern kt = (keyPrefix kt) ++ "*" 
-
-keyPatternBySheet :: RedisKeyType -> ASSheetId -> String
-keyPatternBySheet kt sid = 
-  let sid' = T.unpack sid 
-  in (keyPrefix kt) ++ case kt of 
-    TempCommitType  -> sid' ++ "*"
-    PushCommitType  -> sid' ++ "*"
-    PopCommitType   -> sid' ++ "*"
-    LastMessageType -> sid' ++ "*"
-    CFRuleType      -> sid' ++ "*"
-    BarType2        -> sid' ++ "*"
-
-barPropsKeyPattern :: ASSheetId -> BarType -> String
-barPropsKeyPattern sid typ = (keyPrefix BarType2) ++ (T.unpack sid) ++ keyPartDelimiter ++ (show typ) ++ "*"
-
-toRedisFormat :: RedisKey a -> B.ByteString
-toRedisFormat = BC.pack . show2
+instance NFData DBSheetGroupKey where rnf = genericRnf
+instance NFData DBKey     where rnf = genericRnf
+instance NFData DBValue   where rnf = genericRnf
+instance NFData CommitSource     where rnf = genericRnf
+instance NFData ASLanguage     where rnf = genericRnf
+instance NFData BarIndex     where rnf = genericRnf
+instance NFData RangeKey     where rnf = genericRnf
+instance NFData BarType     where rnf = genericRnf
+instance NFData Dimensions     where rnf = genericRnf
+instance NFData ASWorkbook     where rnf = genericRnf
+instance NFData ASUser     where rnf = genericRnf
+instance NFData RangeDescriptor      where rnf = genericRnf
+instance NFData ASCell      where rnf = genericRnf
+instance NFData JSONField      where rnf = genericRnf
+instance NFData Bar      where rnf = genericRnf
+instance NFData ExpandingType      where rnf = genericRnf
+instance NFData ASCellProps      where rnf = genericRnf
+instance NFData JSONValue      where rnf = genericRnf
+instance NFData CellPropType      where rnf = genericRnf
+instance NFData ASBarProps      where rnf = genericRnf
+instance NFData BarPropType      where rnf = genericRnf
+instance NFData CellProp      where rnf = genericRnf
+instance NFData FormatMapConstructor      where rnf = genericRnf
+instance NFData BoolCondition      where rnf = genericRnf
+instance NFData ASExpression      where rnf = genericRnf
+instance NFData BarProp      where rnf = genericRnf
+instance NFData ASCommit      where rnf = genericRnf
+instance NFData Format      where rnf = genericRnf
+instance NFData ServerMessage      where rnf = genericRnf
+instance NFData TwoExprBoolCondType      where rnf = genericRnf
+instance NFData VAlignType      where rnf = genericRnf
+instance NFData FormatType      where rnf = genericRnf
+instance (NFData a) => NFData (Diff a)      where rnf = genericRnf
+instance (NFData a, NFData b) => NFData (Update a b) where rnf = genericRnf
+instance NFData Stream      where rnf = genericRnf
+instance NFData OneExprBoolCondType      where rnf = genericRnf
+instance NFData NoExprBoolCondType      where rnf = genericRnf
+instance NFData ServerAction      where rnf = genericRnf
+instance NFData StreamSource      where rnf = genericRnf
+instance NFData HAlignType      where rnf = genericRnf
+instance NFData ASTime      where rnf = genericRnf
+instance NFData CondFormatRule      where rnf = genericRnf
+instance NFData EvalHeader      where rnf = genericRnf
+instance NFData Bloomberg      where rnf = genericRnf
+instance NFData ASWindow      where rnf = genericRnf
+instance NFData Selection      where rnf = genericRnf
+instance NFData MutateType      where rnf = genericRnf
+instance NFData EvalInstruction      where rnf = genericRnf

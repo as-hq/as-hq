@@ -1,14 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 module AS.Handlers.Misc where
 
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
+import qualified Data.Map as M
+import Data.List
+import Data.Maybe
+import qualified Network.WebSockets as WS
+import Control.Exception
+import Control.Applicative
+import Control.Lens
+import Control.Monad.Trans.Either
+import Database.Redis (Connection)
+
 import AS.Prelude
 import Prelude()
-
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.DB hiding (Clear)
+import AS.Types.Graph
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.CondFormat
@@ -22,18 +34,13 @@ import qualified AS.Types.BarProps as BP
 
 import AS.Config.Constants
 import AS.Config.Settings
-
 import AS.Handlers.Eval
 import AS.Handlers.Paste
 import AS.Handlers.Delete
-
 import AS.Eval.CondFormat
 import AS.Eval.Core
-
 import AS.Logging
 import AS.Reply
-
-import Database.Redis (Connection)
 
 import qualified AS.Dispatch.Core         as DP
 import qualified AS.Util                  as U
@@ -41,32 +48,11 @@ import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
 import qualified AS.Serialize             as S
-
 import qualified AS.DB.Transaction        as DT
 import qualified AS.DB.API                as DB
-import qualified AS.DB.Clear              as DC
+import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
-
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text as T
-import qualified Data.Map as M
-import Data.List
-import Data.Maybe
-
-import qualified Database.Redis as R
-import qualified Network.WebSockets as WS
-
-import Control.Exception
-import Control.Applicative
-import Control.Lens
-import Control.Monad.Trans.Either
-
--- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
--- in the database, those blank cells will not get passed to the user (and those cells don't get
--- deleted on frontend), meaning we have to ensure that deleted cells are manually wiped from the
--- frontend store the moment they get deleted.
--- 
--- Also, might want to eventually send back things besides cells as well. 
+import qualified AS.DB.Clear              as DC
 
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 

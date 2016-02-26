@@ -311,7 +311,7 @@ export default {
       let dY = self.getASSpreadsheet().getVisibleRows();
       self.getASSpreadsheet().shiftAndResetSelection({ dc: 0, dr: dY });
     });
-    SU.add('grid', 'grid_delete', 'Del/Backspace', (wildcard: string) => {
+    SU.add('grid', 'grid_delete', 'Del|Backspace', (wildcard: string) => {
       SelectionStore.withActiveSelection((sel) => {
         let rng = sel.range;
         API.deleteRange(rng);

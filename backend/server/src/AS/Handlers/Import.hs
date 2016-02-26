@@ -12,6 +12,7 @@ import AS.Types.User
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.DB hiding (Clear)
+import AS.Types.Graph
 import AS.Reply
 
 import qualified AS.Parsing.Read          as PR

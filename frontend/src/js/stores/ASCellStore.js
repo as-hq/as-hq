@@ -63,7 +63,7 @@ class ASCellStore extends ReduceStore<CellStoreData> {
       case 'GOT_UPDATED_CELLS': {
         // Wait for range descriptors to be updated.
         Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
-        return updateCells(state, action.newCells);
+        return updateCells(state, action.newCells, action.oldLocs);
       }
 
       case 'CLEARED': {
@@ -189,21 +189,20 @@ function removeIndex(data: CellStoreData, loc: ASIndex): CellStoreData {
   let data_ = data;
   const emptyCell = ASCell.emptyCellAt(loc);
   if (locationExists(data_, loc)) {
-    data_ = data.deleteIn(['allCells', loc.sheetId, loc.col, loc.row]);
+    data_ = data_.deleteIn(['allCells', loc.sheetId, loc.col, loc.row]);
   }
 
   return unsetErrors(data_, emptyCell);
 }
 
 
-// Replace cells with empty ones
-function removeCells(
+function removeIndices(
   data: CellStoreData,
-  cells: Array<ASCell>
+  locs: Array<ASIndex>
 ): CellStoreData {
   let data_ = data;
-  cells.forEach((cell) => {
-    data_ = removeIndex(data, cell.location);
+  locs.forEach((loc) => {
+    data_ = removeIndex(data_, loc);
   });
   return data_;
 }
@@ -211,19 +210,21 @@ function removeCells(
 // Function to update cell related objects in store.
 function updateCells(
   data: CellStoreData,
-  cells: Array<ASCell>
+  cells: Array<ASCell>,
+  oldLocs: Array<ASLocation>
 ): CellStoreData {
-  let removedCells = [];
+  const removedIndices = [];
   let data_ = data;
   cells.forEach(cell => {
     if (!cell.isEmpty()) {
       data_ = setCell(data_, cell);
     } else {
       // filter out all the blank cells passed back from the store
-      removedCells.push(cell);
+      removedIndices.push(cell.location);
     }
   });
-  return removeCells(data_, removedCells);
+  data_ = removeIndices(data_, removedIndices);
+  return removeLocations(data_, oldLocs);
 }
 
 // Remove cells at a list of ASLocation's.

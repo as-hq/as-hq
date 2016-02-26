@@ -15,7 +15,6 @@ import AS.Eval.Core (evaluateHeader)
 
 import AS.DB.API
 import AS.DB.Eval
-import AS.DB.Expanding
 import AS.DB.Transaction
 import AS.Reply
 

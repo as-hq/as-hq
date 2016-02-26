@@ -20,8 +20,7 @@ import AS.Types.Network
 
 import AS.Parsing.Show
 
-import AS.DB.API (getEvalHeader)
-import AS.DB.Sheets (getAllSheets)
+import AS.DB.API (getEvalHeader, getAllSheets)
 
 import Data.Maybe (fromJust)
 import Data.Aeson 

@@ -7,11 +7,11 @@ import AS.Types.Cell
 import AS.Types.DB
 import AS.Types.Network
 import AS.Config.Settings
+import AS.Types.Graph 
 
 import AS.DB.API as DB
-import AS.DB.Clear as DC
-import AS.DB.Expanding as DE
 import AS.DB.Graph as G (recompute)
+import AS.DB.Clear as DC
 
 import Control.Lens hiding ((.=))
 
@@ -36,6 +36,6 @@ importSheetData settings conn (ExportData cells bars descs condFormatRules heade
   DB.setCells conn cells
   G.recompute (settings^.graphDbAddress) conn
   mapM_ (DB.setBar conn) bars
-  mapM_ (DE.setDescriptor conn) descs
+  mapM_ (DB.setDescriptor conn) descs
   DB.setCondFormattingRules conn sid condFormatRules
   mapM_ (DB.setEvalHeader conn) headers

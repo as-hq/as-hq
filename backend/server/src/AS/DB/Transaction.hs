@@ -9,11 +9,11 @@ import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Updates
 import AS.Types.Network
+import AS.Types.Commits
 
 import qualified AS.DB.Graph as G
 import qualified AS.Serialize as S
 import AS.DB.API as DB
-import AS.DB.Expanding
 import AS.DB.Internal as DI
 import AS.Dispatch.Expanding as DE (recomposeCompositeValue)
 import AS.Logging
@@ -45,7 +45,7 @@ updateDBWithContext state src ctx =
   in do
     commitWithDecoupleInfo <- lift $ evalContextToCommitWithDecoupleInfo conn (srcSheetId src) ctx
     lift $ pushCommitWithDecoupleInfo graphAddress conn src commitWithDecoupleInfo
-    if (didDecouple commitWithDecoupleInfo)
+    if didDecouple commitWithDecoupleInfo
       then left DecoupleAttempt
       else return $ baseCommit commitWithDecoupleInfo
 
@@ -111,26 +111,26 @@ deleteLocsPropagated addr conn locs = do
 -- Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: GraphAddress -> Connection -> CommitSource -> IO (Maybe ASCommit)
 undo addr conn src = do
-  let pushKey = toRedisFormat . PushCommitKey $ src
-      popKey = toRedisFormat . PopCommitKey $ src
+  let pushKey = S.encode $ PushCommitKey $ src
+      popKey = S.encode $ PopCommitKey $ src
       sid = srcSheetId src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
-    return $ S.maybeDecode =<< commit
+    return $ commit >>= S.maybeDecode >>= dbValToCommit
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated addr conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
 
 redo :: GraphAddress -> Connection -> CommitSource -> IO (Maybe ASCommit)
 redo addr conn src = do
-  let pushKey = toRedisFormat . PushCommitKey $ src
-      popKey = toRedisFormat . PopCommitKey $ src
-      sid = srcSheetId src
+  let pushKey = S.encode $ PushCommitKey $ src
+      popKey = S.encode $ PopCommitKey $ src
+      sid = srcSheetId $ src
   mCommit <- runRedis conn $ do
     Right result <- lpop popKey
     case result of
       Just commit -> do
         rpush pushKey [commit]
-        return $ S.maybeDecode commit
-      _ -> return Nothing
+        return $ S.maybeDecode commit >>= dbValToCommit
+      Nothing -> return Nothing
   maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated addr conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
 
 applyUpdateToDB :: GraphAddress -> Connection -> ASSheetId -> SheetUpdate -> IO ()
@@ -159,10 +159,11 @@ applyUpdateToDBMaybePropagated shouldPropagate addr conn sid u@(SheetUpdate cu b
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 pushCommit conn src c = runRedis conn $ do
-  let pushKey = toRedisFormat . PushCommitKey $ src
-      popKey = toRedisFormat . PopCommitKey $ src
+  let pushKey = S.encode $ PushCommitKey $ src
+      popKey = S.encode $ PopCommitKey $ src
+      sid = srcSheetId src
   TxSuccess _ <- multiExec $ do
-    rpush pushKey [S.encode c]
+    rpush pushKey [S.encode $ CommitValue c]
     del [popKey]
   return ()
 
@@ -179,14 +180,3 @@ updateDBWithCommit addr conn src c = do
   applyUpdateToDB addr conn (srcSheetId src) (sheetUpdateFromCommit c)
   pushCommit conn src c
 
--- Each commit source has a temp commit, used for decouple warnings
--- Key: commitSource + "tempcommit", value: ASCommit bytestring
-getTempCommit :: Connection -> CommitSource -> IO (Maybe ASCommit)
-getTempCommit conn src = do 
-  maybeBStr <- runRedis conn $ $fromRight <$> get (toRedisFormat . TempCommitKey $ src)
-  return $ S.maybeDecode =<< maybeBStr
-  
-setTempCommit :: Connection  -> CommitSource -> ASCommit -> IO ()
-setTempCommit conn src c = do 
-  runRedis conn $ set (toRedisFormat . TempCommitKey $ src) (S.encode c) 
-  return ()

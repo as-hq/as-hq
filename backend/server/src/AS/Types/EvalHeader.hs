@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module AS.Types.EvalHeader where
 
 import AS.Prelude
@@ -16,7 +18,7 @@ data EvalHeader = EvalHeader { _evalHeaderSheetId :: ASSheetId
                              , _evalHeaderLang    :: ASLanguage
                              , _evalHeaderExpr    :: String
                              } 
-                             deriving (Show, Read, Eq, Data, Typeable, Generic)
+                             deriving (Show, Read, Eq, Data, Typeable, Generic)                           
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances

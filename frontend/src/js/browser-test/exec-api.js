@@ -723,7 +723,7 @@ export function shouldNotHaveProp(loc: string, prop: string): Prf {
 
 export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): Prf {
   return cellMessageShouldSatisfy(loc, (cs) => {
-    logDebug(`${loc} should satisfy ${fn.toString()}`);
+    console.log(`${loc} should satisfy ${fn.toString()}`);
 
     expect(cs.length).not.toBe(0, 'which was the length of the cell value message');
     if (cs.length == 0) {
@@ -731,7 +731,7 @@ export function valueShouldSatisfy(loc: string, fn: (val: ASValue) => boolean): 
     }
 
     let [{ cellValue }] = cs;
-    logDebug(`Cell value: ${JSON.stringify(cellValue)}`);
+    console.log(`Cell value: ${JSON.stringify(cellValue)}`);
     expect(fn(cellValue)).toBe(true, `to satisfy ${fn.toString()} with ${cellValue}`);
   });
 }

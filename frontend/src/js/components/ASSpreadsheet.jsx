@@ -646,7 +646,6 @@ export default class ASSpreadsheet extends React.Component<{}, Props, State> {
         ExpActionCreator.handleGridChange(newStr, cursorPos);
       } else {
         // Try shortcuts
-        logDebug("Grid key down, trying shortcut");
         ShortcutUtils.tryGridShortcut(e);
       }
     } else if (KeyUtils.isNavKey(e)) { // nav key from grid

@@ -16,7 +16,7 @@ import qualified Database.Redis as R
 
 import AS.Types.Cell
 import AS.Types.Locations
-import AS.Types.DB
+import AS.Types.Graph
 import AS.Types.Eval
 import AS.Types.Network
 

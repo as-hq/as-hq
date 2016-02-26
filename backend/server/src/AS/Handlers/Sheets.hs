@@ -1,39 +1,38 @@
 module AS.Handlers.Sheets where
 
+import qualified Data.Set as Set
+import Data.Maybe (catMaybes)
+import Database.Redis
+import Control.Lens
+import Control.Monad.Trans.Either
+
 import AS.Prelude
 import Prelude()
-
-import AS.Config.Settings (headerLangs)
-
 import AS.Types.Network
 import AS.Types.Locations
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Types.User hiding (userId)
 import AS.Types.Window
+import AS.Types.Commits
 
 import AS.Serialize
 import AS.Eval.Core
 import AS.Reply
-import qualified AS.Users                 as US
-
 import AS.DB.API
 import AS.DB.Users
-import AS.DB.Sheets
-import qualified Data.Set as Set
+import qualified AS.Users as US
+import AS.Config.Settings (headerLangs)
 
-import Database.Redis
-import Control.Lens
-import Control.Monad.Trans.Either
 
 handleGetSheets :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleGetSheets mid uc state = do
   let conn = state^.dbConn
   user <- $fromJust <$> lookupUser conn (userId uc)
-  let sheetKeys = map (toRedisFormat . SheetKey) $ Set.toList (user^.sheetIds)
-  serializedSheets <- $fromRight <$> runRedis conn (mget sheetKeys)
-  let sheets = map ($fromJust . (maybeDecode =<<)) serializedSheets
-  sendToOriginal uc $ ClientMessage mid $ SetMySheets sheets
+  let sids = Set.toList $ user^.sheetIds
+  sheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn sids
+  sharedSheets <- getS SharedSheetsKey dbValToSheet conn 
+  sendToOriginal uc $ ClientMessage mid $ SetMySheets $ sheets ++ sharedSheets
 
 handleNewSheet :: MessageId -> ASUserClient -> ServerState -> SheetName -> IO ()
 handleNewSheet mid uc state name = do

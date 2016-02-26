@@ -16,23 +16,16 @@ import AS.Logging
 import AS.Parsing.Common (tryParseListNonIso)
 import AS.Parsing.Read (integer)
 import AS.Parsing.Show (showPrimitive)
+import qualified AS.Serialize as S
 
 import qualified Data.List                     as L
 import qualified Data.Text                     as T
 import           Data.List.Split
-import Data.Word (Word8)
 import Data.Maybe (fromJust, catMaybes)
+import Data.SafeCopy (SafeCopy)
 
-import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
-import qualified Text.Show.ByteString          as BS
-import qualified Data.ByteString.Internal      as BI
-import qualified Data.ByteString.Lazy          as BL
-import qualified Data.ByteString.Lazy.Internal as BLI
-import qualified Data.ByteString.Unsafe        as BU
-import           Foreign.ForeignPtr
-import           Foreign.Ptr
-import           Foreign.C.String(CString, peekCString)
+import qualified Data.ByteString.Char8         as BC
 
 import Database.Redis hiding (decode, Message)
 
@@ -41,11 +34,6 @@ import Control.Concurrent
 import Control.Monad
 import Control.Monad.Trans
 import Control.Lens
-
-import Foreign
-import Foreign.C.Types
-import Foreign.C.String(CString(..))
-import Foreign.C
 
 import Network.Socket.Internal
 
@@ -77,15 +65,6 @@ getUniquePrefixedName pref strs = pref ++ (show idx)
       [] -> 1
       _  -> (L.maximum idxs) + 1
 
-getKeysByType :: Connection -> RedisKeyType -> IO [B.ByteString]
-getKeysByType conn = (getKeysByPattern conn) . keyPattern
-
-getKeysInSheetByType :: Connection -> ASSheetId -> RedisKeyType -> IO [B.ByteString]
-getKeysInSheetByType conn sid kt = getKeysByPattern conn $ keyPatternBySheet kt sid
-
-getKeysByPattern :: Connection -> String -> IO [B.ByteString]
-getKeysByPattern conn pattern = runRedis conn $ $fromRight <$> keys (BC.pack pattern)
-
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 
@@ -103,14 +82,3 @@ toDecoupled c = c
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
 toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
-
-----------------------------------------------------------------------------------------------------------------------
--- DB conversions
-
-bStrToSheet :: Maybe B.ByteString -> Maybe ASSheet
-bStrToSheet (Just b) = Just ($read (BC.unpack b) :: ASSheet)
-bStrToSheet Nothing = Nothing
-
-bStrToWorkbook :: Maybe B.ByteString -> Maybe ASWorkbook
-bStrToWorkbook (Just b) = Just ($read (BC.unpack b) :: ASWorkbook)
-bStrToWorkbook Nothing = Nothing

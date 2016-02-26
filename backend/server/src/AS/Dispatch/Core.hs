@@ -16,6 +16,7 @@ import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Commits
 import AS.Types.DB
+import AS.Types.Graph
 import AS.Types.Eval
 import AS.Types.Formats
 import AS.Types.Locations
@@ -29,7 +30,6 @@ import AS.DB.Eval
 import qualified AS.Eval.Core       as EC (evaluateLanguage)
 import qualified AS.DB.API          as DB
 import qualified AS.DB.Transaction  as DT
-import qualified AS.DB.Expanding    as DX
 import qualified AS.DB.Internal     as DI
 import AS.Util                      as U
 import AS.Eval.Middleware           as EM
@@ -152,13 +152,14 @@ dispatch state roots oldContext descSetting = do
 -- TODO: throw exceptions for permissions/locking
 -- Currently, the graph returns only indices as descendants
 getEvalLocs :: ServerState -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
-getEvalLocs state origCells descSetting = do
-  let locs = mapCellLocation origCells
-  vLocs <- lift $ DB.getVolatileLocs (state^.dbConn) -- Accounts for volatile cells being reevaluated each time
-  let graphAddress = state^.appSettings.graphDbAddress
-  case descSetting of 
-    ProperDescendants -> G.getProperDescendantsIndices graphAddress $ (locs ++ vLocs)
-    DescendantsWithParent -> G.getDescendantsIndices graphAddress $ (locs ++ vLocs)
+getEvalLocs state origCells descSetting = getter graphAddress locs
+  where
+    locs = mapCellLocation origCells
+    graphAddress = state^.appSettings.graphDbAddress
+    getter = case descSetting of 
+      ProperDescendants -> G.getProperDescendantsIndices 
+      DescendantsWithParent -> G.getDescendantsIndices 
+
 
 -- | Given a set of locations to eval, return the corresponding set of cells to perform
 -- the evaluations in. We look up locs in the DB, but give precedence to EvalContext (if a cell is in the context, we use that instead, 

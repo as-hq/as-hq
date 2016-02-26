@@ -14,6 +14,10 @@ import Data.SafeCopy
 
 import Control.Lens
 
+import Data.SafeCopy
+import Control.DeepSeq
+import Control.DeepSeq.Generics (genericRnf)
+
 type ASUserId = Text
 
 data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text}
@@ -41,6 +45,12 @@ asToFromJSON ''ASUserGroup
 asToFromJSON ''ASUserEntity
 asToFromJSON ''ASPermissions
 
+instance NFData ASPermissions
+instance NFData ASUserEntity
+instance NFData ASUserGroup
+deriveSafeCopy 1 'base ''ASPermissions
+deriveSafeCopy 1 'base ''ASUserEntity
+deriveSafeCopy 1 'base ''ASUserGroup
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
@@ -57,3 +67,4 @@ isInEntity uid (EntityUser userid) = uid == userid
 hasPermissions :: ASUserId -> ASPermissions -> Bool
 hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
 hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
+

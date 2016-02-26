@@ -22,15 +22,13 @@ library
                        AS.Serialize
                        AS.Async
                        AS.DB.API
+                       AS.DB.Clear 
                        AS.DB.Users
-                       AS.DB.Sheets
                        AS.DB.Eval
-                       AS.DB.Expanding
                        AS.DB.Export
                        AS.DB.Transaction
                        AS.DB.Internal
                        AS.DB.Graph
-                       AS.DB.Clear
                        AS.Dispatch.Core
                        AS.Dispatch.Expanding
                        AS.Clients
@@ -75,6 +73,7 @@ library
                        AS.Types.Commits
                        AS.Types.CondFormat
                        AS.Types.DB
+                       AS.Types.Graph
                        AS.Types.Errors
                        AS.Types.Eval
                        AS.Types.EvalHeader
@@ -186,6 +185,7 @@ executable alphasheets-exe
                      , directory
   default-language:    Haskell2010
 
+
 benchmark alphasheets-bench
   type:               exitcode-stdio-1.0
   hs-source-dirs:     bench
@@ -210,6 +210,28 @@ benchmark alphasheets-bench
                     , hashtables
                     , lens
   default-language:   Haskell2010
+
+executable alphasheets-migrate
+  hs-source-dirs:      migrate
+  main-is:             Main.hs
+  ghc-options:         -O2
+                       -threaded
+                       -with-rtsopts=-N
+  build-depends:       base
+                     , alphasheets
+                     , text
+                     , bytestring
+                     , hedis
+                     , either
+                     , split
+                     , containers
+                     , mtl
+                     , deepseq
+                     , deepseq-generics
+                     , safecopy
+                     , lens
+  default-language:    Haskell2010
+
 
 test-suite alphasheets-test
   type:                exitcode-stdio-1.0

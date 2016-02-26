@@ -17,6 +17,11 @@ import LoginStore from './stores/ASLoginStore';
 // XXX(joel) - only include in dev
 window.Perf = require('react-addons-perf');
 
+import API from './actions/ASApiActionCreators';
+window.API = API;
+window.cells = require('./stores/ASCellStore');
+window.idx = require('./classes/ASIndex');
+
 const Index = ({children}) => (
   <div className="full">
     {React.Children.only(children)}

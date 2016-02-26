@@ -39,7 +39,7 @@ data ASCommit = Commit { cellDiff :: CellDiff
                        , time :: ASTime }
                        deriving (Show, Read, Generic)
 
-data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId } deriving (Generic)
+data CommitSource = CommitSource { srcSheetId :: ASSheetId, srcUserId :: ASUserId } deriving (Show, Generic)
 
 type UpdateTransform = SheetUpdate -> SheetUpdate
 

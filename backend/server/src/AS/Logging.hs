@@ -16,7 +16,7 @@ module AS.Logging
 
 import AS.Types.Eval
 import AS.Types.Commits
-import AS.Types.DB
+import AS.Types.Graph
 import AS.Config.Settings as S
 
 import qualified Data.Text as T
