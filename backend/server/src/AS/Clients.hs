@@ -17,6 +17,7 @@ import AS.Handlers.Eval
 import AS.Handlers.JumpSelect
 import AS.Handlers.Misc
 import AS.Handlers.Import
+import AS.Handlers.Sheets
 
 import qualified AS.Daemon as DM
 import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
@@ -36,11 +37,11 @@ import Control.Lens hiding ((.=))
 
 shouldLogMessage :: ServerMessage -> Bool
 shouldLogMessage (ServerMessage _ (UpdateWindow _)) = False
-shouldLogMessage (ServerMessage _ (Open _))         = False
-shouldLogMessage _                                = True
+shouldLogMessage (ServerMessage _ (OpenSheet _)) = False
+shouldLogMessage _ = True
 
 shouldPrintMessage :: ServerMessage -> Bool
-shouldPrintMessage _                           = True
+shouldPrintMessage _ = True
 
 instance Client ASUserClient where
   clientType _ = UserType
@@ -67,7 +68,9 @@ instance Client ASUserClient where
     let mid = serverMessageId message 
     case (serverAction message) of
       -- New                -> handleNew user state payload
-      Open sid                    -> handleOpen mid user state sid
+      OpenSheet sid                    -> handleOpenSheet mid user state sid
+      NewSheet sheetName               -> handleNewSheet mid user curState sheetName
+      GetMySheets                 -> handleGetSheets mid user curState
       -- Close                 -> handleClose user curState payload
       UpdateWindow win            -> handleUpdateWindow mid user curState win
       -- Import                -> handleImport user curState payload

@@ -18,13 +18,16 @@ type ASUserId = Text
 
 data ASUserGroup = Group {groupMembers :: [ASUserId], groupAdmins :: [ASUserId], groupName :: Text}
   deriving (Show, Read, Eq, Generic)
-data ASUserEntity = EntityGroup ASUserGroup |
-                EntityUser ASUserId
-                deriving (Show, Read, Eq, Generic)
+  
+data ASUserEntity = 
+    EntityGroup ASUserGroup 
+  | EntityUser ASUserId
+  deriving (Show, Read, Eq, Generic)
 
-data ASPermissions = Blacklist [ASUserEntity] |
-                     Whitelist [ASUserEntity]
-                      deriving (Show, Read, Eq, Generic)
+data ASPermissions = 
+    Blacklist [ASUserEntity]
+  | Whitelist [ASUserEntity]
+  deriving (Show, Read, Eq, Generic)
 
 data ASUser = User {_sheetIds :: Set ASSheetId, _userId :: ASUserId, _lastOpenSheet :: ASSheetId}
   deriving (Show, Read, Eq, Generic)

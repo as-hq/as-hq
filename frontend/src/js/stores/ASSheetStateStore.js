@@ -37,7 +37,7 @@ type SheetStateStoreData = {
   decoupleAttempt: boolean;
   xscroll: number;
   yscroll: number;
-  openSheets: Array<ASSheet>;
+  mySheets: Array<ASSheet>;
   currentSheetId: ?string;
   clipboard: {
     area: ?ASSelection;
@@ -51,7 +51,7 @@ let _data: SheetStateStoreData = {
   decoupleAttempt: false,
   xscroll: 0,
   yscroll: 0,
-  openSheets: [],
+  mySheets: [],
   currentSheetId: null,
   clipboard: {
     area: null,
@@ -69,13 +69,18 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         console.warn('login success, got sheetId: ', action.sheetId);
         ASSheetStateStore.emitChange();
         break;
-      case 'FIND_INCREMENTED':
+
+      case 'CHANGED_SHEET':
+        _data.currentSheetId = action.sheetId;
+        console.warn('sheet changed to ', action.sheetId);
+        ASSheetStateStore.emitChange();
         break;
-      case 'FIND_DECREMENTED':
+
+      case 'GOT_MY_SHEETS':
+        _data.mySheets = action.sheets;
+        ASSheetStateStore.emit('GOT_MY_SHEETS');
         break;
-      case 'GOT_FIND':
-        // do nothing here on find; that's in the find store
-        break;
+
       case 'EVAL_TRIED_TO_DECOUPLE':
         _data.decoupleAttempt = true;
         ASSheetStateStore.emitChange();
@@ -134,6 +139,21 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
 
   getExternalError() {
     return _data.externalError;
+  },
+
+  getMySheets(): Array<ASSheet> {
+    return _data.mySheets;
+  },
+
+  getCurrentSheetName(): string {
+    const sheet = _data.mySheets.find(sheet =>
+      sheet.sheetId === _data.currentSheetId
+    );
+    if (!! sheet) {
+      return sheet.sheetName;
+    } else {
+      return '';
+    }
   },
 
   /**************************************************************************************************************************/

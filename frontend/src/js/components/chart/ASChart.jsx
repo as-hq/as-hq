@@ -54,11 +54,13 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
   }
 
   componentDidMount() {
-    this._cellStoreToken = CellStore.addListener(() => this._onDataChange());
+    // TODO (anand) fix
+    // this._cellStoreToken = CellStore.addListener(() => this._onDataChange());
   }
 
   componentWillUnmount() {
-    this._cellStoreToken.remove();
+    // TODO (anand) fix
+    // this._cellStoreToken.remove();
   }
 
   componentWillReceiveProps(newProps: ASChartProps) {
@@ -78,10 +80,12 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
       && location.sheetId === this.props.sheetId;
   }
 
-  // data binding
+  // NOTE: there is no longer a concept of 'lastUpdatedCells' in
+  // ASCellStore, so this method is deprecated for now. Anand 2/23
   _onDataChange() {
-    let filteredCells = CellStore.getLastUpdatedCells().filter(this._isListening.bind(this));
-    this._updateData(filteredCells);
+    throw new Error('charts not implemented for new CellStore!');
+    // let filteredCells = CellStore.getLastUpdatedCells().filter(this._isListening.bind(this));
+    // this._updateData(filteredCells);
   }
 
   _getRelativeIndex({col, row}: ASIndex): ({ dr: number; dc: number; }) {

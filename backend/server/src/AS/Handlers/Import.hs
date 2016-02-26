@@ -3,6 +3,7 @@ module AS.Handlers.Import where
 import AS.Prelude
 import Prelude()
 
+import AS.Config.Constants (import_message_id)
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Network
@@ -10,18 +11,44 @@ import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Eval
 import AS.Types.Commits
-import Control.Concurrent
-import Data.Either
-
+import AS.Types.DB hiding (Clear)
 import AS.Reply
 
+import qualified AS.Parsing.Read          as PR
+import qualified AS.Util                  as U
+import qualified AS.Serialize             as S
+import qualified AS.DB.Transaction        as DT 
+import qualified AS.DB.Export             as DX
+
+import Data.Either
 import qualified Data.Csv as CSV
 import qualified Data.Vector as V
-import qualified AS.Parsing.Read as PR
 import qualified Data.ByteString.Lazy as BL
-import qualified AS.DB.Transaction as DT 
-
 import Control.Lens hiding ((.=))
+import Control.Concurrent
+import qualified Network.WebSockets as WS
+
+
+-- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
+-- import/export seems overkill given that it's a temporarily needed solution)
+-- so we just send alphasheets files as binary data over websockets and immediately load
+-- into the current sheet.
+handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
+handleImportBinary c mstate bin = do
+  state <- readState mstate
+  case (S.decodeLazy bin :: Either String ExportData) of
+    Left s ->
+      let msg = failureMessage import_message_id $ "could not process binary file, decode error: " ++ s
+      in U.sendMessage msg (clientConn c)
+    Right exportedData -> do
+      DX.importSheetData (state^.appSettings) (state^.dbConn) exportedData
+      let msg = ClientMessage import_message_id $ AskOpenSheet $ exportDataSheetId exportedData
+      U.sendMessage msg (clientConn c)
+
+handleExport :: ASUserClient -> ServerState -> ASSheetId -> IO ()
+handleExport uc state sid = do
+  exported <- DX.exportSheetData (state^.dbConn) sid
+  WS.sendBinaryData (userConn uc) (S.encodeLazy exported)
 
 -- used for importing arbitrary files 
 -- handleImport :: ASUserClient -> State -> ASPayload -> IO ()

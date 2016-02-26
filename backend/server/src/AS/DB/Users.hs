@@ -6,7 +6,7 @@ import Prelude()
 import AS.Config.Constants (new_sheet_name)
 import AS.Serialize (encode, maybeDecode) 
 
-import AS.Types.Network
+import AS.Types.Network hiding (userId)
 import AS.Types.User
 import AS.Types.Locations
 import AS.Types.Window
@@ -22,6 +22,7 @@ import Data.UUID (toString)
 
 import Database.Redis
 import qualified Network.WebSockets as WS
+import Control.Monad (void)
 
 import Control.Lens hiding (set)
 
@@ -42,9 +43,26 @@ lookupUser conn uid = runRedis conn $ do
   maybeUser <- $fromRight <$> get (toRedisFormat $ UserKey uid) 
   return $ maybeDecode =<< maybeUser
 
+associateSheetWithUser :: Connection -> ASUserId -> ASSheetId -> IO ()
+associateSheetWithUser conn uid sid = modifyUser conn uid f
+  where f u = u & sheetIds %~ (Set.insert sid)
+
+modifyUser :: Connection -> ASUserId -> (ASUser -> ASUser) -> IO ()
+modifyUser conn uid f = do
+  user <- lookupUser conn uid
+  case user of 
+    Nothing -> $error "Cannot modify nonexistent user"
+    Just u -> setUser conn $ f u
+
 createUser :: Connection -> ASUserId -> IO ASUser
 createUser conn uid = do
   sid <- sheetId <$> createSheet conn new_sheet_name
   let user = User (Set.fromList [sid]) uid sid
-  runRedis conn $ set (toRedisFormat . UserKey $ uid) (encode user)
+  setUser conn user
   return user
+
+setUser :: Connection -> ASUser -> IO ()
+setUser conn user = runRedis conn $ void $ 
+  set 
+    (toRedisFormat . UserKey . view userId $ user)
+    (encode user)

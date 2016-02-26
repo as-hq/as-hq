@@ -93,7 +93,7 @@ const styles = {
   },
 
   contentPane: {
-    height: 'calc(100% - ${topBarHeight}px)',
+    height: `calc(100% - ${topBarHeight}px)`,
     overflow: 'auto'
   },
 

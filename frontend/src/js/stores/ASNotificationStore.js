@@ -7,6 +7,8 @@ import shortid from 'shortid';
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
 
+import NotificationRecord from '../classes/Notification';
+
 // The data structure is a stack of notification IDs. The 'ADD_NOTIFICATION'
 // action will push to the top of the stack, and any listening components
 // will peek at the top to get the last added notification.
@@ -16,9 +18,10 @@ const NotificationStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
       case 'ADD_NOTIFICATION': {
-        const {uid} = action.spec;
-        _notifications.push(uid);
-        NotificationStore.emit('ADD', action.spec);
+        const notif = new NotificationRecord(action.spec);
+        // $FlowFixMe
+        _notifications.push(notif.uid);
+        NotificationStore.emit('ADD', notif);
         break;
       }
 

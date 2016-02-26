@@ -82,7 +82,8 @@ import * as HeaderActions from './ASHeaderActionCreators';
 
 import {setConnectedState} from '../actions/ASConnectionActionCreators';
 import LoginActions from '../actions/ASLoginActionCreators';
-import * as NotificationActions from '../actions/ASNotificationActionCreators';
+import NotificationActions from '../actions/ASNotificationActionCreators';
+import SheetActions from '../actions/ASSheetActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
 
@@ -213,28 +214,24 @@ pws.onmessage = (event: MessageEvent) => {
     //   break;
     case 'NoAction':
       break;
-    case 'SetInitialProperties':
-      dispatchSheetUpdate(action.contents[0]);
-      HeaderActions.resetData(action.contents[1]);
+    case 'SetSheetData':
+      SheetActions.changeSheet(action.updateSheetId);
+      SheetActions.resetData(action.update);
+      HeaderActions.resetData(action.headers);
       break;
     case 'UpdateSheet':
-      dispatchSheetUpdate(action.contents);
+      SheetActions.updateSheet(action.contents);
       break;
     case 'ClearSheet':
-      Dispatcher.dispatch({
-        _type: 'CLEARED_SHEET',
-        sheetId: action.contents
-      });
+      SheetActions.clearSheet(action.contents);
+      break;
+    case 'SetMySheets':
+      SheetActions.setMySheets(action.contents);
       break;
     case 'AskDecouple':
-      Dispatcher.dispatch({
-        _type: 'EVAL_TRIED_TO_DECOUPLE'
-      });
+      SheetActions.decouple();
       // Clear all progress indicators if we received a Decouple message.
-      // The reasoning is that Decouple messages are currently not tied
-      // to any particular cell in backend, since currently the logic
-      // for producing the Decouple message is simply to check if any existing
-      // coupled cells morphed to regular cells. Thus, the messageId sent for
+      // The messageId sent for
       // evaluation and the id after received after decoupling are not the same,
       // and cannot be reconciled. The current workaround is to clear all progress
       // upon receiving a Decouple message.
@@ -258,7 +255,6 @@ pws.onmessage = (event: MessageEvent) => {
         NotificationActions.addNotification({
           uid: timeoutMessageId,
           title: 'Cancel operation',
-          autoDismiss: 0, // set timeout to 0, do not auto-dismiss
           message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
           level: 'warning',
           action: {
@@ -267,10 +263,21 @@ pws.onmessage = (event: MessageEvent) => {
           }
         });
       }
-
       break;
-    case 'AskUserToOpen':
-      alert("Please refresh, and load the sheet named " + action.contents);
+    case 'AskOpenSheet':
+      NotificationActions.addNotification({
+        title: 'Open sheet?',
+        position: 'tc',
+        message: 'Would you like to open the sheet just created or imported?',
+        level: 'info',
+        action: {
+          label: 'OK',
+          callback: () => {
+            SheetActions.changeSheet(action.contents);
+            API.openSheet(action.contents);
+          }
+        }
+      });
       break;
     case 'MakeSelection':
       Dispatcher.dispatch({
@@ -300,59 +307,16 @@ pws.onmessage = (event: MessageEvent) => {
       LoginActions.onLoginSuccess(authUserId, defaultSheetId);
       break;
     case 'AuthFailure':
-      NotificationActions.addSimpleNotification(
-        'Authentication failure: ' + action.failureReason,
-        3
-      );
+      NotificationActions.addNotification({
+        title: 'Authentication failure: ' + action.failureReason,
+        level: 'error',
+        autoDismiss: 3
+      });
       break;
   }
 };
 
-/**************************************************************************************************************************/
-/* Helpers */
-
-function updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
-  return update.newVals.length == 0 && update.oldKeys.length == 0;
-}
-
-function dispatchSheetUpdate(sheetUpdate: SheetUpdate) {
-  if (!updateIsEmpty(sheetUpdate.descriptorUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
-      newRangeDescriptors: sheetUpdate.descriptorUpdates.newVals,
-      oldRangeKeys: sheetUpdate.descriptorUpdates.oldKeys
-    });
-  }
-
-  if (!updateIsEmpty(sheetUpdate.cellUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_CELLS',
-      newCells: ASCell.makeCells(sheetUpdate.cellUpdates.newVals),
-      oldLocs: U.Location.makeLocations(sheetUpdate.cellUpdates.oldKeys)
-    });
-  }
-
-  if (!updateIsEmpty(sheetUpdate.barUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_BARS',
-      newBars: sheetUpdate.barUpdates.newVals,
-      oldBarLocs: sheetUpdate.barUpdates.oldKeys
-    });
-  }
-
-  if (!updateIsEmpty(sheetUpdate.condFormatRuleUpdate)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RULES',
-      newRules:
-        sheetUpdate.condFormatRuleUpdate.newVals.map(
-          (r) => new ASCondFormatRule(r)
-        ),
-      oldRuleIds: sheetUpdate.condFormatRuleUpdate.oldKeys,
-    });
-  }
-}
-
-/**************************************************************************************************************************/
+// *********************************************************************************************************************/
 /* API */
 
 const API_test = {
@@ -411,12 +375,6 @@ const API = {
 
   /**************************************************************************************************************************/
   /* Sending admin-related requests to the server */
-
-  getWorkbooks() {
-    // Not supporting right now (Alex 12/29)
-    // let msg = U.Conversion.makeServerMessage('Get', 'PayloadList', 'WorkbookSheets');
-    // API.sendMessageWithAction(msg);
-  },
 
   close() {
     logDebug('Sending close message');
@@ -528,15 +486,6 @@ const API = {
       tag: "Redo",
       contents: []
     };
-    API.sendMessageWithAction(msg);
-  },
-
-  clearSheet() {
-    let sid = SheetStateStore.getCurrentSheetId(),
-        msg: ClearSheetServer = {
-          tag: "ClearSheetServer",
-          contents: sid
-        };
     API.sendMessageWithAction(msg);
   },
 
@@ -852,31 +801,37 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  // @optional mySheet
+  clearSheet() {
+    let sid = SheetStateStore.getCurrentSheetId(),
+        msg: ClearSheetServer = {
+          tag: "ClearSheetServer",
+          contents: sid
+        };
+    API.sendMessageWithAction(msg);
+  },
+
   openSheet(mySheetId?: string) {
     const msg = {
-      tag: "Open",
+      tag: "OpenSheet",
       contents: mySheetId || SheetStateStore.getCurrentSheetId()
     };
     API.sendMessageWithAction(msg);
   },
 
-  createSheet() {
-    // Currently not supporting. (Alex 12/29)
-    // let wbs = U.Conversion.makeWorkbookSheet();
-    // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
-    //   "PayloadWorkbookSheets",
-    //   [wbs]);
-    // API.sendMessageWithAction(msg);
+  newSheet(sheetName: string) {
+    const msg = {
+      tag: "NewSheet",
+      contents: sheetName
+    };
+    API.sendMessageWithAction(msg);
   },
 
-  createWorkbook() {
-    // Not supporting now (Alex 12/29)
-    // let wb = U.Conversion.makeWorkbook();
-    // let msg = U.Conversion.makeServerMessage(Constants.ServerActions.New,
-    //   "PayloadWB",
-    //   wb);
-    // API.sendMessageWithAction(msg);
+  getMySheets() {
+    const msg = {
+      tag: "GetMySheets",
+      contents: []
+    };
+    API.sendMessageWithAction(msg);
   },
 
   updateCondFormattingRule(rule: ASCondFormatRule) {

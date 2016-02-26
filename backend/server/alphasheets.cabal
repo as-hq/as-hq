@@ -50,6 +50,7 @@ library
                        AS.Handlers.Paste
                        AS.Handlers.Props
                        AS.Handlers.Import
+                       AS.Handlers.Sheets
                        AS.InferenceUtils
                        AS.Kernels.LanguageUtils
                        AS.Kernels.Excel.Eval

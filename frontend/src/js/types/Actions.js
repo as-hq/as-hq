@@ -43,7 +43,11 @@ import type {
 
 import type {
   NotificationSpec
-} from './Notifications';
+} from '../classes/Notification';
+
+import type {
+  ASSheet
+} from './Eval';
 
 export type ToggleShortcutHelper = {
   _type: 'TOGGLE_SHORTCUT_HELPER';
@@ -98,6 +102,16 @@ export type ClearedAction = {
 export type ClearedSheetAction = {
   _type: 'CLEARED_SHEET';
   sheetId: string;
+};
+
+export type ChangedSheetAction = {
+  _type: 'CHANGED_SHEET';
+  sheetId: string;
+};
+
+export type GotMySheetsAction = {
+  _type: 'GOT_MY_SHEETS';
+  sheets: Array<ASSheet>;
 };
 
 export type GotUpdatedWorkbooksAction = {
@@ -332,10 +346,6 @@ export type ToggledFocusF2Action = {
   _type: 'TOGGLED_FOCUS_F2';
 };
 
-export type ResetLastUpdatedCells = {
-  _type: 'RESET_LAST_UPDATED_CELLS';
-};
-
 export type SetActiveSelectionAction = {
   _type: 'SET_ACTIVE_SELECTION';
   selection: ASSelection;
@@ -360,6 +370,7 @@ export type ASAction =
   | GotUpdatedBarsAction
   | ClearedAction
   | ClearedSheetAction
+  | ChangedSheetAction
   | LanguageChangedAction
   | HeaderEvaluatedAction
   | HeaderDataResetAction
@@ -393,7 +404,6 @@ export type ASAction =
   | FocusedAction
   | SetFocusCallbacksAction
   | ToggledFocusF2Action
-  | ResetLastUpdatedCells
   | SetActiveSelectionAction
   | SetConnectingStateAction
   | OpenMenuItem

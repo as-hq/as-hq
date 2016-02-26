@@ -19,7 +19,9 @@ import U from '../../AS/Util';
 import _Styles from '../../styles/menu-bar/ASMenuBar';
 import {asMenu as zIndex} from '../../styles/zIndex';
 
-import {FlatButton} from 'material-ui';
+import {FlatButton, Styles} from 'material-ui';
+// $FlowFixMe
+import FontIcon from 'material-ui/lib/font-icon';
 
 // $FlowFixMe
 import Menu from 'material-ui/lib/menus/menu';
@@ -61,18 +63,19 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
           label={title}
           style={_Styles.menu}
           onTouchTap={() => this._handleMenuClick()}
-          onMouseEnter={() => this._handleMenuHover()}
-        />
+          onMouseEnter={() => this._handleMenuHover()} />
+
         <Popover
           anchorOrigin={CONST_PROPS.anchorOrigin}
           anchorEl={anchor}
           open={open}
-          onRequestClose={() => this._handleMenuRequestClose()}
-        >
+          onRequestClose={() => this._handleMenuRequestClose()}>
           <Menu
             style={_Styles.menuDropRoot}
             {...CONST_PROPS.menuProps} >
+
             {this._getMenuItems()}
+
           </Menu>
         </Popover>
       </div>
@@ -86,11 +89,21 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
   _getMenuItem(menuItem: MenuItemSpec): React.Element {
     switch (menuItem.tag) {
       case 'NestedMenuSpec':
+        const items = menuItem.menuItems.map(item => this._getMenuItem(item));
+        
+        // menu's nested items have right arrow icons
         return (
-          <MenuItem primaryText={menuItem.title}>
-            {menuItem.menuItems.map(item => this._getMenuItem(item))}
-          </MenuItem>
-        );
+          <MenuItem
+            primaryText={menuItem.title}
+            menuItems={items}
+            rightIcon={
+              <FontIcon
+                style={{right: 0, marginTop: 0}}
+                className="material-icons">
+                keyboard_arrow_right
+              </FontIcon>
+            }/>
+          );
       case 'SimpleItemSpec':
         const simpleItem : SimpleItemSpec = menuItem;
         return (

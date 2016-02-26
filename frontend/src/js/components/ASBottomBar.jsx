@@ -4,56 +4,81 @@ import type {
   Callback
 } from '../types/Base';
 
+import type {
+  StoreLink
+} from '../types/React';
+
 import React from 'react';
+import U from '../AS/Util';
 
 import {Paper} from 'material-ui';
 // $FlowFixMe
 import IconButton from 'material-ui/lib/icon-button';
 // $FlowFixMe
 import FontIcon from 'material-ui/lib/font-icon';
+import SheetStateStore from '../stores/ASSheetStateStore';
 
-type ASBottomBarProps = {
+type Props = {
   toggleBottomPane: Callback<string>;
 };
 
-export default function ASBottomBar(props: ASBottomBarProps): React.Element {
-  const {toggleBottomPane} = props;
-  return (
-    <Paper style={styles.root}>
-      <IconButton
-        style={styles.button}
-        onClick={ () => {toggleBottomPane('error')} }
-        iconClassName="material-icons"
-        tooltip="Errors"
-        tooltipPosition="top-right"
-        tooltipStyles={styles.tooltip} >
-        error_outline
-      </IconButton>
+export default class ASBottomBar extends React.Component<{}, Props, {}> {
+  $storeLinks: Array<StoreLink>;
 
-      <IconButton
-        style={styles.button}
-        onClick={ () => toggleBottomPane('cell') }
-        iconClassName="material-icons"
-        tooltip="Cell output"
-        tooltipPosition="top-right"
-        tooltipStyles={styles.tooltip}>
-        label_outline
-      </IconButton>
+  componentDidMount() {
+    U.React.addStoreLinks(this, [
+      { store: SheetStateStore },
+    ]);
+  }
 
-      <IconButton
-        style={styles.button}
-        onClick={ () => toggleBottomPane('header') }
-        iconClassName="material-icons"
-        tooltip="Header output"
-        tooltipPosition="top-right"
-        tooltipStyles={styles.tooltip}>
-        input
-      </IconButton>
+  componentWillUnmount() {
+    U.React.removeStoreLinks(this);
+  }
 
-    </Paper>
-  );
+  render(): ReactElement {
+    const {toggleBottomPane} = this.props;
+    return (
+      <Paper style={styles.root}>
+        <IconButton
+          style={styles.button}
+          onClick={ () => {toggleBottomPane('error')} }
+          iconClassName="material-icons"
+          tooltip="Errors"
+          tooltipPosition="top-right"
+          tooltipStyles={styles.tooltip} >
+          error_outline
+        </IconButton>
+
+        <IconButton
+          style={styles.button}
+          onClick={ () => toggleBottomPane('cell') }
+          iconClassName="material-icons"
+          tooltip="Cell output"
+          tooltipPosition="top-right"
+          tooltipStyles={styles.tooltip}>
+          label_outline
+        </IconButton>
+
+        <IconButton
+          style={styles.button}
+          onClick={ () => toggleBottomPane('header') }
+          iconClassName="material-icons"
+          tooltip="Header output"
+          tooltipPosition="top-right"
+          tooltipStyles={styles.tooltip}>
+          input
+        </IconButton>
+
+        <span style={styles.sheetName}>
+          { SheetStateStore.getCurrentSheetName() }
+        </span>
+
+      </Paper>
+    );
+  }
 }
 
+// TODO flex this shit
 const styles = {
   root: {
     position: 'relative',
@@ -73,5 +98,14 @@ const styles = {
   tooltip: {
     top: 0,
     zIndex: 1000 // to be visible on top of spreadsheet when closed
+  },
+
+  sheetName: {
+    position: 'absolute',
+    right: 10,
+    top: 3,
+    width: 'auto',
+    color: 'white',
+    fontWeight: 'bold',
   }
 };

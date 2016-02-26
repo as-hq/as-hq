@@ -137,6 +137,10 @@ export default class ASSpreadsheet extends React.Component<{}, Props, State> {
       { store: OverlayStore, listener: () => this._onOverlaysChange() },
     ]);
 
+    CellStore.addListener(() =>
+      this.refs.hypergrid.getBehavior().changed()
+    );
+
     // apply hypergrid customizations when its canvas is ready.
     document.addEventListener('fin-ready', () => {
       this.initHypergrid();
@@ -146,7 +150,6 @@ export default class ASSpreadsheet extends React.Component<{}, Props, State> {
 
   initHypergrid() {
     hgPatches.forEach((patch) => { patch(this); });
-
     const ind = ASIndex.fromNaked({ row: 1, col: 1 });
 
     // This will make the first selection have properties of a click
@@ -356,27 +359,6 @@ export default class ASSpreadsheet extends React.Component<{}, Props, State> {
   pullInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheetId());
     ActionCreator.scroll(this.getViewingWindow());
-  }
-
-  /*************************************************************************************************************************/
-  // Hypergrid update display
-
-  /* Called by eval pane's onChange method, when eval pane receives a change evt from the store */
-  updateCellValues(clientCells: Array<ASCell>) {
-    let model = this._getBehavior(),
-        self = this;
-    // Update the hypergrid values
-    clientCells.forEach((c) => {
-      let cellSheetId = c.location.sheetId,
-          gridCol = c.location.col-1, // hypergrid starts indexing at 0
-          gridRow = c.location.row-1, // hypergrid starts indexing at 0
-          display = U.Render.showValue(c.value);
-      model.setValue(gridCol, gridRow, display.toString());
-      // Update our list of overlays if we have an image
-      self.addCellSourcedOverlay(c);
-    });
-
-    model.changed(); // causes hypergrid to show updated values
   }
 
   /*************************************************************************************************************************/

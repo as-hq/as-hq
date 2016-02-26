@@ -22,7 +22,7 @@ import AS.DB.Graph as G
 import AS.DB.Internal as DI
 import AS.DB.Users (createUserClient)
 import AS.Users as US
-import AS.Handlers.Misc (handleImportBinary)
+import AS.Handlers.Import (handleImportBinary)
 import qualified AS.Kernels.Python as KP
 
 import AS.Async

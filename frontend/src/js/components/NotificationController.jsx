@@ -1,12 +1,12 @@
 /* @flow */
 
 import type {
-  NotificationSpec
-} from '../types/Notifications';
-
-import type {
   Callback
 } from '../types/Base';
+
+import type {
+  Notification
+} from '../classes/Notification';
 
 import React from 'react';
 
@@ -14,17 +14,17 @@ import React from 'react';
 import NotificationSystem from 'react-notification-system';
 
 import NotificationStore from '../stores/ASNotificationStore';
-import * as NotificationActions from '../actions/ASNotificationActionCreators';
+import NotificationActions from '../actions/ASNotificationActionCreators';
 
 export default class NotificationController extends React.Component<{}, {}, {}> {
   _notificationSystem: any;
-  _addNotificationListener: Callback<NotificationSpec>;
+  _addNotificationListener: Callback<Notification>;
   _dismissNotificationListener: Callback<string>;
 
   constructor(props: {}) {
     super(props);
-    this._addNotificationListener = (spec) =>
-      this._addNotification(spec);
+    this._addNotificationListener = (notif) =>
+      this._addNotification(notif);
     this._dismissNotificationListener = (uid) =>
       this._dismissNotification(uid);
   }
@@ -43,14 +43,12 @@ export default class NotificationController extends React.Component<{}, {}, {}> 
     return <NotificationSystem ref={elem => this._notificationSystem = elem} />
   }
 
-  _addNotification(spec: NotificationSpec) {
+  _addNotification(notif: Notification) {
     this._notificationSystem.addNotification({
-      position: 'br',
-      dismissible: true,
-      onRemove: (notification) => {
-        NotificationActions.removeNotification(notification.uid);
+      onRemove: (thisNotif) => {
+        NotificationActions.removeNotification(thisNotif.uid);
       },
-      ...spec
+      ...notif.toJS()
     });
   }
 

@@ -8,6 +8,8 @@ import type {InitCallback} from './types';
 
 import Constants from '../Constants';
 import ASSpreadsheet from '../components/ASSpreadsheet.jsx';
+import CellStore from '../stores/ASCellStore';
+import ASIndex from '../classes/ASIndex';
 
 import {convert} from './helpers';
 
@@ -28,11 +30,14 @@ const callbacks: Array<InitCallback> = [
     model.swapColumns = (src, tar) => {};
   },
 
-  // make sure the spreadsheet is blank and ready for AlphaSheets to overwrite
+  // The underlying hypergrid model will auto-reflect data in CellStore
   ({ model }) => {
     model.getColumnCount = () => { return Constants.numCols; };
     model.getRowCount = () => { return Constants.numRows; };
-    model.getValue = (x, y) => { return ''; };
+    model.getValue = (x, y) => CellStore.getDisplayedValueAt(ASIndex.fromNaked({
+      col: x + 1,
+      row: y + 1
+    }));
     model.getCellEditorAt = (x, y) => { return null; };
   }
 ];

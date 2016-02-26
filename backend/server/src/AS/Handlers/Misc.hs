@@ -45,7 +45,6 @@ import qualified AS.Serialize             as S
 import qualified AS.DB.Transaction        as DT
 import qualified AS.DB.API                as DB
 import qualified AS.DB.Clear              as DC
-import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 
 import qualified Data.ByteString.Lazy as BL
@@ -61,44 +60,6 @@ import Control.Exception
 import Control.Applicative
 import Control.Lens
 import Control.Monad.Trans.Either
-
--- Used solely for acknowledging keepalive messages sent from the frontend. 
---handleAcknowledge :: ASUserClient -> IO ()
---handleAcknowledge = handleInitialize 
-
---handleInitialize :: ASUserClient -> IO ()
---handleInitialize uc = WS.sendTextData (userConn uc) ("ACK" :: T.Text)
-
--- #needsrefactor currently incomplete, and inactive. 
--- handleNew :: ASUserClient -> State -> ASPayload -> IO ()
--- handleNew uc state (PayloadWorkbookSheets (wbs:[])) = do
---   conn <- dbConn <$> readState state
---   wbs' <- DB.createWorkbookSheet conn wbs
---   broadcastTo state (wsSheets wbs') $ ClientMessage New Success (PayloadWorkbookSheets [wbs'])
--- handleNew uc state (PayloadWB wb) = do
---   conn <- dbConn <$> readState state
---   wb' <- DB.createWorkbook conn (workbookSheets wb)
---   broadcastTo state (wsSheets wb') $ ClientMessage New Success (PayloadWB wb')
---   return () -- TODO determine whether users should be notified
-
-handleOpen :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
-handleOpen mid uc state sid = do 
-  -- update state
-  conn <- view dbConn <$> readState state
-  settings <- view appSettings <$> readState state
-  let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
-      startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
-  US.modifyUser makeNewWindow uc state
-  -- get initial sheet data
-  cells <- DB.getCellsInSheet conn sid
-  bars <- DB.getBarsInSheet conn sid
-  rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
-  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
-  headers         <- mapM (DB.getEvalHeader conn sid) headerLangs
-  -- pre-evaluate the headers
-  mapM (runEitherT . evaluateHeader settings) headers
-  let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
-  sendToOriginal uc $ ClientMessage mid $ SetInitialProperties sheetUpdate headers
 
 -- NOTE: doesn't send back blank cells. This means that if, e.g., there are cells that got blanked
 -- in the database, those blank cells will not get passed to the user (and those cells don't get
@@ -260,24 +221,3 @@ handleSetBarProp mid uc state bInd prop = do
       commit = (emptyCommitWithTime time) { barDiff = Diff { beforeVals = [oldBar], afterVals = [newBar] } } -- #lens
   DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
   broadcastSheetUpdate mid state $ emptySheetUpdate & barUpdates.newVals .~ [newBar]
-
--- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
--- import/export seems overkill given that it's a temporarily needed solution)
--- so we just send alphasheets files as binary data over websockets and immediately load
--- into the current sheet.
-handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
-handleImportBinary c mstate bin = do
-  state <- readState mstate
-  case (S.decodeLazy bin :: Either String ExportData) of
-    Left s ->
-      let msg = failureMessage import_message_id $ "could not process binary file, decode error: " ++ s
-      in U.sendMessage msg (clientConn c)
-    Right exportedData -> do
-      DX.importSheetData (state^.appSettings) (state^.dbConn) exportedData
-      let msg = ClientMessage import_message_id $ AskUserToOpen $ exportDataSheetId exportedData
-      U.sendMessage msg (clientConn c)
-
-handleExport :: ASUserClient -> ServerState -> ASSheetId -> IO ()
-handleExport uc state sid = do
-  exported <- DX.exportSheetData (state^.dbConn) sid
-  WS.sendBinaryData (userConn uc) (S.encodeLazy exported)

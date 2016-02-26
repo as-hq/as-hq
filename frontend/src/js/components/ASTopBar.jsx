@@ -16,6 +16,7 @@ import request from 'superagent';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import SheetActions from '../actions/ASSheetActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
 import Constants from '../Constants';
@@ -55,12 +56,23 @@ function file({callback, title}): FileItemSpec {
 }
 
 export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
+  _sheetsListener: () => void;
+
   constructor(props: ASTopBarProps) {
     super(props);
+    this._sheetsListener = () => this.forceUpdate();
+  }
+
+  componentDidMount() {
+    API.getMySheets();
+    SheetStateStore.addListener('GOT_MY_SHEETS', this._sheetsListener);
+  }
+
+  componentWillUnmount() {
+    SheetStateStore.removeListener('GOT_MY_SHEETS', this._sheetsListener);
   }
 
   render(): React.Element {
-
     let self = this;
 
     let testAlphaSheets =
@@ -100,10 +112,31 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
         </div>
         <ASMenuBar style={{paddingLeft: '50px'}} menus={[
           {title: 'File', menuItems: [
-            simple({
+
+            nested({
               title: 'Open',
+              menuItems:
+                SheetStateStore.getMySheets().map(sheet =>
+                  simple({
+                    title: sheet.sheetName,
+                    callback() {
+                      API.openSheet(sheet.sheetId);
+                    }
+                  })
+                )
+            }),
+
+            simple({
+              title: 'New',
               callback() {
-                alert("To open a saved AlphaSheets sheet, drag it onto the spreadsheet on this page.");
+                // Set timeout so that the callback finishes quickly and menu closes
+                // before the popup appears
+                setTimeout(function() {
+                  let sheetName = window.prompt("Enter the sheet name.");
+                  if (sheetName != null) {
+                    API.newSheet(sheetName);
+                  }
+                }, 20);
               }
             }),
 
@@ -135,7 +168,8 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
               callback() {
                 API.export(SheetStateStore.getCurrentSheetId());
               }
-            })
+            }),
+
           ]},
 
           {title: 'Edit', menuItems: [

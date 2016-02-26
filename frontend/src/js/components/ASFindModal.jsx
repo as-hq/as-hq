@@ -16,27 +16,28 @@ function FindButtons({onNext, onPrev}) {
     <div style={styles.findButtons}>
       <FlatButton
         style={styles.findButton}
-        onClick={onNext}
-      >
+        onClick={onNext}>
+
         <FontIcon
           style={styles.icon}
           className="material-icons"
-          color={Styles.Colors.blue50}
-        >
+          color={Styles.Colors.blue50}>
           keyboard_arrow_down
         </FontIcon>
+
       </FlatButton>
+
       <FlatButton
         style={styles.findButton}
-        onClick={onPrev}
-      >
+        onClick={onPrev}>
+
         <FontIcon
           style={styles.icon}
           className="material-icons"
-          color={Styles.Colors.blue50}
-        >
+          color={Styles.Colors.blue50}>
           keyboard_arrow_up
         </FontIcon>
+
       </FlatButton>
     </div>
   );

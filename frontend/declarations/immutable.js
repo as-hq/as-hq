@@ -1010,6 +1010,9 @@ declare module 'immutable' {
     static (iterable?: Iterable<[string,any]>): this;
 
     set(key: string, value: any): this;
+    get(key: string): any;
+
+    toJS(): any;
 
     delete(key: string): this;
     remove(key: string): this;

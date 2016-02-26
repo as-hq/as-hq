@@ -20,15 +20,8 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 
 
-type HeaderData = Immutable.Record & {
-  expression: string;
-  output: ?string;
-};
-
-type HeaderStoreData = Immutable.Record & {
-  data: Immutable.Map<ASLanguage, HeaderData>;
-  currentLanguage: ASLanguage;
-};
+type HeaderData = Immutable.Record$Class;
+type HeaderStoreData = Immutable.Record$Class;
 
 const HeaderRecord = Immutable.Record({
   expression: '',
@@ -47,7 +40,6 @@ const HeaderStoreRecord = Immutable.Record({
 class HeaderStore extends ReduceStore<HeaderStoreData> {
 
   getInitialState(): HeaderStoreData {
-    // $FlowFixMe immutable declaration
     return new HeaderStoreRecord();
   }
 
@@ -55,7 +47,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
     switch (action._type) {
       case 'HEADER_UPDATED': {
         const {language, expression} = action;
-        // $FlowFixMe immutable declaration
         return state.setIn(
           ['data', language, 'expression'],
           expression
@@ -63,11 +54,9 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
       }
 
       case 'HEADER_EVALUATED': {
-        // $FlowFixMe immutable declaration
         const language = state.get('currentLanguage');
         const {value, display} = action;
         const output = `${value}\n-------------------\n${display}`;
-        // $FlowFixMe immutable declaration
         return state.setIn(
           ['data', language, 'output'],
           output
@@ -77,12 +66,10 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
       case 'NORMAL_SEL_CHANGED':
       case 'LANGUAGE_CHANGED':
       case 'HEADER_LANGUAGE_CHANGED': {
-        // $FlowFixMe immutable declaration
         return state.set('currentLanguage', action.language);
       }
 
       case 'HEADER_DATA_RESET': {
-        // $FlowFixMe immutable declaration
         return state.withMutations(mut => {
           // $FlowFixMe flow literally doesn't understand this action
           action.headers.forEach(({evalHeaderLang, evalHeaderExpr}) => {
@@ -101,7 +88,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
   }
 
   getCurrentExpression(): string {
-    // $FlowFixMe immutable declaration
     return this._getCurrentHeader().get('expression');
   }
 
@@ -110,7 +96,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
   }
 
   getCurrentOutput(): ?string {
-    // $FlowFixMe immutable declaration
     return this._getCurrentHeader().get('output');
   }
 

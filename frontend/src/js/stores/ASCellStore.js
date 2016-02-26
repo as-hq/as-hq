@@ -8,6 +8,7 @@ import type {ASAction} from '../types/Actions';
 import type {
   ASLanguage,
   ASLocation,
+  NakedIndex,
 } from '../types/Eval';
 
 import type {
@@ -43,7 +44,6 @@ Private variable keeping track of a viewing window (cached) of cells. Stores:
 type CellStoreDataFields = {
   allCells: ASCellGrid;
   allErrors: Array<ASClientError>;
-  lastUpdatedCells: Array<ASCell>;
 };
 
 type CellStoreData = Record$Class;
@@ -51,7 +51,6 @@ type CellStoreData = Record$Class;
 const CellStoreDataRecord = Record({
   allCells: Map(),
   allErrors: List(),
-  lastUpdatedCells: List(),
 });
 
 class ASCellStore extends ReduceStore<CellStoreData> {
@@ -62,79 +61,33 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   reduce(state: CellStoreData, action: ASAction): CellStoreData {
     switch (action._type) {
       case 'GOT_UPDATED_CELLS': {
-        // The expanding types that we put into the cells depends on the
-        // updated range descriptors
+        // Wait for range descriptors to be updated.
         Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
-
-        let state_ = state.set('lastUpdatedCells', List());
-        state_ = removeLocations(state_, action.oldLocs);
-        return updateCells(state_, action.newCells);
+        return updateCells(state, action.newCells);
       }
 
-      /*
-        The server has cleared everything from the DB
-        Need to delete the store
-        Called from Dispatcher, fired by API response from server
-      */
       case 'CLEARED': {
-        let state_ = state.set('lastUpdatedCells', List());
-
-        let cellsToRemove = [];
-        function getCellsToRemove(colArray) {
-          colArray.forEach((cell) => {
-            cellsToRemove.push(cell);
-          });
-        }
-
-        for (const s of state_.allCells) {
-          state_.getIn(['allCells', s]).forEach(getCellsToRemove);
-        }
-
-        // remove possibly null cells
-        cellsToRemove = cellsToRemove.filter(cell => !!cell);
-
-        state_ = removeCells(state_, cellsToRemove);
-        return state_.set('allCells', Map());
+        return state.set('allCells', Map());
       }
 
       case 'CLEARED_SHEET': {
-        let state_ = state.set('lastUpdatedCells', List());
-        const {sheetId} = action;
-
-        if (state_.getIn(['allCells', sheetId])) {
-          let cr = [];
-          state_.allCells.get(sheetId).forEach((colArray) => {
-            colArray.forEach((cell) => {
-              cr.push(cell);
-            });
-          });
-
-          // remove possibly null cells
-          cr = cr.filter((cell) => !!cell);
-
-          state_ = removeCells(state_, cr);
-          state_ = state_.setIn(['allCells', sheetId], []);
-        }
-
-        return state_;
+        return state.setIn(
+          ['allCells', action.sheetId],
+          Map()
+        );
       }
-
-      // Dependency highlighting temporarily disabled until ExpStore is
-      // refactored. (anand 2/15)
-      //
-      // case 'TEXTBOX_CHANGED':
-      // case 'GRID_KEY_PRESSED': {
-      //   Dispatcher.waitFor([SelectionStore.dispatcherIndex]);
-      //   SelectionStore.withActiveSelection({origin} => {
-      //     const {language} = waitForLanguageAndExpression();
-      //     const deps = U.Parsing.parseDependencies(action.xpStr, language);
-      //     Render.setDependencies(deps);
-      //   })
-      //   break;
-      // }
 
       default:
         return state;
+    }
+  }
+
+  getDisplayedValueAt(idx: ASIndex): string {
+    const cell = this.getCell(idx);
+    if (!! cell) {
+      return U.Render.showValue(cell.value);
+    } else {
+      return '';
     }
   }
 
@@ -147,12 +100,6 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   getActiveCellDisplay(): ?string {
     const cell = this.getActiveCell();
     return !!cell ? cell._display : null;
-  }
-
-  // Usually called by AS components so that they can get the updated values of
-  // the store
-  getLastUpdatedCells(): Array<ASCell> {
-    return this.getState().lastUpdatedCells;
   }
 
   // Converts a range to a row major list of lists of values, represented by
@@ -245,7 +192,6 @@ function removeIndex(data: CellStoreData, loc: ASIndex): CellStoreData {
     data_ = data.deleteIn(['allCells', loc.sheetId, loc.col, loc.row]);
   }
 
-  data_ = data_.update('lastUpdatedCells', cells => cells.push(emptyCell));
   return unsetErrors(data_, emptyCell);
 }
 
@@ -262,8 +208,7 @@ function removeCells(
   return data_;
 }
 
-// Function to update cell related objects in store. Caller's responsibility to
-// clear lastUpdatedCells if necessary
+// Function to update cell related objects in store.
 function updateCells(
   data: CellStoreData,
   cells: Array<ASCell>
@@ -273,7 +218,6 @@ function updateCells(
   cells.forEach(cell => {
     if (!cell.isEmpty()) {
       data_ = setCell(data_, cell);
-      data_ = data_.update('lastUpdatedCells', cells => cells.push(cell));
     } else {
       // filter out all the blank cells passed back from the store
       removedCells.push(cell);

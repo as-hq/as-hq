@@ -9,7 +9,6 @@ import type {
 
 import type {
   ASUserId,
-  ASPermissions
 } from './User';
 
 export type NoValue = {
@@ -344,7 +343,6 @@ export type ASSheet = {
   tag: 'Sheet';
   sheetId: string;
   sheetName: string;
-  sheetPermissions: ASPermissions;
 };
 
 export type ASWorkbook = {

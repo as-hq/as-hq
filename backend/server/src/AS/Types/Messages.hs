@@ -58,12 +58,13 @@ data ClientAction =
     NoAction
   | AskDecouple
   | AskTimeout { timeoutMessageId :: MessageId, serverActionType :: String }
-  | SetInitialProperties SheetUpdate [EvalHeader] -- list of expressions in header
+  | AskOpenSheet ASSheetId
+  | SetSheetData { updateSheetId :: ASSheetId, update :: SheetUpdate, headers :: [EvalHeader] } -- list of expressions in header
+  | SetMySheets [ASSheet]
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
   | MakeSelection Selection
-  | AskUserToOpen ASSheetId
   | ShowHeaderResult HeaderResult
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
@@ -74,7 +75,9 @@ data ClientAction =
 
 data ServerAction =
     InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
-  | Open ASSheetId
+  | OpenSheet ASSheetId
+  | NewSheet SheetName
+  | GetMySheets
   | UpdateWindow ASWindow
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}

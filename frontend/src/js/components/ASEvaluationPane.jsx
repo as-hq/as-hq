@@ -220,13 +220,6 @@ export default class ASEvalPane
 
 
   _onCellsChange() {
-    logDebug("Eval pane detected cells change from store");
-    let updatedCellsOnSheet = CellStore.getLastUpdatedCells().filter((cell) => {
-      return cell.location.sheetId == SheetStateStore.getCurrentSheetId();
-    });
-
-    this.getASSpreadsheet().updateCellValues(updatedCellsOnSheet);
-
     // #needsrefactor error handlers should probably get their own store
     let err = SheetStateStore.getExternalError();
     if (err != null) {
@@ -715,7 +708,7 @@ export default class ASEvalPane
           hideToast={() => this.hideToast()}
           width="100%"
           height={`calc(100% - ${this.getEditorHeight()})`}  />
-          
+
         <Snackbar ref="snackbarError"
                   message={this.state.toastMessage}
                   action={this.state.toastAction}

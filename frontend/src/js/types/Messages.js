@@ -301,7 +301,9 @@ export type ServerMessage = {
 export type ServerAction =
     Initialize
   | InitializeDaemon
-  | Open
+  | OpenSheet
+  | NewSheet
+  | GetMySheets
   | UpdateWindow
   | Export
   | Evaluate
@@ -333,7 +335,9 @@ export type ServerAction =
 export type ServerActionType =
     'Initialize'
   | 'InitializeDaemon'
-  | 'Open'
+  | 'OpenSheet'
+  | 'NewSheet'
+  | 'GetMySheets'
   | 'UpdateWindow'
   | 'Export'
   | 'Evaluate'
@@ -372,9 +376,19 @@ export type InitializeDaemon = {
   parentLoc: ASIndexObject;
 };
 
-export type Open = {
-  tag: "Open";
+export type OpenSheet = {
+  tag: "OpenSheet";
   contents: string;
+};
+
+export type NewSheet = {
+  tag: "NewSheet";
+  contents: string;
+};
+
+export type GetMySheets = {
+  tag: "GetMySheets";
+  contents: Array<any>;
 };
 
 export type UpdateWindow = {
@@ -540,11 +554,12 @@ export type ClientAction =
     NoAction
   | AskDecouple
   | AskTimeout
-  | SetInitialProperties
+  | SetSheetData
   | ShowFailureMessage
   | UpdateSheet
   | ClearSheet
-  | AskUserToOpen
+  | SetMySheets
+  | AskOpenSheet
   | MakeSelection
   | LoadImportedCells
   | ShowHeaderResult;
@@ -565,9 +580,11 @@ export type AskTimeout = {
   serverActionType: ServerActionType;
 }
 
-export type SetInitialProperties = {
-  tag: "SetInitialProperties";
-  contents: [SheetUpdate, Array<EvalHeader>];
+export type SetSheetData = {
+  tag: "SetSheetData";
+  updateSheetId: string;
+  update: SheetUpdate;
+  headers: Array<EvalHeader>;
 }
 
 export type ShowFailureMessage = {
@@ -585,8 +602,13 @@ export type ClearSheet = {
   contents: string;
 }
 
-export type AskUserToOpen = {
-  tag: "AskUserToOpen";
+export type SetMySheets = {
+  tag: "SetMySheets";
+  contents: Array<ASSheet>;
+}
+
+export type AskOpenSheet = {
+  tag: "AskOpenSheet";
   contents: string;
 }
 
