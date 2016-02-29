@@ -69,7 +69,8 @@
     "build": "gulp build",
     "test": "jest --verbose",
     "integration-test": "karma start",
-    "lint": "eslint src/js --ext .js,.jsx"
+    "lint": "eslint src/js --ext .js,.jsx",
+    "prod-serve": "gulp prod-serve"
   },
   "jest": {
     "testDirectoryName": "unit-tests",
@@ -97,6 +98,8 @@
     "chart.js": "^1.0.2",
     "classnames": "^2.1.2",
     "flux": "~2.1.1",
+    "gulp-env": "^0.4.0",
+    "gulp-webserver": "^0.9.1",
     "history": "^1.17.0",
     "immutable": "^3.7.6",
     "invariant": "^2.2.0",

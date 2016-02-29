@@ -19,12 +19,6 @@ module.exports = {
     src: 'src/**/*.*',
     tasks: ['build']
   },
-  mockback: {
-  },
-  flow: {
-    src: src,
-    dest: './flow-src'
-  },
   test: {
     karmaConfig: 'karma.conf.js',
     getConfig: function (fname) {
@@ -46,5 +40,9 @@ module.exports = {
     excelFile: 'test-context-excel.js',
     formulaFile: 'test-context-formula.js',
     allFile: 'test-context-all.js'
+  },
+  prodServe: {
+    src: dest,
+    port: 8080
   }
 };
