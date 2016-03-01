@@ -2,14 +2,12 @@ module AS.Eval.Middleware (evalMiddleware) where
 
 import Prelude()
 import AS.Prelude
+import AS.Types.Cell
 
 import Data.List hiding (tail)
 import Database.Redis (Connection)
 import Data.Maybe
-
-import AS.Types.Cell
 import Safe (headMay)
-
 import Control.Lens 
 
 import AS.Eval.Core as R

@@ -1,19 +1,20 @@
 module AS.DB.Graph where
 
-import Prelude()
-import AS.Prelude
-import qualified Data.List as L
+import Control.Lens
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 import Data.List.NonEmpty as N (fromList)
-
 import System.ZMQ4.Monadic
-
 import Control.Monad (forM)
+import qualified Data.List as L
 import qualified Text.Show.ByteString      as BS
 import qualified Data.ByteString.Char8     as BC 
 import qualified Data.ByteString.Char8     as B 
 import qualified Data.ByteString.Lazy      as BL
 import qualified Database.Redis as R
 
+import Prelude()
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.Graph
@@ -26,9 +27,6 @@ import AS.DB.Internal
 import AS.Logging
 import AS.Parsing.Substitutions (getDependencies)
 
-import Control.Lens
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Ancestors
@@ -46,8 +44,9 @@ setCellsAncestors addr cells = do
     depSets = map getAncestorsForCell cells
     relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
 
--- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. However, for a non-fat-cell-head coupled
--- cell, we only want to set an edge from it to the $head of the list (for checking circular dependencies).
+-- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. 
+-- However, for a non-fat-cell-head coupled cell, we only want to set an edge from it to the $head of the list 
+-- (for checking circular dependencies).
 getAncestorsForCell :: ASCell -> [ASReference]
 getAncestorsForCell c = if not $ isEvaluable c
   then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
@@ -66,6 +65,8 @@ setCellsAncestorsForce addr cells = runEitherT (setCellsAncestors addr cells) >>
 removeAncestorsAtForced :: GraphAddress -> [ASIndex] -> IO ()
 removeAncestorsAtForced addr locs = runEitherT (removeAncestorsAt addr locs) >> return ()
 
+getAllAncestors :: GraphAddress -> ASIndex -> EitherTExec [ASReference]
+getAllAncestors addr ind = processReadRequest addr GetAllAncestors [IndexInput ind]
 
 ------------------------------------------------------------------------------------------------------------------
 -- Basic helper functions

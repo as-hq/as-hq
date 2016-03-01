@@ -198,9 +198,13 @@ refMutate' mt (ExColRangeRef exColRange sheetName workbookName) = do
 refMutate' mt er@(ExPointerRef exIndex sheetName workbookName) = do
   exIndex' <- exIndexMutate mt exIndex
   return $ ExPointerRef exIndex' sheetName workbookName
+refMutate' mt (ExTemplateRef t s w) = case t of 
+  ExSampleExpr n idx -> do
+    idx' <- exIndexMutate mt idx
+    return $ ExTemplateRef (ExSampleExpr n idx') s w
 
 refMutate :: MutateType -> ExRef -> ExRef
-refMutate mt exRef  = fromMaybe ExOutOfBounds $ refMutate' mt exRef
+refMutate mt exRef = fromMaybe ExOutOfBounds $ refMutate' mt exRef
 
 expressionMutate :: MutateType -> (ASExpression -> ASExpression)
 expressionMutate mt = replaceRefs (show . (refMutate mt))

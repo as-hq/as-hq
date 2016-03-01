@@ -1,24 +1,21 @@
 module AS.Users where
 
-import Prelude()
-import AS.Prelude
-import AS.Config.Settings (google_token_verify_url, google_client_id)
-
-import AS.Types.User hiding (userId)
-import AS.Types.Network 
-import AS.Types.Messages
-
+import Data.Aeson hiding (Success)
+import Data.Aeson.Lens (key)
+import Network.Wreq
+import Control.Monad.IO.Class (liftIO)
+import Control.Lens hiding ((.=))
 import qualified Data.List as L
 import qualified Data.Text as T 
 import qualified Data.ByteString.Char8 as B
-import Data.Aeson hiding (Success)
-import Data.Aeson.Lens (key)
-
 import qualified Network.WebSockets as WS
-import Network.Wreq
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Lens hiding ((.=))
+import Prelude()
+import AS.Prelude
+import AS.Config.Settings (google_token_verify_url, google_client_id)
+import AS.Types.User hiding (userId)
+import AS.Types.Network 
+import AS.Types.Messages
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Authentication
@@ -39,6 +36,7 @@ authenticateUser strat = case strat of
             Nothing -> Left "auth response did not have email field"
       _ -> return $ Left "received null app client id"
   TestAuth -> return $ Right "test_user_id" -- when running tests, no authentication performed.
+  
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 
 

@@ -1,8 +1,10 @@
 module AS.DB.Export where
 
+import Control.Lens hiding ((.=))
+import Database.Redis
+
 import Prelude()
 import AS.Prelude
-
 import AS.Types.Cell
 import AS.Types.DB
 import AS.Types.Network
@@ -12,10 +14,6 @@ import AS.Types.Graph
 import AS.DB.API as DB
 import AS.DB.Graph as G (recompute)
 import AS.DB.Clear as DC
-
-import Control.Lens hiding ((.=))
-
-import Database.Redis
 
 -------------------------------------------------------------------------------------------------------------------------
 -- This module is for database functions associated with exporting/importing data.

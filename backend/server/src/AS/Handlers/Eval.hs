@@ -10,11 +10,9 @@ import AS.Types.EvalHeader
 import AS.Types.Network
 
 import AS.Dispatch.Core
---import AS.Dispatch.Repl
 import AS.Eval.Core (evaluateHeader)
 
 import AS.DB.API
-import AS.DB.Eval
 import AS.DB.Transaction
 import AS.Reply
 

@@ -1,5 +1,8 @@
 module AS.Reply (broadcastTo, broadcastErrOrUpdate, broadcastSheetUpdate, sendSheetUpdate, sendToOriginal) where
 
+import Control.Concurrent
+import Control.Lens
+
 import AS.Types.Bar
 import AS.Types.Cell
 import AS.Types.Commits
@@ -12,9 +15,6 @@ import AS.Types.User
 import AS.Types.Errors
 import AS.Types.Window
 import AS.Util
-
-import Control.Concurrent
-import Control.Lens
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)

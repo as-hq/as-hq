@@ -24,7 +24,6 @@ library
                        AS.DB.API
                        AS.DB.Clear 
                        AS.DB.Users
-                       AS.DB.Eval
                        AS.DB.Export
                        AS.DB.Transaction
                        AS.DB.Internal
@@ -51,7 +50,6 @@ library
                        AS.Handlers.Sheets
                        AS.Handlers.LogAction
                        AS.InferenceUtils
-                       AS.Kernels.LanguageUtils
                        AS.Kernels.Excel.Eval
                        AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Lib

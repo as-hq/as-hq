@@ -26,8 +26,7 @@ import AS.Types.Updates
 import AS.Logging
 
 import AS.Dispatch.Expanding        as DE
-import AS.DB.Eval
-import qualified AS.Eval.Core       as EC (evaluateLanguage)
+import qualified AS.Eval.Core       as EC 
 import qualified AS.DB.API          as DB
 import qualified AS.DB.Transaction  as DT
 import qualified AS.DB.Internal     as DI
@@ -63,6 +62,7 @@ type EvalTransform = EvalContext -> EitherTExec EvalContext
 type EvalTransformWithInfo a = EvalContext -> EitherTExec (EvalContext, a)
 -- a pure function modifying context
 type PureEvalTransform = EvalContext -> EvalContext
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Debugging
@@ -106,7 +106,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
     printWithTimeT "finished dispatch"
     let transformedCtx = ctxAfterDispatch & updateAfterEval %~ updateTransform -- #lenses
 
-    finalCells <- EE.evalEndware state src transformedCtx
+    finalCells <- EE.evalEndware state src transformedCtx evalChain
 
     let ctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
 
@@ -166,7 +166,7 @@ getEvalLocs state origCells descSetting = getter graphAddress locs
 -- as it is the most up-to-date info we have). 
 -- this function is order-preserving
 getCellsToEval :: Connection -> EvalContext -> [ASIndex] -> EitherTExec [ASCell]
-getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithContext conn ctx locs)
+getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithContext conn ctx locs)
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
@@ -179,7 +179,7 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ getCellsWithCo
 -- see the comments above dispatch to see why an old evalContext is passed in.
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
-   ancIndices <-  lift $ concat <$> mapM (refToIndicesWithContextBeforeEval conn oldContext) ancs 
+   ancIndices <-  lift $ concat <$> mapM (EC.refToIndicesWithContextBeforeEval conn oldContext) ancs 
    let nonContextAncIndices = filter (not . (flip M.member (oldContext^.virtualCellsMap))) ancIndices
    cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
    let oldMap = oldContext^.virtualCellsMap
@@ -232,7 +232,7 @@ evalChain' state (c@(Cell loc xp val ps rk disp):cs) ctx = do
   evalChain state cs newContext
     where 
       getEvalResult :: ASExpression -> EitherTExec (Formatted EvalResult)
-      getEvalResult expression = EC.evaluateLanguage state loc ctx expression 
+      getEvalResult expression = EC.evaluateLanguage state loc ctx expression evalChain
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
@@ -258,15 +258,6 @@ removeMultipleDescriptorsFromContext descriptors ctx =
 addValueToContext :: RangeDescriptor -> PureEvalTransform
 addValueToContext descriptor ctx =
   ctx & (updateAfterEval . descriptorUpdates) %~ (addValue descriptor)
-
--- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
--- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens
-addCellsToContext :: [ASCell] -> PureEvalTransform
-addCellsToContext cells ctx =
-  ctx & virtualCellsMap .~ newMap & (updateAfterEval . cellUpdates) .~ Update newAddedCells []
-    where
-      newAddedCells = mergeCells cells (newCellsInContext ctx)
-      newMap   = insertMultiple (ctx^.virtualCellsMap) (mapCellLocation cells) cells
 
 
 -- Deal with a possible shrink list. The ASCell passed in is a descendant during dispatch. 
@@ -316,7 +307,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
   let decoupledLocs = concatMap (rangeKeyToIndices . descriptorKey) newlybeforeVals
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> getCellsWithContext conn ctx decoupledLocs
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'
@@ -369,3 +360,5 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
       -- and we're going to need to run dispatch on all of those.
       -- so this particular dispatch merges the context transforms (1) expanded cells, 
       -- (2) blanked cells due to fat cell deletion
+
+

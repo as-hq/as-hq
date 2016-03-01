@@ -41,6 +41,13 @@ type Rect = (Coord, Coord)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Locations
 
+-- Template AlphaSheets operators. 
+-- example: !{A1} 
+--          ^ sampling operator causes a run-time reevaluation
+data ASTemplateExpr = 
+  SampleExpr { samples :: Int, sampledIndex :: ASIndex}
+  deriving (Show, Read, Eq, Ord, Generic)
+
 data ASIndex = Index { _locSheetId :: ASSheetId, _index :: Coord } 
   deriving (Show, Read, Eq, Generic, Data, Typeable, Ord)
 data ASPointer = Pointer { pointerIndex :: ASIndex } 
@@ -49,7 +56,14 @@ data ASRange = Range {rangeSheetId :: ASSheetId, range :: Rect }
   deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 data ASColRange = ColRange {colRangeSheetId :: ASSheetId, colRange :: (Coord, InfiniteRowCoord) }
   deriving (Show, Read, Eq, Ord, Generic)
-data ASReference = IndexRef ASIndex | ColRangeRef ASColRange | RangeRef ASRange | PointerRef ASPointer | OutOfBounds
+
+data ASReference = 
+    IndexRef ASIndex 
+  | ColRangeRef ASColRange 
+  | RangeRef ASRange 
+  | PointerRef ASPointer 
+  | TemplateRef ASTemplateExpr
+  | OutOfBounds
   deriving (Show, Read, Eq, Ord, Generic)
 
 makeLenses ''ASIndex
@@ -59,6 +73,8 @@ refSheetId (IndexRef i) = i^.locSheetId
 refSheetId (RangeRef r) = rangeSheetId r
 refSheetId (ColRangeRef r) = colRangeSheetId r
 refSheetId (PointerRef p) = (view locSheetId) . pointerIndex $ p
+refSheetId (TemplateRef t) = case t of 
+  SampleExpr _ idx -> idx^.locSheetId
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
@@ -119,8 +135,6 @@ instance ToJSON ASReference where
   toJSON (RangeRef rng) = toJSON rng
   toJSON (ColRangeRef colrng) = toJSON colrng
 
-instance FromJSON ASReference
-
 --TODO: timchu: not sure if r .= object ["col" .=r2 ] is right. Maybe no list brackets?
                             --Note: r stands for right, not row.
 instance ToJSON ASColRange where
@@ -153,6 +167,7 @@ instance NFData ASIndex             where rnf = genericRnf
 instance NFData ASPointer           where rnf = genericRnf
 instance NFData ASRange             where rnf = genericRnf
 instance NFData ASColRange          where rnf = genericRnf
+instance NFData ASTemplateExpr      where rnf = genericRnf
 instance NFData ASReference         where rnf = genericRnf
 
 instance Hashable Coord

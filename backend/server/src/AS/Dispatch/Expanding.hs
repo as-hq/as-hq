@@ -6,20 +6,18 @@ module AS.Dispatch.Expanding
   , recomposeCompositeValue
   ) where
 
+import Data.List.Split (chunksOf)
+import Control.Lens
+import qualified Data.Map as M
+import qualified Data.List as L
+
 import AS.Prelude
 import Prelude()
-
 import AS.Types.Cell
 import AS.Types.Eval
 
 import AS.DB.Internal
 import AS.Util as U
-
-import Data.List.Split (chunksOf)
-import Control.Lens
-
-import qualified Data.Map as M
-import qualified Data.List as L
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value decomposition (expansion)

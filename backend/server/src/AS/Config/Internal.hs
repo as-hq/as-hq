@@ -1,23 +1,21 @@
 module AS.Config.Internal where
 
-import Prelude()
-import AS.Prelude
-
-import AS.Types.Network
-
-import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Aeson hiding (Success)
-
 import System.Directory
 import System.FilePath.Posix
-
 import Control.Exception
 import Control.Lens
 import Language.Haskell.TH
--- needs to be in a module by itself, because templatehaskell... 
+import qualified Data.ByteString.Lazy.Char8 as B
+
+import Prelude()
+import AS.Prelude
+import AS.Types.Network
+
+-- This needs to be in a module by itself, because TemplateHaskell
 
 -------------------------------------------------------------------------------------------------------------------------
--- compile- and run-time settings 
+-- compile and run-time settings 
 
 getPrintSetting :: Q Exp
 getPrintSetting = do

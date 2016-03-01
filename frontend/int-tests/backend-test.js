@@ -194,6 +194,85 @@ describe('backend', () => {
         });
       });
 
+      describe('randomized sampling', () => {
+
+        it ('should work on constants', (done) => {
+          _do([
+            excel('A1', '1'),
+            python('B1', '!{10,   A1}'),
+            shouldBe('B1', valueI(1)),
+            shouldBeCoupled('B5'),
+            shouldBe('B10', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('should work on random variables', (done) => {
+          _do([
+            python('A1', 'random.random()'),
+            python('B1', '!{10,   A1}'),
+            shouldBeCoupled('B10'),
+            exec(done)
+          ]);
+        });
+
+        it ('should preserve dependencies', (done) => {
+          _do([
+            python('A1', 'random.random()'),
+            python('A2', 'A1+1'),
+            python('A3', 'hide([[A1,A2]])'),
+            python('B1', '!{10, A3}'),
+            python('C1', 'unhide(B1)'),
+            python('C2', 'unhide(B2)'),
+            python('E1', 'int(round(D1-C1))'),
+            python('E2', 'int(round(D2-C2))'), // sometimes we get 1.0000
+            shouldBe('E1', valueI(1)),
+            shouldBe('E2', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('should update when an ancestor updates', (done) => {
+          _do([
+            python('A1', 'random.random()'),
+            python('B1', '!{10, A1}'),
+            python('A1', '1'),
+            shouldBe('B10', valueI(1)),
+            shouldBe('B5', valueI(1)),
+            exec(done)
+          ]);
+        });
+
+
+        it ('should cause descendants to update when it updates', (done) => {
+          _do([
+            python('A1', 'random.random()'),
+            python('B1', '!{10, A1}'),
+            python('C1', 'sum(@B1)'),
+            python('A1', '2'),
+            shouldBe('C1', valueI(20)),
+            exec(done)
+          ]);
+        });
+
+        it ('should cause circ dep if user is stupid', (done) => {
+          _do([
+            shouldError(python('B1', '!{10, B1}')),
+            exec(done)
+          ]);
+        });
+
+        // IPython magics here, must be disabled
+        xit ('should cause parse error if not index', (done) => {
+          _do([
+            python('A1', '1'),
+            shouldError(python('B1', '!{10, #A1}')),
+            exec(done)
+          ]);
+        });
+        
+      });
+
       describe('= detection', () => {
         it ('should ignore the = in expressions that start with = when in non-Excel', (done) => {
           _do([

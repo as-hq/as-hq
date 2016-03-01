@@ -319,3 +319,4 @@ instance NFData MutateType      where rnf = genericRnf
 instance NFData EvalInstruction      where rnf = genericRnf
 instance NFData LogSource where rnf = genericRnf
 instance NFData LogData where rnf = genericRnf
+

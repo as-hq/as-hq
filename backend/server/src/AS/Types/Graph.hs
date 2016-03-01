@@ -38,7 +38,12 @@ import Control.Lens hiding (index, context)
 type ASRelation = (ASIndex, [GraphAncestor])
 
 -- Graph read (getX) and write (setX) requests
-data GraphReadRequest = GetDescendants | GetImmediateDescendants | GetProperDescendants | GetImmediateAncestors deriving (Show)
+data GraphReadRequest = 
+    GetDescendants 
+  | GetImmediateDescendants 
+  | GetProperDescendants 
+  | GetImmediateAncestors 
+  | GetAllAncestors deriving (Show)
 
 data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
 

@@ -122,7 +122,6 @@ data ASExecError =
 type EitherTExec = EitherT ASExecError IO
 
 asToFromJSON ''ASExecError
-asToFromJSON ''EError
 
 -- memory region exposure instances for R value unboxing
 instance NFData EError              where rnf = genericRnf

@@ -40,19 +40,19 @@ data SingleRefType = ABS | REL deriving (Eq)
 -- TODO: only SingleRefType should exist. Timchu, 1/3/15.
 data RefType = ABS_ABS | ABS_REL | REL_ABS | REL_REL deriving (Eq)
 
-data ExIndex   = ExIndex {refType :: RefType, colStr :: String, rowStr :: String} 
-  deriving (Eq)
-data ExCol = ExCol { singleRefType :: SingleRefType, col2 :: String}
-  deriving (Eq)
-data ExColRange = ExColRange {firstIndex :: ExIndex, secondCol :: ExCol}
-  deriving (Eq)
-data ExRange = ExRange {first :: ExIndex, second :: ExIndex}
-   deriving (Eq)
-data ExRef   = 
+data ExIndex    = ExIndex {refType :: RefType, colStr :: String, rowStr :: String} deriving (Eq)
+data ExCol      = ExCol { singleRefType :: SingleRefType, col2 :: String} deriving (Eq)
+data ExColRange = ExColRange {firstIndex :: ExIndex, secondCol :: ExCol} deriving (Eq)
+data ExRange    = ExRange {first :: ExIndex, second :: ExIndex} deriving (Eq)
+data ExTemplateExpr = 
+  ExSampleExpr {exSamples :: Int, exSampledIndex :: ExIndex} deriving (Eq)
+
+data ExRef = 
     ExIndexRef {exIndex :: ExIndex, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
   | ExColRangeRef {exColRange :: ExColRange, colRangeSheet :: Maybe SheetName, colRangeWorkbook :: Maybe WorkbookName}
   | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
   | ExPointerRef {pointerLoc :: ExIndex, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
+  | ExTemplateRef {exTemplate :: ExTemplateExpr, templateSheet :: Maybe SheetName, templateWorkbook :: Maybe WorkbookName}
   | ExOutOfBounds 
   deriving (Eq)
 
@@ -63,16 +63,18 @@ class Ref a where
 
 instance Ref ExRef where
   sheetRef a = case a of 
-    ExIndexRef _ _ _ -> locSheet a
-    ExRangeRef _ _ _ -> rangeSheet a
-    ExColRangeRef _ _ _ -> colRangeSheet a
-    ExPointerRef _ _ _ -> pointerSheet a
+    ExIndexRef {} -> locSheet a
+    ExRangeRef {} -> rangeSheet a
+    ExColRangeRef {} -> colRangeSheet a
+    ExPointerRef {} -> pointerSheet a
+    ExTemplateRef {} -> templateSheet a
     ExOutOfBounds -> Nothing
   workbookRef a = case a of 
-    ExIndexRef _ _ _ -> locWorkbook a
-    ExRangeRef _ _ _ -> rangeWorkbook a
-    ExColRangeRef _ _ _ -> colRangeWorkbook a
-    ExPointerRef _ _ _ -> pointerWorkbook a
+    ExIndexRef {} -> locWorkbook a
+    ExRangeRef {} -> rangeWorkbook a
+    ExColRangeRef {} -> colRangeWorkbook a
+    ExPointerRef {} -> pointerWorkbook a
+    ExTemplateRef {} -> templateWorkbook a
     ExOutOfBounds -> Nothing
 
 instance Show ExRef where
@@ -436,6 +438,9 @@ exRefToASRef sid exRef = case exRef of
       IndexRef (Index _ br) = exRefToASRef sid' $ ExIndexRef s sn Nothing
   ExPointerRef (ExIndex _ c r) sn wn -> PointerRef $ Pointer $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
     where sid' = maybe sid id (sheetIdFromContext sn wn)
+  ExTemplateRef t sn wn -> case t of 
+    ExSampleExpr n (ExIndex _ c r) -> TemplateRef $ SampleExpr n $ Index sid' $ Coord (colStrToInt c) (rowStrToInt r)
+      where sid' = maybe sid id (sheetIdFromContext sn wn)
 
 -- #incomplete we should actually be looking in the db. For now, with the current UX of
 -- equating sheet names and sheet id's with the dialog box, 

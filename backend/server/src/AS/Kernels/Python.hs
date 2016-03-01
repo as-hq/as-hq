@@ -2,13 +2,17 @@
 module AS.Kernels.Python where
 
 import GHC.Generics
-
-import AS.Kernels.Internal
-import AS.Kernels.LanguageUtils
-
-import AS.Logging
-import AS.Config.Settings
-import qualified AS.Parsing.Read as R
+import Data.Maybe (fromJust)
+import Data.Aeson 
+import Data.Aeson.Types (Parser)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Text as T
+import Control.Exception (catch, SomeException)
+import Control.Lens hiding ((.=))
+import System.ZMQ4.Monadic
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+import Database.Redis (Connection)
 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
@@ -18,26 +22,16 @@ import AS.Types.Sheets
 import AS.Types.CondFormat
 import AS.Types.Network
 
+import AS.Kernels.Internal
+import AS.Logging
+import AS.Config.Settings
+import qualified AS.Parsing.Read as R
 import AS.Parsing.Show
-
+import AS.Parsing.Common
 import AS.DB.API (getEvalHeader, getAllSheets)
 
-import Data.Maybe (fromJust)
-import Data.Aeson 
-import Data.Aeson.Types (Parser)
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.Text as T
 
-import Control.Exception (catch, SomeException)
-import Control.Lens hiding ((.=))
-import System.ZMQ4.Monadic
-
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-
-import Database.Redis (Connection)
-
----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
 initialize :: KernelAddress -> Connection -> IO ()
@@ -82,7 +76,12 @@ testCell addr sid code = printObj "Test evaluate python cell: " =<< (runEitherT 
 testHeader :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
 testHeader addr sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader addr sid code)
 
----------------------------------------------------------------------------------
+formatSqlCode :: EvalCode -> IO EvalCode
+formatSqlCode code = do
+  template <- readFile $ eval_dir ++ "sql/template.py"
+  return $ replaceSubstrings template [("#CODE#", code)]
+
+-----------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
 data EvalScope = Header | Cell deriving (Generic)

@@ -9,31 +9,22 @@ module AS.Kernels.R
   , evaluateHeader
   ) where
 
-import AS.Prelude
-import Prelude()
-
-import AS.Types.Cell
-import AS.Types.Eval
-import AS.Types.Errors
-import AS.Types.Sheets
-import AS.Kernels.Internal
-import AS.Kernels.LanguageUtils
-
-import AS.Config.Settings as S
-import AS.Logging
-import AS.Util (getUniqueId, trace')
-
+import Data.List (transpose, dropWhile, dropWhileEnd)
+import Data.Word (Word8)
+import System.Directory
+import Control.Monad.IO.Class
+import Control.Applicative
+import Control.Exception (handle, SomeException)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
 import System.Directory (getCurrentDirectory)
-import Data.List (elem, transpose)
-
 import qualified Data.ByteString.Char8 as BC
 
+import qualified Data.Vector.SEXP as SV
 import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
 import Foreign.Marshal.Array (peekArray)
-
 import Language.Haskell.TH.Ppr (bytesToString)
-
 import qualified Foreign.R as R
 import Foreign.R.Type as R
 import Foreign.R (SEXP, SEXPTYPE)
@@ -42,20 +33,18 @@ import Language.R as LR
 import Language.R.QQ
 import Language.R.HExp as H
 
-import qualified Data.Vector.SEXP as SV
-import Data.Word (Word8)
-import System.Directory
+import AS.Prelude
+import Prelude()
+import AS.Config.Settings as S
+import AS.Logging
+import AS.Util 
+import AS.Types.Cell
+import AS.Types.Eval
+import AS.Types.Errors
+import AS.Types.Sheets
+import AS.Kernels.Internal
 
-import Control.Monad.IO.Class
-import Control.Applicative
-import Control.Exception (handle, SomeException)
--- EitherT
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-
-type ASFilePath = String
-
-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
@@ -81,7 +70,14 @@ clearRepl = do
  R.runRegion $ castR =<< [r| rm(list=ls()) |]
  return ()
 
-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
+-- Util
+
+trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to get block delimiters
+trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
+  where isWhitespace c = (c == ' ') || (c == '\n') || (c == '\t') || (c == ';')
+
+-----------------------------------------------------------------------------------------------------------------------------
 -- Exec helpers
 
 execOnString :: EvalCode -> (EvalCode -> IO CompositeValue) -> IO CompositeValue
@@ -125,7 +121,7 @@ execR isGlobal s =
     --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
     --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
 
-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 -- Casting helpers
 
 castR :: R.SomeSEXP a -> R a CompositeValue
@@ -140,7 +136,8 @@ castSEXP x = case x of
   (hexp -> H.Char v)    -> return $ CellValue (castString v)
   (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'') -> castSEXP s
-  --(hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] -- this case only fires on pairlists, due to HaskellR issue #214
+  -- (hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] 
+  -- ^ this case only fires on pairlists, due to HaskellR issue #214
   (hexp -> H.Special i)    -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.DotDotDot s)  -> castSEXP s
   (hexp -> H.Vector len v) -> castVector v
@@ -213,3 +210,5 @@ fromReal d
 
 isRPlot :: [RListKey] -> Bool
 isRPlot = elem "plot_env"
+
+

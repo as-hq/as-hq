@@ -1,25 +1,20 @@
 module AS.Kernels.OCaml where
 
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+
 import AS.Prelude
 import Prelude()
-
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors
 
 import AS.Kernels.Internal
-import AS.Kernels.LanguageUtils
-
 import AS.Parsing.Read
-
 import AS.Config.Settings
 import AS.Logging
 
--- EitherT
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-
-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 -- | Exposed functions
 
 --  DEPRECATED until we actually support OCaml (anand 1/6/15)
@@ -39,7 +34,7 @@ evaluateRepl :: String -> String -> EitherTExec EvalResult
 evaluateRepl _ _ = $undefined
 --evaluateRepl _ "" = return $ CellValue NoValue
 --evaluateRepl _ str = left ExecError -- TODO
-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------
 -- | Helpers
 
 --execOcaml :: IO String

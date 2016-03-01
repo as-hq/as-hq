@@ -121,11 +121,14 @@ vector<string> processRequest(DAG& dag, string& request) {
     vector<string> response;
 
     if (type == "GetDescendants") {
-        DAG::DAGResponse r = dag.getAllDescendants(generateLocs(requestParts, tempLocs));
+        DAG::DAGResponse r = dag.getEntireRootedSubgraph(generateLocs(requestParts, tempLocs), true);
         return stringifyResponse(r,response);
     } else if (type == "GetProperDescendants") {
         DAG::DAGResponse r = dag.getProperDescendants(generateLocs(requestParts, tempLocs));
         return stringifyResponse(r,response);
+    } else if (type == "GetAllAncestors") {
+        DAG::DAGResponse r = dag.getEntireRootedSubgraph(generateLocs(requestParts, tempLocs), false);
+        return stringifyResponse(r, response);
     } else if (type == "GetImmediateAncestors") {
         DAG::DAGResponse r = dag.getImmediateAncestors(generateLocs(requestParts, tempLocs));
         return stringifyResponse(r,response);

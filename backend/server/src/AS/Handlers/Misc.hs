@@ -44,7 +44,6 @@ import AS.Reply
 
 import qualified AS.Dispatch.Core         as DP
 import qualified AS.Util                  as U
-import qualified AS.Kernels.LanguageUtils as LU
 import qualified AS.Users                 as US
 import qualified AS.InferenceUtils        as IU
 import qualified AS.Serialize             as S
@@ -183,7 +182,7 @@ handleUpdateCondFormatRules mid uc state u = do
       allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
-  errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext
+  errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext DP.evalChain
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
   either (const $ return ()) (DT.updateDBWithCommit graphAddress conn src) errOrCommit

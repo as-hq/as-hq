@@ -53,6 +53,7 @@ import Control.Lens hiding ((.=), Context, index, transform)
 import Control.Lens.TH
 
 import Control.Monad.Trans.Either
+import Control.Applicative ((<*))
 
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
 type Arg a = (Int,a)
@@ -957,10 +958,7 @@ eIndirect c e = do
     Just loc -> return $ EntityRef (ERef loc)
 
 justExcelMatch :: Parser ExRef
-justExcelMatch = do 
-  m <- refMatch
-  eof
-  return m
+justExcelMatch = refMatch <* eof
 
 r1c1 :: ASSheetId -> Parser ASReference
 r1c1 sid = do 

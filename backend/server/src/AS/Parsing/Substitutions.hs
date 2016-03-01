@@ -113,8 +113,14 @@ getExcelReferences :: ASExpression -> [ExRef]
 getExcelReferences xp = snd $ getUnquotedMatchesWithContext xp refMatch
 
 -- | Returns the list of dependencies in ASExpression. 
+-- #needsrefactor NOT ALL ASReferences ARE VALID REFERENCES FOR THE GRAPH!
 getDependencies :: ASSheetId -> ASExpression -> [ASReference]
-getDependencies sheetId = map (exRefToASRef sheetId) . getExcelReferences
+getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getExcelReferences
+  where 
+    convertInvalidRef r = case r of 
+      TemplateRef t -> case t of 
+        SampleExpr _ idx -> IndexRef idx
+      _ -> r
 
 
 ----------------------------------------------------------------------------------------------------------------------------------

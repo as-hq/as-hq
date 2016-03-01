@@ -3,9 +3,9 @@ module AS.Config.Settings where
 
 import Prelude()
 import AS.Prelude
-import qualified AS.Config.Internal as I
 import AS.Types.Network
 import AS.Types.Cell
+import qualified AS.Config.Internal as I
 
 -- For debugging purposes, the app behaves differently at various points in the code.
 -- if you see (if isDebug), behavior forks.

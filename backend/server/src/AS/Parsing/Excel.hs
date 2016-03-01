@@ -17,48 +17,59 @@ import AS.Types.Cell
 import AS.Types.Excel
 import AS.Util
 
--------------------------------------------------------------------------------------------------------------------------------------------------
--- Parsers to match special excel characters
 
-readSingleRef :: Maybe Char -> SingleRefType
-readSingleRef d1 = case d1 of
-  Nothing -> REL
-  Just _ -> ABS
+data InnerReference = 
+    InnerRange ExRange
+  | InnerColRange ExColRange
+  | InnerTemplate ExTemplateExpr
+  | InnerIndex ExIndex
 
-readRefType :: Maybe Char -> Maybe Char -> RefType 
-readRefType d1 d2 = case d1 of
-  Nothing -> maybe REL_REL (const REL_ABS) d2
-  Just _ -> maybe  ABS_REL (const ABS_ABS) d2
-
-dollar :: Parser Char
-dollar = char  '$' -- returns $ or ""; $ is not required for index
-
-colon :: Parser Char
-colon = char ':' -- this character is necessary for range
-
-exc :: Parser Char
-exc = char '!' -- required for sheet access
-
-pointer :: Parser Char
-pointer = char  '@'
+instance Show ExRange where
+  show (ExRange (ExIndex _ tl br) (ExIndex _ tl' br')) = tl ++ br ++ ":" ++ tl' ++ br'
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
--- Parsers to match excel locations in strings
+-- Top-level parsers
+
+refMatch :: Parser ExRef
+refMatch = do
+  point <- optionMaybe $ try pointer
+  (sh, wb) <- sheetWorkbookMatch
+  innerRef <- optionMaybe innerRefMatch
+  case innerRef of 
+    Just ref -> case point of 
+      Just _ -> case ref of 
+        InnerIndex idx -> return $ ExPointerRef idx sh wb
+        _ -> fail "expected index reference when using pointer syntax"
+      Nothing -> return $ case ref of 
+        InnerRange rng    -> ExRangeRef rng sh wb
+        InnerColRange rng -> ExColRangeRef (orientExColRange rng) sh wb -- #needsrefactor the caller should be using orientExColRange instead.
+        InnerTemplate t   -> ExTemplateRef t sh wb
+        InnerIndex idx    -> ExIndexRef idx sh wb
+    Nothing -> 
+          outOfBoundsMatch
+      <?> "expected valid excel A1:B4 format reference"
+
+innerRefMatch :: Parser InnerReference
+innerRefMatch = 
+      InnerRange    <$> try rangeMatch
+  <|> InnerColRange <$> try colRangeMatch
+  <|> InnerTemplate <$> try templateMatch
+  <|> InnerIndex    <$> try indexMatch
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Individual reference parsers
 
 -- matches a valid sheet name
-nameMatch :: Parser (Maybe String)
-nameMatch = many ( noneOf ['!','$','@',':',' ']) >>= (\q -> exc >> return (rdName q))
-  where 
-    rdName "" = Nothing
-    rdName s = Just s
+nameMatch :: Parser String
+nameMatch = many1 (noneOf ['!','$','@',':',' ']) <* exc
 
 sheetWorkbookMatch :: Parser (Maybe SheetName, Maybe WorkbookName)
 sheetWorkbookMatch = do
-  q1 <- option Nothing $ try nameMatch
+  q1 <- optionMaybe $ try nameMatch
   case q1 of 
     Nothing -> return (Nothing, Nothing)
     Just _ -> do
-      q2 <- option Nothing $ try nameMatch
+      q2 <- optionMaybe $ try nameMatch
       return $ case q2 of 
         Nothing -> (q1, Nothing) -- sheet, nothing
         Just _ -> (q2, q1)       -- sheet is inner-most parsed (it's q2), so return the reverse order
@@ -89,7 +100,6 @@ colMatch = do
   return $ ExCol (readSingleRef dol) rcol
 
 -- | Three cases for colRange matching
-
 -- Matches A1:A type things.
 colRangeA1ToAMatch :: Parser ExColRange
 colRangeA1ToAMatch = do
@@ -115,7 +125,7 @@ colRangeAToAMatch = do
   r <- colMatch
   return $ ExColRange (ExIndex (readRefType a (Just '$')) lcol "1")  r
 
--- checks for matches to both both A:A and A1:A.
+-- example: A:A, A1:A, A:A1
 colRangeMatch :: Parser ExColRange
 colRangeMatch = do
   -- order matters. AToA must be tried after AToA1
@@ -127,8 +137,7 @@ colRangeMatch = do
            Just a -> return a
            Nothing -> colRangeAToAMatch
 
--- | matches index:index
---
+-- example: A1:B4
 rangeMatch :: Parser ExRange
 rangeMatch = do
   tl <- indexMatch
@@ -136,38 +145,45 @@ rangeMatch = do
   br <- indexMatch
   return $ ExRange tl br
 
-instance Show ExRange where
-  show (ExRange (ExIndex _ tl br) (ExIndex _ tl' br')) = tl ++ br ++ ":" ++ tl' ++ br'
+templateMatch :: Parser ExTemplateExpr
+templateMatch = do
+  op <- oneOf templateOps
+  between (char '{') (char '}') $ case op of 
+    '!' -> do
+      spaces
+      n <- many1 digit
+      spaces >> char ',' >> spaces
+      idx <- indexMatch
+      spaces
+      return $ ExSampleExpr ($read n :: Int) idx
 
-refMatch :: Parser ExRef
-refMatch = do
-  point <- optionMaybe $ try pointer
-  (sh, wb) <- option (Nothing, Nothing) $ try sheetWorkbookMatch
-  rng <- optionMaybe $ try rangeMatch 
-  colrng <- optionMaybe $ try colRangeMatch
-  idx <- optionMaybe $ try indexMatch
-  ofb <- optionMaybe $ try outOfBoundsMatch
-  case point of 
-    Just _ -> case idx of 
-      Just idx' -> return $ ExPointerRef idx' sh wb
-      Nothing -> case ofb of 
-        Just ofb' -> return ExOutOfBounds
-        Nothing -> fail "expected index reference when using pointer syntax"
-    Nothing -> case rng of 
-      -- Force ranges to have tl <= br.
-      Just rng' -> return $ ExRangeRef rng' sh wb
-      -- Force colRanges to have l <= r.
-      -- TODO: timchu 1/3/15. Force this any time a range ref is updated. In copy paste, ...
-      Nothing -> case colrng of
-        -- We should not be using orientExColRange here. The logic for orienting
-        -- shouldn't be slapped in the middle of refMatch. 
-        Just colrng' -> return $ ExColRangeRef (orientExColRange colrng') sh wb
-        Nothing -> case idx of 
-          Just idx' -> return $ ExIndexRef idx' sh wb
-          Nothing -> case ofb of  
-            Just ofb' -> return ExOutOfBounds
-            Nothing -> fail "expected valid excel A1:B4 format reference"
+templateOps :: [Char]
+templateOps = ['!']
 
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-- Token parsers
+
+readSingleRef :: Maybe Char -> SingleRefType
+readSingleRef d1 = case d1 of
+  Nothing -> REL
+  Just _ -> ABS
+
+readRefType :: Maybe Char -> Maybe Char -> RefType 
+readRefType d1 d2 = case d1 of
+  Nothing -> maybe REL_REL (const REL_ABS) d2
+  Just _ -> maybe  ABS_REL (const ABS_ABS) d2
+
+dollar :: Parser Char
+dollar = char  '$' -- returns $ or ""; $ is not required for index
+
+colon :: Parser Char
+colon = char ':' -- this character is necessary for range
+
+exc :: Parser Char
+exc = char '!' -- required for sheet access
+
+pointer :: Parser Char
+pointer = char  '@'
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper Functions
@@ -204,6 +220,14 @@ shiftExRef o exRef = case exRef of
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
       where ExIndexRef l' _ _ = shiftExRef o (ExIndexRef l sh wb)
 
+  ExTemplateRef t sh wb -> exRef { exTemplate = t' }
+    where 
+      t' = case t of 
+        ExSampleExpr n idx -> 
+          let (ExIndexRef idx' _ _) = shiftExRef o (ExIndexRef idx sh wb)
+          in t { exSampledIndex = idx' }
+
+
 -- shifts absolute references too
 -- TODO: timchu, 12/29/15. Massive code duplication.
 shiftExRefForced :: Offset -> ExRef -> ExRef
@@ -218,21 +242,28 @@ shiftExRefForced o exRef = case exRef of
         else Nothing
       exRef' = maybe ExOutOfBounds (\i -> exRef { exIndex = i }) idx
   ExRangeRef (ExRange f s) sh wb -> exRef' 
-      where
-        shiftedInds = (shiftExRefForced o (ExIndexRef f sh wb), shiftExRefForced o (ExIndexRef s sh wb))
-        exRef' = case shiftedInds of 
-          (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
-          _ -> ExOutOfBounds
+    where
+      shiftedInds = (shiftExRefForced o (ExIndexRef f sh wb), shiftExRefForced o (ExIndexRef s sh wb))
+      exRef' = case shiftedInds of 
+        (ExIndexRef f' _ _, ExIndexRef s' _ _) -> exRef { exRange = ExRange f' s' }
+        _ -> ExOutOfBounds
   -- TODO: timchu, have not implemented out of bounds handling.
   ExColRangeRef (ExColRange f s@(ExCol srType c) ) sh wb -> exRef' 
-      where
-        shiftedInd = shiftExRef o (ExIndexRef f sh wb)
-        shiftedF = exIndex shiftedInd
-        -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
-        shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) REL c
-        exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
+    where
+      shiftedInd = shiftExRef o (ExIndexRef f sh wb)
+      shiftedF = exIndex shiftedInd
+      -- TODO: timchu, the below line feels like it could go in its own well-labeled function.
+      shiftedS = ExCol srType $ intToColStr $ shiftSingleCol (dCol o) REL c
+      exRef' = exRef { exColRange = ExColRange shiftedF shiftedS }
   ExPointerRef l sh wb -> exRef { pointerLoc = l' }
-      where ExIndexRef l' _ _ = shiftExRefForced o (ExIndexRef l sh wb)
+    where ExIndexRef l' _ _ = shiftExRefForced o (ExIndexRef l sh wb)
+  ExTemplateRef t sh wb -> ExTemplateRef t' sh wb
+    where 
+      t' = case t of 
+        ExSampleExpr n idx -> 
+          let ExIndexRef idx' _ _ = shiftExRefForced o (ExIndexRef idx sh wb)  
+          in ExSampleExpr n idx'
+
 
 shiftCol :: Int -> RefType -> String -> Int
 shiftCol dC rType c = newCVal

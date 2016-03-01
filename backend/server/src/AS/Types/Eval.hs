@@ -7,6 +7,12 @@ module AS.Types.Eval
   ) where
 
 import GHC.Generics
+import Control.Lens hiding (index)
+import Control.Applicative ((<$>), (<*>))
+import qualified Data.List as L
+import qualified Data.Map as M
+import Data.Maybe (isJust)
+import Safe (headMay)
 
 import AS.Types.CellProps
 import AS.Types.Values
@@ -16,16 +22,7 @@ import AS.Types.Errors
 import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Updates
-
 import AS.ASJSON
-import Safe (headMay)
-
-import Control.Lens hiding (index)
-import Control.Applicative ((<$>), (<*>))
-
-import qualified Data.List as L
-import qualified Data.Map as M
-import Data.Maybe (isJust)
 
 
 -- For internal use only. Represents a "cell" that takes up numerous cells (e.g., range(10)).
@@ -142,3 +139,18 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
           (y', x')   = (view col rect2Coord1, view row rect2Coord1) -- bottom right in rect 1
           (y2, x2)   = (view col rect1Coord2, view row rect1Coord2) -- top left in rect 2
           (y2', x2') = (view col rect2Coord2, view row rect2Coord2) -- bottom right in rect 2
+
+
+-- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
+-- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens
+addCellsToContext :: [ASCell] -> EvalContext -> EvalContext
+addCellsToContext cells ctx =
+  ctx & virtualCellsMap .~ newMap & (updateAfterEval . cellUpdates) .~ Update newAddedCells []
+    where
+      newAddedCells = mergeCells cells (newCellsInContext ctx)
+      newMap   = insertMultiple (ctx^.virtualCellsMap) (mapCellLocation cells) cells
+
+-- Inserts multiple elements into a map
+insertMultiple :: (Ord k) => M.Map k v -> [k] -> [v] -> M.Map k v
+insertMultiple mp keys values = L.foldl' (\curMap (key,value) -> M.insert key value curMap) mp assoc
+  where assoc = zip keys values

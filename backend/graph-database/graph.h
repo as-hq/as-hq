@@ -35,8 +35,8 @@ public:
   void updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs);
   void clearDAG();
 
+  DAGResponse getEntireRootedSubgraph(const vector<Vertex>& locs, const bool& searchForward);
   DAGResponse getProperDescendants(const vector<Vertex>& locs);
-  DAGResponse getAllDescendants(const vector<Vertex>& locs);
   DAGResponse getImmediateAncestors(const vector<Vertex>& locs);
   bool containsCycle(const DAG::Vertex&);
 
@@ -53,9 +53,15 @@ public:
    * Immediate descendants of loc are a mix of descendants referenced as part of a
    * range, pointer, or index expression (in the fromToAdjList), and the colRange
    * descendants (in the fromColTo map). */
-  VertexSet getImmediateDesc(const Vertex& loc);
-  VertexSet findColDescendants(const Vertex& loc);
-  void depthFirstSearch(const Vertex& loc, unordered_map<Vertex,bool>& visited, vector<Vertex>& order);
+  VertexSet getImmediateDescendantSet(const Vertex& loc);
+  VertexSet getImmediateAncestorSet(const Vertex& loc);
+  VertexSet findColDescendantSet(const Vertex& loc);
+  void depthFirstSearch(
+    const Vertex& loc, 
+    unordered_map<Vertex,bool>& visited, 
+    vector<Vertex>& order,
+    const bool& searchForward // indicates whether to search forward or backward along edges
+  ); 
   bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
 private:
 };
