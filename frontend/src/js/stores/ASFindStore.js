@@ -7,14 +7,22 @@ import API from '../actions/ASApiActionCreators';
 import Util from '../AS/Util';
 
 let _data = {
-  findText:'',
-  findPos:0,
-  findTotal:0,
-  findLocs:[]
+  findText: '',
+  findPos: 0,
+  findTotal: 0,
+  findLocs: []
 };
 
 dispatcherIndex: Dispatcher.register(function (action) {
   switch (action._type) {
+    case 'RESET':
+      _data = {
+        findText: '',
+        findPos: 0, 
+        findTotal: 0, 
+        findLocs: []
+      };
+      break;
     case Constants.ActionTypes.GOT_FIND:
       ASFindStore.setFindLocs(action.findLocs);
       ASFindStore.setFindPos(0);

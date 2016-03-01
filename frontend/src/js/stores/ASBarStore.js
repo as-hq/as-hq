@@ -31,7 +31,7 @@ type BarDimensions = {[key: BarType]: Array<[number,?number]>};
 
 const ASBarStore = Object.assign({}, BaseStore, {
 
-  /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
+  /* This function describes the actions of the ASBarStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
       case 'GOT_UPDATED_BARS':
@@ -44,6 +44,10 @@ const ASBarStore = Object.assign({}, BaseStore, {
         ASBarStore._updateBars(newBars);
 
         ASBarStore.emitChange();
+        break;
+      case 'RESET':
+        _data.bars = new ObjectDict();
+        _data.lastUpdatedBars = [];
         break;
     }
   }),

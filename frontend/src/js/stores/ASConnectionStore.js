@@ -15,6 +15,9 @@ const ASConnectionStore = Object.assign({}, BaseStore, {
         _data.isConnected = action.isConnected;
         ASConnectionStore.emitChange();
         break;
+      case 'RESET':
+        _data.isConnected = true;
+        break;
     }
   }),
 

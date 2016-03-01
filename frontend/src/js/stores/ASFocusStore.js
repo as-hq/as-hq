@@ -25,6 +25,11 @@ const _data: FocusStoreData = {
 
 const dispatcherIndex = Dispatcher.register(action => {
   switch (action._type) {
+    case 'RESET':
+      _data.activeFocus = 'grid';
+      _data.lastActiveFocus = 'textbox';
+      _data.callbacks = null;
+      break;
     case 'FOCUSED': {
       setFocus(action.focus);
       FocusStore.emitChange();

@@ -30,6 +30,10 @@ const ASRangeDescriptorStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     logDebug('Range descriptor store received action', action);
     switch (action._type) {
+      case 'RESET':
+        _data.rangeDescriptors = new ObjectDict();
+        break;
+        
       case 'GOT_UPDATED_RANGE_DESCRIPTORS':
         ASRangeDescriptorStore._removeRangeDescriptorsAt(action.oldRangeKeys);
         ASRangeDescriptorStore._updateRangeDescriptors(action.newRangeDescriptors);

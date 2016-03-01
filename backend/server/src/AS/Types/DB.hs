@@ -10,6 +10,7 @@ import qualified Data.ByteString               as B
 import Data.ByteString (ByteString)
 import Data.SafeCopy
 import GHC.Generics
+import Control.Monad
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import Control.Lens hiding (index, context, set)
@@ -54,7 +55,8 @@ data DBKey =
   | UserKey              ASUserId
   | IndexKey             ASIndex  
   | WorkbookKey          WorkbookName
-  | RedisRangeKey        RangeKey   
+  | RedisRangeKey        RangeKey  
+  | LogKey               LogSource 
   | AllSheetsKey
   | SharedSheetsKey
   deriving (Generic, Show)
@@ -72,6 +74,7 @@ data DBValue =
   | CFValue CondFormatRule
   | IndexValue ASIndex
   | RangeDescriptorValue RangeDescriptor 
+  | LogValue LogData
   deriving (Generic, Show)
   
 ---------------------------------------------------------------------------------------------------------------
@@ -112,6 +115,10 @@ dbValToEvalHeaderBStr _ = Nothing
 dbValToCommit :: DBValue -> Maybe ASCommit 
 dbValToCommit (CommitValue c) = Just c 
 dbValToCommit _ = Nothing
+
+dbValToLogData :: DBValue -> Maybe LogData
+dbValToLogData (LogValue l) = Just l 
+dbValToLogData _ = Nothing
 
 ---------------------------------------------------------------------------------------------------------------
 -- Conversion helpers 
@@ -220,9 +227,7 @@ multiSet toDBKey toDBValue valToKey conn xs = runRedis conn $ do
 -- Delete multiple keys at once
 multiDel :: (a -> DBKey) -> Connection -> [a] -> IO ()
 multiDel _ _ [] = return ()
-multiDel toDBKey conn xs = runRedis conn $ do 
-  del $ map (S.encode . toDBKey) xs
-  return ()
+multiDel toDBKey conn xs = void $ runRedis conn $ del $ map (S.encode . toDBKey) xs
 
 -- Given a key and a value decoder, simply get a key-value pair
 getV :: Connection -> DBKey -> (DBValue -> Maybe b) -> IO (Maybe b)
@@ -232,7 +237,7 @@ getV conn key fromDBValue = runRedis conn $ do
 
 -- Given a dbkey and dbvalue, just set that pair in the DB 
 setV :: Connection -> DBKey -> DBValue -> IO ()
-setV conn key val = runRedis conn $ set (S.encode key) (S.encode val) >> return ()
+setV conn key val = void $ runRedis conn $ set (S.encode key) (S.encode val) 
 
 -- Given a key and a value decoder, get all of the values in the set associated with this key
 getS :: DBKey -> (DBValue -> Maybe b) -> Connection -> IO [b]
@@ -243,9 +248,17 @@ getS key fromDBValue conn = runRedis conn $ do
 
 -- Add a value to a set associated with the key
 addS :: Connection -> DBKey -> DBValue -> IO ()
-addS conn key val = runRedis conn $ do 
-  sadd (S.encode key) [S.encode val]
-  return ()
+addS conn key val = void $ runRedis conn $ sadd (S.encode key) [S.encode val]
+
+-- Add a value to the right end of a list at key
+addL :: Connection -> DBKey -> DBValue -> IO ()
+addL conn key val = void $ runRedis conn $ rpush (S.encode key) [S.encode val]
+
+-- Get all members of a list at key, given a value decoder
+getL :: Connection -> DBKey -> (DBValue -> Maybe a) -> IO [a]
+getL conn key fromDBValue = runRedis conn $ do 
+  Right vals <- lrange (S.encode key) 0 (-1)
+  return $ fromBS' fromDBValue vals
 
 ---------------------------------------------------------------------------------------------------------------
 -- Instances 
@@ -304,3 +317,5 @@ instance NFData ASWindow      where rnf = genericRnf
 instance NFData Selection      where rnf = genericRnf
 instance NFData MutateType      where rnf = genericRnf
 instance NFData EvalInstruction      where rnf = genericRnf
+instance NFData LogSource where rnf = genericRnf
+instance NFData LogData where rnf = genericRnf

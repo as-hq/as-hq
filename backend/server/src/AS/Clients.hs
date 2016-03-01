@@ -1,8 +1,13 @@
 module AS.Clients where
 
+import qualified Data.List as L
+import qualified Data.Text as T
+import qualified Data.Aeson as A
+import Control.Monad (when)
+import Control.Lens hiding ((.=))
+
 import AS.Prelude
 import Prelude()
-
 import AS.Types.Network 
 import AS.Types.Cell
 import AS.Types.Messages hiding (userId)
@@ -18,6 +23,7 @@ import AS.Handlers.JumpSelect
 import AS.Handlers.Misc
 import AS.Handlers.Import
 import AS.Handlers.Sheets
+import AS.Handlers.LogAction
 
 import qualified AS.Daemon as DM
 import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
@@ -25,12 +31,6 @@ import AS.Dispatch.Core
 import AS.Reply
 import AS.Logging
 
-import qualified Data.List as L
-import qualified Data.Text as T
-
---import Control.Concurrent
-import Control.Monad (when)
-import Control.Lens hiding ((.=))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASUserClient is a client
@@ -40,7 +40,11 @@ shouldLogMessage (ServerMessage _ (UpdateWindow _)) = False
 shouldLogMessage (ServerMessage _ (OpenSheet _)) = False
 shouldLogMessage _ = True
 
+-- Whether to print the reception of the message on the console or not. 
+-- Do not show logging messages, as they are distracting and happen on every frontend action
 shouldPrintMessage :: ServerMessage -> Bool
+shouldPrintMessage (ServerMessage _ (LogAction _)) = False
+shouldPrintMessage (ServerMessage _ (GetSessionLogs _)) = False
 shouldPrintMessage _ = True
 
 instance Client ASUserClient where
@@ -66,6 +70,11 @@ instance Client ASUserClient where
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
     let mid = serverMessageId message 
+    -- Log every message sent in the DB to help in replaying/debugging
+    case serverAction message of
+      LogAction _ -> return ()
+      GetSessionLogs _ -> return ()
+      otherwise -> handleLogMessage user curState $ A.encode message
     case (serverAction message) of
       -- New                -> handleNew user state payload
       OpenSheet sid                    -> handleOpenSheet mid user state sid
@@ -101,6 +110,10 @@ instance Client ASUserClient where
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
       ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName
       SetLanguagesInRange lang rng -> handleSetLanguagesInRange mid user curState lang rng
+      LogAction fAction            -> handleLogAction user curState fAction
+      GetSessionLogs logSource     -> handleGetSessionLogs mid user curState logSource
+      StartDebuggingLog            -> handleStopLoggingActions state
+      GetAllSessions               -> handleGetAllSessions mid user
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 

@@ -53,10 +53,13 @@ data ServerState = ServerState { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
                           , _appSettings :: AppSettings
-                          , _threads :: ThreadMap}
+                          , _threads :: ThreadMap
+                          , _isDebuggingLog :: Bool}
+-- #needsrefactor rename isDebuggingLog to stopLoggingMessages or something. The idea is that in "dev debug"
+-- mode, you shouldn't be logging replays. 
 
 emptyServerState :: R.Connection -> AppSettings -> ServerState
-emptyServerState conn settings = ServerState [] [] conn settings M.empty
+emptyServerState conn settings = ServerState [] [] conn settings M.empty False
 
 data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
                                 , _backendWsPort :: Port
@@ -102,8 +105,6 @@ instance FromJSON AppSettings where
   
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
-
-type SessionId = Text
 
 class Client c where
   clientType :: c -> ClientType

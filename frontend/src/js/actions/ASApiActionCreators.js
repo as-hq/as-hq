@@ -75,8 +75,8 @@ import ASSelection from '../classes/ASSelection';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ProgressStore from '../stores/ASProgressStore';
+import LoginStore from '../stores/ASLoginStore';
 
-import ws from '../AS/PersistentWebSocket';
 import * as ProgressActions from './ASProgressActionCreators';
 import * as HeaderActions from './ASHeaderActionCreators';
 
@@ -86,6 +86,7 @@ import NotificationActions from '../actions/ASNotificationActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 
 let ActionTypes = Constants.ActionTypes;
+let pws = require('./PWSInstance').pws;
 
 /**************************************************************************************************************************/
 
@@ -95,8 +96,6 @@ let ActionTypes = Constants.ActionTypes;
   2) Take messages received from the server and send them to dispatch
 */
 
-console.log("GOT URL: " + Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
-let pws: ws = new ws(Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT));
 
 let testState: ({
   awaitingHook: false;
@@ -313,6 +312,20 @@ pws.onmessage = (event: MessageEvent) => {
         autoDismiss: 3
       });
       break;
+    case 'SessionLog':
+      Dispatcher.dispatch({
+        _type: 'GOT_SESSION_LOG',
+        sessionLog: action.sessionLog
+      });
+      break;
+    case 'AllSessions':
+      Dispatcher.dispatch({
+        _type: 'GOT_ALL_SESSIONS',
+        sessions: action.allSessions
+      });
+      break;
+    default: 
+      break;
   }
 };
 
@@ -339,6 +352,14 @@ const API = {
   send(msg: any) {
     pws.waitForConnection((innerClient: WebSocket) => {
       innerClient.send(JSON.stringify(msg));
+    });
+  },
+
+  // Used instead of the above for replaying messages without additional JSON.stringify
+  // #needsrefactor DRY
+  sendMsg(msg: any) {
+    pws.waitForConnection((innerClient: WebSocket) => {
+      innerClient.send(msg);
     });
   },
 
@@ -869,6 +890,38 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  /**************************************************************************************************************************/
+  // Logging
+
+  // Get all logs data for a session
+  getSessionLogs(logUserId: string, logSessionId: string) {
+    const msg = {
+      tag: 'GetSessionLogs',
+      contents: {
+        logUserId,
+        logSessionId
+      }
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  // Send a pre-flight request to stop logging now that we're debugging
+  startDebuggingLog() {
+    const msg = {
+      tag: "StartDebuggingLog",
+      contents: []
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  // Gets all sessions
+  getAllSessions() {
+    const msg = {
+      tag: "GetAllSessions",
+      contents: []
+    }; 
+    API.sendMessageWithAction(msg);
+  },
 
   /**************************************************************************************************************************/
   /* Testing */

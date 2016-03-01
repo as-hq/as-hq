@@ -72,6 +72,8 @@ type State = {
   isConnected: boolean;
 };
 
+import LogViewer from './LogViewer.jsx';
+import LogStore from '../stores/ASLogStore';
 
 class App extends React.Component<{}, Props, State> {
   $storeLinks: Array<StoreLink>;
@@ -86,6 +88,7 @@ class App extends React.Component<{}, Props, State> {
       currentBottomPane: null,
       isConnected: true
     };
+    this._logListener = () => this.forceUpdate();
   }
 
   componentDidMount() {
@@ -93,6 +96,7 @@ class App extends React.Component<{}, Props, State> {
     U.React.addStoreLinks(this, [
       { store: ModalStore }
     ]);
+    LogStore.addListener(this._logListener);
 
     // #anand what does this do?
     window.addEventListener('contextmenu', (evt) => {
@@ -102,6 +106,7 @@ class App extends React.Component<{}, Props, State> {
 
   componentWillUnmount() {
     U.React.removeStoreLinks(this);
+    LogStore.removeListener(this._logListener);
   }
 
   getChildContext(): any {
@@ -117,6 +122,7 @@ class App extends React.Component<{}, Props, State> {
     const {currentBottomPane, isConnected} = this.state;
     const connectionBarHeight = isConnected ? 0 : 24; // #needsrefactor would be better to use flexbox than a conditional height.
     const fullStyle = {width: '100%', height: '100%'};
+    const logOpen = LogStore.getIsOpen();
 
     const connectionBarStyle = {
       width: '100%',
@@ -161,12 +167,11 @@ class App extends React.Component<{}, Props, State> {
         </div>
       </div>;
 
-    return (
-      <div style={styles.app} >
+    const alphasheets = 
+      <div style={{...flex.column, height: logOpen ? '50%' : '100%'}} >
         <div style={isConnected ? {display: 'none'} : styles.connectionBar}>
           <ASConnectionBar />
         </div>
-
         <ASCondFormattingDialog
           open={ModalStore.getCondFormattingOpen()}
           onRequestClose={() => DialogActions.closeCondFormattingDialog()} />
@@ -175,23 +180,26 @@ class App extends React.Component<{}, Props, State> {
           onRequestClose={() => DialogActions.closeChartingDialog()}
           onCreate={(chart) => OverlayActions.add(chart)} />
         <ASTopBar toggleEvalHeader={() => this._toggleEvalHeader()} />
-
         <Toolbar />
-
         <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight + connectionBarHeight}px)`}}>
           <ResizablePanel content={evalPane}
                           sidebar={bottomPane}
                           sidebarVisible={!! currentBottomPane}
                           side="bottom" />
         </div>
-
         <div style={{width: '100%', height: `${bottomBarHeight}px`}} >
           <ASBottomBar toggleBottomPane={(pane: BottomPane) =>
                                       this._toggleBottomPane(pane)} />
         </div>
-
         <ShortcutHelper />
+      </div>;
 
+    // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet 
+    // is the whole page
+    return (
+      <div style={{width: '100%', height: '100%'}} >
+        {alphasheets}
+        {logOpen ? <LogViewer /> : null}
       </div>
     );
   }

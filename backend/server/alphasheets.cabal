@@ -49,6 +49,7 @@ library
                        AS.Handlers.Props
                        AS.Handlers.Import
                        AS.Handlers.Sheets
+                       AS.Handlers.LogAction
                        AS.InferenceUtils
                        AS.Kernels.LanguageUtils
                        AS.Kernels.Excel.Eval
@@ -139,6 +140,9 @@ library
                      , wreq
                      , random
                      , lens-aeson
+                     , mysql-simple
+                     , old-time
+                     , old-locale
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

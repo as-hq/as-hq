@@ -17,6 +17,9 @@ let _data: SelectionStoreData = {
 const ASSelectionStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
+      case 'RESET':
+        _data.activeSelection = null;
+        break;
       case 'GOT_SELECTION':
         setActiveSelection(action.newSelection);
         ASSelectionStore.emitChange();

@@ -9,6 +9,9 @@ let _data = {
 
 let dispatcherIndex = Dispatcher.register((action) => {
   switch (action._type) {
+    case 'RESET':
+      _data.shortcutHelperOpen = false;
+      break;
     case 'TOGGLE_SHORTCUT_HELPER':
       _data.shortcutHelperOpen = !_data.shortcutHelperOpen;
       ShortcutHelperStore.emitChange();

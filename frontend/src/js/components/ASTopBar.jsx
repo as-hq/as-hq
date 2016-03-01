@@ -16,6 +16,8 @@ import request from 'superagent';
 
 import API from '../actions/ASApiActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import LogStore from '../stores/ASLoginStore';
+import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
@@ -86,6 +88,19 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
             }
           })
         )];
+
+    // If the user is a dev, then display an option to open the log viewer
+    const maybeLogButton = LogStore.userIsDev() 
+      ? [(
+         simple({
+            title: 'Log Viewer',
+            callback() {
+              LogViewerActionCreator.openLogViewer();
+            }
+          })
+      )]
+      : [];
+
 
     return (
       <span>
@@ -218,7 +233,8 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
               }
             }),
 
-            ...testAlphaSheets
+            ...testAlphaSheets,
+            ...maybeLogButton
           ]}
         ]} />
       </span>

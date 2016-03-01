@@ -10,6 +10,12 @@ let _data = {
 
 let dispatcherIndex = Dispatcher.register((action) => {
   switch (action._type) {
+    case 'RESET':
+      _data = {
+        condFormattingOpen: false,
+        chartOpen: false
+      };
+      break;
     case 'CLOSE_COND_FORMATTING_DIALOG':
       _data.condFormattingOpen = false;
       ASModalStore.emitChange();

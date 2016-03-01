@@ -17,6 +17,10 @@ let _notifications: Array<string> = [];
 const NotificationStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
+      case 'RESET':
+        _notifications = [];
+        break;
+        
       case 'ADD_NOTIFICATION': {
         const notif = new NotificationRecord(action.spec);
         // $FlowFixMe

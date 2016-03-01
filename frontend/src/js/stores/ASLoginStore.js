@@ -14,6 +14,9 @@ import { ReduceStore } from 'flux/utils';
 import invariant from 'invariant';
 import dispatcher from '../Dispatcher';
 
+import shortid from 'shortid';
+import _ from 'lodash';
+
 type LoginState = Immutable.Record$Class;
 const LoginRecord = Immutable.Record({userId: null, loggedIn: false, token: null});
 
@@ -29,7 +32,6 @@ class LoginStore extends ReduceStore<LoginState> {
         const {token} = action;
         return new LoginRecord({token});
       }
-
       case 'LOGIN_SUCCESS': {
         const {userId} = action;
         console.warn('Login success, got userId: ', userId);
@@ -56,6 +58,12 @@ class LoginStore extends ReduceStore<LoginState> {
     const token = this.getState().token;
     invariant(token, 'Token not found for authenticated user');
     return token;
+  }
+
+  userIsDev(): boolean {
+    const userId = this.getUserId();
+    const devs = ['ritesh@alphasheets.com', 'alex@alphasheets.com', 'anand@alphasheets.com', 'michael@alphasheets.com'];
+    return _.contains(devs, userId);
   }
 }
 

@@ -27,6 +27,9 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
         ASCondFormatStore._updateRules(action.newRules);
         ASCondFormatStore.emitChange();
         break;
+      case 'RESET':
+        _data.rules = [];
+        break;
     }
   }),
 

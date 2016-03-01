@@ -20,9 +20,10 @@ import AS.Util
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Internal as DI
-import AS.DB.Users (createUserClient)
+import AS.DB.Users 
 import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
+import AS.Handlers.LogAction
 import qualified AS.Kernels.Python as KP
 
 import AS.Async
@@ -139,6 +140,15 @@ handleFirstMessage state wsConn msg =
         Right uid -> do
           dbConn <- view dbConn <$> readMVar state
           userClient <- createUserClient dbConn wsConn uid 
+          -- If this is a test session, don't log. Otherwise, set logging = true (another preflight request
+          -- will shut this off if we're debugging). Also, don't log testing users in the MySQL db
+          case auth of 
+            TestAuth  -> do 
+              handleStopLoggingActions (State state)
+            _         -> do 
+              startLoggingActions (State state)
+              -- Modify the MySQL DB of users
+              updateUserSession (userId userClient) (userSessionId userClient)
           let defaultSid = windowSheetId . userWindow $ userClient
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
           sendMessage successMsg wsConn

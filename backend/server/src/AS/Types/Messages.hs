@@ -1,10 +1,14 @@
 module AS.Types.Messages where
 
+import GHC.Generics
+import Data.Aeson
+import Data.Aeson.Types (defaultOptions)
+import Data.SafeCopy
+import qualified Data.Text as T
+
 import AS.Prelude
 import Prelude()
-
 import AS.ASJSON
-
 import AS.Types.Window
 import AS.Types.Commits
 import AS.Types.Selection
@@ -22,13 +26,8 @@ import AS.Types.CondFormat
 import AS.Types.Updates 
 import AS.Types.User
 
-import GHC.Generics
-import Data.Aeson
-import Data.Aeson.Types (defaultOptions)
-import Data.SafeCopy
-import qualified Data.Text as T
-
 type MessageId = T.Text
+type SessionId = T.Text
 
 data LoginMessage = Login AuthStrategy deriving (Show, Read, Generic)
 
@@ -71,6 +70,8 @@ data ClientAction =
   | PassCellsToTest [ASCell]
   | AuthFailure { failureReason :: String }
   | AuthSuccess { authUserId :: ASUserId, defaultSheetId :: ASSheetId }
+  | SessionLog { sessionLog :: [LogData] }
+  | AllSessions { allSessions :: [SessionData] }
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -106,6 +107,10 @@ data ServerAction =
   | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
   | ChangeDecimalPrecision Int ASRange
+  | LogAction String
+  | GetSessionLogs LogSource
+  | StartDebuggingLog
+  | GetAllSessions
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
@@ -115,8 +120,22 @@ data ServerAction =
 --   WorkbookSheets
 --   deriving (Show, Read, Eq, Generic)
 
+-- This type represents log data, which is either a frontend action (isAction = true, logMsg = JSON.stringify(action)), 
+-- or a message send to backend (isAction = False)
+-- #needsrefactor make this an enum FrontendAction | BackendMessage instead of bool
+data LogData = LogData {logMsg :: String, isAction :: Bool}
+   deriving (Show, Read, Eq, Generic)
+-- These are the keys of logs in the DB (user and session info)
+data LogSource = LogSource {logUserId :: ASUserId, logSessionId :: SessionId}
+   deriving (Show, Read, Eq, Generic, Data)
+-- Data for a session
+data SessionData = SessionData {seshUserId :: ASUserId, seshId :: SessionId, seshTime :: String} 
+  deriving (Show, Read, Eq, Generic, Data)
+
+
 -- Indicates where to eval and what to eval
-data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } deriving (Show, Read, Eq, Data, Typeable, Generic)
+data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } 
+  deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
                   DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
@@ -153,14 +172,21 @@ instance ToJSON ClientMessage where
 
 -- are legit.
 asToJSON ''ClientAction
+asToJSON ''LogData
+asToJSON ''LogSource
+asToJSON ''SessionData
 
 asFromJSON ''LoginMessage
 asFromJSON ''AuthStrategy
+asFromJSON ''LogSource
+
 
 deriveSafeCopy 1 'base ''ServerMessage
 deriveSafeCopy 1 'base ''ServerAction
 deriveSafeCopy 1 'base ''MutateType
 deriveSafeCopy 1 'base ''EvalInstruction
+deriveSafeCopy 1 'base ''LogSource
+deriveSafeCopy 1 'base ''LogData
 
 --------------------------------------------------------------------------------------------------------------
 -- Helpers

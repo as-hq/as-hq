@@ -30,6 +30,9 @@ const ASOverlayStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     logDebug('Overlay store received action', action);
     switch (action._type) {
+      case 'RESET':
+        _data.overlays = {};
+        break;
       case 'ADD_OVERLAY':
         ASOverlayStore.add(action.overlay);
         ASOverlayStore.emitChange();

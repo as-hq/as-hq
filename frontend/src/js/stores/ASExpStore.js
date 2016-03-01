@@ -72,6 +72,23 @@ const ASExpStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(function (action) {
     logDebug("Exp Store detected dispatcher payload");
     switch (action._type) {
+      case 'RESET':
+        _data = {
+          xpChangeOrigin: null,
+          lastCursorPosition: Constants.CursorPosition.GRID,
+          deps: [],
+          expression: '',
+          language: Constants.Languages.Excel,
+          defaultLanguage: Constants.Languages.Excel,
+          cursorPos: null,
+          lastRef: null,
+          refInsertionBypass: false,
+          userIsTyping: false,
+          doEditorCallback: true,
+          doTextBoxCallback: true,
+          clickType: null
+        };
+        break;
       case 'EDITOR_CHANGED':
       case 'TEXTBOX_CHANGED':
         ASExpStore.updateStoreNormalTyping(action._type, action.xpStr);
