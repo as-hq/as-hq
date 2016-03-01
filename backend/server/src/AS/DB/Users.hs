@@ -29,7 +29,7 @@ import System.Time
 import System.Locale
 
 connInfo :: DM.ConnectInfo 
-connInfo - DM.defaultConnectInfo { DM.connectPassword = "92c6b1451ebf141a2704be3772592b0b069940be" }
+connInfo = DM.defaultConnectInfo { DM.connectPassword = "92c6b1451ebf141a2704be3772592b0b069940be" }
  
 getFormattedTime :: IO String
 getFormattedTime = do 
