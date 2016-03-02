@@ -329,7 +329,8 @@ export type ServerAction =
   | Timeout
   | UpdateCondFormatRules
   | SetBarProp
-  | ImportCSV;
+  | ImportCSV
+  | ImportExcel;
 
 // These are the constructors of ServerAction.
 export type ServerActionType =
@@ -362,7 +363,8 @@ export type ServerActionType =
   | 'Timeout'
   | 'UpdateCondFormatRules'
   | 'SetBarProp'
-  | 'ImportCSV';
+  | 'ImportCSV'
+  | 'ImportExcel';
 
 export type Initialize = {
   tag: "Initialize";
@@ -537,6 +539,12 @@ export type ImportCSV = {
   csvIndex: ASIndexObject;
   csvLang: ASLanguage;
   csvFileName: string;
+}
+
+export type ImportExcel = {
+  tag: "ImportExcel";
+  excelSheetId: string;
+  excelFileName: string;
 }
 
 export type ASAPICallbackPair = {

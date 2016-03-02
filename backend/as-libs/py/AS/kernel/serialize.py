@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from AS.hidden import Hidden
+import AS.functions.openExcel as ex
 
 import matplotlib._pylab_helpers as mpl
 
@@ -98,6 +99,9 @@ def serialize(val):
 
   elif isinstance(val, datetime.datetime):
     return json.dumps(generalSerialize(val, str(val)))
+
+  elif isinstance(val, ex.Sheet):
+    return val.serialize()
 
   else: 
     try:

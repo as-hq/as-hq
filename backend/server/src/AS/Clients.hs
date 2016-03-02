@@ -109,6 +109,7 @@ instance Client ASUserClient where
       GetBar bInd                 -> handleGetBar mid user curState bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
       ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName
+      ImportExcel sid fileName    -> handleExcelImport mid user curState sid fileName
       SetLanguagesInRange lang rng -> handleSetLanguagesInRange mid user curState lang rng
       LogAction fAction            -> handleLogAction user curState fAction
       GetSessionLogs logSource     -> handleGetSessionLogs mid user curState logSource

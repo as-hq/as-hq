@@ -35,11 +35,10 @@ const CONST_PROPS = {
 };
 
 export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState> {
-  _fileInput: HTMLInputElement;
 
   constructor(props: ASMenuProps) {
     super(props);
-
+    this._fileInputs = {};
     this.state = {
       anchor: null
     };
@@ -131,7 +130,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
             <input
               type='file'
               style={inputStyle}
-              ref={elem => this._fileInput = elem}
+              ref={elem => this._fileInputs[fileItem.title] = elem}
               onChange={() => this._handleFileItemClick(fileItem)}
             />
             <MenuItem
@@ -175,7 +174,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
   }
 
   _handleFileItemClick(fileItem: FileItemSpec) {
-    fileItem.callback(this._fileInput.files);
+    fileItem.callback(this._fileInputs[fileItem.title].files);
     this._handleMenuRequestClose();
   }
 

@@ -106,6 +106,7 @@ data ServerAction =
   | SetBarProp BarIndex BarProp
   | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
+  | ImportExcel { excelSheetId :: ASSheetId, excelFileName :: String}
   | ChangeDecimalPrecision Int ASRange
   | LogAction String
   | GetSessionLogs LogSource

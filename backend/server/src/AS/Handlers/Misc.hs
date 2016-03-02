@@ -27,7 +27,6 @@ import AS.Types.CondFormat
 import AS.Types.Bar
 import AS.Types.BarProps (BarProp)
 import AS.Types.Selection
-import AS.Types.Network (State)
 import AS.Types.Updates
 import AS.Types.Window
 import qualified AS.Types.BarProps as BP
@@ -108,8 +107,7 @@ handleIsCoupled mid uc state loc = do
   let isCoupled = maybe False (isJust . view cellRangeKey) mCell
   sendToOriginal uc $ ClientMessage mid $ PassIsCoupledToTest isCoupled
 
-
-handleClear :: (Client c) => MessageId -> c  -> ServerState -> ASSheetId -> IO ()
+handleClear :: MessageId -> ASUserClient -> ServerState -> ASSheetId -> IO ()
 handleClear mid client state sid = do
   let conn = state^.dbConn
       settings = state^.appSettings

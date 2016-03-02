@@ -37,7 +37,10 @@ type DescriptorUpdate = Update RangeDescriptor RangeKey
 type JSON = M.Map JSONKey JSONField 
 type JSONKey = String 
 data JSONField = JSONTree JSON | JSONLeaf JSONValue deriving (Show, Read, Eq, Generic)
-data JSONValue = ListValue Collection | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
+data JSONValue =
+    NestedListValue [JSON]
+  | ListValue Collection
+  | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Instances

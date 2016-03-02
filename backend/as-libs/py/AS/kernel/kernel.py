@@ -33,6 +33,7 @@ class ASKernel(object):
     matplotlib.use('Agg')
     from AS.stdlib import *
     from AS.kernel.serialize import * # this is imported for serialization code injection
+    from AS.functions.openExcel import *
     import matplotlib._pylab_helpers
     import matplotlib.pyplot as plt
     import cPickle

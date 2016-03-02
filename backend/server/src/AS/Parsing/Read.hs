@@ -12,6 +12,7 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import Text.Read (readMaybe)
 
+import AS.Util
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -152,6 +153,10 @@ extractCollection js key = case (js .> key) of
   Just (JSONLeaf (ListValue collection)) -> Just collection
   _ -> Nothing 
 
+extractNestedListItems :: JSON -> JSONKey -> Maybe [JSON]
+extractNestedListItems js key = case (js .> key) of 
+  Just (JSONLeaf (NestedListValue jsList)) -> Just jsList
+  _ -> Nothing 
 -----------------------------------------------------------------------------------------------------------------------
 -- low-level parsers
 
@@ -175,6 +180,24 @@ jsonValue :: ASLanguage -> Parser JSONValue
 jsonValue lang = 
       ListValue <$> list lang
   <|> SimpleValue <$> asValue lang
+  -- | NestedList is called upon when the JSON value being parsed is a list of
+  -- JSONs. Timchu, 2/15/16.
+  -- Example:
+  -- > parse (jsonValue Python) "" "[{'tag': 1}]}" 
+  -- >  = Right (NestedListValue [fromList [("tag",JSONLeaf (SimpleValue (ValueI 1)))]])
+  --
+  <|> NestedListValue <$> nestedList lang
+
+parseList :: ASLanguage -> Parser a -> Parser [a]
+parseList lang p = brackets $ sepBy p delimiter
+  where
+    (start, end) = LD.listStops lang
+    brackets     = between (string start) (string end)
+    delimiter    = spaces >> (char $ LD.listDelimiter lang) >> spaces
+
+nestedList :: ASLanguage -> Parser [JSON]
+nestedList lang =
+    parseList lang $ json lang
 
 -- this parser will only allow 1 and 2D lists
 list :: ASLanguage -> Parser Collection
@@ -182,10 +205,7 @@ list lang =
       A <$> try (array $ asValue lang)
   <|> M <$> try (array $ array $ asValue lang)
   where
-    (start, end) = LD.listStops lang
-    brackets     = between (string start) (string end)
-    delimiter    = spaces >> (char $ LD.listDelimiter lang) >> spaces
-    array p      = brackets $ sepBy p delimiter
+    array = parseList lang
 
  --DEPRECATED
  -- #needsrefactor should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)

@@ -7,8 +7,10 @@ import Constants from '../Constants';
 
 import ExpStore from '../stores/ASExpStore.js';
 import SelectionStore from '../stores/ASSelectionStore';
+import SheetStateStore from '../stores/ASSheetStateStore';
 import API from '../actions/ASApiActionCreators';
 
+import request from 'superagent';
 
 /*
 A similar React class used to be called FileImportButton, but there will no longer be file import buttons.
@@ -36,6 +38,35 @@ const FileImportDialog = {
         API.importCSV(simpleIndex, 'Excel', file.name);
       }
     }
+  },
+
+  importExcelCallback(file: File) {
+    API.importExcel(SheetStateStore.getCurrentSheetId(), file.name);
+  },
+
+  postFilesToBackend(files: Array<File>, callback:  (file: File ) => void ) {
+    const req = request.post(FileImportDialog.url);
+    for (let i = 0; i < files.length; i++) {
+      req.attach(files[i].name, files[i]);
+    }
+    req.end((err, res) => {
+      if (err || !res.ok) {
+        console.error(err);
+        alert('Could not import files');
+      } else {
+        for (let i = 0; i < files.length; i++) {
+          callback(files[i]);
+        }
+      }
+    });
+  },
+
+  importCSV(files: Array<File>) {
+    this.postFilesToBackend(files, this.importCSVCallback);
+  },
+
+  importExcel(files: Array<File>) {
+    this.postFilesToBackend(files, this.importExcelCallback);
   }
 };
 

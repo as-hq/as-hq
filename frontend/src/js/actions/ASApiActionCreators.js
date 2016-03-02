@@ -426,6 +426,16 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  importExcel(sheetId: string, fileName: string) {
+    let msg = {
+      tag: "ImportExcel",
+      excelSheetId: sheetId,
+      excelFileName: fileName
+    };
+
+    API.sendMessageWithAction(msg);
+  },
+
   // ************************************************************************************************************************
   /* Sending an eval request to the server */
 
