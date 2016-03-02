@@ -82,7 +82,7 @@ pyinstaller server.py
 cd ../..
 cp -r backend/pykernel/dist/server build/pykernel
 rm -rf backend/pykernel/dist
-rm -rf backend/pykernel/build
+rm -rf backend/pykernel/builds
 rm -rf backend/pykernel/server.spec
 
 cd backend/server/static
@@ -90,7 +90,7 @@ pyinstaller file-input-handler.py
 cd ../../..
 cp -r backend/server/static/dist/file-input-handler build/file-input-handler
 rm -rf backend/server/static/dist
-rm -rf backend/server/static/build
+rm -rf backend/server/static/builds
 rm -rf backend/server/static/file-input-handler.spec
 
 ## push to remote
