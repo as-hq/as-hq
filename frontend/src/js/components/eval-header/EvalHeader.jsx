@@ -87,7 +87,6 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
           style={styles.codeField}
           name={name}
           text={expressionLink}
-          selection={selectionLink}
           language={languageLink.value}
           onKeyDown={e => this._onKeyDown(e)}
         />

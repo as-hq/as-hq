@@ -43,7 +43,6 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
         expressionLink={{
           value: expression,
           requestChange(newExpression) {
-            console.warn('updated header!');
             HeaderActions.update(newExpression, language);
           }
         }}
@@ -76,7 +75,7 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
   }
 
   __getAce() {
-    return this._view._editor.editor;
+    return this._view._editor.getInstance().editor;
   }
 }
 
