@@ -185,8 +185,7 @@ class App extends React.Component<{}, Props, {}> {
     switch(pane) {
       case 'errors': {
         // TODO (michael/anand) this component is pretty fucked.
-        return <ASErrorPaneController
-                  selectCellAtLocation={idx => this._handleRequestSelect(idx)} />;
+        return <ASErrorPaneController />;
       }
       case 'header_output': {
         return <ASHeaderPaneController />;

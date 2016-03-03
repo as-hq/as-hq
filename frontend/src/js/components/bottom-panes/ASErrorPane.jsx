@@ -41,7 +41,6 @@ import _ from 'lodash';
 
 type Props = {
   onlyShowCurSelErrs: boolean; 
-  onErrorSelect: (row: number) => void;
   showAllValueLink: ReactLink;
   errors: Array<ASClientError>;
 };
@@ -58,7 +57,7 @@ export default class ASErrorPane
   }
 
   render(): React.Element {
-    let {onlyShowCurSelErrs, onErrorSelect, errors} = this.props;
+    let {onlyShowCurSelErrs, errors} = this.props;
     return (
       <Paper style={_Styles.root}>
         <div style={_Styles.showAllContainer}>
@@ -77,7 +76,6 @@ export default class ASErrorPane
           selectable={false}
           style={_Styles.table}
           headerStyle={_Styles.th}
-          onCellClick={(row, col) => onErrorSelect(row)}>
           <TableHeader
             adjustForCheckbox={false}
             displaySelectAll={false}

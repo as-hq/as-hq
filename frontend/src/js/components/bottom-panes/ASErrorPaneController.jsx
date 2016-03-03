@@ -59,7 +59,6 @@ export default class ASErrorPaneController
     return <ASErrorPane
       errors={errors}
       onlyShowCurSelErrs={onlyShowCurSelErrs}
-      onErrorSelect={(errRow) => this._onErrorSelect(errRow)}
       showAllValueLink={{
         value: onlyShowCurSelErrs,
         requestChange: (onlyShowCurSelErrs) => { this.setState({onlyShowCurSelErrs}); }
@@ -76,13 +75,5 @@ export default class ASErrorPaneController
     } else {
       return errors;
     }
-  }
-
-  // What to do after you click on the nth error in the list of errors in the pane.
-  _onErrorSelect(errRow: number) {
-    let errors = this._getCurrentErrorList();
-    let {location} = errors.get(errRow);
-
-    this.props.selectCellAtLocation(location);
   }
 }
