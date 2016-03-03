@@ -201,12 +201,12 @@ function installAllShortcuts() {
   install('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
     const {origin: {row, col}} = SelectionStore.getActiveSelection();
 
-    // TODO this is a hack. Depends on ScrollManager to work properly.
+    // XXX(anand) this is a hack. Requires ScrollManager to execute properly.
     SpreadsheetActions.select(
       ASRange.fromNaked({
-        tl: {row, col},
+        tl: {row: 1, col: 1},
         br: {row: row + 20, col: col + 30}
-      }).toSelection()
+      }).toSelection(), true
     );
   });
   install('grid', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
@@ -244,7 +244,7 @@ function installAllShortcuts() {
         br: {col: Infinity, row}
       }
     });
-    SpreadsheetActions.select(selection);
+    SpreadsheetActions.select(selection, true);
   });
   install('grid', 'select_col', 'Ctrl+Space', (wildcard: string) => {
     const {origin: {col, row}} = SelectionStore.getActiveSelection();
@@ -255,7 +255,7 @@ function installAllShortcuts() {
         br: {col, row: Infinity}
       }
     });
-    SpreadsheetActions.select(selection);
+    SpreadsheetActions.select(selection, true);
   });
   install('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
     // TODO

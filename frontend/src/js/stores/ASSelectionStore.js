@@ -16,6 +16,11 @@ import SheetStateStore from './ASSheetStateStore';
 type State = Immutable.Record$Class;
 const StateRecord = Immutable.Record({
   activeSelection: null,
+
+  // XXX (anand) this variable determines whether the last fired
+  // selection action should cause a scroll. This is shitty
+  // flow, and should be fixed using ScrollManager.
+  shouldNotScroll: false,
   lastActiveSelection: null
 });
 
@@ -29,7 +34,7 @@ class SelectionStore extends ReduceStore<State> {
       case 'LOGIN_SUCCESS': {
         // wait for the sheetId to be established upon login
         this.getDispatcher().waitFor([SheetStateStore.dispatcherIndex]);
-        
+
         return new StateRecord({
           activeSelection: ASSelection.defaultSelection(),
           lastActiveSelection: ASSelection.defaultSelection()
@@ -37,7 +42,8 @@ class SelectionStore extends ReduceStore<State> {
       }
 
       case 'SELECTION_CHANGED': {
-        return setActiveSelection(state, action.selection);
+        return setActiveSelection(state, action.selection)
+              .set('shouldNotScroll', !! action.shouldNotScroll);
       }
 
       case 'API_EVALUATE': {
@@ -62,6 +68,10 @@ class SelectionStore extends ReduceStore<State> {
     const sel = this.getState().lastActiveSelection;
     invariant(sel, 'Last active selection not available for authenticated user!');
     return sel;
+  }
+
+  shouldScroll(): boolean {
+    return ! this.getState().shouldNotScroll;
   }
 
 }

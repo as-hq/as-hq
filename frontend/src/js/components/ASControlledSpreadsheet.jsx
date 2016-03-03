@@ -9,6 +9,7 @@ import HOPurify from './transforms/HOPurify.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 
 import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import SelectionStore from '../stores/ASSelectionStore';
 
 const ASControlledSpreadsheet = HOPurify({
   component: ASSpreadsheet,
@@ -26,7 +27,10 @@ const ASControlledSpreadsheet = HOPurify({
       },
 
       setValue({component, value: selection}) {
-        component.select(selection, true);
+        component.select(
+          selection,
+          SelectionStore.shouldScroll()
+        );
       },
     }
   },

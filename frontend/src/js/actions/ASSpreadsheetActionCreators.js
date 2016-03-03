@@ -23,10 +23,11 @@ const SpreadsheetActions = {
     );
   },
 
-  select(selection: ASSelection) {
+  select(selection: ASSelection, shouldNotScroll?: boolean) {
     Dispatcher.dispatch({
       _type: 'SELECTION_CHANGED',
-      selection
+      selection,
+      shouldNotScroll
     });
   },
 
