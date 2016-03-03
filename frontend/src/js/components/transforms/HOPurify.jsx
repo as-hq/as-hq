@@ -52,7 +52,7 @@ type Locker = {
   unlock: (name: string) => void;
 }
 
-type Purifiers = Dict<{
+type Purifier = {
   addChangeListener: (arg: {
     component: any;
     listener: Callback;
@@ -65,7 +65,7 @@ type Purifiers = Dict<{
   }) => void;
   removeChangeListener?: (component: React.Element, listener: Callback) => void;
   manuallySilenced?: boolean;
-}>;
+};
 
 // this type annotation exists only to clarify the structure of the prop
 // that should be passed in for a purified underlying prop
@@ -76,13 +76,12 @@ type PurifiedProps = Dict<{
 
 type args = {
   component: ReactClass;
-  purifiers: Purifiers;
+  purifiers: Dict<Purifier>;
   onReady?: (cb: Callback) => void;
 // ^ a callback in componentDidMount to wait for components which initialize asynchronously (e.g. hypergrid)
 };
 
 export default function HOPurify({component: Component, purifiers, onReady}: args): ReactClass {
-  const names = Object.keys(purifiers);
 
   return class PurifiedComponent extends React.Component<{}, PurifiedProps, {}> {
     $listenerRemovers: Array<Callback>;
@@ -92,6 +91,8 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
     // this is essential for Ace to function properly.
     _locked: Dict<boolean>;
     _locker: Locker;
+    _names: Array<string>;
+    _purifiers: Dict<Purifier>;
 
     constructor(props: PurifiedProps) {
       super(props);
@@ -102,6 +103,16 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
         lock: (name) => { this._locked[name] = true; },
         unlock: (name) => { this._locked[name] = false; }
       }
+      this._purifiers = {};
+
+      // Remove all purifiers that are not present in props.
+      // This allows optional control.
+      _.forEach(purifiers, (p, name) => {
+        if (this.props.hasOwnProperty(name)) {
+          this._purifiers[name] = p;
+        }
+      });
+      this._names = Object.keys(this._purifiers);
     }
 
     getInstance(): ReactElement {
@@ -121,7 +132,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
     }
 
     componentWillReceiveProps(nextProps: Dict<ReactLink>) {
-      names.forEach((name) => {
+      this._names.forEach((name) => {
         const {value} = nextProps[name];
         this._setUnderlyingValue(name, value);
       });
@@ -131,7 +142,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
       // determine props to be passed to child
       let otherProps = {};
       _.forEach(this.props, (val, key) => {
-        if (!names.includes(key)) {
+        if (!this._names.includes(key)) {
           otherProps[key] = val;
         }
       });
@@ -148,7 +159,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
     }
 
     _getUnderlyingValue(name: string): any {
-      return purifiers[name].getValue(this._instance);
+      return this._purifiers[name].getValue(this._instance);
     }
 
     _setUnderlyingValue(name: string, targetValue: any) {
@@ -159,7 +170,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
           const currentValue = this._getUnderlyingValue(name)
 
           if (!_.isEqual(currentValue, targetValue)) {
-            purifiers[name].setValue({
+            this._purifiers[name].setValue({
               component: this._instance,
               value: targetValue,
             });
@@ -179,7 +190,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
     }
 
     _silently(name: string, cb: Callback) {
-      if (! purifiers[name].manuallySilenced) {
+      if (! this._purifiers[name].manuallySilenced) {
         this._silent[name] = true;
       }
       cb();
@@ -196,7 +207,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
 
     _onMount() {
       const _this = this;
-      const listeners = _.map(purifiers,
+      const listeners = _.map(this._purifiers,
         ({addChangeListener, removeChangeListener}, name) => ({
 
           listener: (metadata) => {
@@ -226,7 +237,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
       Util.React.implementComponentListeners(this, listeners);
 
       // component doesn't receive props upon mount, so we need to init
-      names.forEach((name) => {
+      this._names.forEach((name) => {
         this._setUnderlyingValue(name, this._getPropsValue(name));
       });
     }

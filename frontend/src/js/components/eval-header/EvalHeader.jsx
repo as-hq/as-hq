@@ -11,7 +11,7 @@ import { actions as Shortcuts } from '../../AS/Shortcuts';
 import KeyUtils from '../../AS/utils/Key';
 // $FlowFixMe
 import {Toolbar, Styles, FlatButton} from 'material-ui';
-import ASCodeField from '../basic-controls/ASCodeField.jsx';
+import ASControlledCodeField from '../basic-controls/ASControlledCodeField.jsx';
 import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 // $FlowFixMe
 let NavigationClose = require('material-ui/lib/svg-icons/navigation/close');
@@ -33,6 +33,7 @@ type EvalHeaderProps = {
   open: boolean;
   languageLink: ReactLink<ASLanguage>;
   expressionLink: ReactLink<string>;
+  selectionLink: ReactLink<EditorSelection>;
   onEvaluate: () => void;
 }
 
@@ -62,7 +63,7 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
   }
 
   render(): React.Element {
-    const {languageLink, expressionLink, onEvaluate} = this.props;
+    const {languageLink, expressionLink, selectionLink, onEvaluate, name} = this.props;
 
     return (
       <div style={styles.root}>
@@ -81,11 +82,13 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
 
         </Toolbar>
 
-        <ASCodeField
+        <ASControlledCodeField
           ref={elem => this._editor = elem}
           style={styles.codeField}
+          name={name}
           text={expressionLink}
-          language={Constants.AceMode[languageLink.value]}
+          selection={selectionLink}
+          language={languageLink.value}
           onKeyDown={e => this._onKeyDown(e)}
         />
 

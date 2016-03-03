@@ -38,6 +38,7 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
     return (
       <EvalHeader
         ref={elem => this._view = elem}
+        name={name}
         open={this.props.open}
         expressionLink={{
           value: expression,
