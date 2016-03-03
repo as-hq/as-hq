@@ -21,13 +21,14 @@ import qualified Data.Text as T
 import Prelude()
 import AS.Prelude
 import AS.Util
+import AS.Types.Cell
+import AS.Types.CellProps
+import AS.Types.Excel (indexToExcel)
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.EvalHeader
-import AS.Types.Excel (indexToExcel)
 import AS.Types.Formats
-import AS.Types.Cell
-import AS.Types.CellProps
+import AS.Types.Graph
 import AS.Types.Network
 
 import AS.Kernels.Python as KP
@@ -158,7 +159,7 @@ referenceToCompositeValue state ctx (TemplateRef t) f =
       lift $ putStrLn $ "did parsing"
       let conn = state^.dbConn
       let graphAddress = state^.appSettings.graphDbAddress
-      ancRefs <- G.getAllAncestors graphAddress idx
+      ancRefs <- G.getAllAncestors graphAddress $ indicesToAncestryRequestInput [idx]
       lift $ putStrLn $ show ancRefs
       ancInds <- concat <$> mapM (refToIndices conn) ancRefs
       ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds

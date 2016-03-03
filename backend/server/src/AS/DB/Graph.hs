@@ -73,9 +73,6 @@ setCellsAncestorsForce addr cells = runEitherT (setCellsAncestors addr cells) >>
 removeAncestorsAtForced :: GraphAddress -> [ASIndex] -> IO ()
 removeAncestorsAtForced addr locs = runEitherT (removeAncestorsAt addr locs) >> return ()
 
-getAllAncestors :: GraphAddress -> ASIndex -> EitherTExec [ASReference]
-getAllAncestors addr ind = processReadRequest addr GetAllAncestors [IndexInput ind]
-
 ------------------------------------------------------------------------------------------------------------------
 -- Basic helper functions
 
@@ -139,6 +136,9 @@ getProperDescendants addr = processReadRequest addr . GetProperDescendants
 
 getImmediateAncestors :: GraphAddress -> [AncestryRequestInput] -> EitherTExec [GraphAncestor]
 getImmediateAncestors addr = processReadRequest addr . GetImmediateAncestors
+
+getAllAncestors :: GraphAddress -> [AncestryRequestInput] -> EitherTExec [ASReference]
+getAllAncestors addr = processReadRequest addr . GetAllAncestors
 
 -- #incomplete. In the one place this is called, the non-immediate descendants don't cause any
 -- problems, so this works as a temporary solution. 
