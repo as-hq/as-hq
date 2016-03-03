@@ -2,20 +2,33 @@
 
 import type {
   ASOverlaySpec
-} from '../types/Hypergrid';
+} from '../types/Overlay';
 
 import Dispatcher from '../Dispatcher';
-import Constants from '../Constants';
-
-/* The action creator for expression changes */
 
 export default {
 
-  add(ovl: ASOverlaySpec) {
+  add(overlay: ASOverlaySpec) {
     Dispatcher.dispatch({
-     _type: 'ADD_OVERLAY',
-      overlay: ovl
+     _type: 'ADD_OVERLAY_WITHOUT_LOC',
+      overlay
     });
+  },
+
+  resize(overlay: ASOverlaySpec, width: number, height: number) {
+  	Dispatcher.dispatch({
+  	 _type: 'OVERLAY_RESIZED',
+  	  overlay,
+  	  width,
+  	  height
+  	});
+  },
+
+  delete(overlay: ASOverlaySpec) {
+  	Dispatcher.dispatch({
+  	 _type: 'OVERLAY_DELETED',
+  	  overlay
+  	});
   }
 
 }

@@ -9,7 +9,6 @@ import type {
 
 import type {
   CellBorder,
-  ASOverlaySpec,
   GridSpec
 } from '../../types/Hypergrid';
 

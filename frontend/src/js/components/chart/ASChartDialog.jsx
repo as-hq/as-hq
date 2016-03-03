@@ -6,7 +6,7 @@ import type {
 
 import type {
   ASOverlaySpec
-} from '../../types/Hypergrid';
+} from '../../types/Overlay';
 
 import type {
   ASChartType,
@@ -179,12 +179,10 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
                       chartStyle={style}
                       showLegend={showLegend}
                       redraw={false} />); },
-        initWidth: 500,
-        initHeight: 300,
-        offsetX: 0,
-        offsetY: 0,
-        left: 50,
-        top: 50,
+        imageWidth: 500,
+        imageHeight: 300,
+        dragOffsetLeft: 0,
+        dragOffsetTop: 0,
         loc: null
       });
       this.props.onRequestClose();

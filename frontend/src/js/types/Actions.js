@@ -21,7 +21,7 @@ import type {
 
 import type {
   ASOverlaySpec
-} from './Hypergrid';
+} from './Overlay';
 
 import type {
   ASViewingWindow,
@@ -57,8 +57,20 @@ export type CloseShortcutHelper = {
   _type: 'CLOSE_SHORTCUT_HELPER';
 };
 
-export type AddOverlayAction = {
-  _type: 'ADD_OVERLAY';
+export type AddOverlayWithoutLocAction = {
+  _type: 'ADD_OVERLAY_WITHOUT_LOC';
+  overlay: ASOverlaySpec;
+};
+
+export type OverlayResizedAction = {
+  _type: 'OVERLAY_RESIZED';
+  overlay: ASOverlaySpec;
+  width: number;
+  height: number;
+};
+
+export type OverlayDeletedAction = {
+  _type: 'OVERLAY_DELETED';
   overlay: ASOverlaySpec;
 };
 
@@ -356,6 +368,9 @@ export type ASAction =
   ToggleShortcutHelper
   | CloseShortcutHelper
   | AddOverlayAction
+  | AddOverlayWithoutLocAction
+  | OverlayDeletedAction
+  | OverlayResizedAction
   | GotFailureAction
   | GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction

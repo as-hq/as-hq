@@ -2,7 +2,7 @@
 
 import type {
   ASOverlaySpec
-} from '../types/Hypergrid';
+} from '../types/Overlay';
 
 import type {
   ASCursorStyle,
@@ -62,8 +62,8 @@ import Render from '../AS/Renderers';
 
 import Focusable from './transforms/Focusable.jsx';
 import ASRightClickMenu from './basic-controls/ASRightClickMenu.jsx';
-import ASOverlay from './ASOverlay.jsx';
-import Textbox from './Textbox.jsx'
+import Textbox from './Textbox.jsx';
+import ASOverlayController from './overlays/ASOverlayController.jsx';
 
 // $FlowFixMe: this module clearly exists, but flow can't find it??!
 import Dropzone from 'react-dropzone';
@@ -80,7 +80,6 @@ type Props = {
 type State = {
   scroll: HGPoint;
   scrollPixels: HGPoint;
-  overlays: Array<ASOverlaySpec>;
   cursorStyle: ASCursorStyle;
 };
 
@@ -137,7 +136,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
       // keep scroll values in state so overlays autoscroll with grid
       scroll: { x: 0, y: 0 },
       scrollPixels: { x: 0, y: 0},
-      overlays: [],
       cursorStyle: 'auto'
     };
 
@@ -148,7 +146,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   componentDidMount() {
     U.React.addStoreLinksWithoutForceUpdate(this, [
       { store: BarStore, listener: () => this._onBarPropsChange() },
-      { store: OverlayStore, listener: () => this._onOverlaysChange() },
     ]);
 
     this._cellStoreListener = CellStore.addListener(() =>
@@ -353,91 +350,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
     // SpreadsheetActions.scroll(this.getViewingWindow());
   }
 
-  /*************************************************************************************************************************/
-  // Dealing with image creation and updating
-
-  /*
-  Given a cell that has a ValueImage tag, get the corresponding overlay from the info in that cell. This involves
-  extracting out offset and size information from the cell. We also need to take scrolling into account to render the
-  picture initially in the correct place. We use Hypergrid methods to return an Overlay object.
-  Note that we don't account for scroll here. The scroll state is passed as a prop to Overlay, which will deal with the scroll
-  */
-  getImageOverlayForCell(cell: ASCell): ?ASOverlaySpec {
-    let {col, row} =  cell.location,
-        p =  finRect.point.create(col, row),
-        point = this._grid.getBoundsOfCell(p).origin;
-    /*
-    Define default parameters, and fill them in with values from the cell information.
-    If the image was resized or dragged, its metadata would have been modified and updateCellValues would be called,
-    which calls this function. Here, we produce the up-to-date overlay based on current offsets and size
-    */
-    let ct = cell.props, imageWidth = 300, imageHeight = 300, imageOffsetX = 0, imageOffsetY = 0;
-    for (var i = 0 ; i < ct.length; i++) {
-      if (ct[i].tag === "ImageData") {
-        imageOffsetX = ct[i].imageOffsetX;
-        imageOffsetY = ct[i].imageOffsetY;
-        imageWidth   = ct[i].imageWidth;
-        imageHeight  = ct[i].imageHeight;
-      }
-    }
-    if (cell.value.tag !== "ValueImage") {
-      return null;
-    }  else {
-      let imagePath = cell.value.imagePath;
-      // Return the overlay spec, and note that the overlay shouldn't be in view if the point isn't
-      // Compute the overlay element. The "draggable=false" is needed for a silly HTML5 reason.
-      let imageSrc = Constants.getBackendUrl('http', Constants.BACKEND_STATIC_PORT) + "/images/" + imagePath;
-      return {
-        id: U.Render.getUniqueId(),
-        renderElem: (style) => {
-          return (<image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />);
-        },
-        initWidth: imageWidth,
-        initHeight: imageHeight,
-        offsetX: imageOffsetX,
-        offsetY: imageOffsetY,
-        left: point.x,
-        top:  point.y,
-        loc: cell.location
-      };
-    }
-  }
-
-  /*
-  As part of our state, we store a list of overlay objects. When a cell produces an overlay, we want to update this list.
-  If there's already an overlay at that location, we want to replace it with the new one (so that propagation works!).
-  In particular, if a cell with an overlay is deleted, the newOverlay will be null (nothing added) and the old one will be deleted.
-  That location-based update and state change is done here.
-  */
-  addCellSourcedOverlay(cell: ASCell) {
-    let imageOverlay = this.getImageOverlayForCell(cell);
-    if (imageOverlay === null || imageOverlay === undefined) return;
-    this.addOverlay(imageOverlay, cell);
-  }
-
-  addOverlay(newOverlay: ASOverlaySpec, cell?: ASCell) {
-    let overlays = this.state.overlays,
-        locs = catMaybes(overlays.map((o) => o.loc));
-
-    locs.forEach((loc, i) => {
-      if (cell !== null && cell !== undefined) {
-        if (loc.equals(cell.location)) {
-          overlays.splice(i, 1);
-        }
-      }
-    });
-
-    overlays.push(newOverlay);
-    this.setState({overlays: overlays});
-  }
-
-  _onOverlaysChange() {
-    let overlays = OverlayStore.getAll();
-    overlays.forEach((overlay) => {
-      this.addOverlay(overlay);
-    });
-  }
-
 
   /*************************************************************************************************************************/
   // Hypergrid methods for updating selection, focus, scrolling
@@ -595,12 +507,15 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
 
   render(): ReactElement {
     const {height} = this.props;
-    const {scrollPixels, scroll, overlays, cursorStyle} = this.state;
+    const {scrollPixels, scroll, cursorStyle} = this.state;
 
     return (
       <Dropzone onDrop={files => API.import(files[0])}
                 disableClick={true}
                 style={{cursor: cursorStyle, ...styles.root}}>
+
+        <ASOverlayController 
+                    computeTopLeftPxOfLoc={(c, r) => this._computeTopLeftPxOfLoc(c, r)} />
 
         <div style={styles.sheetContainer} >
 
@@ -613,14 +528,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
             onFocus={evt => this._onGridFocus(evt)}>
             <fin-hypergrid-behavior-default />
           </fin-hypergrid>
-
-          {overlays.map((overlay) =>
-            <ASOverlay key={overlay.id}
-                       overlay={overlay}
-                       scrollPixels={scrollPixels}
-                       isVisible={(col, row) =>
-                         this.isVisible(col, row)} />
-          )}
 
           <ASRightClickMenu ref="rightClickMenu" />
 
@@ -644,6 +551,26 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
       console.error('no grid found in getTextboxPosition!');
       return U.Hypergrid.defaultRectangle();
     }
+  }
+
+  // Given a column and row number, compute the location of that cell relative to the
+  // top left of the grid. Used for positioning overlays. 
+  // Note that the results can be negative. 
+  // If this function turns out to be a bit slow (because it does some looping), 
+  // some stuff can be moved into store, but this doesn't seem to be a bottleneck currently. 
+  _computeTopLeftPxOfLoc(col: number, row: number) : {top: number, left: number} {
+    let hg = this._grid,
+        scrollX = hg.getHScrollValue(), 
+        scrollY = hg.getVScrollValue();
+    let bounds = hg.getBoundsOfCell(finRect.point.create(col, row));
+    let scrollPxX = 0, scrollPxY = 0;
+    for (let i = 1 ; i <= scrollX; i++) {
+      scrollPxX += hg.getColumnWidth(i);
+    }
+    for (let j = 1 ; j <= scrollY; j++) {
+      scrollPxY += hg.getRowHeight(j);
+    }
+    return {top: bounds.origin.y - scrollPxY, left: bounds.origin.x - scrollPxX};
   }
 
   _getBehavior(): HGBehaviorElement {

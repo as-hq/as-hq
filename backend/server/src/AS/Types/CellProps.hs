@@ -70,7 +70,7 @@ data CellProp =
   | FontName String
   | ValueFormat {valFormat :: Format}
   | StreamInfo Stream
-  | ImageData {imageWidth :: Int, imageHeight :: Int, imageOffsetX :: Int, imageOffsetY :: Int}
+  | ImageData {imageWidth :: Int, imageHeight :: Int, dragOffsetLeft :: Int, dragOffsetTop :: Int}
   | ReadOnly [ASUserId]
   | URL { urlLink :: String }
   | Bold | Italic | Underline

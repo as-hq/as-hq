@@ -7,7 +7,7 @@ import type {
 
 import type {
   ASOverlaySpec
-} from '../types/Hypergrid';
+} from '../types/Overlay';
 
 import {logDebug} from '../AS/Logger';
 

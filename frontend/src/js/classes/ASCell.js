@@ -129,4 +129,8 @@ export default class ASCell {
     }
     return false;
   }
+
+  isImage(): boolean {
+    return this._value.tag === 'ValueImage';
+  }
 }

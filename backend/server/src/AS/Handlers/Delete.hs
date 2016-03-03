@@ -22,14 +22,15 @@ import AS.DB.API
 import AS.Config.Settings as CS
 import AS.Reply
 
--- Deleting a cell keeps some of the formats but deletes others. This is the current predicate for formats
+-- Deleting a cell keeps some of the props but deletes others. This is the current predicate for formats
 -- to keep upon deletion. 
-shouldKeepFormatAfterDelete :: CellProp -> Bool
-shouldKeepFormatAfterDelete (ValueFormat (Format Date _)) = False
-shouldKeepFormatAfterDelete _ = True
+shouldKeepPropAfterDelete :: CellProp -> Bool
+shouldKeepPropAfterDelete (ValueFormat (Format Date _)) = False
+shouldKeepPropAfterDelete (ImageData _ _ _ _) = False
+shouldKeepPropAfterDelete _ = True
 
 removeBadFormats :: ASCell -> ASCell
-removeBadFormats = cellProps %~ filterProps shouldKeepFormatAfterDelete
+removeBadFormats = cellProps %~ filterProps shouldKeepPropAfterDelete
 
 handleDelete :: MessageId -> ASUserClient -> ServerState -> ASRange -> IO ()
 handleDelete mid uc state rng = do

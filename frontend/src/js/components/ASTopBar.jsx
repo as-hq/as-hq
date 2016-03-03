@@ -197,14 +197,15 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
             }),
           ]},
 
-          {title: 'Insert', menuItems: [
-            simple({
-              title: 'Chart',
-              callback() {
-                DialogActions.openChartingDialog();
-              }
-            })
-          ]},
+          // Disabling charts for now (Ritesh leap day)
+          // {title: 'Insert', menuItems: [
+          //   simple({
+          //     title: 'Chart',
+          //     callback() {
+          //       DialogActions.openChartingDialog();
+          //     }
+          //   })
+          // ]},
 
           {title: 'Code', menuItems: [
             simple({

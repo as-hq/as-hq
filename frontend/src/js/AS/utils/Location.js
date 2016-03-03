@@ -5,10 +5,6 @@ import type {
   ASLocationObject
 } from '../../types/Eval';
 
-import type {
-  ASOverlaySpec
-} from '../../types/Hypergrid';
-
 import Constants from '../../Constants';
 
 import ASIndex from '../../classes/ASIndex';

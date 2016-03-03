@@ -106,8 +106,8 @@ export type ImageData = {
   tag: 'ImageData';
   imageWidth: number;
   imageHeight: number;
-  imageOffsetX: number;
-  imageOffsetY: number;
+  dragOffsetLeft: number;
+  dragOffsetTop: number;
 };
 
 export type StreamInfo = {

@@ -34,44 +34,16 @@ const callbacks: Array<InitCallback> = [
 
       'fin-scroll-x': function (event) {
         let scroll = spreadsheet.getScroll();
-        if (event.detail.oldValue <= event.detail.value) {
-          let newScrollPixels = {
-            x: spreadsheet.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
-            y: spreadsheet.state.scrollPixels.y
-          };
-          spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
-        } else {
-          let newScrollPixels = {
-            x: spreadsheet.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
-            y: spreadsheet.state.scrollPixels.y
-          };
-          spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
-        }
-        // deprecated
-        // if ((spreadsheet.getScroll()).x % 20 === 0) {
-        //   ActionCreator.scroll(spreadsheet.getViewingWindow());
-        // }
+        // TODO: fix the setState
+        spreadsheet.setState({scroll: scroll});
+        ActionCreator.scroll(spreadsheet.getViewingWindow());
       },
 
       'fin-scroll-y': function (event) {
         let scroll = spreadsheet.getScroll();
-        if (event.detail.oldValue <= event.detail.value) {
-          let newScrollPixels = {
-            y: spreadsheet.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
-            x: spreadsheet.state.scrollPixels.x
-          };
-          spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
-        } else {
-          let newScrollPixels = {
-            y: spreadsheet.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
-            x: spreadsheet.state.scrollPixels.x
-          };
-          spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
-        }
-        // deprecated
-        // if ((spreadsheet.getScroll()).y % 20 === 0) {
-        //   ActionCreator.scroll(spreadsheet.getViewingWindow());
-        // }
+        // TODO: fix the setState
+        spreadsheet.setState({scroll: scroll});
+        ActionCreator.scroll(spreadsheet.getViewingWindow());
       },
 
       'fin-double-click': function (event) {
