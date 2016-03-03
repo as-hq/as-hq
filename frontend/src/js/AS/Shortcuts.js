@@ -173,6 +173,7 @@ function installAllShortcuts() {
   // grid shortcuts -------------------------------------------------------------------------------
 
   install('grid', 'start_editing', ['Enter', 'Shift+Enter'], () => {
+    debugger;
     ExpressionActions.startEditing(t => t, true);
   });
 
@@ -202,7 +203,6 @@ function installAllShortcuts() {
     const {origin: {row, col}} = SelectionStore.getActiveSelection();
 
     // TODO this is a hack. Depends on ScrollManager to work properly.
-    debugger;
     SpreadsheetActions.select(
       ASRange.fromNaked({
         tl: {row, col},

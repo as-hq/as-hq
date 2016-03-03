@@ -10,7 +10,7 @@ import ExpressionStore from '../stores/ASExpressionStore';
 
 export default {
   evaluate(moveDirection: Offset, providedExpression?: string) {
-    const {origin} = SelectionStore.getActiveSelection();
+    const origin = ExpressionStore.getTextboxPosition();
     const expression = providedExpression || ExpressionStore.getExpression();
     const language = ExpressionStore.getLanguage();
     Dispatcher.dispatch({
