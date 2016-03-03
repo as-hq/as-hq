@@ -66,7 +66,7 @@ else
 fi
 cd ../..
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/backend
-cp backend/Environment.json build/ 
+cp backend/Environment_docker.json build/Environment.json
 echo "backend build finished."
 
 # C++ executable

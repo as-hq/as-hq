@@ -1,0 +1,17 @@
+{
+  "backendWsAddress": "0.0.0.0",
+  "backendWsPort": 5000,
+  "graphDbAddress_haskell": "tcp://localhost:5555",
+  "pyKernelAddress_haskell": "tcp://localhost:20000",
+  "graphDbAddress_cpp": "tcp://*:5555",
+  "pyKernelAddress_python": "tcp://*:20000",
+  "redisPassword": "b973f774bfeab53233b4f347be114e9ca7b2d00f",
+  "redisPort": 6379,
+  "redisHost": "localhost",
+  "shouldWriteToConsole": false,
+  "shouldWriteToSlack": false,
+  "frontendPort": 8080,
+  "fileInputHandlerPort": 9000,
+  "host": "localhost"
+}
+
