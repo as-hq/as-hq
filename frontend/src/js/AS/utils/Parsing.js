@@ -54,13 +54,11 @@ const Parsing = {
   },
 
   parseDependencies(str: string, lang: ?ASLanguage): Array<ASRange> {
-    // logDebug("parsing dependencies of: " + str);
     if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
       return [];
     }
     const matches = Parsing.parseRefs(str);
     const parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
-    logDebug("parsed deps: "+JSON.stringify(matches));
     return parsed;
   },
 

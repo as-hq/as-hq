@@ -173,7 +173,6 @@ function installAllShortcuts() {
   // grid shortcuts -------------------------------------------------------------------------------
 
   install('grid', 'start_editing', ['Enter', 'Shift+Enter'], () => {
-    debugger;
     ExpressionActions.startEditing(t => t, true);
   });
 
@@ -215,13 +214,9 @@ function installAllShortcuts() {
   });
   install('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
     // TODO fix!
-    let dY = self.getASSpreadsheet().getVisibleRows();
-    self.getASSpreadsheet().shiftAndResetSelection({ dc: 0, dr: -dY });
   });
   install('grid', 'move_vwindow_above', 'PageDown', (wildcard: string) => {
     // TODO fix!
-    let dY = self.getASSpreadsheet().getVisibleRows();
-    self.getASSpreadsheet().shiftAndResetSelection({ dc: 0, dr: dY });
   });
   install('grid', 'grid_delete', 'Del|Backspace', (wildcard: string) => {
     const {range} = SelectionStore.getActiveSelection();

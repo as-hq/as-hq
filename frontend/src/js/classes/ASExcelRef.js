@@ -2,6 +2,7 @@
 
 import {stream} from 'nu-stream';
 import {parse, text} from 'bennu';
+import invariant from 'invariant';
 import _ from 'lodash';
 
 import SheetStateStore from '../stores/ASSheetStateStore';
@@ -71,6 +72,21 @@ function excelIndexToString(exc: NakedExcelIndex): string {
     intToCol(col),
     rowParamsToRowString({ row: row, rowFixed: rowFixed })
   ].join('');
+}
+
+function toggleNakedIndex(myIdx: NakedExcelIndex): NakedExcelIndex {
+  const idx = myIdx;
+  if (idx.rowFixed && idx.colFixed) {
+    idx.rowFixed = true;
+    idx.colFixed = false;
+  } else if (idx.colFixed && !idx.rowFixed) {
+    idx.rowFixed = false;
+    idx.colFixed = false;
+  } else {
+    idx.rowFixed = ! idx.rowFixed;
+    idx.colFixed = ! idx.colFixed;
+  }
+  return idx;
 }
 
 const DEFAULT = 'default';
@@ -305,18 +321,22 @@ export default class ASExcelRef {
   }
 
   toggle(): ASExcelRef {
-    const {contents} = this._nakedRef;
-    if (contents.rowFixed && contents.colFixed) {
-      contents.rowFixed = true;
-      contents.colFixed = false;
-    } else if (contents.colFixed && !contents.rowFixed) {
-      contents.rowFixed = false;
-      contents.colFixed = false;
-    } else {
-      contents.rowFixed = ! contents.rowFixed;
-      contents.colFixed = ! contents.colFixed;
+    switch(this._nakedRef.tag) {
+      case 'index': {
+        const contents = toggleNakedIndex(this._nakedRef.contents);
+        const nref = {tag: 'index', contents};
+        return new ASExcelRef(nref, this._sheetId, this._workbookId);
+      }
+
+      case 'range': {
+        const first = toggleNakedIndex(this._nakedRef.first);
+        const second = toggleNakedIndex(this._nakedRef.second);
+        const nref = {tag: 'range', first, second};
+        return new ASExcelRef(nref, this._sheetId, this._workbookId);
+      }
+
+      default:
+        invariant('ASExcelRef tag was neither index nor range.');
     }
-    const nref = {tag: 'index', contents};
-    return new ASExcelRef(nref, this._sheetId, this._workbookId);
   }
 }

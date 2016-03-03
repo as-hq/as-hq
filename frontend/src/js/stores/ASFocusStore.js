@@ -38,7 +38,6 @@ class FocusStore extends ReduceStore<State> {
 
         // focus-stealing prevention
         if (isFocusTheft(state, focus)) {
-          console.warn('swiper no swiping!');
           this.refocus();
           return state;
         } else {
@@ -52,7 +51,6 @@ class FocusStore extends ReduceStore<State> {
       }
 
       case 'TOGGLED_FOCUS_F2': {
-        console.warn('toggle F2:',`${state.lastActiveFocus}->${state.activeFocus}`);
         if (state.activeFocus === 'textbox') {
           if (state.lastActiveFocus === 'grid') {
             return state.update('textboxHasFullFocus', b => !b);
