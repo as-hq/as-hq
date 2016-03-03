@@ -156,21 +156,21 @@ referenceToCompositeValue _ ctx (RangeRef r) _ = return . Expanding . VList . M 
 referenceToCompositeValue state ctx (TemplateRef t) f = 
   case t of 
     SampleExpr n idx -> $fromRight <$> (runEitherT $ do 
-      lift $ putStrLn $ "did parsing"
+      -- Get all ancestors
       let conn = state^.dbConn
       let graphAddress = state^.appSettings.graphDbAddress
       ancRefs <- G.getAllAncestors graphAddress $ indicesToAncestryRequestInput [idx]
-      lift $ putStrLn $ show ancRefs
       ancInds <- concat <$> mapM (refToIndices conn) ancRefs
       ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds
       let ctxWithAncs = addCellsToContext ancCells ctx
+      -- After adding ancestors to context, evaluate n times
       samples <- replicateM n $ evaluateNode state ctxWithAncs idx ancCells f
       return $ Expanding $ VList $ A samples)
 
--- assumes all ancestors are already in the context.
+-- Evaluate a node by running an evaluation function and extracting the answer from the context at the end. 
+-- Assumes all ancestors are already in the context.
 evaluateNode :: ServerState -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
 evaluateNode state ctx idx ancestors f = do
-  -- let node = $valAt idx $ ctx^.virtualCellsMap
   ctx' <- f state ancestors ctx
   return $ view cellValue . $valAt idx $ ctx'^.virtualCellsMap
 

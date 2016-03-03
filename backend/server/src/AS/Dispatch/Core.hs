@@ -218,27 +218,38 @@ evalChainWithException state cells ctx =
 -- in the list of cells that has a coupled counterpart in the context, we don't evaluate that cell either. The reason is that we want to give 
 -- fat cells overwrite power (this is a UX feature that we're adding, so it requires special casing).  Example: A1 = 1, A2 = A1, A1 = range(10) 
 -- should keep A1 coupled.  It shouldn't eval the range, then eval A2, which would decouple the range. In our function, A2 wouldn't even 
--- be evalled even if it were in the queue as a normal cell. 
-evalChain :: ServerState -> [ASCell] -> EvalTransform
-evalChain state cells ctx = evalChain' state cells' ctx
-  where 
-    hasCoupledCounterpartInMap c = case (c^.cellLocation) `M.lookup` (ctx^.virtualCellsMap) of
-      Nothing -> False
-      Just c' -> (isCoupled c') && (not $ isFatCellHead c')
-    cells' = filter (liftA2 (&&) isEvaluable (not . hasCoupledCounterpartInMap)) cells
+-- be evalled even if it were in the queue as a normal cell.
 
-evalChain' :: ServerState -> [ASCell] -> EvalTransform
-evalChain' _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
-evalChain' state (c@(Cell loc xp val ps rk disp):cs) ctx = do
-  printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-  res <- if (isEvaluable c)
-    then getEvalResult xp
-    else return $ Formatted (EvalResult (CellValue val) disp) (valFormat <$> getProp ValueFormatProp ps) 
-  newContext <- contextInsert state c res ctx
-  evalChain state cs newContext
-    where 
-      getEvalResult :: ASExpression -> EitherTExec (Formatted EvalResult)
-      getEvalResult expression = EC.evaluateLanguage state loc ctx expression evalChain
+shouldEvalCell :: EvalContext -> ASCell -> Bool
+shouldEvalCell ctx c = isEvaluable c && not hasCoupledCounterpartInMap
+  where
+    hasCoupledCounterpartInMap = case (c^.cellLocation) `M.lookup` (ctx^.virtualCellsMap) of
+      Nothing -> False
+      Just c' -> isCoupled c' && (not $ isFatCellHead c')
+
+evalChain :: ServerState -> [ASCell] -> EvalTransform
+evalChain _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChain state (c@(Cell loc xp val ps rk disp):cs) ctx = 
+  if shouldEvalCell ctx c
+    then do 
+      -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
+      evalResult <- EC.evaluateLanguage state loc ctx xp evalChainWithoutPropagation
+      newContext <- contextInsert state c evalResult ctx
+      evalChain state cs newContext
+    else evalChain state cs ctx
+
+-- Evaluate a bunch of cells without calling dispatch again, just update the context
+-- Used in sampling
+evalChainWithoutPropagation :: ServerState -> [ASCell] -> EvalTransform
+evalChainWithoutPropagation _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChainWithoutPropagation state (c@(Cell loc xp val ps rk disp):cs) ctx = 
+  if shouldEvalCell ctx c
+    then do 
+      -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
+      evalResult <- EC.evaluateLanguage state loc ctx xp evalChainWithoutPropagation
+      newContext <- contextInsertWithoutPropagation state c evalResult ctx
+      evalChainWithoutPropagation state cs newContext
+    else evalChainWithoutPropagation state cs ctx
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
@@ -368,3 +379,18 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
       -- (2) blanked cells due to fat cell deletion
 
 
+contextInsertWithoutPropagation :: ServerState -> ASCell -> Formatted EvalResult -> EvalTransform
+contextInsertWithoutPropagation state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
+  let conn  = state^.dbConn
+      cv    = result^.resultValue
+      disp  = result^.resultDisplay 
+  let maybeFatCell = DE.decomposeCompositeValue c cv
+  let newCellsFromEval = case maybeFatCell of
+                          Nothing -> [formatCell f $ Cell idx xp v ps Nothing disp] -- no rangeKey
+                            where 
+                              CellValue v = cv
+                          Just (FatCell cs _) -> map (formatCell f . set cellDisplay disp) cs
+  (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c ctx 
+  (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
+  let ctxWithEvalCells = addCellsToContext newCellsFromEval ctxWithDecoupledCells
+  return ctxWithEvalCells

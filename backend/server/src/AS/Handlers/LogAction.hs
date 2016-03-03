@@ -17,7 +17,6 @@ handleLog :: Bool -> ASUserClient -> ServerState -> String -> IO ()
 handleLog isAction user state fAction = do 
 	let conn = state^.dbConn
 	let logSource = LogSource (userId user) (userSessionId user)
-	print logSource
 	unless (state^.isDebuggingLog) $ addL conn (LogKey logSource) $ LogValue $ LogData fAction isAction 
 
 handleLogMessage :: ASUserClient -> ServerState -> ByteString -> IO ()

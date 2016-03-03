@@ -270,6 +270,17 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it ('should sample lists without infinite loop', (done) => {
+          _do([
+            python('A1', 'range(3)'),
+            python('B1', '!{10, A1}'),
+            shouldBe('B1', valueI(0)),
+            shouldBe('B10', valueI(0)),
+            shouldBeCoupled('B1'),
+            exec(done)
+          ]);
+        });
         
       });
 
