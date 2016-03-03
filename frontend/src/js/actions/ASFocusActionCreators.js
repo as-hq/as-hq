@@ -31,7 +31,7 @@ export default {
       Dispatcher.dispatch({
         _type: 'START_EDITING',
         textMutator: t => t,
-        textboxHasFullFocus: false
+        textboxHasFullFocus: true
       });
     }
   },

@@ -96,7 +96,7 @@ class FocusStore extends ReduceStore<State> {
       case 'HEADER_TOGGLED': {
         // wait for header to open, then set its focus.
         this.getDispatcher().waitFor([ConfigStore.getDispatchToken()]);
-        
+
         if (ConfigStore.isHeaderOpen()) {
           return setFocus(state, 'header');
         // if already open (and now closing), return focus to the last element.
