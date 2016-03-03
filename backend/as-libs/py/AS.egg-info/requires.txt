@@ -7,3 +7,4 @@ ipython
 zmq
 colour
 pandasql
+openpyxl
