@@ -35,8 +35,8 @@ const StateRecord = Immutable.Record({
     },
     backwards: false
   },
-  currentLanguage: 'Python',
-  defaultLanguage: 'Python',
+  currentLanguage: 'Excel',
+  defaultLanguage: 'Excel',
   isEditing: false,
   isInsertingRef: false,
   textboxPosition: null
