@@ -30,9 +30,9 @@ import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
 import ShortcutHelper from './shortcut-helper/ShortcutHelper.jsx';
 
-import ASErrorPane from './bottom-panes/ASErrorPane.jsx';
-import ASCellPane from './bottom-panes/ASCellPaneController.jsx';
-import ASHeaderPane from './bottom-panes/ASHeaderPaneController.jsx';
+import ASErrorPaneController from './bottom-panes/ASErrorPaneController.jsx';
+import ASCellPaneController from './bottom-panes/ASCellPaneController.jsx';
+import ASHeaderPaneController from './bottom-panes/ASHeaderPaneController.jsx';
 
 import U from '../AS/Util';
 import * as flex from '../styles/flex';
@@ -185,15 +185,14 @@ class App extends React.Component<{}, Props, {}> {
     switch(pane) {
       case 'errors': {
         // TODO (michael/anand) this component is pretty fucked.
-        return <ASErrorPane
-                  errors={[]}
-                  showAll={false} />;
+        return <ASErrorPaneController
+                  selectCellAtLocation={idx => this._handleRequestSelect(idx)} />;
       }
       case 'header_output': {
-        return <ASHeaderPane />;
+        return <ASHeaderPaneController />;
       }
       case 'cell_output': {
-        return <ASCellPane />;
+        return <ASCellPaneController />;
       }
       default: {
         return <noscript />;
