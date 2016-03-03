@@ -54,7 +54,6 @@ import type {
 
 import type {
   ASClientWindow,
-  ASClientExpression
 } from '../types/State';
 
 import shortid from 'shortid';
@@ -80,7 +79,7 @@ import LoginStore from '../stores/ASLoginStore';
 import * as ProgressActions from './ASProgressActionCreators';
 import * as HeaderActions from './ASHeaderActionCreators';
 
-import {setConnectedState} from '../actions/ASConnectionActionCreators';
+import ConfigActions from '../actions/ASConfigActionCreators';
 import LoginActions from '../actions/ASLoginActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
@@ -156,11 +155,11 @@ pws.ondisconnect = () => {
   // Give up on progress on disconnect.
   // https://app.asana.com/0/47051356043702/84248459839482
   ProgressActions.markAllReceived();
-  setConnectedState(false);
+  ConfigActions.setConnectedState(false);
 };
 
 pws.onreconnect = () => {
-  setConnectedState(true);
+  ConfigActions.setConnectedState(true);
 };
 
 pws.onmessage = (event: MessageEvent) => {
@@ -228,7 +227,16 @@ pws.onmessage = (event: MessageEvent) => {
       SheetActions.setMySheets(action.contents);
       break;
     case 'AskDecouple':
-      SheetActions.decouple();
+      NotificationActions.addNotification({
+        title: "You're about to decouple cells.",
+        message: 'Are you sure?',
+        level: 'warning',
+        position: 'tc',
+        action: {
+          label: 'OK',
+          callback: () => API.decouple()
+        }
+      });
       // Clear all progress indicators if we received a Decouple message.
       // The messageId sent for
       // evaluation and the id after received after decoupling are not the same,
@@ -439,13 +447,12 @@ const API = {
   // ************************************************************************************************************************
   /* Sending an eval request to the server */
 
-  /* This function is called by handleEvalRequest in the eval pane */
-  evaluate(origin: ASIndex, xp: ASClientExpression) {
+  evaluate(origin: ASIndex, expression: string, language: ASLanguage) {
     const msg: Evaluate = {
       tag: "Evaluate",
       contents: [{
         tag: "EvalInstruction",
-        evalXp: xp,
+        evalXp: {expression, language},
         evalLoc: origin.obj()
       }],
     };

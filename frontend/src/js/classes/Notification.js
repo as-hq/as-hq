@@ -17,14 +17,14 @@ type NotificationAction = {
 type NotificationPosition = 'tr' | 'tl' | 'tc' | 'br' | 'bl' | 'bc';
 
 export type NotificationSpec = {
-  uid: ?string;
+  uid?: string;
   title: string;
-  autoDismiss: ?number;
-  message: ?string;
+  autoDismiss?: number;
+  message?: string;
   level: NotificationLevel;
-  action: ?NotificationAction;
-  position: ?NotificationPosition;
-  dismissible: ?boolean;
+  action?: NotificationAction;
+  position?: NotificationPosition;
+  dismissible?: boolean;
 };
 
 export type Notification = Immutable.Record$Class;

@@ -12,10 +12,12 @@ import type {
   RoutedComponentProps
 } from '../types/Router';
 
+import type { BottomPane } from '../types/State';
+import type { StoreToken } from 'flux';
+
 import {logDebug} from '../AS/Logger';
 
 import React, {PropTypes} from 'react';
-import ASTreeNav from './ASTreeNav.jsx';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
 import ASConnectionBar from './ASConnectionBar.jsx';
@@ -33,80 +35,75 @@ import ASCellPane from './bottom-panes/ASCellPaneController.jsx';
 import ASHeaderPane from './bottom-panes/ASHeaderPaneController.jsx';
 
 import U from '../AS/Util';
-const {
-  Conversion: TC
-} = U;
-
-import ASIndex from '../classes/ASIndex';
 import * as flex from '../styles/flex';
 
-// $FlowFixMe: missing annotations
-import {AppCanvas, LeftNav, Paper} from 'material-ui';
-
+import { actions as Shortcuts } from '../AS/Shortcuts';
 import API from '../actions/ASApiActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
+import ConfigActions from '../actions/ASConfigActionCreators';
+import ClipboardActions from '../actions/ASClipboardActionCreators';
 
-import Constants from '../Constants';
-import SheetStateStore from '../stores/ASSheetStateStore';
-import ConnectionStore from '../stores/ASConnectionStore';
 import ModalStore from '../stores/ASModalStore';
+import ConfigStore from '../stores/ASConfigurationStore';
+import LogStore from '../stores/ASLogStore';
 
 // $FlowFixMe: missing annotations
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
 // $FlowFixMe: missing annotations
 import DarkTheme from 'material-ui/lib/styles/raw-themes/dark-raw-theme';
 
-// $FlowFixMe
-import injectTapEventPlugin from 'react-tap-event-plugin';
-injectTapEventPlugin();
+import ASCodeField from './basic-controls/ASCodeField.jsx';
 
-type BottomPane = 'header' | 'error' | 'cell';
+// $FlowFixMe
+require('react-tap-event-plugin')();
+
+// install shorctuts
+Shortcuts.installAll();
 
 type Props = RoutedComponentProps;
-type State = {
-  currentPane: string; // TODO this really really should be refactored out
-  currentBottomPane: ?BottomPane;
-  // object passed from splash pane specifying initial params: opened sheet, etc
-  initEvalInfo: any;
-  isConnected: boolean;
-};
 
-import LogViewer from './LogViewer.jsx';
-import LogStore from '../stores/ASLogStore';
-
-class App extends React.Component<{}, Props, State> {
+class App extends React.Component<{}, Props, {}> {
   $storeLinks: Array<StoreLink>;
+  _configListener: StoreToken;
+  _copyHandler: Callback<SyntheticClipboardEvent>;
+  _cutHandler: Callback<SyntheticClipboardEvent>;
+  _pasteHandler: Callback<SyntheticClipboardEvent>;
 
   constructor(props: Props) {
     super(props);
     this.$storeLinks = [];
-    this.state = {
-      currentPane: 'eval',
-      // object passed from splash pane specifying initial params: opened sheet, etc
-      initEvalInfo: {},
-      currentBottomPane: null,
-      isConnected: true
-    };
     this._logListener = () => this.forceUpdate();
+    this._copyHandler = evt => ClipboardActions.copy(evt);
+    this._cutHandler = evt => ClipboardActions.cut(evt);
+    this._pasteHandler = evt => ClipboardActions.paste(evt);
   }
 
   componentDidMount() {
-    ConnectionStore.addChangeListener(() => this._onConnectionStateChange());
     U.React.addStoreLinks(this, [
       { store: ModalStore }
     ]);
     LogStore.addListener(this._logListener);
+    this._configListener = ConfigStore.addListener(() => this.forceUpdate());
 
-    // #anand what does this do?
+    // TODO (anand) what does this do?
     window.addEventListener('contextmenu', (evt) => {
       evt.preventDefault();
     });
+
+    // add clipboard event listeners
+    window.addEventListener('copy', this._copyHandler);
+    window.addEventListener('cut', this._cutHandler);
+    window.addEventListener('paste', this._pasteHandler);
   }
 
   componentWillUnmount() {
     U.React.removeStoreLinks(this);
     LogStore.removeListener(this._logListener);
+    this._configListener.remove();
+    window.removeEventListener('copy', this._copyHandler);
+    window.removeEventListener('cut', this._cutHandler);
+    window.removeEventListener('paste', this._pasteHandler);
   }
 
   getChildContext(): any {
@@ -115,122 +112,91 @@ class App extends React.Component<{}, Props, State> {
     };
   }
 
-  /**************************************************************************************************************************/
-  /* Core render method for the whole app */
-
   render(): React.Element {
-    const {currentBottomPane, isConnected} = this.state;
-    const connectionBarHeight = isConnected ? 0 : 24; // #needsrefactor would be better to use flexbox than a conditional height.
-    const fullStyle = {width: '100%', height: '100%'};
     const logOpen = LogStore.getIsOpen();
+    const isConnected = ConfigStore.isConnected();
+    const bottomPane = ConfigStore.getCurrentBottomPane();
 
-    const connectionBarStyle = {
-      width: '100%',
-      height: connectionBarHeight,
-      display: isConnected ? 'none' : 'block'
-    };
+    const centerContent = (
+      <div style={styles.full}>
+        <ASEvaluationPane />
+      </div>
+    );
 
-    // Note: it's OK to give things inside ResizablePanel height 100% because
-    // ResizablePanel uses its own height as reference.
-    //
-    // Here, the height of the resizable panel is everything except top and
-    // bottom parts, so all percents in fullStyle are relative to that
-    //
-    // Also, it's essential to keep the outputPane component in the layout, and
-    // to make it invisible if necessary, rather than null
-    let evalPane =
-      <div style={fullStyle}>
-        <ASEvaluationPane ref="evalPane" initInfo={this.state.initEvalInfo} />
-      </div>;
+    const bottomContent = (
+      <div style={styles.full}>
+        { this._getBottomPane(bottomPane) }
+      </div>
+    );
 
-    let bottomPane =
-      <div style={fullStyle}>
-        <div style={{
-          ...fullStyle,
-          ...(currentBottomPane === 'error' ? { } : {'display': 'none'})}}>
-          <ASErrorPane
-            onRequestSelect={idx => this._handleRequestSelect(idx)}
-            errors={[]}
-          />
-        </div>
-
-        <div style={{
-          ...fullStyle,
-          ...(currentBottomPane === 'cell' ? { } : {'display': 'none'})}}>
-          <ASCellPane />
-        </div>
-
-        <div style={{
-          ...fullStyle,
-          ...(currentBottomPane === 'header' ? { } : {'display': 'none'})}}>
-          <ASHeaderPane />
-        </div>
-      </div>;
-
-    const alphasheets = 
+    const main = (
       <div style={{...flex.column, height: logOpen ? '50%' : '100%'}} >
-        <div style={isConnected ? {display: 'none'} : styles.connectionBar}>
-          <ASConnectionBar />
-        </div>
+        {isConnected ?
+          <noscript/> :
+          <div style={styles.connectionBar}>
+            <ASConnectionBar />
+          </div>
+        }
+
         <ASCondFormattingDialog
           open={ModalStore.getCondFormattingOpen()}
           onRequestClose={() => DialogActions.closeCondFormattingDialog()} />
+
         <ASChartDialog
           open={ModalStore.getChartingOpen()}
           onRequestClose={() => DialogActions.closeChartingDialog()}
           onCreate={(chart) => OverlayActions.add(chart)} />
-        <ASTopBar toggleEvalHeader={() => this._toggleEvalHeader()} />
+
+        <ASTopBar toggleEvalHeader={() => ConfigActions.toggleHeader()} />
+
         <Toolbar />
-        <div style={{width: '100%', height: `calc(100% - ${toolbarHeight + topBarHeight + connectionBarHeight}px)`}}>
-          <ResizablePanel content={evalPane}
-                          sidebar={bottomPane}
-                          sidebarVisible={!! currentBottomPane}
+
+        <div style={styles.resizable}>
+          <ResizablePanel content={centerContent}
+                          sidebar={bottomContent}
+                          sidebarVisible={!! bottomPane}
                           side="bottom" />
         </div>
-        <div style={{width: '100%', height: `${bottomBarHeight}px`}} >
-          <ASBottomBar toggleBottomPane={(pane: BottomPane) =>
-                                      this._toggleBottomPane(pane)} />
+
+        <div style={styles.bottomBar} >
+          <ASBottomBar />
         </div>
         <ShortcutHelper />
-      </div>;
+      </div>
+    );
 
-    // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet 
+    // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet
     // is the whole page
     return (
       <div style={{width: '100%', height: '100%'}} >
-        {alphasheets}
+        {main}
         {logOpen ? <LogViewer /> : null}
       </div>
     );
   }
 
-/**************************************************************************************************************************/
-/* Top-level ui state changes */
 
-  _toggleEvalHeader() {
-    this.refs.evalPane.toggleEvalHeader();
-  }
-
-  _toggleBottomPane(pane: BottomPane) {
-    const {currentBottomPane} = this.state;
-    if (pane !== currentBottomPane) {
-      this.setState({currentBottomPane: pane});
-    } else {
-      this.setState({currentBottomPane: null});
+  _getBottomPane(pane: BottomPane): ReactElement {
+    switch(pane) {
+      case 'errors': {
+        // TODO (michael/anand) this component is pretty fucked.
+        return <ASErrorPane
+                  errors={[]}
+                  showAll={false} />;
+      }
+      case 'header_output': {
+        return <ASHeaderPane />;
+      }
+      case 'cell_output': {
+        return <ASCellPane />;
+      }
+      default: {
+        return <noscript />;
+      }
     }
-  }
-
-  _onConnectionStateChange() {
-    const isConnected = ConnectionStore.getIsConnected();
-    this.setState({isConnected: isConnected});
-  }
-
-  _handleRequestSelect(idx: ASIndex) {
-    this.refs.evalPane.getASSpreadsheet().selectIndex(idx);
   }
 }
 
-const bottomBarHeight = 24;
 const topBarHeight = 60;
 const toolbarHeight = 50;
 const connectionBarHeight = 24;
@@ -240,27 +206,19 @@ const styles = {
     ...flex.column,
     height: '100%',
   },
-  eval: {
-    height: '100%',
-  },
-  errorAndOutputPane: {
-    height: '100%',
-  },
-  errorPane: {
-    height: '100%',
-  },
-  outputPane: {
+  full: {
     height: '100%',
   },
   connectionBar: {
     height: connectionBarHeight,
   },
   resizable: {
-    ...flex.column,
-    height: '100%',
+    height: `calc(100% - ${
+      toolbarHeight + topBarHeight
+    }px)`,
   },
   bottomBar: {
-    height: bottomBarHeight,
+    height: 24,
   },
 };
 

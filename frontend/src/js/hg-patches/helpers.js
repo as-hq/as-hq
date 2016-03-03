@@ -9,7 +9,7 @@ export function convert(
 ): Array<Callback<ASSpreadsheet>> {
   return evtHandlers.map((cb: InitCallback) => {
     return (spreadsheet: ASSpreadsheet) => {
-      const hg            = spreadsheet._getHypergrid(),
+      const hg            = spreadsheet._grid,
             model         = hg.getBehavior(),
             renderer      = hg.getRenderer(),
             cellProvider  = model.getCellProvider();

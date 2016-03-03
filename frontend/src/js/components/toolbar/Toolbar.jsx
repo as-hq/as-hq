@@ -10,7 +10,7 @@ import Util from '../../AS/Util';
 
 import CellStore from '../../stores/ASCellStore';
 import ToolbarStore from '../../stores/ASToolbarStore';
-import ExpStore from '../../stores/ASExpStore';
+import ExpressionStore from '../../stores/ASExpressionStore';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
@@ -54,19 +54,20 @@ export default class ASToolbar
   extends React.Component<DefaultProps, Props, {}> {
   $storeLinks: Array<StoreLink>;
   _cellStoreListener: StoreToken;
+  _expressionListener: StoreToken;
 
   componentDidMount() {
     Util.React.addStoreLinks(this, [
       { store: ToolbarStore },
-      // listen to this store for the language picker
-      { store: ExpStore },
     ]);
+    this._expressionListener = ExpressionStore.addListener(() => this.forceUpdate());
     this._cellStoreListener = CellStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
     Util.React.removeStoreLinks(this);
     this._cellStoreListener.remove();
+    this._expressionListener.remove();
   }
 
   render(): React.Element {
@@ -143,19 +144,19 @@ export default class ASToolbar
         <Separator />
         <LanguagePicker
           visible={activeButton === 'LanguagePicker'}
-          language={ExpStore.getLanguage()}
+          language={ExpressionStore.getLanguage()}
         />
 
         <Separator />
         <FontPicker
           visible={activeButton === 'FontPicker'}
-          value={ExpStore.getFont()}
+          value={null}
         />
 
         <Separator />
         <FontSizePicker
           visible={activeButton === 'FontSizePicker'}
-          value={ExpStore.getFontSize()}
+          value={null}
         />
         <Separator />
 
@@ -187,7 +188,7 @@ export default class ASToolbar
           iconName="text_format"
           tooltip="Text color"
           active={activeButton === 'TextColor'}
-          value={ExpStore.getTextColor()}
+          value={null}
           onSelect={color => ToolbarActionCreators.setColor('TextColor', color)}
           onOpen={() => ToolbarActionCreators.openItem('TextColor')}
           onClose={() => ToolbarActionCreators.closeItem('TextColor')}
@@ -200,7 +201,7 @@ export default class ASToolbar
           iconName="format_color_fill"
           tooltip="Fill color"
           active={activeButton === 'FillColor'}
-          value={ExpStore.getFillColor()}
+          value={null}
           onSelect={color => ToolbarActionCreators.setColor('FillColor', color)}
           onOpen={() => ToolbarActionCreators.openItem('FillColor')}
           onClose={() => ToolbarActionCreators.closeItem('FillColor')}
@@ -210,7 +211,7 @@ export default class ASToolbar
           iconName="border_color"
           tooltip="Border color"
           active={activeButton === 'BorderColor'}
-          value={ExpStore.getBorderColor()}
+          value={null}
           onSelect={color => ToolbarActionCreators.setColor('BorderColor', color)}
           onOpen={() => ToolbarActionCreators.openItem('BorderColor')}
           onClose={() => ToolbarActionCreators.closeItem('BorderColor')}
@@ -218,11 +219,11 @@ export default class ASToolbar
 
         <HAlignPicker
           visible={activeButton === 'HAlignPicker'}
-          value={ExpStore.getHAlign()}
+          value={null}
         />
         <VAlignPicker
           visible={activeButton === 'VAlignPicker'}
-          value={ExpStore.getVAlign()}
+          value={null}
         />
 
         <Separator />

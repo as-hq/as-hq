@@ -12,11 +12,11 @@ import type {
   ASLocation,
   ASSheet,
   ASWorkbook,
+  ASLanguage,
 } from '../../types/Eval';
 
 import type {
   ASViewingWindow,
-  ASClientExpression
 } from '../../types/State';
 
 import type {
@@ -41,10 +41,12 @@ let CU = {
   /**************************************************************************************************************************/
   /* Type constructors */
 
-  makeEvalInstruction(asIndex: ASIndex, xpObj: ASClientExpression): EvalInstruction {
+  makeEvalInstruction(asIndex: ASIndex, expression: string, language: ASLanguage): EvalInstruction {
     return  {
       tag: "EvalInstruction",
-      evalXp: xpObj,
+      evalXp: {
+        expression, language
+      },
       evalLoc: asIndex.obj()
     };
   },

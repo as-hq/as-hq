@@ -59,43 +59,39 @@ export default {
   },
 
   formatAs(tag: FormatType) {
-    SelectionStore.withActiveSelection(({range}) => {
-      switch (tag) {
-        case 'Money':
-          API.setFormat('Money', range);
-          break;
-        case 'Percentage':
-          API.setFormat('Percentage', range);
-          break;
-        default:
-          // TODO(joel) - handle NoFormat / Date
-          // $FlowFixMe
-          const prop: ASCellProp = {tag, contents: []};
-          API.toggleProp(prop, range);
-      }
-    });
+    const {range} = SelectionStore.getActiveSelection();
+    switch (tag) {
+      case 'Money':
+        API.setFormat('Money', range);
+        break;
+      case 'Percentage':
+        API.setFormat('Percentage', range);
+        break;
+      default:
+        // TODO(joel) - handle NoFormat / Date
+        // $FlowFixMe
+        const prop: ASCellProp = {tag, contents: []};
+        API.toggleProp(prop, range);
+    }
   },
 
   toggleBooleanCellTag(tag: BooleanCellTag) {
-    SelectionStore.withActiveSelection(({range}) => {
-      // $FlowFixMe trust me on this one
-      const prop: ASCellProp = {tag, contents: []};
-      API.toggleProp(prop, range);
-    });
+    const {range} = SelectionStore.getActiveSelection();
+    // $FlowFixMe trust me on this one
+    const prop: ASCellProp = {tag, contents: []};
+    API.toggleProp(prop, range);
   },
 
   setColor(tag: 'TextColor' | 'FillColor' | 'BorderColor', contents: string) {
     // TODO(joel) figure out BorderColor case
     const prop: ASCellProp = {tag, contents};
-    SelectionStore.withActiveSelection(({range}) => {
-      API.setProp(prop, range);
-    });
+    const {range} = SelectionStore.getActiveSelection();
+    API.setProp(prop, range);
   },
 
   handleDecimalChange(i: number) {
-    SelectionStore.withActiveSelection(({range}) => {
-      API.handleChangeDecimalPrecision(i, range);
-    });
+    const {range} = SelectionStore.getActiveSelection();
+    API.handleChangeDecimalPrecision(i, range);
   },
 
   setFormat(format: FormatType) {
@@ -105,8 +101,7 @@ export default {
     });
 
     // TODO(joel) - don't create two actions!
-    SelectionStore.withActiveSelection(({range}) => {
-      API.setFormat(format, range);
-    });
+    const {range} = SelectionStore.getActiveSelection();
+    API.setFormat(format, range);
   },
 };

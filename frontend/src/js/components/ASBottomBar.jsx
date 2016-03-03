@@ -17,12 +17,9 @@ import IconButton from 'material-ui/lib/icon-button';
 // $FlowFixMe
 import FontIcon from 'material-ui/lib/font-icon';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import ConfigActions from '../actions/ASConfigActionCreators';
 
-type Props = {
-  toggleBottomPane: Callback<string>;
-};
-
-export default class ASBottomBar extends React.Component<{}, Props, {}> {
+export default class ASBottomBar extends React.Component<{}, {}, {}> {
   $storeLinks: Array<StoreLink>;
 
   componentDidMount() {
@@ -36,12 +33,11 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
   }
 
   render(): ReactElement {
-    const {toggleBottomPane} = this.props;
     return (
       <Paper style={styles.root}>
         <IconButton
           style={styles.button}
-          onClick={ () => {toggleBottomPane('error')} }
+          onClick={ () => ConfigActions.toggleBottomPane('errors') }
           iconClassName="material-icons"
           tooltip="Errors"
           tooltipPosition="top-right"
@@ -51,7 +47,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
 
         <IconButton
           style={styles.button}
-          onClick={ () => toggleBottomPane('cell') }
+          onClick={ () => ConfigActions.toggleBottomPane('cell_output') }
           iconClassName="material-icons"
           tooltip="Cell output"
           tooltipPosition="top-right"
@@ -61,7 +57,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
 
         <IconButton
           style={styles.button}
-          onClick={ () => toggleBottomPane('header') }
+          onClick={ () => ConfigActions.toggleBottomPane('header_output') }
           iconClassName="material-icons"
           tooltip="Header output"
           tooltipPosition="top-right"

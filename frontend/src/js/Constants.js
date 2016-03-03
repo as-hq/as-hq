@@ -61,8 +61,6 @@ var Constants = Object.assign({
   gridXOffset: 25, // margin between left edge of div and cells
   gridYOffset: 22, // '' top edge ''
 
-  editorHeight: 200,
-
   // Each time you add an action, add it here... They should be past-tense
   ActionTypes: keyMirror({
     GOT_FAILURE: null,

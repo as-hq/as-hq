@@ -19,23 +19,13 @@ import type {
 
 export type ASViewingWindow = ASRange;
 
-export type FocusStoreCallbacks = {
-  editor: () => void;
-  grid: () => void;
-  textbox: () => void;
-};
+export type FocusedElement = 'grid' | 'textbox' | 'editor' | 'header';
 
-export type ASFocusType = 'grid' | 'textbox' | 'editor';
+export type BottomPane = 'header_output' | 'errors' | 'cell_output';
 
 export type ASClientWindow = {
   window: ASRange;
   sheetId: string;
-};
-
-// It is actually absurd that this type exists. cellDependencies should be removed from ASExpression.
-export type ASClientExpression = {
-  expression: string;
-  language: ASLanguage;
 };
 
 export type ASCellGrid = Dict<Array<Array<ASCell>>>;

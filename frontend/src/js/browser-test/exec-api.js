@@ -164,9 +164,8 @@ export function cell(loc: string, xp: string, lang: ASTestLanguage): Prf {
       'excel': Constants.Languages.Excel,
       'sql': Constants.Languages.SQL,
     };
-    let idx   = asIndex(loc),
-        xpObj = { expression: xp, language: langMap[lang] };
-    API.evaluate(idx, xpObj);
+    let idx   = asIndex(loc);
+    API.evaluate(idx, xp, langMap[lang]);
   });
 }
 

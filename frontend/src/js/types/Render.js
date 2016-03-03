@@ -24,7 +24,6 @@ export type RenderParams = {
   selectionRect: ?PXRectangle,
   mouseoverError: number,
   dragRect: ?ASRange,
-  shouldRenderSquareBox: boolean,
   boxWidth: number,
   topLeftBox: ?HGPoint,
   dragCorner: ?DragCorner,

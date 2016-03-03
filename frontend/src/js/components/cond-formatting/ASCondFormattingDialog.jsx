@@ -13,6 +13,8 @@ import type {
   StoreLink
 } from '../../types/React';
 
+import type { StoreToken } from 'flux';
+
 import React from 'react';
 
 import {Dialog, FlatButton} from 'material-ui';
@@ -47,6 +49,7 @@ export default class ASCondFormattingDialog
   extends React.Component<{}, ASCondFormattingDialogProps, ASCondFormattingDialogState>
 {
   $storeLinks: Array<StoreLink>;
+  _selectionListener: StoreToken;
 
   constructor(props: ASCondFormattingDialogProps) {
     super(props);
@@ -62,12 +65,13 @@ export default class ASCondFormattingDialog
   componentDidMount() {
     Util.React.addStoreLinks(this, [
       { store: CFStore },
-      { store: SelectionStore }
     ]);
+    this._selectionListener = SelectionStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
     Util.React.removeStoreLinks(this);
+    this._selectionListener.remove();
   }
 
   componentWillReceiveProps(nextProps: ASCondFormattingDialogProps) {
@@ -140,15 +144,13 @@ export default class ASCondFormattingDialog
   }
 
   _getRules(): Array<ASCondFormatRule> {
-    return SelectionStore.withActiveSelection(({range}) => {
-      return CFStore.getRulesApplyingToRange(range);
-    }) || [];
+    const {range} = SelectionStore.getActiveSelection();
+    return CFStore.getRulesApplyingToRange(range);
   }
 
   _openCreateRuleDialog() {
-    const defaultRangeStr = SelectionStore.withActiveSelection(
-      (x) => x.range.toExcel().toString()
-    ) || '';
+    const {range} = SelectionStore.getActiveSelection();
+    const defaultRangeStr = range.toExcel().toString()
 
     const defaultFormatter: BoolFormatMapConstructor = {
       tag: 'BoolFormatMapConstructor',

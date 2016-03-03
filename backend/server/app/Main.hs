@@ -148,7 +148,7 @@ handleFirstMessage state wsConn msg =
             _         -> do 
               startLoggingActions (State state)
               -- Modify the MySQL DB of users
-              updateUserSession (userId userClient) (userSessionId userClient)
+              --updateUserSession (userId userClient) (userSessionId userClient)
           let defaultSid = windowSheetId . userWindow $ userClient
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
           sendMessage successMsg wsConn

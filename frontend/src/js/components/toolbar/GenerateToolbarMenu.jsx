@@ -81,6 +81,7 @@ function GenerateToolbarMenu(ToolbarComponent) {
 
     _onMenuClick(e, item) {
       this.props.onSelect(item.props.value);
+      this.props.onClose();
     },
 
     componentClickAway() {

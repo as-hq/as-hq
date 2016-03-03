@@ -29,7 +29,7 @@ import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 
 import Render from '../AS/Renderers';
-import ExpStore from './ASExpStore';
+import ExpressionStore from './ASExpressionStore';
 import SelectionStore from './ASSelectionStore.js';
 import DescriptorStore from './ASRangeDescriptorStore.js';
 
@@ -95,9 +95,8 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   }
 
   getActiveCell(): ?ASCell {
-    return SelectionStore.withActiveSelection(({origin}) => {
-      return getCell(this.getState(), origin);
-    });
+    const {origin} = SelectionStore.getActiveSelection();
+    return getCell(this.getState(), origin);
   }
 
   getActiveCellDisplay(): ?string {
@@ -117,12 +116,10 @@ class ASCellStore extends ReduceStore<CellStoreData> {
       const currentRow = tl.row + i;
       rowMajorValues[i] = rowMajorValues[i].map((value, index) => {
         const currentColumn = tl.col + index;
-        const cell = getCell(this.getState(), ASIndex.fromNaked({
+        return this.getDisplayedValueAt(ASIndex.fromNaked({
           col: currentColumn,
-          row: currentRow,
+          row: currentRow
         }));
-
-        return cell == null ? '' : '' + U.Render.showValue(cell.value);
       });
     }
     return rowMajorValues;
@@ -259,10 +256,10 @@ type LanguageAndExpression = {
 };
 
 function waitForLanguageAndExpression(): LanguageAndExpression {
-  Dispatcher.waitFor([ExpStore.dispatcherIndex]);
+  Dispatcher.waitFor([ExpressionStore.getDispatchToken()]);
   return {
-    language: ExpStore.getLanguage(),
-    expression: ExpStore.getExpression(),
+    language: ExpressionStore.getLanguage(),
+    expression: ExpressionStore.getExpression(),
   };
 }
 

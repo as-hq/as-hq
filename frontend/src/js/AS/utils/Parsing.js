@@ -16,12 +16,11 @@ import KeyUtils from './Key';
 import ASIndex from '../../classes/ASIndex';
 import ASRange from '../../classes/ASRange';
 
+import ASExcelRef from '../../classes/ASExcelRef';
+
 // Excel parsing
 
-let Parsing = {
-  infixOp: ['-','+','==','/','*','&','^',','],
-  prefixOp: ['(', '='],
-  postfixOp: [')'],
+const Parsing = {
 
   isFiniteExcelRef(xp: string): boolean {
     let regIdx      = /^!?\$?[A-Za-z]+\$?[0-9]+$/,
@@ -31,70 +30,6 @@ let Parsing = {
 
   isWhitespace(xp: string): boolean {
     return /^\s*$/.test(xp);
-  },
-
-  // counts the char : as part of a word.
-  getExtendedWordRange(session: AESession, r: number, c: number): AEWordRange {
-    let immWordRange = session.getWordRange(r, c),
-        wordStart = immWordRange.start.column,
-        wordEnd   = immWordRange.end.column;
-
-    let beforeRange = immWordRange.clone();
-        beforeRange.start.column = Math.max(0, wordStart-1);
-
-    let afterRange = immWordRange.clone();
-        afterRange.end.column = wordEnd + 1; // doesn't matter if wordEnd is too large
-
-    if (wordStart > 0 && session.getTextRange(beforeRange)[0] == ':') {
-      wordStart = session.getWordRange(r, wordStart - 1).start.column;
-    } else {
-      let after = session.getTextRange(afterRange);
-      if (after[after.length - 1] == ':') {
-        wordEnd = session.getWordRange(r, wordEnd + 1).end.column;
-      }
-    }
-
-    let extRange = immWordRange.clone();
-    extRange.start.column = wordStart;
-    extRange.end.column = wordEnd;
-    return extRange;
-  },
-
-  toggleReference(xp: string): ?string {
-    // TODO generalize to arbitrary range lengths
-    let deps = Parsing.parseRefs(xp);
-    if (deps.length === 0) {
-      return null;
-    } else if (deps.length > 1) {
-      throw "Single word contains multiple references.";
-    }
-
-    return Parsing._toggleReference(deps[0]);
-  },
-
-  _toggleReference(ref: string): ?string {
-    let refs = ref.split(':');
-    if (refs.length > 1) {
-      return refs.map((r) => Parsing._toggleReference(r)).join(':');
-    }
-
-    let dollarIndices = StringU.getIndicesOf('$', ref),
-        cleanRef = ref.replace(/\$/g, ''),
-        row = cleanRef.split(/[A-Za-z]+/).pop(),
-        col = cleanRef.substring(0, cleanRef.length - row.length);
-    if (dollarIndices.length === 0) {
-      return '$' + col + (row ? '$' + row : ''); // A -> $A, not $A$
-    } else if (dollarIndices.length === 1 ) {
-      if (dollarIndices[0] === 0) {
-        return col + row;
-      } else {
-        return '$' + col + row;
-      }
-    } else if (dollarIndices.length === 2) {
-      return col + '$' + row;
-    } else {
-      return null;
-    }
   },
 
   parseRefs(str: string): Array<string> {
@@ -123,110 +58,60 @@ let Parsing = {
     if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
       return [];
     }
-    let matches = Parsing.parseRefs(str),
-        parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
+    const matches = Parsing.parseRefs(str);
+    const parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
     logDebug("parsed deps: "+JSON.stringify(matches));
     return parsed;
   },
 
-  // TODO: make this actually correct?
-  canInsertCellRefInXp(xp: string): boolean {
-    let infix = ["+","-","*","/","(",",","&","="];
-    return infix.includes(xp.substring(xp.length-1, xp.length));
+  canInsertRef(prefix: string, suffix: string): boolean {
+    const leftNeighbor = prefix.trim().slice(-1);
+    const rightNeighbor = suffix.trim()[0];
+    const leftSatisfied = refInsertionCharTable.left.includes(leftNeighbor);
+    const rightSatisfied = refInsertionCharTable.right.includes(rightNeighbor);
+    return (
+      (prefix.length === 0 && rightSatisfied) ||
+      (suffix.length === 0 && leftSatisfied) ||
+      (rightSatisfied && leftSatisfied)
+    );
   },
 
-  // NOTE: do not modify editor
-  canInsertCellRef(editor: AERawClass, lastRef: string): boolean {
-    let lines = Parsing.getLinesWithoutLastRef(editor, lastRef),
-        pos = Parsing.getCursorPosAfterDeletingLastRef(editor, lastRef),
-        currentLine = lines[pos.row];
-    logDebug("PARSING CELL REF: ", currentLine, pos);
-    if (pos.column === 0 || currentLine.length === 0 || lines[0][0] !== '=') {
-      return false;
-    } else {
-      var lookbackOk = false, lookforwardOk = false;
-      for (var c = pos.column - 1; c > -1; c--) {
-        let curChar = currentLine[c];
-        if (curChar === ' ') continue;
-        else if (Parsing.prefixOp.includes(curChar) ||
-                 Parsing.infixOp.includes(curChar)) {
-          lookbackOk = true;
-          break;
-        } else {
-          lookbackOk = false;
-          break;
-        }
-      }
-      logDebug("LOOBKACKOK: ", lookbackOk);
-      if (lookbackOk && (pos.column === currentLine.length)) return true;
-      for (var c = pos.column; c < currentLine.length; c++) {
-        let curChar = currentLine[c];
-        if (curChar === ' ') continue;
-        else if (Parsing.postfixOp.includes(curChar) ||
-                 Parsing.infixOp.includes(curChar)) {
-          lookforwardOk = true;
-          break;
-        } else {
-          lookforwardOk = false;
-          break;
-        }
-      }
-      return lookbackOk && lookforwardOk;
+  /*
+    Extracts the reference your cursor position is on.
+   */
+  liftHoveredReference(selection: EditorSelection, expression: string): {
+    prefix: string;
+    ref: ?ASExcelRef;
+    suffix: string;
+  } {
+    const [prefix, suffix] = StringU.splitOnSelection(expression, selection);
+    const [refStart, prefixNoRef] = StringU.takeWhileEnd(prefix, isReferenceCharacter);
+    const [refEnd, suffixNoRef] = StringU.takeWhile(suffix, isReferenceCharacter);
+    try {
+      const ref = ASExcelRef.fromString(refStart + refEnd);
+      return {prefix: prefixNoRef, ref, suffix: suffixNoRef};
     }
-  },
-
-  getLinesWithoutLastRef(editor: AERawClass, lastRef: string): Array<string> {
-    if (lastRef !== null) {
-      let pos = editor.getCursorPosition(),
-        line = editor.getSession().doc.getLine(pos.row),
-        lines = editor.getSession().doc.getAllLines(),
-        prefixLine = line.substring(0,pos.column-lastRef.length),
-        suffixLine = line.substring(pos.column);
-        lines[pos.row] = prefixLine + suffixLine;
-        return lines
-    } else {
-        return editor.getSession().doc.getAllLines();
+    catch(err) {
+      return {prefix, ref: null, suffix};
     }
-  },
-
-  getCursorPosAfterDeletingLastRef(editor: AERawClass, lastRef: string): AECursorPosition {
-    let pos = editor.getCursorPosition();
-    if (lastRef !== null) {
-      return {row: pos.row, column: pos.column - lastRef.length};
-    } else {
-      return pos;
-    }
-  },
-
-  // Given current editor and a string (not null) that's the last ref (ex A4)
-  // Delete that from the cursor position
-  // Actually modifies editor
-  deleteLastRef(editor: AERawClass, lastRef: string) {
-    let lines = Parsing.getLinesWithoutLastRef(editor, lastRef);
-    let newPos = Parsing.getCursorPosAfterDeletingLastRef(editor, lastRef);
-    editor.setValue(lines.join('\n')); // or '' ???
-    editor.moveCursorToPosition(newPos);
-    editor.clearSelection();
-  },
-
-  // Can a reference be inserted after this prefix
-  // For example, after '=sum(', a ref can  be inserted
-  // Used to see if grid can insert a ref at the end of xp
-  canInsertCellRefAfterPrefix(prefix: string): boolean {
-    if (prefix.length === 0 || prefix[0] !== '=') return false;
-    else {
-      for (let c = prefix.length - 1; c > -1; c--) {
-        let curChar = prefix[c];
-        if (curChar === ' ') continue;
-        else if (Parsing.prefixOp.includes(curChar) ||
-                 Parsing.infixOp.includes(curChar)) {
-          return true;
-        } else return false;
-      }
-    }
-
-    return false;
   }
 };
+
+const infixOps = ['+', '*', '=', '-', '/', ',', '&', '|', '%', '^', '>', '<'];
+const prefixOps = ['[', '(', '{', '!'];
+const postfixOps = [']', ')', '}'];
+
+// TODO language-dependent parsing
+const refInsertionCharTable = {
+  left: infixOps.concat(prefixOps),
+  right: infixOps.concat(postfixOps)
+};
+
+function isReferenceCharacter(c: string): boolean {
+  return (
+    ['!', '$', ':'].includes(c) ||
+    /^[A-Za-z0-9]+$/i.test(c)
+  );
+}
 
 export default Parsing;

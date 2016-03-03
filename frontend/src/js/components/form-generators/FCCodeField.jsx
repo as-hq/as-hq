@@ -9,7 +9,7 @@ export default function FCCodeField({defaultValue}: {
 } = {}): ReactClass {
   let ret = React.createClass({
     render(): React.Element {
-      const {valueLink: {value, requestChange}, style} = this.props;
+      const {valueLink, style} = this.props;
       const mergedStyle = {
         width: '100%',
         height: '100px',
@@ -20,8 +20,7 @@ export default function FCCodeField({defaultValue}: {
         <ASCodeField
           style={mergedStyle}
           language="python"
-          value={value}
-          requestChange={requestChange}
+          text={valueLink}
         />
       );
     }

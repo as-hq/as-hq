@@ -48,7 +48,6 @@ type SheetStateStoreData = {
 };
 
 let _data: SheetStateStoreData = {
-  decoupleAttempt: false,
   xscroll: 0,
   yscroll: 0,
   mySheets: [],
@@ -64,6 +63,7 @@ let _data: SheetStateStoreData = {
 const ASSheetStateStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
+      
       case 'LOGIN_SUCCESS':
         _data.currentSheetId = action.sheetId;
         console.warn('login success, got sheetId: ', action.sheetId);
@@ -81,19 +81,6 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         ASSheetStateStore.emit('GOT_MY_SHEETS');
         break;
 
-      case 'EVAL_TRIED_TO_DECOUPLE':
-        _data.decoupleAttempt = true;
-        ASSheetStateStore.emitChange();
-        break;
-      /*
-        This action is sent to Dispatcher by the ASSpreadsheet action creator on a scroll event
-        It gets previous scroll state from the store and then uses the API to send a "get cells" message to server
-      */
-      case 'SCROLLED':
-        const {vWindow} = action;
-        _data.viewingWindow = vWindow.extendByCache();
-        API.updateViewingWindow(vWindow);
-        break;
     }
   }),
 

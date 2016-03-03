@@ -1,12 +1,15 @@
 /* @flow */
 
 import type {
-  ASSelectionObject
+  ASSelectionObject,
+  NakedIndex
 } from '../types/Eval';
 
 import type {
   PayloadSelection
 } from '../types/Messages';
+
+import type { Offset } from '../types/Hypergrid';
 
 import SheetStateStore from '../stores/ASSheetStateStore';
 
@@ -26,6 +29,14 @@ export default class ASSelection {
     this._origin = ASIndex.fromNaked(obj.origin);
     this._range = ASRange.fromNaked(obj.range);
     this._sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+  }
+
+  equals(other: ASSelection): boolean {
+    return (
+      this.origin.equals(other.origin) &&
+      this.range.equals(other.range) &&
+      this.sheetId === other.sheetId
+    );
   }
 
   static defaultSelection(): ASSelection {
@@ -61,6 +72,7 @@ export default class ASSelection {
     range: string;
     sheetId?: string;
   })): ASSelection {
+
     return ASSelection.fromASLocations({
       origin: ASIndex.fromExcelString(origin),
       range: ASRange.fromExcelString(range),
@@ -72,6 +84,61 @@ export default class ASSelection {
     const rng = this._range;
     return [rng.tl, rng.br, rng.getBL(), rng.getTR()].
       some((x) => x.equals(this._origin));
+  }
+
+  /**
+   * The drag origin is the corner opposite the actual origin.
+   * It is the selection 'lead'.
+   * @return {NakedIndex}
+   */
+  getDragOrigin(): NakedIndex {
+    const {tl, br} = this._range;
+    const cols = [tl.col, br.col];
+    const rows = [tl.row, br.row];
+    const {col: oCol, row: oRow} = this._origin;
+
+    return {
+      col: cols[
+        (cols.indexOf(oCol) + 1) % 2 // retrieve the non-origin column
+      ],
+      row: rows[
+        (rows.indexOf(oRow) + 1) % 2 // retrieve the non-origin row
+      ]
+    };
+  }
+
+  /**
+   * [shifts the selection, does not mutate.]
+   * @param  {Offset} offset
+   * @param  {boolean} extend [whether to extend the selection (e.g. the shift key is pressed) or to move it]
+   */
+  shift({dX, dY}: Offset, extend: boolean): ASSelection {
+    const {col: anchorX, row: anchorY} = this._origin;
+
+    if (extend) {
+      const {col: leadX, row: leadY} = this.getDragOrigin();
+      const leadX_ = leadX + dX;
+      const leadY_ = leadY + dY;
+      const tl = {
+        col: Math.min(leadX_, anchorX),
+        row: Math.min(leadY_, anchorY)
+      };
+      const br = {
+        col: Math.max(leadX_, anchorX),
+        row: Math.max(leadY_, anchorY)
+      };
+
+      return new ASSelection({
+        origin: this._origin,
+        range: {tl, br}
+      });
+      
+    } else {
+      return ASIndex.fromNaked({
+        col: anchorX + dX,
+        row: anchorY + dY
+      }).toSelection();
+    }
   }
 
 }

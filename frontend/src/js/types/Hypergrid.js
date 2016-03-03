@@ -34,4 +34,9 @@ export type GridSpec = {
   firstVisibleRow: number;
   lastVisibleColumn: number;
   lastVisibleRow: number;
+};
+
+export type Offset = {
+  dX: number;
+  dY: number;
 }

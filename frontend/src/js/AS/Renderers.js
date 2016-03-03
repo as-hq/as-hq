@@ -15,6 +15,7 @@ import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
+import ExpressionStore from '../stores/ASExpressionStore';
 import CellStore from '../stores/ASCellStore';
 import ProgressStore from '../stores/ASProgressStore';
 
@@ -28,7 +29,6 @@ let _renderParams : RenderParams = {
   selectionRect: null,
   mouseoverError: 5,
   dragRect: null,
-  shouldRenderSquareBox: true,
   boxWidth: 6,
   topLeftBox: null, // {x,y} for the location of the top left corner of blue box, in pixels
   dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
@@ -48,10 +48,6 @@ const Renderers = {
 
   getBoxWidth() : number {
     return _renderParams.boxWidth;
-  },
-
-  setShouldRenderSquareBox(b: boolean) {
-    _renderParams.shouldRenderSquareBox = b;
   },
 
   setDragCorner(locObj: ?DragCorner) {
@@ -214,7 +210,6 @@ const Renderers = {
           //     fixedRowCount = grid.getFixedRowCount(),
           //     scrollY = grid.getVScrollValue();
           //     originY = origin.row + fixedRowCount - scrollY - 1;
-          // debugger;
           // this.getBehavior().setRowHeight(origin.row, h);
         } else {
           gc.fillText(val, x + halignOffset, y + valignOffset);
@@ -339,8 +334,8 @@ const Renderers = {
   },
 
   cornerBoxRenderer(gc: GraphicsContext) {
-    if (!_renderParams.shouldRenderSquareBox) {
-      return; // no box should show on double click
+    if (ExpressionStore.isEditing()) {
+      return;
     } else {
       const {
         fixedColCount,

@@ -1,15 +1,52 @@
+/* @flow */
+
+import type { Offset } from '../types/Hypergrid';
+
+import ASSelection from '../classes/ASSelection';
+
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
+import KeyUtils from '../AS/utils/Key';
+import ASIndex from '../classes/ASIndex';
 
-/* The action creator for the spreadsheet just sends a relevant action to Dispatcher */
+import API from './ASApiActionCreators';
+import SelectionStore from '../stores/ASSelectionStore';
+import ExpressionStore from '../stores/ASExpressionStore';
+import { actions as Shortcuts } from '../AS/Shortcuts';
 
-export default {
+const SpreadsheetActions = {
 
-  /* Dispatches a scroll event. Called from fin-hypergrid event listener in ASSpreadsheet */
-  scroll(vWindow) {
+  shiftSelection(offset: Offset, extend: boolean) {
+    const selection = SelectionStore.getActiveSelection();
+    SpreadsheetActions.select(
+      selection.shift(offset, extend)
+    );
+  },
+
+  select(selection: ASSelection) {
     Dispatcher.dispatch({
-     _type: Constants.ActionTypes.SCROLLED,
-      vWindow: vWindow
+      _type: 'SELECTION_CHANGED',
+      selection
     });
+  },
+
+  initialize() {
+    // XXX (anand) this is a really dumb workaround to the following problem:
+    // Hypergrid doesn't let you select A1 as the first selection. Yeah, just that particular cell.
+    SpreadsheetActions.select(ASIndex.fromNaked({col: 2, row: 1}).toSelection());
+    SpreadsheetActions.select(ASSelection.defaultSelection());
+  },
+
+  executeKey(e: SyntheticKeyboardEvent) {
+    if (KeyUtils.offsetsSelection(e)) {
+      SpreadsheetActions.shiftSelection(
+        KeyUtils.keyToOffset(e),
+        !! e.shiftKey
+      );
+    } else {
+      Shortcuts.try(e, 'grid');
+    }
   }
 };
+
+export default SpreadsheetActions;

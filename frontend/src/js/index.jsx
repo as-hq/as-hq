@@ -17,10 +17,14 @@ import LoginStore from './stores/ASLoginStore';
 // XXX(joel) - only include in dev
 window.Perf = require('react-addons-perf');
 
-import API from './actions/ASApiActionCreators';
-window.API = API;
-window.cells = require('./stores/ASCellStore');
+window.imm = require('immutable');
+window.exp = require('./actions/ASExpressionActionCreators');
+window.sel = require('./actions/ASSpreadsheetActionCreators');
 window.idx = require('./classes/ASIndex');
+window.focus = require('./actions/ASFocusActionCreators');
+window.expstore = require('./stores/ASExpressionStore');
+window.u = require('./AS/Util');
+window.ex = require('./classes/ASExcelRef');
 
 const Index = ({children}) => (
   <div className="full">

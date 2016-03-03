@@ -1,79 +1,117 @@
 /* @flow */
 
-import React from 'react';
-import AceEditor from './AceEditor.jsx';
-import ActionCreator from '../actions/ASCodeEditorActionCreators';
-import ExpStore from '../stores/ASExpStore';
-import Constants from '../Constants';
-import FocusStore from '../stores/ASFocusStore';
-
 import type {
-  ASFocusType
-} from '../types/State';
+  EditorSelection
+} from '../types/Editor';
 
-type ASCodeEditorProps = {
-  handleEditorFocus: () => void;
-  hideToast: () => void;
-  setFocus: (elem: ASFocusType) => void;
-  onDeferredKey: (e: SyntheticKeyboardEvent) => void;
-  maxLines: number;
-  theme: string;
-  value: string;
-  width: string;
-  height: string;
-}
+import type { StoreToken } from 'flux';
 
-type ASCodeEditorDefaultProps = {
-  theme: string;
-};
+import React from 'react';
+import Constants from '../Constants';
 
-export default class ASCodeEditor
-  extends React.Component<ASCodeEditorDefaultProps, ASCodeEditorProps, {}>
-{
-  constructor(props: ASCodeEditorProps) {
-    super(props);
+import Focusable from './transforms/Focusable.jsx';
+import ASControlledCodeField from './basic-controls/ASControlledCodeField.jsx';
+
+import FocusStore from '../stores/ASFocusStore';
+import ExpressionStore from '../stores/ASExpressionStore';
+import ExpressionActions from '../actions/ASExpressionActionCreators';
+import {actions as Shortcuts} from '../AS/Shortcuts';
+
+class ASCodeEditor extends React.Component<{}, {}, {}> {
+  _expressionListener: StoreToken;
+  _focusListener: StoreToken;
+  _editor: any;
+
+  componentDidMount() {
+    this._expressionListener = ExpressionStore.addListener(() => this.forceUpdate());
+    this._focusListener = FocusStore.addListener(() => this.forceUpdate());
   }
 
-  handleEditorFocus() {
-    FocusStore.refocus();
-
-    if (this.props.handleEditorFocus()) {
-      this.props.handleEditorFocus();
-    }
+  componentWillUnmount() {
+    this._expressionListener.remove();
+    this._focusListener.remove();
   }
 
   render(): React.Element {
-    const {theme, value, width, height} = this.props;
-    const outerStyle = {
-      display: 'flex',
-      flexDirection: 'column',
-      flexGrow: 0,
-      flexShrink: 0,
-      flexBasis: 'auto'
-    };
+    const selection = ExpressionStore.getSelection();
+    const expression = ExpressionStore.getExpression();
+    const language = ExpressionStore.getLanguage();
+    const isActive = FocusStore.isFocused(name);
+    const maxLines = isActive ? 10 : 4;
 
     return (
-      <div style={outerStyle}>
-        <AceEditor
-          ref="editor"
-          handleEditorFocus={() => this.handleEditorFocus()}
-          hideToast={this.props.hideToast}
-          theme={theme}
-          width="100%"
-          height="100%"
-          maxLines={this.props.maxLines}
-          setFocus={this.props.setFocus}
-          onDeferredKey={this.props.onDeferredKey} />
+      <div style={styles.root}>
+        <ASControlledCodeField
+            ref={elem => this._editor = elem}
+            name={name}
+            selection={{
+              value: selection,
+              requestChange: (selection: EditorSelection, metadata: any) =>
+                this._onSelectionRequestChange(selection, metadata)
+            }}
+            text={{
+              value: expression,
+              requestChange(expression: string) {
+                ExpressionActions.setExpression(expression);
+              }
+            }}
+            theme='monokai'
+            maxLines={maxLines}
+            minLines={4}
+            language={language}
+            onKeyDown={e => this._onKeyDown(e)}
+            style={styles.editor} />
       </div>
     );
   }
+
+  _onKeyDown(e: SyntheticKeyboardEvent) {
+    Shortcuts.try(e, 'editor');
+  }
+
+  _onSelectionRequestChange(selection: EditorSelection, {eventSource}: any) {
+    if (eventSource === 'keynav') {
+      if (ExpressionStore.canInsertRefFromEditor('editor')) {
+        ExpressionActions.resync();
+        return;
+      }
+    }
+    ExpressionActions.setSelection(selection);
+  }
+
+  _addEventListener(type: string, cb: Callback) {
+    this.__getAce().on(type, cb);
+  }
+
+  _takeFocus() {
+    this.__getAce().focusSync();
+  }
+
+  __getAce() {
+    return this._editor.getInstance().editor;
+  }
 }
 
-ASCodeEditor.propTypes = {
-  onDeferredKey: React.PropTypes.func.isRequired,
-  handleEditorFocus: React.PropTypes.func,
+const name = 'editor';
+const styles = {
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
+  editor: {
+    height: '100%'
+  }
 };
 
-ASCodeEditor.defaultProps = {
-  theme: 'monokai'
-};
+export default Focusable(ASCodeEditor, {
+  name,
+  addFocusListener: (component, listener) => {
+    component._addEventListener('focus', listener);
+  },
+  takeFocus: (component) => {
+    component._takeFocus();
+  }
+});

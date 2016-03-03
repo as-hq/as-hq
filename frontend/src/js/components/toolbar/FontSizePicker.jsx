@@ -1,9 +1,9 @@
 /* @flow */
 
 import React from 'react';
+// $FlowFixMe
 import pure from 'recompose/pure';
 
-import ExpActionCreators from '../../actions/ASExpActionCreators';
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 
 import ToolbarTextField from './ToolbarTextField.jsx';
@@ -44,7 +44,7 @@ function FontSizePicker(props: FontSizePickerProps): React.Element {
       toolbarControlWidth={45}
       visible={visible}
       value={value}
-      onSelect={size => ExpActionCreators.setFontSize(size)}
+      onSelect={size => {/* TODO*/}}
       onOpen={() => ToolbarActionCreators.openItem('FontSizePicker')}
       onClose={() => ToolbarActionCreators.closeItem('FontSizePicker')}
     />

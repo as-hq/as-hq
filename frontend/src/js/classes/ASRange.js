@@ -49,6 +49,13 @@ export default class ASRange {
     this._sheetId = sheetId;
   }
 
+  equals(other: ASRange): boolean {
+    return (
+      this.tl.equals(other.tl) &&
+      this.br.equals(other.br)
+    );
+  }
+
   static fromASIndices({ tl, br }: ({ tl: ASIndex, br: ASIndex })): ASRange {
     if (tl.sheetId !== br.sheetId) {
       throw new Error('Sheet IDs are not the same for tl and br');

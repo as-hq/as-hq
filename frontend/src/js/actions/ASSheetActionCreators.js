@@ -52,11 +52,6 @@ export default {
     });
   },
 
-  decouple() {
-    Dispatcher.dispatch({
-      _type: 'EVAL_TRIED_TO_DECOUPLE'
-    });
-  }
 }
 
 // *****************************************************************

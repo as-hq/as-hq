@@ -9,10 +9,6 @@ import type {
   RangeKey
 } from '../types/Eval';
 
-import type {
-  ASClientExpression
-} from '../types/State';
-
 import DescriptorStore from '../stores/ASRangeDescriptorStore';
 
 import ASIndex from './ASIndex';
@@ -120,17 +116,17 @@ export default class ASCell {
   }
 
   hasPercentProp(): boolean {
-    let cellProps = this._props; 
+    let cellProps = this._props;
     let propInd = cellProps.map(({tag}) => tag).indexOf("ValueFormat");
     if (propInd < 0) {
-      return false; 
-    } 
+      return false;
+    }
 
     // this is less concise than it could be so that flow has an easier time
     let format = cellProps[propInd];
-    if (format.tag === "ValueFormat") { 
-      return format.valFormat.formatType == "Percentage"; 
+    if (format.tag === "ValueFormat") {
+      return format.valFormat.formatType == "Percentage";
     }
-    return false; 
+    return false;
   }
 }

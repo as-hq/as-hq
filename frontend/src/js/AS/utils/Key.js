@@ -8,18 +8,18 @@ import type {
   Dict
 } from '../../types/Base';
 
+import type { Offset } from '../../types/Hypergrid';
+
 import StringUtils from './String';
 
 import Constants from '../../Constants';
 
 import _ from 'lodash';
 
-import ExpStore from '../../stores/ASExpStore.js';
-
 // -----------------------------------------------------------------------------------------------------
 // Key constants
 
-var _to_ascii: Dict<number> = {
+const _to_ascii: Dict<number> = {
     //numpad stuff
     '96': 48, //0
     '97': 49,
@@ -50,7 +50,7 @@ var _to_ascii: Dict<number> = {
     '189': 45  //IE Key codes
 };
 
-var shiftUps: Dict<string> = {
+const shiftUps: Dict<string> = {
     "96": "~",
     "49": "!",
     "50": "@",
@@ -74,18 +74,19 @@ var shiftUps: Dict<string> = {
     "47": "?"
 };
 
-var modifiers: Array<number> = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
+const modifiers: Array<number> = [16, 17, 18, 19]; //shift, ctrl, alt, pause, break
 
-var specials: Array<number> = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
+const specials: Array<number> = [27, 46, 36, 35, 33, 34, 9, 20]; //esc, delete, home, end, pgup, pgdown, tab, capslock
 
 // based on https://css-tricks.com/snippets/javascript/javascript-keycodes/
-var miscKeys: Array<number> = [9, 13, 32, //tab, enter, space
-                96, 97, 98, 99, 100, 101, 102, 103, 104, 105, //numpad
-                106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
-                186, 187, 188, 189, 190, 191, 192, //misc punctuation
-                219, 220, 221, 222]; // moar punctuation
+const miscVisibleKeys: Array<number> =
+   [32, //space
+    96, 97, 98, 99, 100, 101, 102, 103, 104, 105, //numpad
+    106, 107, 109, 110, 111, //add, subtract, decimal point, divide,
+    186, 187, 188, 189, 190, 191, 192, //misc punctuation
+    219, 220, 221, 222]; // moar punctuation
 
-var keyMap: Dict<number> = {
+const keyMap: Dict<number> = {
   "Enter": 13,
   "Down": 40,
   "Up": 38,
@@ -119,25 +120,40 @@ var keyMap: Dict<number> = {
 };
 
 
-let Key = {
+const Key = {
   // -----------------------------------------------------------------------------------------------------
   // Key conversions and utils
-  navKeys: [37, 38, 39, 40],
 
   isNavKey(e: SyntheticKeyboardEvent): boolean {
-    return Key.navKeys.includes(e.which);
+    return (
+      Key.isArrowKey(e) ||
+      [33, 34, 35, 36].includes(e.which)    // home, end, pgup/down
+    );
   },
 
-  isPureArrowKey(e: SyntheticKeyboardEvent): boolean {
-    return Key.isNavKey(e) && !Key.containsModifiers(e);
+  isArrowKey(e: SyntheticKeyboardEvent): boolean {
+    return [37, 38, 39, 40].includes(e.which);
   },
 
-  isEvalKey(e: SyntheticKeyboardEvent): boolean {
-    return e.which === 13 || e.which === 9; // tab or enter
+  isModifierKey(e: SyntheticKeyboardEvent): boolean {
+    return [16,17,18,224].includes(e.which); // Shift, Ctrl, Alt, Meta
+  },
+
+  // keys which shift the selection by a relative amount
+  // e.g. Shift+Arrow key, but not Ctrl+Arrow key
+  offsetsSelection(e: SyntheticKeyboardEvent): boolean {
+    return (
+      Key.isArrowKey(e) &&
+      !e.ctrlKey &&
+      !e.metaKey
+    );
   },
 
   isFunctionKey(e: SyntheticKeyboardEvent): boolean {
-    return e.which >= 112 && e.which <= 123;
+    return (
+      e.which >= 112 &&
+      e.which <= 123
+    );
   },
 
   containsModifiers(e: SyntheticKeyboardEvent): boolean {
@@ -148,25 +164,27 @@ let Key = {
     return e.which === 8 || e.which === 46; // backspace or delete
   },
 
-  isTextAreaNavKey(e: SyntheticKeyboardEvent): boolean {
-    return e.which == 33 || e.which == 34 || // PgUp / PgDown
-           e.which === 36 || e.which === 35; // home, end
-  },
-
   isCtrlCmdKey(e: SyntheticKeyboardEvent): boolean {
     return e.ctrlKey || e.metaKey;
-  },
-
-  isCtrlA(e: SyntheticKeyboardEvent): boolean {
-    return Key.isCtrlCmdKey(e) && e.which === 65;
   },
 
   isCtrlS(e: SyntheticKeyboardEvent): boolean {
     return Key.isCtrlCmdKey(e) && e.which === 83;
   },
 
-  isAltH(e: SyntheticKeyboardEvent): boolean {
-    return e.altKey && e.which === 72;
+  keyToOffset(e: SyntheticKeyboardEvent): Offset {
+    switch(e.which) {
+      case 37:
+        return {dX: -1, dY: 0};
+      case 38:
+        return {dX: 0, dY: -1};
+      case 39:
+        return {dX: 1, dY: 0};
+      case 40:
+        return {dX: 0, dY: 1};
+      default:
+        throw new Error('cannot convert non-arrow key to offset!');
+    }
   },
 
   keyToString(e: SyntheticKeyboardEvent): string {
@@ -192,26 +210,12 @@ let Key = {
     }
   },
 
-  // determines whether editor should defer key in favor of shortcuts
-  // NOTE: any Shift+??? shortcuts need to be manually cased here (shifts by default produce a visible character)
-  producesTextChange(e: SyntheticKeyboardEvent): boolean {
-    let isDestructive    = Key.isDestructiveKey(e);
-    let isCopyPaste      = Key.isCopyPasteType(e);
-    let makesVisibleChar = Key.producesVisibleChar(e);
-    let isUndoOrRedo     = Key.isUndoType(e);
-
-    return makesVisibleChar || isDestructive || isCopyPaste || isUndoOrRedo;
-  },
-
-  producesVisibleChar(e: SyntheticKeyboardEvent): boolean {
-    // based off http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes and
-    // https://css-tricks.com/snippets/javascript/javascript-keycodes/
-    // If you're holding down ctrl, alt, or a meta key, you're not going to be producing visible text.
-    let noModifications = !(e.ctrlKey || e.altKey || e.metaKey);
-
-    let notShiftSpace    = !(e.shiftKey && e.which === 32); // shift+space doesn't produce text
-    let isAlphaNum    = (e.which >= 48 && e.which <= 90);
-    let isMiscVisible = miscKeys.includes(e.which);     //more misc punctuation
+  // determines whether a key pressed in the grid fires START_EDITING.
+  initiatesEditMode(e: SyntheticKeyboardEvent): boolean {
+    const noModifications = !(e.ctrlKey || e.altKey || e.metaKey);
+    const notShiftSpace   = !(e.shiftKey && e.which === 32);
+    const isAlphaNum      = (e.which >= 48 && e.which <= 90);
+    const isMiscVisible   = miscVisibleKeys.includes(e.which);     //more misc punctuation
 
     return noModifications && notShiftSpace && (isAlphaNum || isMiscVisible);
   },
@@ -224,61 +228,6 @@ let Key = {
   // is it an undo or redo? (includes ctrl+shift+z)
   isUndoType(e: SyntheticKeyboardEvent): boolean {
     return Key.isCtrlCmdKey(e) && (e.which === 89 || e.which === 90);
-  },
-
-  modifyStringByKey(str: string, cursorPos: ?number, e: SyntheticKeyboardEvent): [string, number] {
-    if (cursorPos != null) {
-      let newStart = Key._appendStringByKey(str.slice(0, cursorPos), e),
-          newEnd = str.slice(cursorPos);
-
-      return [newStart + newEnd, newStart.length];
-    } else { // treat it as though cursorPos is at the end
-      let newStr = Key._appendStringByKey(str, e);
-      return [newStr, newStr.length];
-    }
-  },
-
-  _appendStringByKey(str: string, e: SyntheticKeyboardEvent): string {
-    if (Key.isDestructiveKey(e)) {
-      if (e.which === 8) { // backspace
-        if (e.ctrlKey) {
-          let edited = StringUtils.removeLastWord(str);
-          return edited;
-        } else {
-          return str.substring(0, str.length-1);
-        }
-      } else return str;
-    } else {
-      return str + Key.keyToString(e);
-    }
-  },
-
-  //clickType type is wrong
-  modifyTextboxForKey(e: SyntheticKeyboardEvent, userIsTyping: boolean,
-                      clickType: ?string, oldXp: string,
-                      editor: AERawClass): [string, number] {
-    // Append to string if double click, replace if single click
-    if (userIsTyping || clickType === Constants.ClickType.DOUBLE_CLICK) {
-      // first check if editor has a thing selected
-      if (editor.getSelectedText() != "") {
-        // as of 11/2, only way to select xp from grid is with Ctrl+A
-        // so if selection exists, the whole expression must be selected
-        // so we destroy the current xp and replace it.
-        if (Key.isDestructiveKey(e)) {
-          return ["", 0];
-        } else {
-          return [Key.keyToString(e), 1];
-        }
-      } else {
-        return Key.modifyStringByKey(oldXp, editor.getCursorPosition().column, e);
-      }
-    } else {
-      if (!ExpStore.shouldHandlePercentFormat()) {
-        return [Key.keyToString(e), 1];
-      } else {
-        return [Key.keyToString(e) + "%", 1];
-      }
-    }
   },
 
   killEvent(e: SyntheticEvent) {
@@ -327,7 +276,7 @@ let Key = {
 
   // the only relevant attribute here should be the which
   mockedKeyboardEvent(which: number): SyntheticKeyboardEvent {
-    let noop = () => {};
+    const noop = () => {};
     return {
       altKey: false,
       charCode: 0,

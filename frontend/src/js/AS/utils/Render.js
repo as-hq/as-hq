@@ -243,7 +243,7 @@ const Render = {
       lastVisibleColumn,
       lastVisibleRow
     };
-  }
+  },
 };
 
 export default Render;

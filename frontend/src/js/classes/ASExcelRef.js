@@ -268,7 +268,7 @@ export default class ASExcelRef {
     // unless it's another sheet
 
     const globalSheetId = SheetStateStore.getCurrentSheetId();
-    if (globalSheetId === this._sheetId) {
+    if (globalSheetId === this._sheetId || this._sheetId === undefined) {
       return result;
     } else {
       return [this._sheetId, result].join('!');
@@ -302,5 +302,21 @@ export default class ASExcelRef {
     } else {
       return this.toIndex().toRange();
     }
+  }
+
+  toggle(): ASExcelRef {
+    const {contents} = this._nakedRef;
+    if (contents.rowFixed && contents.colFixed) {
+      contents.rowFixed = true;
+      contents.colFixed = false;
+    } else if (contents.colFixed && !contents.rowFixed) {
+      contents.rowFixed = false;
+      contents.colFixed = false;
+    } else {
+      contents.rowFixed = ! contents.rowFixed;
+      contents.colFixed = ! contents.colFixed;
+    }
+    const nref = {tag: 'index', contents};
+    return new ASExcelRef(nref, this._sheetId, this._workbookId);
   }
 }

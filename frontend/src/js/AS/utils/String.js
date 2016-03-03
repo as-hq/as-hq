@@ -1,6 +1,8 @@
 /* @flow */
 
-let StringUtils = {
+import type { EditorSelection } from '../../types/Editor';
+
+const StringUtils = {
   // named after the Ruby function.
   toSentence(strs: Array<string>): string {
     switch (strs.length) {
@@ -14,31 +16,74 @@ let StringUtils = {
     }
   },
 
-  removeLastWord(str: string): string {
-    let lastIndex = str.lastIndexOf(" ");
-    if (lastIndex > 0)
-      return str.substring(0, lastIndex);
-    else return "";
-  },
-
-  getIndicesOf(searchStr: string, str: string): Array<number> {
-    var startIndex = 0, searchStrLen = searchStr.length;
-    var index, indices = [];
-    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
-        indices.push(index);
-        startIndex = index + searchStrLen;
+  // returns length of a line in characters.
+  getLineLength(text: string): number {
+    let length = 0;
+    for (var c in text) {
+      if (c === '\t') length += 4;
+      else length += 1;
     }
-    return indices;
+    return length;
   },
 
-  removeEmptyLines(str: string): string {
-    var lines = str.split("\n");
-    var filtered = lines.filter(StringUtils.isWhitespace);
-    return filtered.join("\n");
+  getSelectionLead({range, backwards}: EditorSelection): AEPoint {
+    return backwards ?
+      range.start :
+      range.end;
   },
 
-  isWhitespace(str: string): boolean {
-    return /\S/.test(str);
+  selectionIsEnd({range: {start, end}}: EditorSelection, text: string): boolean {
+    if (
+      start.column === end.column &&
+      start.row === end.row
+    ) {
+      const lines = text.split('\n');
+      return (
+        lines.length - 1 === start.row &&
+        lines.slice(-1)[0].length === start.column
+      );
+    } else {
+      return false;
+    }
+  },
+
+  splitOnSelection(
+    text: string,
+    selection: EditorSelection): [string, string] {
+
+    const lead = StringUtils.getSelectionLead(selection);
+    const lines = text.split('\n');
+    const roundedPrefix = lines.slice(0, lead.row).join('\n');
+    const roundedSuffix = lines.slice(lead.row + 1, lines.length).join('\n');
+    const prefix =
+      roundedPrefix + (roundedPrefix.length > 0 ? '\n' : '') +
+      lines[lead.row].substring(0, lead.column);
+    const suffix =
+      lines[lead.row].substring(lead.column) +
+      (roundedSuffix.length > 0 ? '\n' : '') + roundedSuffix;
+    return [prefix, suffix];
+  },
+
+  takeWhile(text: string, f: (c: string) => boolean): [string, string] {
+    let i = 0;
+    while(f(text[i]) && i < text.length) {
+      i++;
+    }
+    return [
+      text.substring(0, i),
+      text.substring(i)
+    ];
+  },
+
+  takeWhileEnd(text: string, f: (c: string) => boolean): [string, string] {
+    let i = text.length - 1;
+    while(f(text[i]) && i > 0) {
+      i--;
+    }
+    return [
+      text.substring(i+1),
+      text.substring(0, i+1)
+    ]
   }
 };
 

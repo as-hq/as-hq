@@ -1,9 +1,9 @@
 /* @flow */
 
 import React from 'react';
+// $FlowFixMe
 import pure from 'recompose/pure';
 
-import ExpActionCreators from '../../actions/ASExpActionCreators';
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 
 import ToolbarButton from './ToolbarButton.jsx';
@@ -63,7 +63,7 @@ function VAlignPicker(props: VAlignPickerProps): React.Element {
       menuWidth={65}
       visible={visible}
       value={value}
-      onSelect={align => ExpActionCreators.setVAlign(align)}
+      onSelect={align => { /* TODO */ }}
       onOpen={() => ToolbarActionCreators.openItem('VAlignPicker')}
       onClose={() => ToolbarActionCreators.closeItem('VAlignPicker')}
     />

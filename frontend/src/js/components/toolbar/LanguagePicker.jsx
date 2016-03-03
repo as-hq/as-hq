@@ -5,7 +5,7 @@ import React from 'react';
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 
-import ExpActionCreator from '../../actions/ASExpActionCreators.js';
+import ExpressionActions from '../../actions/ASExpressionActionCreators';
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 
 import type {
@@ -61,7 +61,7 @@ export default function LanguagePicker(
       toolbarControlWidth={85}
       visible={visible}
       value={language}
-      onSelect={lang => ExpActionCreator.setLanguage(lang)}
+      onSelect={lang => ExpressionActions.setLanguage(lang)}
       onOpen={() => ToolbarActionCreators.openItem('LanguagePicker')}
       onClose={() => ToolbarActionCreators.closeItem('LanguagePicker')}
     />

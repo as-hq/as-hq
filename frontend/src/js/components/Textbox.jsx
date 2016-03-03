@@ -1,226 +1,148 @@
 /* @flow */
 
+import type {
+  EditorSelection,
+  EditorIdentifier
+} from '../types/Editor';
+
+import type { PXRectangle } from '../types/Render';
+import type { StoreToken } from 'flux';
+
 import React from 'react';
-// $FlowFixMe: what
-let TextareaAutosize = require('react-autosize-textarea');
-// $FlowFixMe: what
-let ace = require('brace');
 
 import Constants from '../Constants';
-import U from '../AS/Util';
-import {logDebug} from '../AS/Logger';
-import {maybe} from '../AS/Maybe';
-
-import CellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
-import SelectionStore from '../stores/ASSelectionStore';
-import ExpStore from '../stores/ASExpStore';
-import ExpActionCreator from '../actions/ASExpActionCreators';
-import FocusStore from '../stores/ASFocusStore';
 import {textbox as zIndex} from '../styles/zIndex';
 
-import type {
-  ASFocusType
-} from '../types/State';
+import Focusable from './transforms/Focusable.jsx';
+import ASControlledCodeField from './basic-controls/ASControlledCodeField.jsx';
 
-import type {
-  ASLanguage
-} from '../types/Eval';
+import ExpressionStore from '../stores/ASExpressionStore';
+import SelectionStore from '../stores/ASSelectionStore';
+import FocusActions from '../actions/ASFocusActionCreators';
+import ExpressionActions from '../actions/ASExpressionActionCreators';
+import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import ClipboardActions from '../actions/ASClipboardActionCreators';
+import {actions as Shortcuts} from '../AS/Shortcuts';
 
-type TextboxDefaultProps = {}
+import U from '../AS/Util';
 
-type TextboxProps = {
-  getPosition: () => ?HGRectangle; //#encapsulation
-  onDeferredKey: (e: SyntheticKeyboardEvent) => void;
-  hideToast: () => void;
-  setFocus: (elem: ASFocusType) => void;
+type Props = {
+  getPixelCoordinates: (idx: ASIndex) => PXRectangle;
 };
 
-type TextboxState = {
-  isVisible: boolean;
-  language: ASLanguage;
-  renderTrigger: boolean;
-};
-
-export default class Textbox
-  extends React.Component<TextboxDefaultProps, TextboxProps, TextboxState>
-{
-  /**************************************************************************************************************************/
-  // React methods
-  editor: any; //decided that it's not worth flowing this
-  _boundOnChange: () => void;
-
-  constructor(props: TextboxProps) {
-    super(props);
-
-    this.state = {
-      isVisible: false,
-      language: Constants.Languages.Excel,
-      renderTrigger: false // WTF we have to do this I feel so dirty
-    }
-  }
+class Textbox extends React.Component<{}, Props, {}> {
+  _storeListener: StoreToken;
+  _editor: any;
 
   componentDidMount() {
-    this.editor = ace.edit('textbox');
-    this.editor.$blockScrolling = Infinity;
-
-    this.editor.on('focus', this._onFocus.bind(this));
-
-    this._boundOnChange = () => this._onChange();
-    this.editor.getSession().on('change', this._boundOnChange);
-
-    this.editor.container.addEventListener('keydown', this._onKeyDown.bind(this), true);
-
-    this.showCursor();
-
-    this.editor.setFontSize(12);
-
-    this._updateMode(this.state.language);
-
-    this.editor.setOption('maxLines', Infinity);
-    this.editor.renderer.setShowGutter(false); // no line numbers
-    this.editor.getSession().setUseWrapMode(true); // no word wrap
+    this._storeListener = ExpressionStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
-    this.editor.getSession().off('change', this._boundOnChange);
+    this._storeListener.remove();
   }
-
-  // When the component is about to update (after the initial render), update the mode of the editor as well
-  // This has the effect of enabling autocomplete/syntax highlighting for that language, among other things
-  componentWillUpdate(nextProps: TextboxProps, nextState: TextboxState) {
-    if (nextState.language !== this.state.language) {
-      this._updateMode(nextState.language);
-    }
-  }
-
-  _updateMode(lang: ASLanguage) {
-    if (this.editor) {
-      this.editor.getSession().setMode('ace/mode/' + Constants.AceMode[lang]);
-    }
-  }
-
-  /**************************************************************************************************************************/
-  // Text box focus and update methods
-
-  // null/undefined cursorPos means selection goes to the end
-  updateTextBox(xpStr: string, cursorPos?: number) {
-    logDebug("Updating textbox: " + xpStr);
-    ExpStore.setDoTextBoxCallback(false);
-    if (!this.state.isVisible) { //will be visible after update, put cursor in textbox
-      this.showCursor();
-    }
-    this.setState({isVisible: true});
-    this.updateLanguage();
-    this.editor.setValue(xpStr);
-    if (cursorPos != null) {
-      this.editor.moveCursorTo(0, cursorPos);
-    }
-    this.editor.clearSelection(); // otherwise ace highlights whole xp
-  }
-
-  hideTextBox() {
-    this.setState({isVisible: false});
-  }
-
-  // Make sure that the language and consequently the mode of the textbox is in sync with the ExpStore
-  updateLanguage() {
-    let lang = ExpStore.getLanguage();
-    if (this.state.language !== lang) {
-      this.setState({language: lang});
-    }
-  }
-
-  showCursor() {
-    this.editor.renderer.$cursorLayer.showCursor(); // blinking cursor on textbox
-  }
-
-  getWidth(): number {
-    if (SelectionStore.getActiveSelection()) {
-      let xp = this.editor.getValue(),
-          rows = xp.split("\n"),
-          longestStr = rows.reduce(function (a, b) { return a.length > b.length ? a : b; }),
-          extentX = maybe(0, (pos) => pos.extent.x, this.props.getPosition());
-      return Math.max(extentX, (longestStr.length)*8.15);
-    } else {
-      return 0;
-    }
-  }
-
-  getRawEditor(): any {
-    return this.editor;
-  }
-
-  isVisible(): boolean {
-    return this.state.isVisible;
-  }
-
-  /**************************************************************************************************************************/
-  // Helpers
-
-  insertRef(newRef: string) {
-    let lastRef = ExpStore.getLastRef();
-    ExpStore.setDoTextBoxCallback(false);
-    if (lastRef != null) {
-      U.Parsing.deleteLastRef(this.editor, lastRef);
-    }
-    this.editor.getSession().insert(this.editor.getCursorPosition(),newRef);
-  }
-
-  /**************************************************************************************************************************/
-  // Respond to events from ace
-
-  _onKeyDown(e: SyntheticKeyboardEvent) {
-    if (U.Shortcut.textboxShouldDeferKey(e)) {
-      // console.log("TEXTBOX DEFERRING KEY");
-      U.Key.killEvent(e);
-      this.props.onDeferredKey(e);
-    } else {
-        // onChange will call an action creator
-        // you want an onchange to fire here
-      ExpStore.setDoTextBoxCallback(true);
-    }
-  }
-
-  // Appends a % to the end of the editor string, and sets the cursor to
-  // be one before the %.
-  _onChange() {
-    if (ExpStore.getDoTextBoxCallback()) {
-      let xpStr = this.editor.getValue();
-      ExpActionCreator.handleTextBoxChange(xpStr);
-    }
-    this.setState({renderTrigger: !this.state.renderTrigger});
-  }
-
-  _onFocus(e: SyntheticKeyboardEvent) {
-    this.props.hideToast();
-    FocusStore.refocus();
-    ExpStore.setLastCursorPosition(Constants.CursorPosition.TEXTBOX);
-    ExpStore.setLastRef(null);
-    this.showCursor();
-    this.editor.resize();
-  }
-
-  /**************************************************************************************************************************/
-  // Render
 
   render(): React.Element {
-    const pos = this.props.getPosition();
+    const selection = ExpressionStore.getSelection();
+    const expression = ExpressionStore.getExpression();
+    const language = ExpressionStore.getLanguage();
+    const position = ExpressionStore.getTextboxPosition();
+    const style = this._getRootStyle(expression, position);
 
-    let baseStyle = {
-      display:'block',
-      position:'absolute',
-      // height of each line in the editor, add 5 to give some leeway at top and bottom
-      lineHeight: ((pos && (pos.extent.y + 5)) || 20) + 'px',
-      top: pos && pos.origin.y,
-      left: pos && pos.origin.x,
+    return (
+      <div style={style}>
+        <ASControlledCodeField
+            ref={elem => this._editor = elem}
+            style={{marginTop: 1}}
+            name={name}
+            selection={{
+              value: selection,
+              requestChange: (selection: EditorSelection, metadata: any) =>
+                this._onSelectionRequestChange(selection, metadata)
+            }}
+            text={{
+              value: expression,
+              requestChange(expression: string) {
+                ExpressionActions.setExpression(expression);
+              }
+            }}
+            theme=''
+            language={language}
+            maxLines={Infinity}
+            showGutter={false}
+            onKeyDown={e => this._onKeyDown(e)}
+            onMouseDown={() => FocusActions.focusTextboxFully()} />
+      </div>
+    );
+  }
+
+  _onKeyDown(e: SyntheticKeyboardEvent) {
+    ExpressionActions.executeTextboxKey(e);
+  }
+
+  _onSelectionRequestChange(selection: EditorSelection, {eventSource}: any) {
+    if (eventSource === 'keynav') {
+      if (ExpressionStore.canInsertRefFromEditor('textbox')) {
+        ExpressionActions.resync();
+        return;
+      }
+    }
+    ExpressionActions.setSelection(selection);
+  }
+
+  _getRootStyle(expression: string, position: ASIndex): any {
+    const isEditing = ExpressionStore.isEditing();
+    const pxPosition = this.props.getPixelCoordinates(position);
+
+    return {
+      display: isEditing ? 'block' : 'none',
+      position: 'absolute',
+      minHeight: pxPosition.extent.y + 1,
+      height: 'auto',
+      lineHeight: pxPosition.extent.y + 5, /* height of each line in the editor, add 5 to give some leeway at top and bottom */
+      top: pxPosition.origin.y - 1,
+      left: pxPosition.origin.x - 1,
       zIndex,
-      width: this.getWidth(),
-      // height is a function of lineHeight and maxLines, see ace virtual renderer
+      width: this._getWidth(expression, pxPosition),
       border: "solid 2px black",
-      visibility: this.state.isVisible ? 'visible' : 'hidden'
+      background: 'white',
+      '-webkit-box-shadow': '1px 2px 5px 0px rgba(0,0,0,0.75)',
+      '-moz-box-shadow': '1px 2px 5px 0px rgba(0,0,0,0.75)',
+      'box-shadow': '1px 2px 5px 0px rgba(0,0,0,0.75)'
     };
+  }
 
-    return <div id='textbox' style={baseStyle} />;
+  _getWidth(expression: string, pxPosition: PXRectangle): number {
+    const lineLengths = expression
+      .split("\n")
+      .map(U.String.getLineLength);
+    const expressionLength = Math.max(...lineLengths);
+    return Math.max(pxPosition.extent.x + 2, expressionLength * fontWidth);
+  }
+
+  _addEventListener(type: string, cb: Callback) {
+    this.__getAce().on(type, cb);
+  }
+
+  _takeFocus() {
+    this.__getAce().focusSync();
+  }
+
+  __getAce() {
+    return this._editor.getInstance().editor;
   }
 }
+
+const name = 'textbox';
+const fontWidth = 8;
+
+export default Focusable(Textbox, {
+  name,
+  async: true, // take focus asynchronously, since the editor may not have CSS visibility yet.
+  addFocusListener: (component, listener) => {
+    component._addEventListener('focus', listener);
+  },
+  takeFocus: (component) => {
+    component._takeFocus();
+  }
+});

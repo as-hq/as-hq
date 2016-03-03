@@ -5,7 +5,7 @@ import React from 'react';
 import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';
 
-import ExpStore from '../stores/ASExpStore.js';
+import ExpressionStore from '../stores/ASExpressionStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import API from '../actions/ASApiActionCreators';
@@ -29,14 +29,9 @@ const FileImportDialog = {
     if (sel == null) {
       return;
     } else {
-      let simpleIndex = sel.origin,
-          lang = ExpStore.getLanguage();
-      if (lang != null) {
-        API.importCSV(simpleIndex, lang, file.name);
-      } else {
-        // make Excel the default language. Would do ExpStore.getLanguage() || 'Excel', but Flow.
-        API.importCSV(simpleIndex, 'Excel', file.name);
-      }
+      const simpleIndex = sel.origin;
+      const language = ExpressionStore.getLanguage();
+      API.importCSV(simpleIndex, language, file.name);
     }
   },
 

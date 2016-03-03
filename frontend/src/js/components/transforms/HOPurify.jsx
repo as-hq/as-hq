@@ -11,102 +11,224 @@ import Util from '../../AS/Util';
 
 import _ from 'lodash';
 
-export default function HOPurify<T: ReactClass, U>({
-  component: Component, purifiers
-}: {
-  component: T;
-  purifiers: Array<{
-    name: string;
-    addChangeListener: (component: React.Element, listener: (val: U) => void) => void;
-    removeChangeListener: (component: React.Element, listener: (val: U) => void) => void;
-    getValue: (component: React.Element) => U;
-    setValue: (component: React.Element, val: U) => void;
-  }>;
-}): ReactClass {
-  const names = purifiers.map(({name}) => name);
+/*
+  This function takes a component with stateful behavior for some of its
+  properties, and returns a component with pure props corresponding to each of
+  those properties.
 
-  // This class will have props whose names correspond to purifiers.map((p) => p.name)
-  return React.createClass({
-    $listenerRemovers: ([]: Array<Callback>),
+  For example, look at ASCodeField. It has:
 
-    purifiers: ({}: Dict<{ getValue: () => U; setValue: (val: U) => void; }>),
-    silent: ({}: Dict<boolean>),
+      - a selection that it modifies by itself, not through a prop
+      - the ability to listen to change events on the selection
+      - the ability to get the value of the current selection
+      - the ability to move the selection to some range
 
-    _getInstance(): React.Element { return this.refs.instance; },
+  In theory, this is enough to create ASCursorControlledCodeField, which:
 
-    _getPropsValue(name: string): U {
-      return this.props[name].value;
-    },
+      - has a selection prop with:
+        - a value, which is the desired value of the selection
+        - a requestChange(a, b) method, which sets the state of the component to
+          a and calls b() when it's done (b is passed into setState)
 
-    _resetValue(name: string) {
-      this._silentlyFor(name, () => {
-        this.purifiers[name].setValue(this._getPropsValue(name));
-      });
-    },
+      - when the value prop is updated, ASCCCF will update the selection
 
-    _propsRequestChange(name: string, val: U) {
-      this.props[name].requestChange(val);
-    },
+      - the requestChange() prop is called whenever ASCF wants to update the
+        selection, but
 
-    _reportChange(name: string, val: U) {
-      if (!this.silent[name]) {
-        const propLens = this.purifiers[name];
-        const newVal = propLens.getValue();
-        this._resetValue(name);
-        this._propsRequestChange(name, newVal);
+      - ASCF doesn't immediately update it and waits for permission from the
+        parent component
+
+  In practice, this is a bunch of boilerplate that is difficult to debug and
+  must be debugged over and over again every time a purification occurs.
+
+  We are making HOPurify to simplify this process.
+*/
+
+
+type PropChangeAction = (reporter: Callback) => void;
+
+type Locker = {
+  lock: (name: string) => void;
+  unlock: (name: string) => void;
+}
+
+type Purifiers = Dict<{
+  addChangeListener: (arg: {
+    component: any;
+    listener: Callback;
+    locker: Locker;
+  }) => void;
+  getValue: (component: React.Element) => any;
+  setValue: (arg: {
+    component: any;
+    value: any;
+  }) => void;
+  removeChangeListener?: (component: React.Element, listener: Callback) => void;
+  manuallySilenced?: boolean;
+}>;
+
+// this type annotation exists only to clarify the structure of the prop
+// that should be passed in for a purified underlying prop
+type PurifiedProps = Dict<{
+  value: any;
+  requestChange: (val: any) => void;
+} | any>;
+
+type args = {
+  component: ReactClass;
+  purifiers: Purifiers;
+  onReady?: (cb: Callback) => void;
+// ^ a callback in componentDidMount to wait for components which initialize asynchronously (e.g. hypergrid)
+};
+
+export default function HOPurify({component: Component, purifiers, onReady}: args): ReactClass {
+  const names = Object.keys(purifiers);
+
+  return class PurifiedComponent extends React.Component<{}, PurifiedProps, {}> {
+    $listenerRemovers: Array<Callback>;
+    _instance: ReactElement;
+    _silent: Dict<boolean>;
+    // for listeners that depend on each others' behavior.
+    // this is essential for Ace to function properly.
+    _locked: Dict<boolean>;
+    _locker: Locker;
+
+    constructor(props: PurifiedProps) {
+      super(props);
+      this.$listenerRemovers = [];
+      this._silent = {};
+      this._locked = {};
+      this._locker = {
+        lock: (name) => { this._locked[name] = true; },
+        unlock: (name) => { this._locked[name] = false; }
       }
-    },
+    }
 
-    _silentlyFor(name: string, cb: Callback) {
-      this.silent[name] = true;
-      cb();
-      this.silent[name] = false;
-    },
+    getInstance(): ReactElement {
+      return this._instance;
+    }
 
     componentDidMount() {
-      const _this = this;
+      if (!! onReady) {
+        onReady(() => this._onMount());
+      } else {
+        this._onMount();
+      }
+    }
 
-      purifiers.forEach(({name, getValue, setValue}) => {
-        _this.purifiers[name] = ({
-          getValue() { return getValue(_this._getInstance()); },
-          // NOTE: setValue should include things like fixing cursor position while setting
-          setValue(val: U) { return setValue(_this._getInstance(), val); }
-        });
+    componentWillUnmount() {
+      Util.React.removeComponentListeners(this);
+    }
+
+    componentWillReceiveProps(nextProps: Dict<ReactLink>) {
+      names.forEach((name) => {
+        const {value} = nextProps[name];
+        this._setUnderlyingValue(name, value);
+      });
+    }
+
+    render(): React.Element {
+      // determine props to be passed to child
+      let otherProps = {};
+      _.forEach(this.props, (val, key) => {
+        if (!names.includes(key)) {
+          otherProps[key] = val;
+        }
       });
 
-      const listeners = purifiers.map(
-        ({name, addChangeListener, removeChangeListener}) => ({
-          listener: (val) => { _this._reportChange(name, val); },
-          add(l) { addChangeListener(this._getInstance(), l); },
-          remove(l) { removeChangeListener(this._getInstance(), l); }
+      return (
+        <Component
+          ref={elem => this._instance = elem}
+          {...otherProps} />
+      );
+    }
+
+    _getPropsValue(name: string): any {
+      return this.props[name].value;
+    }
+
+    _getUnderlyingValue(name: string): any {
+      return purifiers[name].getValue(this._instance);
+    }
+
+    _setUnderlyingValue(name: string, targetValue: any) {
+      if (! this._locked[name]) {
+
+        // will perform 'silently' unless the flag 'manuallySilenced' is true
+        this._silently(name, () => {
+          const currentValue = this._getUnderlyingValue(name)
+
+          if (!_.isEqual(currentValue, targetValue)) {
+            purifiers[name].setValue({
+              component: this._instance,
+              value: targetValue,
+            });
+          }
+        });
+      }
+    }
+
+    _propsRequestChange(name: string, val: any, metadata: any, cb: Callback) {
+      this.props[name].requestChange(val, metadata);
+      cb();
+    }
+
+    _resetValue(name: string) {
+      const val = this._getPropsValue(name);
+      this._setUnderlyingValue(name, this._getPropsValue(name));
+    }
+
+    _silently(name: string, cb: Callback) {
+      if (! purifiers[name].manuallySilenced) {
+        this._silent[name] = true;
+      }
+      cb();
+      this._silent[name] = false;
+    }
+
+    _reportChange(name: string, val: any, metadata: any) {
+      if (! this._silent[name]) {
+        this._propsRequestChange(name, val, metadata, () => {
+          this._resetValue(name);
+        });
+      }
+    }
+
+    _onMount() {
+      const _this = this;
+      const listeners = _.map(purifiers,
+        ({addChangeListener, removeChangeListener}, name) => ({
+
+          listener: (metadata) => {
+            const currentValue = _this._getUnderlyingValue(name);
+            _this._reportChange(name, currentValue, metadata || null);
+          },
+
+          add(l) {
+            addChangeListener({
+              component: _this._instance,
+              listener: l,
+              locker: _this._locker
+            });
+          },
+
+          remove(l) {
+            if (removeChangeListener) {
+              removeChangeListener({
+                component: _this._instance,
+                listener: l
+              });
+            }
+          }
         })
       );
 
       Util.React.implementComponentListeners(this, listeners);
-    },
 
-    componentWillUnmount() {
-      Util.React.removeComponentListeners(this);
-    },
-
-    componentWillReceiveProps(nextProps: Dict<ReactLink>) {
+      // component doesn't receive props upon mount, so we need to init
       names.forEach((name) => {
-        const {value, requestChange} = nextProps[name];
-        this._silentlyFor(name, () => {
-          const propLens = this.purifiers[name];
-          if (propLens.getValue() !== value) {
-            propLens.setValue(value);
-          }
-        });
+        this._setUnderlyingValue(name, this._getPropsValue(name));
       });
-    },
-
-    render(): React.Element {
-      return (
-        <Component
-          ref="instance"
-        />
-      );
     }
-  });
+  }
 }

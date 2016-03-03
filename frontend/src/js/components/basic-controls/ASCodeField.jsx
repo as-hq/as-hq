@@ -16,233 +16,109 @@ import {logDebug} from '../../AS/Logger';
 
 import Util from '../../AS/Util';
 import {asCodeField as zIndex} from '../../styles/zIndex';
+import FocusStore from '../../stores/ASFocusStore';
 
 import shortid from 'shortid';
+import Constants from '../../Constants';
 
-const defaultEditorProps = {
-  theme  : 'monokai',
-  fontSize   : 12,
-  showGutter : true,
-  readOnly   : false,
-  highlightActiveLine : true,
-  showPrintMargin     : true,
-};
-
-function onPropsSet(editor, props) {
-  editor.getSession().setMode('ace/mode/'+props.language);
-  editor.setOption('maxLines', props.maxLines);
-
-  editor.setTheme('ace/theme/'+defaultEditorProps.theme);
-  editor.setFontSize(defaultEditorProps.fontSize);
-  editor.renderer.setShowGutter(defaultEditorProps.showGutter);
-
-  editor.setOption('readOnly', defaultEditorProps.readOnly);
-  editor.setOption('highlightActiveLine', defaultEditorProps.highlightActiveLine);
-  editor.setShowPrintMargin(defaultEditorProps.showPrintMargin);
-
-  editor.getSession().setUseSoftTabs(false);
-}
-
-type EditorDefaultProps = {
-  language: string;
-  value: string;
-  maxLines: ?number;
-
-  style: any;
-
-  onKeyDown: Callback<SyntheticKeyboardEvent>;
-  onKeyUp: Callback<SyntheticKeyboardEvent>;
-  onFocus: Callback<SyntheticFocusEvent>;
-};
-
-type EditorProps = {
-  language: string;
-
-  value: string;
-  requestChange: Callback<string>;
-
-  style: any;
-
-  onKeyDown: Callback<SyntheticKeyboardEvent>;
-  onKeyUp: Callback<SyntheticKeyboardEvent>;
-  onFocus: Callback<SyntheticFocusEvent>;
-
-  maxLines: ?number;
-};
-
-type EditorState = {
+type Props = {
   name: string;
+  language: ASLanguage;
+
+  theme: string;
+  fontSize: number;
+  showGutter: boolean;
+  readOnly: boolean;
+  highlightActiveLine: boolean;
+  showPrintMargin: boolean;
+  minLines: ?number;
+  maxLines: ?number;
+  style?: any;
+
+  onKeyDown: Callback<SyntheticKeyboardEvent>;
+  onKeyUp: Callback<SyntheticKeyboardEvent>;
+  onFocus: Callback<SyntheticFocusEvent>;
+
 };
-
-/*
-
-  PROOF THAT THIS COMPONENT WORKS
-  ===============================
-
-  (1) This component maintains the invariant that
-
-                        props.value == editor.getValue()
-
-      If props.value changes, then the editor's value is set to the new prop.
-
-      If editor.getValue() changes, then _handleEditorChange() happens, which
-      causes editor's value to be reset to the prop and requestChange() to be
-      called, all unless the props.value changed.
-
-  (2) This component will call requestChange() if and only if the user
-      organically triggered a value change (by typing).
-
-      Value changes happen through two avenues:
-
-        - typing, in which cause _handleEditorChange happens, and requestChange
-        - if props.value changes, in which case everything is silent.
-
-*/
 
 export default class ASCodeField
-  extends React.Component<EditorDefaultProps, EditorProps, EditorState>
+  extends React.Component<Props, Props, {}>
 {
-  $listenerRemovers: Array<Callback>;
-
-  editor: any;
-  silent: boolean;
-
-  constructor(props: EditorDefaultProps) {
-    super(props);
-
-    this.$listenerRemovers = [];
-
-    this.silent = false;
-    this.state = {
-      name: shortid.generate()
-    };
-  }
-
-  getRawEditor(): any {
-    return this.editor;
-  }
+  editor: AERawClass;
 
   componentDidMount() {
-    this.editor = ace.edit(this.state.name);
+    this.editor = ace.edit(this.props.name);
     this.editor.$blockScrolling = Infinity;
-    this.editor.setValue(this._getPropsValue(), 1);
-
-    onPropsSet(this.editor, this.props);
-
-    const aceListenerImplementer = (listenerName, listener) => ({
-      listener,
-      add: (l) => this.editor.on(listenerName, l),
-      remove: (l) => this.editor.off(listenerName, l)
-    });
-
-    Util.React.implementComponentListeners(this, [
-      aceListenerImplementer('change', () => this._handleEditorChange()),
-      aceListenerImplementer('focus', (evt) => this._handleEditorFocus(evt))
-    ]);
+    this._onPropsSet(this.props);
+    this.editor.on('alphasheets-keydown', (e) => this.props.onKeyDown(e));
+    this.editor.container.addEventListener('mousedown', () => this.props.onMouseDown());
   }
 
   componentWillUnmount() {
     Util.React.removeComponentListeners(this);
   }
 
-  componentWillReceiveProps(nextProps: EditorProps) {
-    this._silently(() => {
-      const {value} = nextProps;
-      if (this.editor.getValue() !== value) {
-        this.editor.setValue(value, 1);
-      }
-    });
+  componentWillReceiveProps(nextProps: Props) {
+    this._onPropsSet(nextProps);
+  }
 
-    onPropsSet(this.editor, nextProps);
+  isFocused(): boolean {
+    return FocusStore.isFocused(this.props.name);
   }
 
   render(): React.Element {
     const divStyle = {
       zIndex,
+      tabIndex: -1,
       ...this.props.style
     };
 
     return (
       <div
-        id={this.state.name}
+        id={this.props.name}
         style={divStyle}
-        onKeyDown={(evt) => this._handleKeyDown(evt)}
         onKeyUp={(evt) => this._handleKeyUp(evt)}
       />
     );
-  }
-
-  _getPropsValue(): string {
-    return this.props.value;
-  }
-
-  _propsRequestChange(str: string) {
-    this.props.requestChange(str);
-  }
-
-  _resetEditorValue() {
-    this._silently(() => {
-      this.editor.setValue(this._getPropsValue());
-    });
-  }
-
-  _handleEditorChange() {
-    if (!this.silent) {
-      const newVal = this.editor.getValue();
-      this._resetEditorValue();
-      this._propsRequestChange(newVal);
-    }
-  }
-
-  _handleEditorFocus(evt: SyntheticFocusEvent) {
-    this.props.onFocus(evt);
-  }
-
-  _handleKeyDown(evt: SyntheticKeyboardEvent) {
-    this.props.onKeyDown(evt);
   }
 
   _handleKeyUp(evt: SyntheticKeyboardEvent) {
     this.props.onKeyUp(evt);
   }
 
-  /*
-    NOTE:
+  _onPropsSet(props: Props) {
+    this.editor.getSession().setMode('ace/mode/' + Constants.AceMode[props.language]);
+    this.editor.setOption('maxLines', props.maxLines);
+    this.editor.setOption('minLines', props.minLines);
 
-    This method does two things to ensure that setValue is relatively side
-    effect free.
+    this.editor.setTheme('ace/theme/' + props.theme);
+    this.editor.setFontSize(props.fontSize);
+    this.editor.renderer.setShowGutter(props.showGutter);
 
-    - sets silent to true. This ensures that requestChange won't go into an
-      infinite loop. (Note that turning it on and then off again is safe to do
-      because setValue is synchronously calling onChange, so onChange will in
-      fact happen before silent is set to false again.)
+    this.editor.setOption('readOnly', props.readOnly);
+    this.editor.setOption('highlightActiveLine', props.highlightActiveLine);
+    this.editor.setShowPrintMargin(props.showPrintMargin);
 
-    - fixes cursor position. setValue actually sets the cursor position to the
-      beginning of the line by default, and cp makes sure that this is reversed.
-  */
-
-  _silently(cb: Callback) {
-    this.silent = true;
-    const cp = this.editor.getCursorPosition();
-
-    cb();
-
-    this.editor.moveCursorToPosition(cp);
-    this.silent = false;
+    this.editor.getSession().setUseSoftTabs(false);
+    this.editor.resize();
   }
 }
 
 ASCodeField.defaultProps = {
+  name: shortid.generate(),
   language : 'python',
-  value    : '',
-  style    : {
-    width  : '100%',
-    height : '100px'
-  },
-  name     : 'brace-editor',
-  maxLines : null,
+
+  theme: 'monokai',
+  fontSize: 14,
+  showGutter: true,
+  readOnly: false,
+  highlightActiveLine: true,
+  showPrintMargin: true,
+  maxLines: null,
+  minLines: 1,
 
   onKeyDown(evt) { },
   onKeyUp(evt) { },
-  onFocus() { }
+  onFocus() { },
+  onMouseDown() { },
 };

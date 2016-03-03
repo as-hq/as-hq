@@ -6,9 +6,11 @@ import Constants from '../../Constants.js';
 
 import HeaderStore from '../../stores/ASHeaderStore';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
+import { actions as Shortcuts } from '../../AS/Shortcuts';
 
+import KeyUtils from '../../AS/utils/Key';
 // $FlowFixMe
-import {AppBar, Toolbar, Styles, FlatButton} from 'material-ui';
+import {Toolbar, Styles, FlatButton} from 'material-ui';
 import ASCodeField from '../basic-controls/ASCodeField.jsx';
 import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 // $FlowFixMe
@@ -41,6 +43,7 @@ type LanguageItem = {
 
 class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
   _languages: Array<LanguageItem>;
+  _editor: any;
 
   constructor(props: EvalHeaderProps) {
     super(props);
@@ -79,14 +82,19 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
         </Toolbar>
 
         <ASCodeField
+          ref={elem => this._editor = elem}
           style={styles.codeField}
-          value={expressionLink.value}
-          requestChange={expressionLink.requestChange}
+          text={expressionLink}
           language={Constants.AceMode[languageLink.value]}
+          onKeyDown={e => this._onKeyDown(e)}
         />
 
       </div>
     );
+  }
+
+  _onKeyDown(e: SyntheticKeyboardEvent) {
+    Shortcuts.try(e, 'header'); // will kill the event if a shortcut matches.
   }
 };
 

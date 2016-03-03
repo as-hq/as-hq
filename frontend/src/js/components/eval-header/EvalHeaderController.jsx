@@ -7,7 +7,9 @@ import type {
 import React from 'react';
 import ReactDOM from 'react-dom';
 import EvalHeader from './EvalHeader.jsx';
+import Focusable from '../transforms/Focusable.jsx';
 
+import FocusActions from '../../actions/ASFocusActionCreators';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 import HeaderStore from '../../stores/ASHeaderStore';
 
@@ -19,18 +21,11 @@ import API from '../../actions/ASApiActionCreators';
 type Props = { open: boolean };
 
 class EvalHeaderController extends React.Component<{}, Props, {}> {
-  _view: ReactComponent;
+  _view: any;
   _storeListener: any;
-
-  constructor(props: Props) {
-    super(props);
-  }
 
   componentDidMount() {
     this._storeListener = HeaderStore.addListener(() => this.forceUpdate());
-    // focus upon mount
-    // TODO this has no effect, integrate with @joel's focus manager
-    // ReactDOM.findDOMNode(this._view).focus();
   }
 
   componentWillUnmount() {
@@ -69,8 +64,29 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
     });
     API.evaluateHeader(expression, language);
   }
+
+  _addEventListener(type: string, cb: Callback) {
+    this.__getAce().on(type, cb);
+  }
+
+  _takeFocus() {
+    this.__getAce().focusSync();
+  }
+
+  __getAce() {
+    return this._view._editor.editor;
+  }
 }
 
 const evaluateMessage = 'Evaluated!';
+const name = 'header';
 
-export default EvalHeaderController;
+export default Focusable(EvalHeaderController, {
+  name,
+  addFocusListener: (component, listener) => {
+    component._addEventListener('focus', listener);
+  },
+  takeFocus: (component) => {
+    component._takeFocus();
+  }
+});

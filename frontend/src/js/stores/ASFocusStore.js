@@ -1,129 +1,170 @@
 // @flow
-// Focus Store - For remembering where focus should return
+// Focus Store - remembers focus for all components under the control of Focusable
 //
 // This store remembers the last two places (of grid, textbox, and editor) that
 // were focused and support refocusing on the last focused element (after a
 // button click, for instance) or toggling between the last focuses with F2.
 
-import type {ASFocusType, FocusStoreCallbacks} from '../types/State';
+import type { FocusedElement } from '../types/State';
+import type { ASAction } from '../types/Actions';
 
-import Dispatcher from '../Dispatcher';
-import Constants from '../Constants';
-import BaseStore from './BaseStore';
+import Immutable from 'immutable';
+// $FlowFixMe
+import { ReduceStore } from 'flux/utils';
+import dispatcher from '../Dispatcher';
 
-type FocusStoreData = {
-  activeFocus: ASFocusType;
-  lastActiveFocus: ASFocusType;
-  callbacks: FocusStoreCallbacks | null;
-};
+import ExpressionStore from './ASExpressionStore';
+import ConfigStore from './ASConfigurationStore';
 
-const _data: FocusStoreData = {
+import U from '../AS/Util';
+
+type State = any;
+const StateRecord = Immutable.Record({
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
-  callbacks: null,
-};
+  textboxHasFullFocus: false
+});
 
-const dispatcherIndex = Dispatcher.register(action => {
-  switch (action._type) {
-    case 'RESET':
-      _data.activeFocus = 'grid';
-      _data.lastActiveFocus = 'textbox';
-      _data.callbacks = null;
-      break;
-    case 'FOCUSED': {
-      setFocus(action.focus);
-      FocusStore.emitChange();
-      break;
-    }
+class FocusStore extends ReduceStore<State> {
+  getInitialState(): State {
+    return new StateRecord();
+  }
 
-    case 'SET_FOCUS_CALLBACKS': {
-      _data.callbacks = action.callbacks;
-      FocusStore.emitChange();
-      break;
-    }
+  reduce(state: State, action: ASAction): State {
+    switch(action._type) {
+      case 'FOCUSED': {
+        const { focus } = action;
+        console.error('focusing element:', focus);
 
-    case 'TOGGLED_FOCUS_F2': {
-      // F2 toggles back and forth between the grid and either editor or textbox
-      // depending on which was last focused.
-      //
-      //     Editor
-      //      v ^
-      //     Grid
-      //      v ^
-      //     Textbox
-      const temp = _data.activeFocus;
-
-//       switch(`${_data.activeFocus}<-${data.lastActiveFocus}`) {
-//         // TODO(joel) - how can both recent focuses be grid?
-//         // case 'grid<-grid':
-//         case 'grid<-textbox':
-//           _data.activeFocus = 'textbox';
-//           break;
-//         case 'grid<-editor':
-//           _data.activeFocus = 'editor';
-//           break;
-//         case 'textbox<-grid':
-//         case 'textbox<-editor':
-//           _data.activeFocus = 'grid';
-//           break;
-//         case 'editor<-grid':
-//         case 'editor<-textbox':
-//           _data.activeFocus = 'grid';
-//           break;
-//       }
-
-      if (_data.activeFocus === 'grid') {
-        if (_data.lastActiveFocus === 'grid') {
-          _data.activeFocus = 'textbox';
+        // focus-stealing prevention
+        if (isFocusTheft(state, focus)) {
+          console.warn('swiper no swiping!');
+          this.refocus();
+          return state;
         } else {
-          // toggle back to the previous thing
-          _data.activeFocus = _data.lastActiveFocus;
+          console.log('setting focus for:', focus);
+          return setFocus(state, focus);
         }
-
-      // TODO(joel): only switch to the grid if in a parsable position
-      // const x = CellStore.getActiveCell();
-      // const y = CellStore.cellToJSVal(x);
-      } else { // if (Util.Parsing.canInsertCellRefInXp(y + '')) {
-        _data.activeFocus = 'grid';
       }
 
-      _data.lastActiveFocus = temp;
-      FocusStore.emitChange();
-      break;
+      case 'FOCUSED_TEXTBOX_FULLY': {
+        return setFocus(state, 'textbox').set('textboxHasFullFocus', true);
+      }
+
+      case 'TOGGLED_FOCUS_F2': {
+        console.warn('toggle F2:',`${state.lastActiveFocus}->${state.activeFocus}`);
+        if (state.activeFocus === 'textbox') {
+          if (state.lastActiveFocus === 'grid') {
+            return state.update('textboxHasFullFocus', b => !b);
+          } else if (state.lastActiveFocus === 'editor') {
+            return setFocus(state, 'editor');
+          }
+        } else if (state.activeFocus === 'editor') {
+          if (state.lastActiveFocus === 'grid') {
+            return setFocus(state, 'textbox')
+                  .set('textboxHasFullFocus', false);
+          } else if (state.lastActiveFocus === 'textbox') {
+            return setFocus(state, 'textbox')
+                  .set('textboxHasFullFocus', true);
+          }
+        }
+        return state;
+      }
+
+      case 'START_EDITING': {
+        console.warn('start editing!');
+        return setFocus(state, 'textbox')
+              .set('textboxHasFullFocus', action.textboxHasFullFocus);
+      }
+
+      case 'STOP_EDITING':
+      case 'API_EVALUATE': {
+        return setFocus(state, 'grid');
+      }
+
+      case 'SELECTION_CHANGED': {
+        this.getDispatcher().waitFor([ExpressionStore.getDispatchToken()]);
+
+        if (! ExpressionStore.isEditing()) {
+          return setFocus(state, 'grid');
+        } else {
+          this.refocus();
+          return state;
+        }
+      }
+
+      case 'HEADER_TOGGLED': {
+        // wait for header to open, then set its focus.
+        this.getDispatcher().waitFor([ConfigStore.getDispatchToken()]);
+        
+        if (ConfigStore.isHeaderOpen()) {
+          return setFocus(state, 'header');
+        // if already open (and now closing), return focus to the last element.
+        } else if (state.activeFocus === 'header') {
+          return returnFocus(state);
+        }
+      }
+
+      default:
+        return state;
     }
-
-    // TODO(joel): I don't understand why we focus on GOT_UPDATED_CELLS
-    case 'GOT_UPDATED_CELLS':
-    case 'NORMAL_SEL_CHANGED':
-      setFocus('grid');
-      FocusStore.emitChange();
-      break;
-
-    default:
-      break;
   }
-});
-
-const FocusStore = Object.assign({}, BaseStore, {
-  dispatcherIndex,
 
   refocus() {
-    if (_data.callbacks !== null) {
-      _data.callbacks[_data.activeFocus]();
-    }
-  },
-  getFocus() {
-    return _data.activeFocus;
-  },
+    this.__emitChange();
+  }
 
-});
+  isFocused(elem: FocusedElement): boolean {
+    return this.getState().activeFocus === elem;
+  }
 
-function setFocus(focus: ASFocusType) {
-  _data.lastActiveFocus = _data.activeFocus;
-  _data.activeFocus = focus;
+  getFocus(): FocusedElement {
+    return this.getState().activeFocus;
+  }
 
-  // actually set the focus
-  FocusStore.refocus();
+  textboxHasFullFocus(): boolean {
+    return this.getState().textboxHasFullFocus;
+  }
 }
 
-export default FocusStore;
+function returnFocus(state: State): State {
+  return setFocus(state, state.lastActiveFocus);
+}
+
+function setFocus(state: State, focus: FocusedElement): State {
+  const lastActiveFocus =
+    (focus === state.activeFocus) ?
+    state.lastActiveFocus :
+    state.activeFocus;
+  const textboxHasFullFocus = (focus === 'textbox') ? state.textboxHasFullFocus : false;
+
+  return new StateRecord({
+    activeFocus: focus,
+    lastActiveFocus,
+    textboxHasFullFocus
+  });
+}
+
+function isFocusTheft(state: State, focus: FocusedElement): boolean {
+  return (
+    /**
+     * Don't steal focus from the editors when editing;
+     * the SELECTION_CHANGED action takes care of passing
+     * focus back to the grid when it is correct to do so.
+     * E.g. when not in a ref-insertable position.
+     */
+    ExpressionStore.isEditing() && focus === 'grid' ||
+
+    /**
+     * Tab causes textareas to give away focus;
+     * return focus to the original.
+     */
+    (
+      ExpressionStore.getExpression().slice(-1) === '\t' &&
+      focus === 'textbox' &&
+      state.activeFocus === 'editor'
+    )
+  );
+}
+
+export default new FocusStore(dispatcher);

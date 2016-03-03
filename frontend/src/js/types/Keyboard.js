@@ -5,13 +5,10 @@ import type {
   Dict
 } from './Base';
 
-export type ASShortcutTarget =
-  'grid' |
-  'editor' |
-  'evalPane' |
-  'toplevel' |
-  'evalHeader' |
-  'textbox';
+export type ShortcutRoot = 'grid' | 'editor' | 'textbox' | 'header';
+export type ShortcutGroup = 'evalpane' | 'toplevel'
+
+export type ShortcutTarget = ShortcutRoot | ShortcutGroup;
 
 export type ASKey = number;
 

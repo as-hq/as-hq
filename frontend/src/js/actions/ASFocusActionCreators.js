@@ -1,33 +1,38 @@
 // @flow
 import Dispatcher from '../Dispatcher';
 
-import type {ASFocusType, FocusStoreCallbacks} from '../types/State';
+import type { FocusedElement } from '../types/State';
+
+import ExpressionStore from '../stores/ASExpressionStore';
 
 export default {
   // Set the focus to either the grid, textbox, or editor.
-  setFocus(focus: ASFocusType) {
+  focus(focus: FocusedElement) {
     Dispatcher.dispatch({
       _type: 'FOCUSED',
       focus,
     });
   },
 
-  // Initialize the callbacks that the focus manager uses to refocus on the
-  // editor, grid, or textbox. This should be called once.
-  setCallbacks(callbacks: FocusStoreCallbacks) {
+  focusTextboxFully() {
     Dispatcher.dispatch({
-      _type: 'SET_FOCUS_CALLBACKS',
-      callbacks,
+      _type: 'FOCUSED_TEXTBOX_FULLY'
     });
   },
 
-  // TODO(joel) - make shortcut action creators:
-  //
-  // Focus store should just listen for the action indicating F2 was pressed.
-  // All shortcuts create an action, shortcuts.js looks radically different.
   toggleFocusF2() {
-    Dispatcher.dispatch({
-      _type: 'TOGGLED_FOCUS_F2',
-    });
+    // if not already editing, start.
+    if (ExpressionStore.isEditing()) {
+      Dispatcher.dispatch({
+        _type: 'TOGGLED_FOCUS_F2',
+      });
+    // otherwise, standard toggling control flow.
+    } else {
+      Dispatcher.dispatch({
+        _type: 'START_EDITING',
+        textMutator: t => t,
+        textboxHasFullFocus: false
+      });
+    }
   },
 };

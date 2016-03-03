@@ -5,10 +5,10 @@ import type {
 } from '../../types/Toolbar';
 
 import React from 'react';
+// $FlowFixMe
 import pure from 'recompose/pure';
 
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
-import ExpActionCreators from '../../actions/ASExpActionCreators';
 
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
@@ -52,7 +52,7 @@ function FontPicker(
       toolbarControlWidth={200}
       visible={visible}
       value={value}
-      onSelect={font => ExpActionCreators.setFont(font)}
+      onSelect={font => { /* TODO */ }}
       onOpen={() => ToolbarActionCreators.openItem('FontPicker')}
       onClose={() => ToolbarActionCreators.closeItem('FontPicker')}
     />

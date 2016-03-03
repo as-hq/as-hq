@@ -58,7 +58,7 @@ import {
 import ASCellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import SelectionStore from '../stores/ASSelectionStore';
-import ASExpStore from '../stores/ASExpStore';
+import ExpressionStore from '../stores/ASExpressionStore';
 import U from '../AS/Util';
 
 import {parse, text} from 'bennu';
@@ -101,7 +101,7 @@ function viewingWindow() {
 }
 
 function expression() {
-  return ASExpStore.getExpression();
+  return ExpressionStore.getExpression();
 }
 
 function cellConfig(excelCell) {

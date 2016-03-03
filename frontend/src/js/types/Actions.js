@@ -25,8 +25,8 @@ import type {
 
 import type {
   ASViewingWindow,
-  ASFocusType,
-  FocusStoreCallbacks,
+  FocusedElement,
+  BottomPane
 } from './State';
 
 import type {
@@ -181,57 +181,6 @@ export type FindDecrementedAction = {
   _type: 'FIND_DECREMENTED';
 };
 
-export type GridKeyPressedAction = {
-  _type: 'GRID_KEY_PRESSED';
-  xpStr: string;
-  cursorPos: number;
-};
-
-export type EditorChangedAction = {
-  _type: 'EDITOR_CHANGED';
-  xpStr: string;
-};
-
-export type TextboxChangedAction = {
-  _type: 'TEXTBOX_CHANGED';
-  xpStr: string;
-};
-
-export type NormalSelChangedAction = {
-  _type: 'NORMAL_SEL_CHANGED';
-  expression: string;
-  language: ASLanguage;
-};
-
-export type PartialRefChangeWithEditorAction = {
-  _type: 'PARTIAL_REF_CHANGE_WITH_EDITOR';
-  xpStr: string;
-  excelStr: string; // TODO: can we impose any constraints here
-};
-
-export type PartialRefChangeWithGridAction = {
-  _type: 'PARTIAL_REF_CHANGE_WITH_GRID';
-  excelStr: string;
-};
-
-export type PartialRefChangeWithTextboxAction = {
-  _type: 'PARTIAL_REF_CHANGE_WITH_TEXTBOX';
-  xpStr: string;
-  excelStr: string;
-};
-
-export type EscPressedAction = {
-  _type: 'ESC_PRESSED';
-};
-
-export type BackendUpdatedAndCellsChangedAction = {
-  _type: 'BACKEND_UPDATED_AND_CELLS_CHANGED';
-};
-
-export type EvalTriedToDecoupleAction = {
-  _type: 'EVAL_TRIED_TO_DECOUPLE';
-};
-
 export type OpenCondFormattingDialogAction = {
   _type: 'OPEN_COND_FORMATTING_DIALOG';
 };
@@ -334,12 +283,7 @@ export type WorkbookAction =
 
 export type FocusedAction = {
   _type: 'FOCUSED';
-  focus: ASFocusType;
-};
-
-export type SetFocusCallbacksAction = {
-  _type: 'SET_FOCUS_CALLBACKS';
-  callbacks: FocusStoreCallbacks;
+  focus: FocusedElement;
 };
 
 export type ToggledFocusF2Action = {
@@ -351,6 +295,61 @@ export type SetActiveSelectionAction = {
   selection: ASSelection;
   expression: string;
   language: ?ASLanguage;
+};
+
+export type APIEvaluateAction = {
+  _type: 'API_EVALUATE';
+};
+
+export type StartEditingAction = {
+  _type: 'START_EDITING';
+  textMutator: (text: string) => string;
+  textboxHasFullFocus: boolean;
+};
+
+export type StopEditingAction = {
+  _type: 'STOP_EDITING';
+};
+
+export type EditorSelectionChangedAction = {
+  _type: 'EDITOR_SELECTION_CHANGED';
+  selection: AESelection;
+};
+
+export type ExpressionChangedAction = {
+  _type: 'EXPRESSION_CHANGED';
+  expression: string;
+};
+
+export type ReferenceToggledAction = {
+  _type: 'REFERENCE_TOGGLED';
+};
+
+export type HeaderToggledAction = {
+  _type: 'HEADER_TOGGLED';
+};
+
+export type BottomPaneToggledAction = {
+  _type: 'BOTTOM_PANE_TOGGLED';
+  pane: BottomPane;
+};
+
+export type RepaintSpreadsheetAction = {
+  _type: 'REPAINT_SPREADSHEET';
+};
+
+export type FindBarVisibilityChangedAction = {
+  _type: 'FIND_BAR_VISIBILITY_CHANGED';
+  isOpen: boolean;
+};
+
+export type FindModalVisibilityChangedAction = {
+  _type: 'FIND_MODAL_VISIBILITY_CHANGED';
+  isOpen: boolean;
+};
+
+export type FocusedTextboxFullyAction = {
+  _type: 'FOCUSED_TEXTBOX_FULLY';
 };
 
 export type ASAction =
@@ -379,17 +378,6 @@ export type ASAction =
   | GotFindAction
   | FindIncrementedAction
   | FindDecrementedAction
-  // three-way data integration actions
-  | GridKeyPressedAction
-  | EditorChangedAction
-  | TextboxChangedAction
-  | NormalSelChangedAction
-  | PartialRefChangeWithEditorAction
-  | PartialRefChangeWithGridAction
-  | PartialRefChangeWithTextboxAction
-  | EscPressedAction
-  | BackendUpdatedAndCellsChangedAction
-  | EvalTriedToDecoupleAction
   | OpenCondFormattingDialogAction
   | CloseCondFormattingDialogAction
   | OpenChartingDialogAction
@@ -402,7 +390,6 @@ export type ASAction =
   | RemoveNotificationAction
   | SetConnectingStateAction
   | FocusedAction
-  | SetFocusCallbacksAction
   | ToggledFocusF2Action
   | SetActiveSelectionAction
   | SetConnectingStateAction
@@ -414,4 +401,16 @@ export type ASAction =
   | SetVAlign
   | LoginAttemptAction
   | LoginSuccessAction
+  | APIEvaluateAction
+  | StartEditingAction
+  | StopEditingAction
+  | ExpressionChangedAction
+  | EditorSelectionChangedAction
+  | ReferenceToggledAction
+  | HeaderToggledAction
+  | BottomPaneToggledAction
+  | RepaintSpreadsheetAction
+  | FindBarVisibilityChangedAction
+  | FindModalVisibilityChangedAction
+  | FocusedTextboxFullyAction
   ;

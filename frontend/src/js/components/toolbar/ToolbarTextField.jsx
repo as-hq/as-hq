@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {Styles} from 'material-ui';
+// $FlowFixMe
 import pure from 'recompose/pure';
 
 // $FlowFixMe
@@ -49,7 +50,8 @@ function getStyles(props: ToolbarTextFieldProps): any {
       fill: Styles.Colors.grey50,
       width: arrowSize,
       right: '10%',
-      top: '25%'
+      top: '25%',
+      marginTop: 0,
     },
     label: { // the label should be vertically centered, decent font size, a bit to the left
       position: 'absolute',

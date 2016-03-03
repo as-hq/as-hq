@@ -1,61 +1,82 @@
 /* @flow */
 
-import Dispatcher from '../Dispatcher';
+import type { ASAction } from '../types/Actions';
+
+// $FlowFixMe
+import { ReduceStore } from 'flux/utils';
+import Immutable from 'immutable';
+// $FlowFixMe
+import invariant from 'invariant';
+import dispatcher from '../Dispatcher';
 import ASSelection from '../classes/ASSelection';
 import Render from '../AS/Renderers';
-import BaseStore from './BaseStore';
-import {Just} from '../AS/Maybe';
 
-type SelectionStoreData = {
-  activeSelection: ?ASSelection;
-};
+import SheetStateStore from './ASSheetStateStore';
 
-let _data: SelectionStoreData = {
-  activeSelection: null
-};
-
-const ASSelectionStore = Object.assign({}, BaseStore, {
-  dispatcherIndex: Dispatcher.register((action) => {
-    switch (action._type) {
-      case 'RESET':
-        _data.activeSelection = null;
-        break;
-      case 'GOT_SELECTION':
-        setActiveSelection(action.newSelection);
-        ASSelectionStore.emitChange();
-        break;
-      case 'SET_ACTIVE_SELECTION':
-        setActiveSelection(action.selection);
-        ASSelectionStore.emitChange();
-        break;
-    }
-  }),
-
-  /**************************************************************************************************************************/
-  /* getter and setter methods */
-  getActiveSelection(): ?ASSelection {
-    return _data.activeSelection;
-  },
-
-  withActiveSelection<T>(cb: (sel: ASSelection) => T): ?T {
-    return Just(ASSelectionStore.getActiveSelection()).fmap(cb).out();
-  },
+type State = Immutable.Record$Class;
+const StateRecord = Immutable.Record({
+  activeSelection: null,
+  lastActiveSelection: null
 });
 
+class SelectionStore extends ReduceStore<State> {
+  getInitialState(): State {
+    return new StateRecord();
+  }
 
-// A lot of things listen to this store, eventemitter think's there's a memory
-// leak
-ASSelectionStore.setMaxListeners(100);
+  reduce(state: State, action: ASAction): State {
+    switch(action._type) {
+      case 'LOGIN_SUCCESS': {
+        // wait for the sheetId to be established upon login
+        this.getDispatcher().waitFor([SheetStateStore.dispatcherIndex]);
+        
+        return new StateRecord({
+          activeSelection: ASSelection.defaultSelection(),
+          lastActiveSelection: ASSelection.defaultSelection()
+        });
+      }
 
+      case 'SELECTION_CHANGED': {
+        return setActiveSelection(state, action.selection);
+      }
 
-function setActiveSelection(sel: ASSelection) {
+      case 'API_EVALUATE': {
+        return setActiveSelection(state, state.activeSelection.shift(
+          action.moveDirection,
+          false
+        ));
+      }
+
+      default:
+        return state;
+    }
+  }
+
+  getActiveSelection(): ASSelection {
+    const sel = this.getState().activeSelection;
+    invariant(sel, 'Active selection not available for authenticated user!');
+    return sel;
+  }
+
+  getLastActiveSelection(): ASSelection {
+    const sel = this.getState().lastActiveSelection;
+    invariant(sel, 'Last active selection not available for authenticated user!');
+    return sel;
+  }
+
+}
+
+function setActiveSelection(state: State, activeSelection: ASSelection) {
   // Render.setSelection() is for speed purposes only. Ideally we would be
   // getting the selection from this store during render, but getting the
   // variable from the store is empirically much slower than just setting
   // its value directly in the file. (Relayed from Anand -- Alex 12/9)
-  Render.setSelection(sel);
-  _data.activeSelection = sel;
+  Render.setSelection(activeSelection);
+  const lastActiveSelection = state.activeSelection;
+  return new StateRecord({
+    activeSelection,
+    lastActiveSelection
+  });
 }
 
-
-export default ASSelectionStore;
+export default new SelectionStore(dispatcher);

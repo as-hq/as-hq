@@ -1012,6 +1012,9 @@ declare module 'immutable' {
     set(key: string, value: any): this;
     get(key: string): any;
 
+    getIn(searchKeyPath: Array<any>, notSetValue?: any): any;
+    getIn(searchKeyPath: Iterable<any, any>, notSetValue?: any): any;
+
     toJS(): any;
 
     delete(key: string): this;

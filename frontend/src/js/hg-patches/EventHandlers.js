@@ -9,13 +9,15 @@ import type {InitCallback} from './types';
 import Constants from '../Constants';
 import Render from '../AS/Renderers';
 import U from '../AS/Util';
-import API from '../actions/ASApiActionCreators';
-import ActionCreator from '../actions/ASSpreadsheetActionCreators';
-import ExpStore from '../stores/ASExpStore';
-import SelectionStore from '../stores/ASSelectionStore';
 import ASSpreadsheet from '../components/ASSpreadsheet.jsx';
 import rowHeaderMenuItems from '../components/menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from '../components/menus/ColumnHeaderMenuItems.jsx';
+
+import SelectionStore from '../stores/ASSelectionStore';
+import API from '../actions/ASApiActionCreators';
+import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import ExpressionActions from '../actions/ASExpressionActionCreators';
+import FocusActions from '../actions/ASFocusActionCreators';
 
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
@@ -29,14 +31,6 @@ const callbacks: Array<InitCallback> = [
   // add fin event callbacks
   ({ spreadsheet, hg }) => {
     let callbacks = ({
-      /*
-        Call onSelectionChange method in eval pane to deal with selection change
-        Need to also figure out the expression to render in the editor
-      */
-      'fin-selection-changed': function (event) {
-        ExpStore.setClickType(Constants.ClickType.CLICK);
-        spreadsheet.props.onSelectionChange(spreadsheet.getSelectionArea());
-      },
 
       'fin-scroll-x': function (event) {
         let scroll = spreadsheet.getScroll();
@@ -53,9 +47,10 @@ const callbacks: Array<InitCallback> = [
           };
           spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
         }
-        if ((spreadsheet.getScroll()).x % 20 === 0) {
-          ActionCreator.scroll(spreadsheet.getViewingWindow());
-        }
+        // deprecated
+        // if ((spreadsheet.getScroll()).x % 20 === 0) {
+        //   ActionCreator.scroll(spreadsheet.getViewingWindow());
+        // }
       },
 
       'fin-scroll-y': function (event) {
@@ -73,18 +68,17 @@ const callbacks: Array<InitCallback> = [
           };
           spreadsheet.setState({scrollPixels: newScrollPixels, scroll: scroll});
         }
-        if ((spreadsheet.getScroll()).y % 20 === 0) {
-          ActionCreator.scroll(spreadsheet.getViewingWindow());
-        }
+        // deprecated
+        // if ((spreadsheet.getScroll()).y % 20 === 0) {
+        //   ActionCreator.scroll(spreadsheet.getViewingWindow());
+        // }
       },
 
       'fin-double-click': function (event) {
         // should only fire when double click is inside grid. According to event.detail.gridCell here,
         // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.
         if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
-          ExpStore.setClickType(Constants.ClickType.DOUBLE_CLICK);
-          spreadsheet.refs.textbox.updateTextBox(ExpStore.getExpression());
-          spreadsheet.props.setFocus('textbox');
+          ExpressionActions.startEditing(t => t, true);
         }
       },
 
@@ -280,8 +274,8 @@ const callbacks: Array<InitCallback> = [
           let sel = spreadsheet.getSelectionArea();
           let toRange = Render.getDragRect(),
               fromRange = sel.range;
-          if (toRange != null) {
-            spreadsheet.selectRange(toRange, false);
+          if (!! toRange) {
+            spreadsheet.select(toRange.toSelection(), false);
             Render.setDragRect(null);
             spreadsheet.repaint();
             API.cut(fromRange, toRange);

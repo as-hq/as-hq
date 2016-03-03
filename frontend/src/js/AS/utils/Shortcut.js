@@ -7,7 +7,6 @@ import type {
 } from '../../types/Base';
 
 import type {
-  ASShortcutTarget,
   ASShortcut,
   ASKeyCombination,
   ASKeyModifier,
@@ -18,7 +17,7 @@ import {logDebug} from '../Logger';
 
 import Constants from '../../Constants';
 import KeyUtils from './Key';
-import ExpStore from '../../stores/ASExpStore';
+import ExpressionStore from '../../stores/ASExpressionStore';
 
 // example raw shortcut
 
@@ -32,36 +31,52 @@ import ExpStore from '../../stores/ASExpStore';
 //   }
 // },
 
-let _S: {[key: ASShortcutTarget]: Array<ASKeyCombination>} = {
-  grid: [],
-  editor: [],
-  textbox: [],
-  evalPane: [],   // refers to the union of grid, editor, and textbox
-  evalHeader: [], // just the eval header
-  toplevel: []    // all of the above
-};
+
 
 // are all functions so that checks can be lazy evaluated
 let contextChecks = {
-  'notTyping': () => { return !ExpStore.getUserIsTyping(); },
-  'isTyping': () => { return ExpStore.getUserIsTyping(); }
+  'notTyping': () => { return ! ExpressionStore.isEditing(); },
+  'isTyping': () => { return ExpressionStore.isEditing(); }
 };
 
 const token_split = "+";
 const option_split = "|";
 
 export default {
-  add(config: string, name: string, keyStr: (string|Array<string>), callback: Callback<string>) {
+  createConfiguration(
+    target: string,
+    name: string,
+    keyStr: (string|Array<string>),
+    callback: Callback<string>
+  ): Array<any> { // TODO flow
     var self = this;
     if (keyStr instanceof Array) {
-      keyStr.forEach((k) => self.add(config, name, k, callback));
+      const allShortcuts = keyStr.map(k => self.createConfiguration(target, name, k, callback));
+      return [].concat.apply([], allShortcuts);
     } else {
-      let s = this.parseShortcutConfig(config);
+      let s = this.parseShortcutConfig(target);
       s = this.parseKeysIntoShortcut(s, keyStr);
       s.name = name;
       s.callback = callback;
-      _S[s.set].push(s);
+      return [s];
     }
+  },
+
+  tryShortcut(e: SyntheticKeyboardEvent, shortcutSet: Array<any>): boolean {
+    return shortcutSet.some((keyComb) => {
+      if (this.shortcutMatches(keyComb, e)) {
+        if (this.checkContext(keyComb)) {
+          // if a shortcut executed, prevent default behavior.
+          KeyUtils.killEvent(e);
+          keyComb.callback(this.getWildcard(e, keyComb));
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      return false;
+    });
   },
 
   shortcutMatches(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
@@ -90,83 +105,9 @@ export default {
     return checksMatch;
   },
 
-  tryGridShortcut(e: SyntheticKeyboardEvent): boolean {
-    return this._tryShortcut(e, 'grid') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
-  },
-
-  tryEditorShortcut(e: SyntheticKeyboardEvent): boolean {
-    return this._tryShortcut(e, 'editor') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
-  },
-
-  tryTextboxShortcut(e: SyntheticKeyboardEvent): boolean {
-    return this._tryShortcut(e, 'textbox') || this._tryShortcut(e, 'evalPane') || this._tryShortcut(e, 'toplevel');
-  },
-
-  tryEvalHeaderShortcut(e: SyntheticKeyboardEvent): boolean {
-    return this._tryShortcut(e, 'evalHeader') || this._tryShortcut(e, 'toplevel');
-  },
-
-  _tryShortcut(e: SyntheticKeyboardEvent, set: ASShortcutTarget): boolean {
-    let ss = _S[set]; // shortcut set to try
-
-    return ss.some((keyComb) => {
-      if (this.shortcutMatches(keyComb, e)) {
-        if (this.checkContext(keyComb)) {
-          logDebug("shortcut matched and will be exec: ", JSON.stringify(keyComb));
-          keyComb.callback(this.getWildcard(e, keyComb));
-          return true;
-        } else {
-          logDebug("shortcut matched but context prevented exec: ", JSON.stringify(keyComb));
-        }
-      }
-
-      return false;
-    });
-  },
-
-  gridShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
-    return (e.ctrlKey || e.metaKey ||
-            KeyUtils.isEvalKey(e) || // tab or enter
-            !KeyUtils.isNavKey(e)) &&
-           !KeyUtils.isCopyPasteType(e);
-  },
-
-  gridShouldAddToTextbox(userIsTyping: boolean, e: SyntheticKeyboardEvent): boolean {
-    let notEvalKey           = !KeyUtils.isEvalKey(e),
-        typingAndMakesChange = userIsTyping && KeyUtils.producesTextChange(e),
-        startsTyping         = !userIsTyping && KeyUtils.producesVisibleChar(e);
-
-    return notEvalKey && (typingAndMakesChange || startsTyping);
-  },
-
-  editorShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
-    return !KeyUtils.producesTextChange(e) &&
-           !KeyUtils.isNavKey(e) &&
-           !KeyUtils.isCopyPasteType(e) &&
-           !KeyUtils.isCtrlA(e) &&
-           !KeyUtils.isUndoType(e) &&
-           !KeyUtils.isTextAreaNavKey(e);
-  },
-
-  textboxShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
-    return KeyUtils.isEvalKey(e) ||          // defer on eval
-          this.editorShouldDeferKey(e);  // defer when editor defers
-  },
-
-  replShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
-    if (e.which === 13 && e.shiftKey === false) {
-      return true;
-    }
-    return !KeyUtils.producesTextChange(e);
-  },
-
-  evalHeaderShouldDeferKey(e: SyntheticKeyboardEvent): boolean {
-    return KeyUtils.isCtrlS(e) || KeyUtils.isAltH(e);
-  },
-
   compareModifiers(s: ASKeyCombination, e: SyntheticKeyboardEvent): boolean {
     // TODO: $FlowFixMe: This can't currently be flowed because of s[name] and e[name]
-    let propertyMatches = (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
+    const propertyMatches = (name: ASKeyProperty) => (!!s[name]) === (!!e[name]);
 
     return ['shiftKey', 'altKey'].every(propertyMatches)
       && (
@@ -174,8 +115,7 @@ export default {
     // if not, that should be reflected in the checks below. Currently, the following is a
     // catchall way of ensuring the command version of any control-based shortcut will work.
         ['ctrlKey', 'metaKey'].every(propertyMatches)
-        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey) // #ANAND this case allows ctrl keys to substitute for meta keys
-        || (s.metaKey && !s.ctrlKey && e.ctrlKey && !e.metaKey) // #ANAND this case allows meta keys to substitute for ctrl keys. do we want this??
+        || (s.ctrlKey && !s.metaKey && e.metaKey && !e.ctrlKey) // #ANAND this case allows meta keys to substitute for ctrl keys.
       );
   },
 

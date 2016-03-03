@@ -4,6 +4,8 @@
   This controller component displays the detailed output of the active cell.
 */
 
+import type { StoreToken } from 'flux';
+
 import React from 'react';
 
 import CellStore from '../../stores/ASCellStore';
@@ -13,7 +15,8 @@ import ASOutputPane from './ASOutputPane.jsx';
 
 class ASCellPaneController extends React.Component<{}, {}, {}> {
   _storeListener: () => void;
-  _cellStoreToken: { remove: () => void };
+  _cellListener: StoreToken;
+  _selectionListener: StoreToken;
 
   constructor(props: {}) {
     super(props);
@@ -21,13 +24,13 @@ class ASCellPaneController extends React.Component<{}, {}, {}> {
   }
 
   componentDidMount() {
-    this._cellStoreToken = CellStore.addListener(this._storeListener);
-    SelectionStore.addChangeListener(this._storeListener);
+    this._cellListener = CellStore.addListener(this._storeListener);
+    this._selectionListener = SelectionStore.addListener(this._storeListener);
   }
 
   componentWillUnmount() {
-    this._cellStoreToken.remove();
-    SelectionStore.removeChangeListener(this._storeListener);
+    this._cellListener.remove();
+    this._selectionListener.remove();
   }
 
   render(): React.Element {
