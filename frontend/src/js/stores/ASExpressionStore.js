@@ -22,6 +22,7 @@ import CellStore from '../stores/ASCellStore';
 import SelectionStore from '../stores/ASSelectionStore';
 import FocusStore from '../stores/ASFocusStore';
 
+import Render from '../AS/Renderers';
 import U from '../AS/Util';
 
 type State = Immutable.Record$Class;
@@ -76,8 +77,11 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'EXPRESSION_CHANGED': {
+        const {expression} = action;
+        const deps = U.Parsing.parseDependencies(expression, state.currentLanguage);
+        Render.setDependencies(deps);
         return state.merge({
-          expression: action.expression,
+          expression,
           isInsertingRef: false
         });
       }
@@ -200,6 +204,9 @@ class ExpressionStore extends ReduceStore<State> {
 function displayActiveExpression(state: State, origin: ASIndex): State {
   const cell = CellStore.getCell(origin);
   const expression = (!! cell) ? cell.expression.expression : '';
+  const language = (!! cell) ? cell.expression.language : state.defaultLanguage;
+  const deps = U.Parsing.parseDependencies(expression, language);
+  Render.setDependencies(deps);
   return state.merge({
     expression,
     isInsertingRef: false,

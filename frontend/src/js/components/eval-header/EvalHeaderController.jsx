@@ -42,6 +42,7 @@ class EvalHeaderController extends React.Component<{}, Props, {}> {
         expressionLink={{
           value: expression,
           requestChange(newExpression) {
+            console.warn('updated header!');
             HeaderActions.update(newExpression, language);
           }
         }}

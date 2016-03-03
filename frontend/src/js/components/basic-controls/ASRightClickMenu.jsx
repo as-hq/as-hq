@@ -4,6 +4,7 @@ import Menu from './ASUnselectedMenu.jsx';
 import MenuItem from 'material-ui/lib/menus/menu-item';
 import {Mixins} from 'material-ui';
 import {rightClickMenu as zIndex} from '../../styles/zIndex';
+import FocusActions from '../../actions/ASFocusActionCreators';
 
 let {ClickAwayable, StylePropable} = Mixins;
 
@@ -48,7 +49,7 @@ export default React.createClass({
 
   close() {
     if (this.state.expanded) {
-      this.props.restoreFocus(); // so the focus goes back to spreadsheet after menu closes
+      FocusActions.focus('grid'); // restore focus to grid
       this.setState({expanded: false});
     }
   },
