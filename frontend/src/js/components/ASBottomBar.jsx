@@ -19,7 +19,13 @@ import FontIcon from 'material-ui/lib/font-icon';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ConfigActions from '../actions/ASConfigActionCreators';
 
-export default class ASBottomBar extends React.Component<{}, {}, {}> {
+import {bottomBarButton as bottomBarButtonZIndex} from '../styles/zIndex';
+
+type Props = {
+  toggleBottomPane: Callback<string>;
+};
+
+export default class ASBottomBar extends React.Component<{}, Props, {}> {
   $storeLinks: Array<StoreLink>;
 
   componentDidMount() {
@@ -88,6 +94,7 @@ const styles = {
     display: 'inline-block',
     width: '40px',
     top: '50%',
+    zIndex: bottomBarButtonZIndex,
     transform: 'translateY(-50%)' // vertically center
   },
 
