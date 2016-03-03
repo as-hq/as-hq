@@ -9,6 +9,8 @@ import Immutable from 'immutable';
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
 import dispatcher from '../Dispatcher';
+import HeaderOutputStore from './ASHeaderOutputStore';
+
 
 type State = Immutable.Record$Class;
 const StateRecord = Immutable.Record({
@@ -40,6 +42,15 @@ class ConfigurationStore extends ReduceStore<State> {
           'bottomPane',
           (pane !== state.bottomPane) ? pane : null
         );
+      }
+
+      case 'HEADER_EVALUATED': { 
+        if (!HeaderOutputStore.isOutputEmptyInCurrentHeaderLanguage()) {
+          return state.set(
+            'bottomPane',
+            'header_output'
+          );
+        }
       }
 
       case 'START_EDITING':

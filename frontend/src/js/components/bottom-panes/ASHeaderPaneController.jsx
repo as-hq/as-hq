@@ -24,7 +24,8 @@ class ASHeaderPaneController extends React.Component<{}, {}, {}> {
   }
 
   componentWillUnmount() {
-    this._storeListener.remove();
+    this._headerStoreListener.remove();
+    this._headerOutputStoreListener.remove();
   }
 
   render(): React.Element {

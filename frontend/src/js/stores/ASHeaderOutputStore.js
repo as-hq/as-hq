@@ -71,8 +71,10 @@ class HeaderOutputStore extends ReduceStore<HeaderOutputStoreData> {
     return this.getState().getIn(['data', lang]); 
   }
 
-  isOutputEmptyInLanguage(lang: ASLanguage): ?string { 
-    const output = this.getOutputInLanguage(lang);
+  isOutputEmptyInCurrentHeaderLanguage(): ?string { 
+    const lang = HeaderStore.getCurrentLanguage(), // I find this a little sketchy. (Alex 3/2)
+          output = this.getOutputInLanguage(lang);
+
     switch (lang) { 
       case 'Python': return output == "None\n-------------------\n";
       case 'R': return output == "NULL\n-------------------\n";

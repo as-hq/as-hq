@@ -55,16 +55,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
         );
       }
 
-      case 'HEADER_EVALUATED': {
-        const language = state.get('currentLanguage');
-        const {value, display} = action;
-        const output = `${value}\n-------------------\n${display}`;
-        return state.setIn(
-          ['data', language, 'output'],
-          output
-        );
-      }
-
       case 'HEADER_LANGUAGE_CHANGED': {
         return state.set('currentLanguage', action.language);
       }
