@@ -1,3 +1,4 @@
+
 /* @flow */
 
 import type {
@@ -39,20 +40,25 @@ import _Styles from '../../styles/ASErrorPane';
 import _ from 'lodash';
 
 type Props = {
-  showAll: boolean;
+  onlyShowCurSelErrs: boolean; 
+  onErrorSelect: (row: number) => void;
+  showAllValueLink: ReactLink;
   errors: Array<ASClientError>;
 };
 
 export default class ASErrorPane
   extends React.Component<{}, Props, {}>
 {
+  constructor(props: Props) {
+    super(props);
+  }
 
-  shouldComponentUpdate(nextProps: Props, nextState: {}): boolean {
-    return !_.isEqual(nextProps.errors, this.props.errors);
+  shouldComponentUpdate(nextProps: Props, nextState: {}): boolean { 
+    return !_.isEqual(nextProps.errors, this.props.errors); 
   }
 
   render(): React.Element {
-    const {showAll, errors} = this.props;
+    let {onlyShowCurSelErrs, onErrorSelect, errors} = this.props;
     return (
       <Paper style={_Styles.root}>
         <div style={_Styles.showAllContainer}>
@@ -62,17 +68,16 @@ export default class ASErrorPane
           <input
             type="checkbox"
             style={_Styles.showAllCheckbox}
-            checked={showAll}
+            checkedLink={this.props.showAllValueLink}
           />
         </div>
-
         <Table
           height="100%"
           fixedHeader={true}
           selectable={false}
           style={_Styles.table}
           headerStyle={_Styles.th}
-          onCellClick={(row, _) => this._onErrorSelect(row)}>
+          onCellClick={(row, col) => onErrorSelect(row)}>
           <TableHeader
             adjustForCheckbox={false}
             displaySelectAll={false}
@@ -110,12 +115,7 @@ export default class ASErrorPane
             )}
           </TableBody>
         </Table>
-
       </Paper>
     );
-  }
-
-  _onErrorSelect(idx: number) {
-    // TODO
   }
 }
