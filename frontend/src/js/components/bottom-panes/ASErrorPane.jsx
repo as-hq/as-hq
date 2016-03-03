@@ -75,7 +75,7 @@ export default class ASErrorPane
           fixedHeader={true}
           selectable={false}
           style={_Styles.table}
-          headerStyle={_Styles.th}
+          headerStyle={_Styles.th}>
           <TableHeader
             adjustForCheckbox={false}
             displaySelectAll={false}
