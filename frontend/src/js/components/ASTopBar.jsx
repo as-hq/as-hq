@@ -103,7 +103,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
 
     return (
       <span>
-        <div style={{
+        <a href="http://alphasheets.com" style={{
           position: 'absolute',
           display: 'block',
           width: '60px',
@@ -114,6 +114,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
           borderRadius: '50%',
           fontWeight: '500',
           textAlign: 'center',
+          textDecoration: 'none',
           fontSize: '28pt',
           fontStyle: 'italic',
           fontFamily: 'Georgia, serif',
@@ -123,7 +124,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
           zIndex: topBarZIndex,
         }}>
           α
-        </div>
+        </a>
         <ASMenuBar style={{paddingLeft: '50px'}} menus={[
           {title: 'File', menuItems: [
 
