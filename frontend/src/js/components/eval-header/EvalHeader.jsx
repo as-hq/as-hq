@@ -4,7 +4,6 @@ import React from 'react';
 
 import Constants from '../../Constants.js';
 
-import HeaderStore from '../../stores/ASHeaderStore';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 import { actions as Shortcuts } from '../../AS/Shortcuts';
 

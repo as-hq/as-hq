@@ -24,8 +24,7 @@ type HeaderData = Immutable.Record$Class;
 type HeaderStoreData = Immutable.Record$Class;
 
 const HeaderRecord = Immutable.Record({
-  expression: '',
-  output: null
+  expression: ''
 });
 
 const HeaderStoreRecord = Immutable.Record({
@@ -53,16 +52,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
         return state.setIn(
           ['data', language, 'expression'],
           expression
-        );
-      }
-
-      case 'HEADER_EVALUATED': {
-        const language = state.get('currentLanguage');
-        const {value, display} = action;
-        const output = `${value}\n-------------------\n${display}`;
-        return state.setIn(
-          ['data', language, 'output'],
-          output
         );
       }
 
@@ -96,10 +85,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
 
   getCurrentLanguage(): ASLanguage {
     return this.getState().get('currentLanguage');
-  }
-
-  getCurrentOutput(): ?string {
-    return this._getCurrentHeader().get('output');
   }
 
   _getCurrentHeader(): HeaderData {

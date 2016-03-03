@@ -44,9 +44,11 @@ import OverlayActions from '../actions/ASOverlayActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import ClipboardActions from '../actions/ASClipboardActionCreators';
 
-import ModalStore from '../stores/ASModalStore';
 import ConfigStore from '../stores/ASConfigurationStore';
+import HeaderOutputStore from '../stores/ASHeaderOutputStore';
+import HeaderStore from '../stores/ASHeaderStore';
 import LogStore from '../stores/ASLogStore';
+import ModalStore from '../stores/ASModalStore';
 
 // $FlowFixMe: missing annotations
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
@@ -69,6 +71,7 @@ class App extends React.Component<{}, Props, {}> {
   _copyHandler: Callback<SyntheticClipboardEvent>;
   _cutHandler: Callback<SyntheticClipboardEvent>;
   _pasteHandler: Callback<SyntheticClipboardEvent>;
+  _headerOutputStoreToken: { remove: () => void };
 
   constructor(props: Props) {
     super(props);
@@ -80,6 +83,7 @@ class App extends React.Component<{}, Props, {}> {
   }
 
   componentDidMount() {
+    this._headerOutputStoreToken = HeaderOutputStore.addListener(() => this._onHeaderOutputChange());
     U.React.addStoreLinks(this, [
       { store: ModalStore }
     ]);
@@ -98,6 +102,7 @@ class App extends React.Component<{}, Props, {}> {
   }
 
   componentWillUnmount() {
+    this._headerOutputStoreToken.remove();
     U.React.removeStoreLinks(this);
     LogStore.removeListener(this._logListener);
     this._configListener.remove();
@@ -193,6 +198,13 @@ class App extends React.Component<{}, Props, {}> {
       default: {
         return <noscript />;
       }
+    }
+  }
+
+  _onHeaderOutputChange() { 
+    const curHeaderLang = HeaderStore.getCurrentLanguage();
+    if (!HeaderOutputStore.isOutputEmptyInLanguage(curHeaderLang)) {
+      this.setState({currentBottomPane: 'header'});
     }
   }
 }

@@ -7,6 +7,7 @@
 import React from 'react';
 
 import HeaderStore from '../../stores/ASHeaderStore';
+import HeaderOutputStore from '../../stores/ASHeaderOutputStore';
 
 import ASOutputPane from './ASOutputPane.jsx';
 
@@ -18,7 +19,8 @@ class ASHeaderPaneController extends React.Component<{}, {}, {}> {
   }
 
   componentDidMount() {
-    this._storeListener = HeaderStore.addListener(() => this.forceUpdate());
+    this._headerStoreListener = HeaderStore.addListener(() => this.forceUpdate());
+    this._headerOutputStoreListener = HeaderOutputStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
@@ -27,8 +29,8 @@ class ASHeaderPaneController extends React.Component<{}, {}, {}> {
 
   render(): React.Element {
     // Get ANSI-formatted string to display
-    const ansiContent = HeaderStore.getCurrentOutput();
     const language = HeaderStore.getCurrentLanguage();
+    const ansiContent = HeaderOutputStore.getOutputInLanguage(language);
     return (
       <ASOutputPane ansiContent={ansiContent}
                     title={`Header: ${language}`} />
