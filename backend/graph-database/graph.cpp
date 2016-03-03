@@ -6,9 +6,79 @@
 
 using namespace std;
 
+<<<<<<< HEAD
+=======
+/**** PRINTING *****/
+
+void printIndex(const Location& location){
+  cout << "Index: " << location.getTlCol() << "," << location.getTlRow() << endl;
+}
+
+template<typename T1>
+void print(const string& s, const T1&  t){
+  cout << s << ":  "<< t << endl;
+}
+
+void printColumn(const Column& column){
+  cout << "Column: " << column.getColumnNumber() << "," <<  column.getSheetId() << endl;
+}
+
+void printSet(DAG::VertexSet vs){
+  for (const auto& v : vs){
+    printIndex(v);
+  }
+}
+
+>>>>>>> a0f61d7... replace recompute with recomputeSheetDAG across the board; refactor GraphReadRequest
 
 /****************************************************************************************************************************************/
 // Clearing the DAG
+
+// Removes all locations in the vertex set with the given sheet id. 
+void clearSheetIdFromVertexSet(DAG::VertexSet& vs, string sheetId) {
+  for (auto it = vs.begin(); it != vs.end();) {
+      if (it->getSheetId() == sheetId) {
+          it = vs.erase(it);
+      } else {
+          ++it;
+      }       
+  }    
+}
+
+// Removes all locations in an adjacency list with the given sheet id. 
+// (essentially stored as (vertex, [adjacent vertices]) -- removes this pair if
+// vertex has that sheet id, and removes everything in [adjacent vertices] with that 
+// sheet id.)
+void clearSheetIdFromAdjacencyList(DAG::AdjacencyList& adj, string sheetId) { 
+  for (auto it = adj.begin(); it != adj.end();) {
+      if (it->first.getSheetId() == sheetId) {
+          it = adj.erase(it);
+      } else {
+          clearSheetIdFromVertexSet(it->second, sheetId);
+          ++it;
+      }       
+  }   
+}
+
+
+// Suppose we have a column neighbor component like (column A, [1 -> [desc1, desc2], 3 -> [desc3]])
+// (where components like these compose the entire ColumnNeighbors.) Remove this component
+// if column A's sheetId is the one passed in, and remove any of desc1, desc2, desc3 
+// whose sheetId is the one passed in. 
+void clearSheetIdFromColNeighbors(DAG::ColNeighbors& adj, string sheetId) { 
+  for (auto it = adj.begin(); it != adj.end();) {
+      if (it->first.getSheetId() == sheetId) {
+          it = adj.erase(it);
+      } else {
+          auto neighbors = it->second;  
+          for (auto it2 = neighbors.begin(); it2 != neighbors.end();) {
+            clearSheetIdFromVertexSet(it2->second, sheetId);
+          }
+          ++it;
+      }       
+  }   
+}
+
 
 void DAG::clearDAG() {
   toFromAdjList.clear();
@@ -16,6 +86,45 @@ void DAG::clearDAG() {
   fromColumnTo.clear();
 }
 
+<<<<<<< HEAD
+=======
+void DAG::clearSheetDAG(string sheetId) {
+  clearSheetIdFromAdjacencyList(toFromAdjList, sheetId);
+  clearSheetIdFromAdjacencyList(fromToAdjList, sheetId);
+  clearSheetIdFromColNeighbors(fromColumnTo, sheetId);
+}
+
+/************ Helper methods for finding immediate descendant. *****/
+
+/*** TEMPORARY TO HELP DEBUGGING ***/
+// Only apply this to indices.
+DAG::VertexSet DAG::findColDescendants(const DAG::Vertex& loc){
+  VertexSet a;
+  int r = getRowNumOfIndex(loc);
+  Column column = getColumnOfIndex(loc);
+  // Don't create column key in fromColumnTo if column is not present.
+  if (fromColumnTo.count(column) > 0) {
+    for (const auto& p : fromColumnTo[column]) {
+      if (p.first <= r) {
+        VertexSet v  = p.second;
+        a.insert(v.begin(), v.end());
+      }
+    }
+  }
+  return  a;
+}
+
+// Only apply this to indices.
+DAG::VertexSet DAG::getImmediateDesc(const DAG::Vertex& loc) {
+  VertexSet a;
+  if (fromToAdjList.count(loc) > 0) { // Don't create loc key if fromToAdjList doesn't have loc.
+    a = fromToAdjList[loc];
+  }
+  VertexSet s = findColDescendants(loc);
+  s.insert(a.begin(), a.end());
+  return s;
+}
+>>>>>>> a0f61d7... replace recompute with recomputeSheetDAG across the board; refactor GraphReadRequest
 /****************************************************************************************************************************************/
 // Map helper functions for inserts and deletes 
 

@@ -12,8 +12,8 @@ import AS.Config.Settings
 import AS.Types.Graph 
 
 import AS.DB.API as DB
-import AS.DB.Graph as G (recompute)
 import AS.DB.Clear as DC
+import AS.DB.Transaction as DT
 
 -------------------------------------------------------------------------------------------------------------------------
 -- This module is for database functions associated with exporting/importing data.
@@ -31,8 +31,7 @@ importSheetData :: AppSettings -> Connection -> ExportData -> IO ()
 importSheetData settings conn (ExportData cells bars descs condFormatRules headers) = do
   let sid = view (cellLocation.locSheetId) . $head $ cells
   DC.clearSheet settings conn sid 
-  DB.setCells conn cells
-  G.recompute (settings^.graphDbAddress) conn
+  DT.setCellsPropagated (settings^.graphDbAddress) conn cells
   mapM_ (DB.setBar conn) bars
   mapM_ (DB.setDescriptor conn) descs
   DB.setCondFormattingRules conn sid condFormatRules

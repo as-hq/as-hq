@@ -12,17 +12,17 @@ using namespace std;
 class Column {
 public:
   Column() {};
-  Column(const string& sheet, const int col): _sheetName(sheet), _columnNumber(col) {};
+  Column(const string& sheet, const int col): _sheetId(sheet), _columnNumber(col) {};
 
   bool operator==(const Column& rhs) const {
     return (_columnNumber == rhs.getColumnNumber()
-            && _sheetName == rhs.getSheetName());
+            && _sheetId == rhs.getSheetId());
   }
 
   friend size_t hash_value(const Column& c) {
     size_t seed = 0;
     boost::hash_combine(seed, c.getColumnNumber());
-    boost::hash_combine(seed, c.getSheetName());
+    boost::hash_combine(seed, c.getSheetId());
     return seed;
   }
 
@@ -31,12 +31,12 @@ public:
   int getColumnNumber() const {
     return _columnNumber;
   }
-  string getSheetName() const {
-    return _sheetName;
+  string getSheetId() const {
+    return _sheetId;
   }
 
 private:
-  string _sheetName;
+  string _sheetId;
   int _columnNumber;
 };
 
@@ -54,7 +54,7 @@ public:
   /* Location constructors */
   Location() {};
   Location(const LocationType &t, const string& sheet, const int tlCol, int tlRow, int brCol, int brRow) 
-    : type(t), sheetName(sheet), tlCol(tlCol), tlRow(tlRow), brCol(brCol), brRow(brRow) {};
+    : type(t), sheetId(sheet), tlCol(tlCol), tlRow(tlRow), brCol(brCol), brRow(brRow) {};
 
   /* Convert a pointer to the underlying index */
   Location pointerToIndex() const;
@@ -74,7 +74,7 @@ public:
       && (tlRow == rhs.getTlRow())
       && (brCol == rhs.getBrCol())
       && (brRow == rhs.getBrRow())
-      && (sheetName == rhs.getSheetName())
+      && (sheetId == rhs.getSheetId())
       && (type == rhs.getLocationType());
   };
 
@@ -85,7 +85,7 @@ public:
     boost::hash_combine(seed, l.tlRow);
     boost::hash_combine(seed, l.brCol);
     boost::hash_combine(seed, l.brRow);
-    boost::hash_combine(seed, l.sheetName);
+    boost::hash_combine(seed, l.sheetId);
     boost::hash_combine(seed, l.type);
     return seed;
   }
@@ -103,8 +103,8 @@ public:
   int getBrRow() const {
     return brRow;
   };
-  string getSheetName() const {
-    return sheetName;
+  string getSheetId() const {
+    return sheetId;
   };
   LocationType getLocationType() const {
     return type;
@@ -112,7 +112,7 @@ public:
 
 private:
   LocationType type;
-  string sheetName;
+  string sheetId;
   /* All locations have all four coordinates, replace br with (0,0) for non-ranges */
   /* Replace brRow with 0 for colRange */
   int tlCol;

@@ -37,19 +37,22 @@ import Control.Lens hiding (index, context)
 -- A relation (toLoc,[fromLoc]); a toLoc must be an index, a fromLoc can be any ancestor
 type ASRelation = (ASIndex, [GraphAncestor])
 
--- Graph read (getX) and write (setX) requests
-data GraphReadRequest = 
-    GetDescendants 
-  | GetImmediateDescendants 
-  | GetProperDescendants 
-  | GetImmediateAncestors 
-  | GetAllAncestors deriving (Show)
+-- Graph read (getX) requests
+data GraphReadRequest =   GetDescendants [AncestryRequestInput] 
+                        | GetImmediateDescendants [AncestryRequestInput] 
+                        | GetProperDescendants [AncestryRequestInput] 
+                        | GetImmediateAncestors [AncestryRequestInput] 
+                        | GetAllAncestors [AncestryRequestInput] deriving (Show)
 
-data GraphWriteRequest = SetRelations | Recompute | Clear deriving (Show)
+data AncestryRequestInput = IndexInput ASIndex | RangeInput ASRange deriving (Show)
+
+-- Graph set (setX) requests
+data GraphWriteRequest = SetRelations [ASRelation] | ClearAllDAGs | ClearSheetDAG ASSheetId deriving (Show)
 
 -- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
 -- of a range = descendants of decomposed indices in ranges
-data GraphReadInput  = IndexInput ASIndex | RangeInput ASRange
+-- ::ALEX:: rename
+
 
 -- The output of a graph descendant can only be an index (currently)
 -- One can imagine in the future that there's a constant in A1 that gets dragged down in an absolute reference
@@ -66,8 +69,8 @@ descendantsToIndices = map dToI
   where
     dToI (IndexDesc i) = i 
 
-indicesToGraphReadInput :: [ASIndex] -> [GraphReadInput]
-indicesToGraphReadInput = map IndexInput
+indicesToAncestryRequestInput :: [ASIndex] -> [AncestryRequestInput]
+indicesToAncestryRequestInput = map IndexInput
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -140,7 +143,7 @@ instance (Show2 ASRange) where
 instance (Show2 ASColRange) where 
   show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
-instance (Show2 GraphReadInput) where
+instance (Show2 AncestryRequestInput) where
   show2 (IndexInput i) = show2 i
   show2 (RangeInput r) = show2 r
 

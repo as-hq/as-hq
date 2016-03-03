@@ -75,7 +75,7 @@ main = R.withEmbeddedR R.defaultConfig $ do
    -- set in Settings.hs
   when isDebug $ initDebug state
 
-  G.recompute (settings^.graphDbAddress) (curState^.dbConn)
+  G.recomputeAllDAGs (settings^.graphDbAddress) (curState^.dbConn)
   putStrLn "RECOMPUTED DAG"
 
   putStrLn $ "server started on port " ++ show (settings^.backendWsPort)

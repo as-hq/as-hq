@@ -138,14 +138,9 @@ vector<string> processRequest(DAG& dag, string& request) {
     } else if (type == "Clear") {
         dag.clearDAG();
         return {stringifyStatus(DAG::DAGStatus::OK)};
-    } else if (type == "Recompute") {
-        dag.clearDAG();
-        int computeResult = 0; //dag.recomputeDAG();
-        if (computeResult == 0){
-            return {stringifyStatus(DAG::DAGStatus::OK)};
-        } else {
-            return {stringifyStatus(DAG::DAGStatus::ERROR)};
-        }
+    } else if (type == "ClearSheet") {
+        dag.clearSheetDAG(requestParts[0]);
+        return {stringifyStatus(DAG::DAGStatus::OK)};
     } else {
         return {stringifyStatus(DAG::DAGStatus::UNKNOWN_REQUEST_TYPE)};
     }

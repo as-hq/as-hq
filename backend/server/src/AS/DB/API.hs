@@ -63,15 +63,18 @@ import Control.Monad.Trans.Either
 getCell :: Connection -> ASIndex -> IO (Maybe ASCell)
 getCell conn loc = $head <$> getCells conn [loc]
 
+-- ::ALEX:: these are kind of unsafe
 setCell :: Connection -> ASCell -> IO ()
 setCell conn c = setCells conn [c]
 
 getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells = multiGet IndexKey dbValToCell
 
+-- ::ALEX:: these are kind of unsafe
 setCells :: Connection -> [ASCell] -> IO ()
 setCells = setWithSheetFunc (SheetLocsKey . view locSheetId) IndexKey CellDBValue (view cellLocation)
 
+-- ::ALEX:: these are kind of unsafe
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs = delWithSheetFunc (SheetLocsKey . view locSheetId) IndexKey
 

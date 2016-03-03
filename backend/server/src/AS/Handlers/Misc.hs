@@ -113,7 +113,6 @@ handleClear mid client state sid = do
       settings = state^.appSettings
       graphAddr = settings^.graphDbAddress
   DC.clearSheet settings conn sid
-  G.recompute graphAddr conn
   broadcastTo state [sid] $ ClientMessage mid $ ClearSheet sid
 
 handleUndo :: MessageId -> ASUserClient -> ServerState -> IO ()

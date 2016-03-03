@@ -14,7 +14,7 @@ string refDelimiter = "/";
 /* Convert a pointer to the underlying index */
 Location Location::pointerToIndex() const {
   if (type == LocationType::POINTER) {
-    return Location(LocationType::INDEX,sheetName,tlCol,tlRow,0,0);
+    return Location(LocationType::INDEX,sheetId,tlCol,tlRow,0,0);
   } else {
     cout << "Didn't use pointerToIndex on a POINTER type" << endl;
     throw "Didn't use pointerToIndex on a POINTER type";
@@ -26,7 +26,7 @@ void Location::rangeToIndices(vector<Location>& indices) const {
   if (type == LocationType::RANGE) {
     for (int i = tlCol; i <= brCol; ++i) {
       for (int j = tlRow; j <= brRow; ++j) {
-        indices.push_back(Location(LocationType::INDEX,sheetName,i,j,0,0));
+        indices.push_back(Location(LocationType::INDEX,sheetId,i,j,0,0));
       }
     }
   } else {
@@ -38,7 +38,7 @@ void Location::rangeToIndices(vector<Location>& indices) const {
 void Location::colRangeToMinRowAndColumns(int& minRow, vector<Column>& columns) const {
   if (type == LocationType::COLRANGE) {
     for (int i = tlCol; i <= brCol; ++i){
-      columns.push_back(Column(sheetName,i));
+      columns.push_back(Column(sheetId,i));
     }
   }
   minRow = tlRow;
@@ -82,7 +82,7 @@ int getColumnNumOfIndex(const Location& loc) {
 
 Column getColumnOfIndex(const Location& loc) {
   if (loc.getLocationType() == Location::LocationType::INDEX) {
-    return Column(loc.getSheetName(), getColumnNumOfIndex(loc));
+    return Column(loc.getSheetId(), getColumnNumOfIndex(loc));
   }
   cout << "Attempted to get Column of non-index" << endl;
   throw "Attempted to get Column of non-index";
@@ -142,7 +142,7 @@ Location fromString(string str) {
 }
 
 string toString(const Location& l) {
-  string middle = refDelimiter + l.getSheetName() + refDelimiter;
+  string middle = refDelimiter + l.getSheetId() + refDelimiter;
   string location;
   int tlCol = l.getTlCol();
   int tlRow = l.getTlRow();

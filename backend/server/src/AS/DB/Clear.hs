@@ -9,6 +9,7 @@ import Control.Lens hiding (set)
 import Control.Monad.Trans
 
 import Prelude()
+import AS.DB.Graph as G
 import AS.Prelude
 import AS.Types.Network 
 import AS.Kernels.Python as KP
@@ -26,5 +27,6 @@ clearSheet settings conn sid = do
   delInSheet SheetLastMessagesKey conn sid
   delInSheet SheetTempCommitsKey conn sid
   delInSheet SheetRangesKey conn sid
+  G.recomputeSheetDAG (settings^.graphDbAddress) conn sid
   -- clear python kernel for sheet
   liftIO $ KP.clear (settings^.pyKernelAddress) sid 

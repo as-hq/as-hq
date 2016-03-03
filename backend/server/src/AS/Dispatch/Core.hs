@@ -112,7 +112,13 @@ runDispatchCycle state cs descSetting src updateTransform = do
 
     DT.updateDBWithContext state src ctx
     return $ ctx^.updateAfterEval
-  either (const $ G.recompute graphAddress conn) (const $ return ()) errOrUpdate -- graph db may have changed during dispatch; if not committed, reset it
+  -- DAG may have changed during dispatch; if not committed, reset it. Note that it is *not* 
+  -- fully correct to just recompute what's in the current sheet. If we start in sheet A, and 
+  -- we updated something in sheet B that caused it to expand and eat up a cell that previously had
+  -- a dependency in it, that dependency doesn't get restored by recomputing sheet A. For now though
+  -- we aren't worrying about this. 
+  -- #incomplete (--Alex 3/1/2016)
+  either (const $ G.recomputeSheetDAG graphAddress conn (srcSheetId src)) (const $ return ()) errOrUpdate
   return errOrUpdate
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
@@ -133,7 +139,7 @@ dispatch state roots oldContext descSetting = do
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
   cellsToEval    <- getCellsToEval conn oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
-  ancLocs        <- G.getImmediateAncestors graphAddress $ indicesToGraphReadInput descLocs
+  ancLocs        <- G.getImmediateAncestors graphAddress $ indicesToAncestryRequestInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
