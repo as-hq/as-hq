@@ -6,31 +6,6 @@
 
 using namespace std;
 
-<<<<<<< HEAD
-=======
-/**** PRINTING *****/
-
-void printIndex(const Location& location){
-  cout << "Index: " << location.getTlCol() << "," << location.getTlRow() << endl;
-}
-
-template<typename T1>
-void print(const string& s, const T1&  t){
-  cout << s << ":  "<< t << endl;
-}
-
-void printColumn(const Column& column){
-  cout << "Column: " << column.getColumnNumber() << "," <<  column.getSheetId() << endl;
-}
-
-void printSet(DAG::VertexSet vs){
-  for (const auto& v : vs){
-    printIndex(v);
-  }
-}
-
->>>>>>> a0f61d7... replace recompute with recomputeSheetDAG across the board; refactor GraphReadRequest
-
 /****************************************************************************************************************************************/
 // Clearing the DAG
 
@@ -86,45 +61,12 @@ void DAG::clearDAG() {
   fromColumnTo.clear();
 }
 
-<<<<<<< HEAD
-=======
 void DAG::clearSheetDAG(string sheetId) {
   clearSheetIdFromAdjacencyList(toFromAdjList, sheetId);
   clearSheetIdFromAdjacencyList(fromToAdjList, sheetId);
   clearSheetIdFromColNeighbors(fromColumnTo, sheetId);
 }
 
-/************ Helper methods for finding immediate descendant. *****/
-
-/*** TEMPORARY TO HELP DEBUGGING ***/
-// Only apply this to indices.
-DAG::VertexSet DAG::findColDescendants(const DAG::Vertex& loc){
-  VertexSet a;
-  int r = getRowNumOfIndex(loc);
-  Column column = getColumnOfIndex(loc);
-  // Don't create column key in fromColumnTo if column is not present.
-  if (fromColumnTo.count(column) > 0) {
-    for (const auto& p : fromColumnTo[column]) {
-      if (p.first <= r) {
-        VertexSet v  = p.second;
-        a.insert(v.begin(), v.end());
-      }
-    }
-  }
-  return  a;
-}
-
-// Only apply this to indices.
-DAG::VertexSet DAG::getImmediateDesc(const DAG::Vertex& loc) {
-  VertexSet a;
-  if (fromToAdjList.count(loc) > 0) { // Don't create loc key if fromToAdjList doesn't have loc.
-    a = fromToAdjList[loc];
-  }
-  VertexSet s = findColDescendants(loc);
-  s.insert(a.begin(), a.end());
-  return s;
-}
->>>>>>> a0f61d7... replace recompute with recomputeSheetDAG across the board; refactor GraphReadRequest
 /****************************************************************************************************************************************/
 // Map helper functions for inserts and deletes 
 
@@ -452,7 +394,7 @@ void print(const string& s, const T1&  t){
 }
 
 void printColumn(const Column& column){
-  cout << "Column: " << column.getColumnNumber() << "," <<  column.getSheetName() << endl;
+  cout << "Column: " << column.getColumnNumber() << "," <<  column.getSheetId() << endl;
 }
 
 void printSet(DAG::VertexSet vs){

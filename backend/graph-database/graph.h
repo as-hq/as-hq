@@ -54,24 +54,18 @@ public:
    * Immediate descendants of loc are a mix of descendants referenced as part of a
    * range, pointer, or index expression (in the fromToAdjList), and the colRange
    * descendants (in the fromColTo map). */
-<<<<<<< HEAD
-  VertexSet getImmediateDescendantSet(const Vertex& loc);
+
+private:
   VertexSet getImmediateAncestorSet(const Vertex& loc);
+  VertexSet getImmediateDescendantSet(const Vertex& loc);
   VertexSet findColDescendantSet(const Vertex& loc);
+  bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
   void depthFirstSearch(
     const Vertex& loc, 
     unordered_map<Vertex,bool>& visited, 
     vector<Vertex>& order,
     const bool& searchForward // indicates whether to search forward or backward along edges
-  ); 
-=======
-
-private:
-  VertexSet getImmediateDesc(const Vertex& loc);
-  VertexSet findColDescendants(const Vertex& loc);
->>>>>>> a0f61d7... replace recompute with recomputeSheetDAG across the board; refactor GraphReadRequest
-  bool cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, unordered_map<Vertex,bool>& rec_stack);
-  void depthFirstSearch(const Vertex& loc, unordered_map<Vertex,bool>& visited, vector<Vertex>& order);
+  );
 };
 
 #endif /* GRAPH_H */
