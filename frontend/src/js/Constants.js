@@ -133,6 +133,11 @@ var Constants = Object.assign({
     SQL: 'SQL'
   },
 
+  HeaderLanguages: {
+    Python: 'Python',
+    R: 'R'
+  },
+
   AceMode: {
     'Excel': 'text',
     'Python': 'python',

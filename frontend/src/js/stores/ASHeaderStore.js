@@ -29,7 +29,7 @@ const HeaderRecord = Immutable.Record({
 
 const HeaderStoreRecord = Immutable.Record({
   data: Immutable.Map().withMutations(mut => {
-    for (const key in Constants.Languages) {
+    for (const key in Constants.HeaderLanguages) {
       mut.set(key, new HeaderRecord());
     }
   }),
@@ -55,8 +55,16 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
         );
       }
 
-      case 'NORMAL_SEL_CHANGED':
-      case 'LANGUAGE_CHANGED':
+      case 'HEADER_EVALUATED': {
+        const language = state.get('currentLanguage');
+        const {value, display} = action;
+        const output = `${value}\n-------------------\n${display}`;
+        return state.setIn(
+          ['data', language, 'output'],
+          output
+        );
+      }
+
       case 'HEADER_LANGUAGE_CHANGED': {
         return state.set('currentLanguage', action.language);
       }

@@ -48,7 +48,7 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
   constructor(props: EvalHeaderProps) {
     super(props);
     this._languages = [];
-    for (const key in Constants.Languages) {
+    for (const key in Constants.HeaderLanguages) {
       this._languages.push({ payload: key, text: key });
     }
   }
