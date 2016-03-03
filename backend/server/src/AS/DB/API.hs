@@ -296,7 +296,7 @@ getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO EvalHeader
 getEvalHeader conn sid lang = do 
   maybeEH <- getV conn (EvalHeaderKey sid lang) dbValToEvalHeaderBStr
   case maybeEH of 
-    Nothing -> return $ EvalHeader sid lang ""
+    Nothing -> return $ EvalHeader sid lang (defaultHeaderText lang)
     Just msg -> return $ EvalHeader sid lang (BC.unpack msg)
 
 setEvalHeader :: Connection -> EvalHeader -> IO ()

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module AS.Config.Constants where 
 
-import Data.Text
+import Data.Text hiding (unlines)
 
 -- daemons do not require generated MessageIDs because they are 
 -- send-only clients. They don't receive any data back from the 
@@ -38,3 +38,49 @@ auth_message_id = "auth_message_id"
 
 new_sheet_name :: String
 new_sheet_name = "Sheet1"
+
+pythonHeaderDefaultText :: String
+pythonHeaderDefaultText = unlines [
+  "# This is the Python evaluation header. Any ", 
+  "# functions and variables defined here can ", 
+  "# be referenced within any Python cell. ",
+  "# ",
+  "# Try uncommenting the below lines (select", 
+  "# lines 8-11 and press Ctrl+/):",
+  "#",  
+  "# def foo(x):",
+  "#   return x ** 2",
+  "# ",
+  "# bar = 3",
+  "# ",
+  "# Then press the \"Evaluate\" button at the",
+  "# top of this editor, and evaluate",
+  "# foo(bar) in some cell with the language",
+  "# set to Python. ",
+  "# ",
+  "# You can also see code outputs by ",
+  "# evaluating the header. Uncomment the ",
+  "# below lines and press evaluate: ",
+  "# ",
+  "# print \"Printed text!\"",
+  "# 3 ** 2 + 1" ]
+
+rHeaderDefaultText :: String
+rHeaderDefaultText = unlines [ 
+  "# This is the R evaluation header. Any ",
+  "# functions and variables defined here can ",
+  "# be referenced within any R cell. ",
+  "# ",
+  "# Try uncommenting the below lines (select",
+  "# lines 8-12 and press Ctrl+/):",
+  "# ",
+  "# foo <- function(x) {",
+  "#   return(x**2)",
+  "# }",
+  "# ",
+  "# bar <- 4",
+  "# ",
+  "# Then press the \"Evaluate\" button at the",
+  "# top of this editor, and evaluate",
+  "# foo(bar) in some cell with the language",
+  "# set to R. " ]

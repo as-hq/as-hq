@@ -6,6 +6,7 @@ import AS.Prelude
 import Prelude()
 
 import AS.ASJSON
+import AS.Config.Constants
 
 import AS.Types.Cell
 
@@ -19,6 +20,11 @@ data EvalHeader = EvalHeader { _evalHeaderSheetId :: ASSheetId
                              , _evalHeaderExpr    :: String
                              } 
                              deriving (Show, Read, Eq, Data, Typeable, Generic)                           
+
+defaultHeaderText :: ASLanguage -> String
+defaultHeaderText Python = pythonHeaderDefaultText
+defaultHeaderText R      = rHeaderDefaultText
+defaultHeaderText _      = ""
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
