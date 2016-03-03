@@ -19,7 +19,7 @@ import FontIcon from 'material-ui/lib/font-icon';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ConfigActions from '../actions/ASConfigActionCreators';
 
-import {bottomBarButton as bottomBarButtonZIndex} from '../styles/zIndex';
+import {bottomBar as bottomBarZIndex} from '../styles/zIndex';
 
 type Props = {
   toggleBottomPane: Callback<string>;
@@ -86,7 +86,8 @@ const styles = {
     position: 'relative',
     display: 'block',
     height: '24px',
-    background: '#212121'
+    background: '#212121',
+    zIndex: bottomBarZIndex,
   },
 
   button: {
@@ -94,7 +95,6 @@ const styles = {
     display: 'inline-block',
     width: '40px',
     top: '50%',
-    zIndex: bottomBarButtonZIndex,
     transform: 'translateY(-50%)' // vertically center
   },
 
