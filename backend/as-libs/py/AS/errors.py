@@ -4,11 +4,8 @@ class InsufficientArgumentsException(Exception):
 class ColumnHeaderNotPresent(Exception):
 	pass
 
-class MultiDimensionalDataException(Exception):
-	pass
-
-class OneDimCalledOnNonListObject(Exception):
+class CannotEmbedListsOfDimensionGreaterThanTwo(Exception):
   pass
 
-class OneDimCalledOnNonRowOrCol(Exception):
+class CannotCoerceTo1DList(Exception):
   pass

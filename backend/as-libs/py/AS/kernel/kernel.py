@@ -39,7 +39,6 @@ class ASKernel(object):
     import cPickle
     import base64
     ns = locals()
-    import_pylab(ns)
     return ns
 
   def listen(self):

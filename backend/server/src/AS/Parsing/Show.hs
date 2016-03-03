@@ -105,16 +105,12 @@ showCollection lang coll = case coll of
   A arr -> list lang $ map (showPrimitive lang) arr
   M mat -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
 
--- Previously existed to cast Python lists into a custom AlphaSheets iterable class that
--- had a bunch of nice perks. These nice perks were just confusing. This casting is 
--- no longer happening. (Alex, 1/8/2016)
 wrapList :: ASLanguage -> String -> String
-wrapList = const id
--- wrapList lang l = wrapL ++ l ++ wrapR
---   where
---     (wrapL, wrapR) = case lang of 
---       Python -> ("arr(", ")")
---       _ -> ("", "") 
+wrapList lang l = wrapL ++ l ++ wrapR
+  where
+    (wrapL, wrapR) = case lang of
+      Python -> ("arr(", ")")
+      _      -> ("", "") 
 
 list :: ASLanguage -> [String] -> String
 list lang xs = start ++ (L.intercalate dlm xs) ++ end

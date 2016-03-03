@@ -5,6 +5,7 @@ import pandas as pd
 
 from AS.hidden import Hidden
 import AS.functions.openExcel as ex
+from AS.iterable import ASIterable
 
 import matplotlib._pylab_helpers as mpl
 
@@ -83,16 +84,16 @@ def serialize(val):
                        'seriesIndices': indices,
                        'seriesData': data})
 
-  # elif isinstance(val, ASIterable): 
-  #   if val.hidden or val.arr.ndim > 2:
-  #     name = 'HIDDEN LIST'
-  #     if val.name:
-  #       name = val.name
-  #     return json.dumps(generalSerialize(val, name))
-  #   else: 
-  #     vals = [serializeListElem(e) for e in val.toList()]
-  #     sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
-  #     return json.dumps(sVal)
+  elif isinstance(val, ASIterable): 
+    if val.hidden or val.arr.ndim > 2:
+      name = 'HIDDEN LIST'
+      if val.name:
+        name = val.name
+      return json.dumps(generalSerialize(val, name))
+    else: 
+      vals = [serializeListElem(e) for e in val.toList2D()]
+      sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
+      return json.dumps(sVal)
 
   elif isinstance(val, Hidden):
     return json.dumps(generalSerialize(val, val.name))
@@ -114,8 +115,8 @@ def serializeListElem(val):
     return [serializeListElem(e) for e in val]
   elif isinstance(val, np.ndarray):
     return [serializeListElem(e) for e in val.tolist()]
-  # elif isinstance(val, ASIterable):
-  #   return [serializeListElem(e) for e in val.toList()]
+  elif isinstance(val, ASIterable):
+    return [serializeListElem(e) for e in val.toList()]
   elif isinstance(val, dict):
     return generalSerialize(val, 'DICT')
   elif isPrimitive(val):

@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 import random
-# from AS.iterable import ASIterable
+from AS.iterable import ASIterable
 from AS.hidden import Hidden
 from AS.errors import *
 from AS.formats import *
 
-# def arr(lst):
-#   return ASIterable(lst)
+def arr(lst):
+  return ASIterable(lst)
 
 def space(lst, sp):
   lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
@@ -60,16 +60,6 @@ def unhide(val):
     return val.unhide()
   else:
    return val
-
-def oneDim(lst):
-    if not isinstance(lst, list): 
-      raise OneDimCalledOnNonListObject
-    if len(lst) == 1: # if it's a row 
-        return lst[0]
-    elif all(isinstance(l, list) and len(l) == 1 for l in lst): # it's a column
-        return [l[0] for l in lst]
-    else: 
-        raise OneDimCalledOnNonRowOrCol
 
 def pprintDataFrame(dataframe):
   rows = repr(dataframe).split('\n')

@@ -8,7 +8,7 @@
   "redisPort": 6381,
   "redisHost": "localhost",
   "redisPassword": "40a00d6110873f61c786f28cd79cfa47302041a5",
-  "shouldWriteToConsole": false,
+  "shouldWriteToConsole": true,
   "shouldWriteToSlack": true,
   "frontendPort": 8280,
   "fileInputHandlerPort": 9200,
