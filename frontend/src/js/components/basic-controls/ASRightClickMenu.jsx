@@ -21,6 +21,7 @@ export default React.createClass({
     return {
       x: 0,
       y: 0,
+      clickAwayBuffer: false,
       expanded: false,
       menuItems: []
     };
@@ -33,7 +34,11 @@ export default React.createClass({
   },
 
   componentClickAway() {
-    if (this.state.expanded) {
+    // componentClickAway() is fired on the first right-click that opens the menu.
+    // If there's no clickAwayBuffer, the menu would close immediately. 
+    if (this.state.clickAwayBuffer) {
+      this.setState({ clickAwayBuffer: false });
+    } else if (this.state.expanded) {
       this.close();
     }
   },
@@ -42,6 +47,7 @@ export default React.createClass({
     this.setState({
       x,
       y,
+      clickAwayBuffer: true,
       expanded: true,
       menuItems,
     });
@@ -49,8 +55,8 @@ export default React.createClass({
 
   close() {
     if (this.state.expanded) {
-      FocusActions.focus('grid'); // restore focus to grid
-      this.setState({expanded: false});
+      FocusActions.focus("grid"); // restore focus to grid
+      this.setState({clickAwayBuffer: false, expanded: false});
     }
   },
 
