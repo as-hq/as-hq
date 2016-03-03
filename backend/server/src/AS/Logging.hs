@@ -45,7 +45,7 @@ getDate :: IO String
 getDate = getCurrentTime >>= (return . (take 10) . show)
 
 appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catch (appendFile fname msg) (\e -> putStrLn $ ("Error writing to log: " ++ show (e :: SomeException)))
+appendFile' fname msg = catch (appendFile fname msg) (\e -> void . return $ (e :: SomeException))
 
 printWithTime :: String -> IO ()
 printWithTime = when shouldWritetoConsole . printWithTimeForced

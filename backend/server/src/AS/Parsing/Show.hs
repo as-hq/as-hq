@@ -44,7 +44,6 @@ showPrimitive lang v = case v of
   ValueImage _ -> "IMAGE"
   ValueError e _ -> "ERROR"
   ValueSerialized s _ -> s
-  _ -> $error ("In showPrimitive, failed to pattern match: " ++ (show v))
 
 showExpanding :: ASLanguage -> ExpandingValue -> String
 
