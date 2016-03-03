@@ -199,12 +199,15 @@ function installAllShortcuts() {
     API.copy(range.getLeftColumn(), range);
   });
   install('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
-    const {origin} = SelectionStore.getActiveSelection();
-    const range = SelectionStore.getViewingWindow();
+    const {origin: {row, col}} = SelectionStore.getActiveSelection();
+
+    // TODO this is a hack. Depends on ScrollManager to work properly.
+    debugger;
     SpreadsheetActions.select(
-      ASSelection.fromASLocations({
-        origin, range
-      })
+      ASRange.fromNaked({
+        tl: {row, col},
+        br: {row: row + 20, col: col + 30}
+      }).toSelection()
     );
   });
   install('grid', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
