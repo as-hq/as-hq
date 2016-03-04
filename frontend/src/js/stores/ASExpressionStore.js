@@ -78,6 +78,7 @@ class ExpressionStore extends ReduceStore<State> {
 
       case 'EXPRESSION_CHANGED': {
         const {expression} = action;
+        console.error('expression changed!', expression);
         const deps = U.Parsing.parseDependencies(expression, state.currentLanguage);
         Render.setDependencies(deps);
         return state.merge({
