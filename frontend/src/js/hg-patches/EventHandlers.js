@@ -36,14 +36,12 @@ const callbacks: Array<InitCallback> = [
         let scroll = spreadsheet.getScroll();
         // TODO: fix the setState
         spreadsheet.setState({scroll: scroll});
-        ActionCreator.scroll(spreadsheet.getViewingWindow());
       },
 
       'fin-scroll-y': function (event) {
         let scroll = spreadsheet.getScroll();
         // TODO: fix the setState
         spreadsheet.setState({scroll: scroll});
-        ActionCreator.scroll(spreadsheet.getViewingWindow());
       },
 
       'fin-double-click': function (event) {
