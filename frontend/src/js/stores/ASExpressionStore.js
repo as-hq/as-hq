@@ -213,11 +213,12 @@ class ExpressionStore extends ReduceStore<State> {
 function displayActiveExpression(state: State, origin: ASIndex): State {
   const cell = CellStore.getCell(origin);
   const expression = (!! cell) ? cell.expression.expression : '';
-  const language = (!! cell) ? cell.expression.language : state.defaultLanguage;
-  const deps = U.Parsing.parseDependencies(expression, language);
+  const currentLanguage = (!! cell) ? cell.expression.language : state.defaultLanguage;
+  const deps = U.Parsing.parseDependencies(expression, currentLanguage);
   Render.setDependencies(deps);
   return state.merge({
     expression,
+    currentLanguage,
     isInsertingRef: false,
     isEditing: false,
     textboxPosition: origin
