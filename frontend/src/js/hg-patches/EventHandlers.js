@@ -124,7 +124,7 @@ const callbacks: Array<InitCallback> = [
     // (1,1) rather than (0,0).
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
-        let {origin} = spreadsheet.getSelectionArea(),
+        let {origin} = spreadsheet._getSelection(),
             newBr = {col: evt.gridCell.x, row: evt.gridCell.y};
         spreadsheet.select(
           ASSelection.fromASLocations({
@@ -208,7 +208,7 @@ const callbacks: Array<InitCallback> = [
       if (selOrigin != null) {
         // range dragging
         let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
-        let {range} = spreadsheet.getSelectionArea();
+        let {range} = spreadsheet._getSelection();
         spreadsheet.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
         spreadsheet.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
                               y: evt.primitiveEvent.detail.mouse.y};
@@ -265,7 +265,7 @@ const callbacks: Array<InitCallback> = [
             return;
           }
           let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
-          let sel = spreadsheet.getSelectionArea();
+          let sel = spreadsheet._getSelection();
           let toRange = Render.getDragRect(),
               fromRange = sel.range;
           if (!! toRange) {

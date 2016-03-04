@@ -43,6 +43,18 @@ const NotificationStore = Object.assign({}, BaseStore, {
         NotificationStore._remove(action.uid);
         break;
       }
+
+      case 'GOT_FAILURE': {
+        const notif = new NotificationRecord({
+          title: 'Error',
+          message: action.errorMsg,
+          level: 'error',
+          autoDismiss: 2
+        });
+        _notifications.push(notif.uid);
+        NotificationStore.emit('ADD', notif);
+        break;
+      }
     }
   }),
 
