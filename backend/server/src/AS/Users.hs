@@ -29,7 +29,8 @@ authenticateUser strat = case strat of
     case appClientId of 
       Just (String clientId) -> do
         -- use the user's email as the unique user identifier
-        let uid = (\(String t) -> t) <$> r ^? responseBody . key "    email"
+        
+        let uid = (\(String t) -> t) <$> r ^? responseBody . key "email"
         return $ if (T.unpack clientId) /= google_client_id
           then Left "received incorrect app client id"
           else case uid of 
