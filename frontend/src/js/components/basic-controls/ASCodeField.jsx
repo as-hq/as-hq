@@ -38,7 +38,8 @@ type Props = {
   onKeyDown: Callback<SyntheticKeyboardEvent>;
   onKeyUp: Callback<SyntheticKeyboardEvent>;
   onFocus: Callback<SyntheticFocusEvent>;
-
+  onMouseDown: Callback;
+  onMouseEnter: CallBack;
 };
 
 export default class ASCodeField
@@ -52,6 +53,7 @@ export default class ASCodeField
     this._onPropsSet(this.props);
     this.editor.on('alphasheets-keydown', (e) => this.props.onKeyDown(e));
     this.editor.container.addEventListener('mousedown', () => this.props.onMouseDown());
+    this.editor.container.addEventListener('mouseenter', () => this.props.onMouseEnter());
   }
 
   componentWillUnmount() {
@@ -77,13 +79,9 @@ export default class ASCodeField
       <div
         id={this.props.name}
         style={divStyle}
-        onKeyUp={(evt) => this._handleKeyUp(evt)}
+        onKeyUp={e => this.props.onKeyUp(e)}
       />
     );
-  }
-
-  _handleKeyUp(evt: SyntheticKeyboardEvent) {
-    this.props.onKeyUp(evt);
   }
 
   _onPropsSet(props: Props) {
@@ -121,4 +119,5 @@ ASCodeField.defaultProps = {
   onKeyUp(evt) { },
   onFocus() { },
   onMouseDown() { },
+  onMouseEnter() { },
 };

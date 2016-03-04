@@ -14,6 +14,13 @@ export default {
     });
   },
 
+  hover(hover: FocusedElement) {
+    Dispatcher.dispatch({
+      _type: 'HOVERED',
+      hover
+    })
+  },
+
   focusTextboxFully() {
     Dispatcher.dispatch({
       _type: 'FOCUSED_TEXTBOX_FULLY'

@@ -25,7 +25,7 @@ import Contents from './ASCondFormattingDialogContents.jsx';
 
 import API from '../../actions/ASApiActionCreators';
 import CFStore from '../../stores/ASCondFormatStore';
-import SelectionStore from '../../stores/ASSelectionStore';
+import GridStore from '../../stores/ASGridStore';
 
 import Util from '../../AS/Util';
 
@@ -66,7 +66,7 @@ export default class ASCondFormattingDialog
     Util.React.addStoreLinks(this, [
       { store: CFStore },
     ]);
-    this._selectionListener = SelectionStore.addListener(() => this.forceUpdate());
+    this._selectionListener = GridStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
@@ -144,12 +144,12 @@ export default class ASCondFormattingDialog
   }
 
   _getRules(): Array<ASCondFormatRule> {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     return CFStore.getRulesApplyingToRange(range);
   }
 
   _openCreateRuleDialog() {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     const defaultRangeStr = range.toExcel().toString()
 
     const defaultFormatter: BoolFormatMapConstructor = {

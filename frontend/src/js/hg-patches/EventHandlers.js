@@ -13,11 +13,11 @@ import ASSpreadsheet from '../components/ASSpreadsheet.jsx';
 import rowHeaderMenuItems from '../components/menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from '../components/menus/ColumnHeaderMenuItems.jsx';
 
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import API from '../actions/ASApiActionCreators';
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
 import ExpressionActions from '../actions/ASExpressionActionCreators';
 import FocusActions from '../actions/ASFocusActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
@@ -32,16 +32,40 @@ const callbacks: Array<InitCallback> = [
   ({ spreadsheet, hg }) => {
     let callbacks = ({
 
+      // #needsrefactor should put scrollPixels in a store instead,
+      // so globally accessible
       'fin-scroll-x': function (event) {
-        let scroll = spreadsheet.getScroll();
-        // TODO: fix the setState
-        spreadsheet.setState({scroll: scroll});
+        if (event.detail.oldValue <= event.detail.value) {
+          const scrollPixels = {
+            x: spreadsheet.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
+            y: spreadsheet.state.scrollPixels.y
+          };
+          spreadsheet.setState({scrollPixels});
+        } else {
+          const scrollPixels = {
+            x: spreadsheet.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
+            y: spreadsheet.state.scrollPixels.y
+          };
+          spreadsheet.setState({scrollPixels});
+        }
       },
 
+      // #needsrefactor should put scrollPixels in a store instead,
+      // so globally accessible
       'fin-scroll-y': function (event) {
-        let scroll = spreadsheet.getScroll();
-        // TODO: fix the setState
-        spreadsheet.setState({scroll: scroll});
+        if (event.detail.oldValue <= event.detail.value) {
+          const scrollPixels = {
+            y: spreadsheet.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
+            x: spreadsheet.state.scrollPixels.x
+          };
+          spreadsheet.setState({scrollPixels});
+        } else {
+          const scrollPixels = {
+            y: spreadsheet.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
+            x: spreadsheet.state.scrollPixels.x
+          };
+          spreadsheet.setState({scrollPixels});
+        }
       },
 
       'fin-double-click': function (event) {
@@ -112,7 +136,7 @@ const callbacks: Array<InitCallback> = [
           }),
         false);
       } else {
-        let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
+        let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
         if (spreadsheet.insideBox(evt) && !evt.primitiveEvent.detail.isRightClick) {
           // dragging blue box
           spreadsheet.mouseDownInBox = true;
@@ -143,7 +167,7 @@ const callbacks: Array<InitCallback> = [
 
   ({ spreadsheet, model }) => {
     model.onMouseMove = (grid, evt) => {
-      let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
+      let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
       if (spreadsheet.insideBox(evt)) {
         spreadsheet.setState({cursorStyle:'crosshair'});
       } else if (Render.isOnSelectionEdge(x, y)) {
@@ -183,13 +207,13 @@ const callbacks: Array<InitCallback> = [
       let selOrigin = spreadsheet.dragSelectionOrigin;
       if (selOrigin != null) {
         // range dragging
-        let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
+        let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
         let {range} = spreadsheet.getSelectionArea();
         spreadsheet.drawDraggedSelection(selOrigin, range, evt.gridCell.x, evt.gridCell.y);
         spreadsheet.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
                               y: evt.primitiveEvent.detail.mouse.y};
         spreadsheet.scrollWithDraggables(grid);
-        spreadsheet.repaint();
+        spreadsheet._repaint();
       } else if (spreadsheet.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
         // box dragging
         let {x,y} = evt.gridCell; // accounts for scrolling
@@ -197,7 +221,7 @@ const callbacks: Array<InitCallback> = [
         spreadsheet.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
                               y: evt.primitiveEvent.detail.mouse.y};
         spreadsheet.scrollWithDraggables(grid);
-        spreadsheet.repaint(); // show dotted lines
+        spreadsheet._repaint(); // show dotted lines
       } else if (model.featureChain) {
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
@@ -240,14 +264,14 @@ const callbacks: Array<InitCallback> = [
           if (Render.getDragRect() === null) {
             return;
           }
-          let {x, y} = spreadsheet.getCoordsFromMouseEvent(grid, evt);
+          let {x, y} = spreadsheet._getCoordsFromMouseEvent(evt);
           let sel = spreadsheet.getSelectionArea();
           let toRange = Render.getDragRect(),
               fromRange = sel.range;
           if (!! toRange) {
             spreadsheet.select(toRange.toSelection(), false);
             Render.setDragRect(null);
-            spreadsheet.repaint();
+            spreadsheet._repaint();
             API.cut(fromRange, toRange);
           }
         } else if (Render.getDragCorner() !== null) { // dragging one range to another
@@ -256,7 +280,7 @@ const callbacks: Array<InitCallback> = [
           spreadsheet.mouseDownInBox = false;
           // Do nothing if the mouseup isn't in the right column or row
           if (dottedSel != null && dottedSel.range !== null) {
-            let activeSelection = SelectionStore.getActiveSelection();
+            let activeSelection = GridStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
               spreadsheet.select(dottedSel,true);

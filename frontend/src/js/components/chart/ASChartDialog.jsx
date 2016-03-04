@@ -36,7 +36,7 @@ import Constants from '../../Constants';
 import _Styles from '../../styles/chart/ASChartDialog';
 import U from '../../AS/Util';
 import CellStore from '../../stores/ASCellStore';
-import SelStore from '../../stores/ASSelectionStore';
+import GridStore from '../../stores/ASGridStore';
 import SheetStore from '../../stores/ASSheetStateStore';
 import ASButton from '../basic-controls/ASButton.jsx';
 import ASChart from './ASChart.jsx';
@@ -93,7 +93,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
 
   componentWillReceiveProps(newProps: ASChartDialogProps) {
     if (newProps.open) {
-      let sel = SelStore.getActiveSelection();
+      let sel = GridStore.getActiveSelection();
       if (sel !== null && sel !== undefined) {
         this.setState({valueRange: sel.range});
       }
@@ -156,7 +156,7 @@ class ASChartDialog extends React.Component<{}, ASChartDialogProps, ASChartDialo
   }
 
   _getInitialRangeExpression(): string {
-    let sel = SelStore.getActiveSelection();
+    let sel = GridStore.getActiveSelection();
     if (!! sel){ return sel.range.toExcel().toString(); }
     else { return ''; }
   }

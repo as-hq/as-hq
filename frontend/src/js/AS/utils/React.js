@@ -8,7 +8,7 @@ just do:
 
     componentDidMount() {
       Util.React.addStoreLinks(this, [
-        { store: SelectionStore }
+        { store: GridStore }
       ]);
     }
 

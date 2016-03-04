@@ -107,15 +107,15 @@ export default class ASIndex {
     return this.toRange().toSelection();
   }
 
-  shift({dr, dc}: ({ dr: number; dc: number; })): ASIndex {
+  shift({dY, dX}: Offset): ASIndex {
     return new ASIndex({ // safely shifts, preserving window bounds
       ...this.obj(),
-      index: { row: (this.row + dr), col: (this.col + dc) }
+      index: { row: (this.row + dY), col: (this.col + dX) }
     });
   }
 
   shiftByKey(e: SyntheticKeyboardEvent): ASIndex {
-    return this.shift(Util.Key.keyShiftValue(e));
+    return this.shift(Util.Key.keyToOffset(e));
   }
 
   isAboveAndLeft(idx: ASIndex): boolean {
@@ -130,10 +130,10 @@ export default class ASIndex {
     );
   }
 
-  above(): ASIndex { return this.shift({ dr: -1, dc: 0 }); }
-  below(): ASIndex { return this.shift({ dr: 1, dc: 0 }); }
-  toRight(): ASIndex { return this.shift({ dr: 0, dc: 1 }); }
-  toLeft(): ASIndex { return this.shift({ dr: 0, dc: -1 }); }
+  above(): ASIndex { return this.shift({ dY: -1, dX: 0 }); }
+  below(): ASIndex { return this.shift({ dY: 1, dX: 0 }); }
+  toRight(): ASIndex { return this.shift({ dY: 0, dX: 1 }); }
+  toLeft(): ASIndex { return this.shift({ dY: 0, dX: -1 }); }
 
   getRowRange(): ASRange {
     return new ASRange.fromNaked({

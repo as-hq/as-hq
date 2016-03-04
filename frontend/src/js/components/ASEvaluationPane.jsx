@@ -13,13 +13,13 @@ import {logError, isTesting} from '../AS/Logger';
 
 import React from 'react';
 
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import FindStore from '../stores/ASFindStore';
 import FocusStore from '../stores/ASFocusStore';
 import ConfigStore from '../stores/ASConfigurationStore';
 
 import API from '../actions/ASApiActionCreators';
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import FindActions from '../actions/ASFindActionCreators';
 
@@ -35,19 +35,19 @@ import ASFindModal from './ASFindModal.jsx';
 export default class ASEvalPane
   extends React.Component<{}, {}, {}>
 {
-  _selectionStoreToken: StoreToken;
+  _gridStoreToken: StoreToken;
   _configStoreToken: StoreToken;
   _spreadsheet: ASControlledSpreadsheet;
 
   componentDidMount() {
-    this._selectionStoreToken = SelectionStore.addListener(() => this.forceUpdate());
+    this._gridStoreToken = GridStore.addListener(() => this.forceUpdate());
     this._configStoreToken = ConfigStore.addListener(() => this.forceUpdate());
     BrowserTests.install(window, this);
   }
 
   componentWillUnmount() {
     API.close();
-    this._selectionStoreToken.remove();
+    this._gridStoreToken.remove();
     this._configStoreToken.remove();
   }
 
@@ -58,6 +58,7 @@ export default class ASEvalPane
 
     const leftEvalPane = (
       <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+
         {findBarOpen &&
           <ASFindBar
             onEnter={() => API.find(FindStore.getFindText())}
@@ -67,6 +68,7 @@ export default class ASEvalPane
             onModal={() => ConfigActions.closeFindModal}
           />
         }
+
         {findModalOpen &&
           <ASFindModal
             initialSelection={0}
@@ -79,9 +81,15 @@ export default class ASEvalPane
         <ASControlledSpreadsheet
           ref={elem => this._spreadsheet = elem}
           selection={{
-            value: SelectionStore.getActiveSelection(),
+            value: GridStore.getActiveSelection(),
             requestChange(selection: ASSelection) {
-              SpreadsheetActions.select(selection);
+              GridActions.select(selection);
+            }
+          }}
+          scroll={{
+            value: GridStore.getScroll(),
+            requestChange(scroll: ASPoint) {
+              GridActions.scrollTo(scroll);
             }
           }}
           height="100%"  />

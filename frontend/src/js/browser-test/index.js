@@ -57,7 +57,7 @@ import {
 
 import ASCellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import U from '../AS/Util';
 
@@ -89,7 +89,7 @@ function textboxHasFocus() {
 }
 
 function activeSelection() {
-  return SelectionStore.getActiveSelection();
+  return GridStore.getActiveSelection();
 }
 
 function activeRange() {

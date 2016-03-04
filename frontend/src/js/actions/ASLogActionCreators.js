@@ -5,7 +5,7 @@ import ws from '../AS/PersistentWebSocket';
 import Constants from '../Constants';
 import shortid from 'shortid';
 
-let pws = require('./PWSInstance').pws;
+const pws = require('./PWSInstance').pws;
 
 export function log(action: ASAction) {
 	const msg = {
@@ -14,11 +14,10 @@ export function log(action: ASAction) {
 	};
 	const messageId = shortid.generate();
 	const serverMsg = {
-      serverAction: msg,
-      messageId
-    };
+    serverAction: msg,
+    messageId
+  };
 	pws.waitForConnection((innerClient: WebSocket) => {
  		innerClient.send(JSON.stringify(serverMsg));
 	});
 }
-

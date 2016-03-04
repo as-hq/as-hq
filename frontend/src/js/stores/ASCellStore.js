@@ -29,7 +29,7 @@ import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 
 import Render from '../AS/Renderers';
-import SelectionStore from './ASSelectionStore.js';
+import GridStore from './ASGridStore.js';
 import DescriptorStore from './ASRangeDescriptorStore.js';
 
 /*
@@ -147,7 +147,7 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   }
 
   getActiveCell(): ?ASCell {
-    const {origin} = SelectionStore.getActiveSelection();
+    const {origin} = GridStore.getActiveSelection();
     return this.getCell(origin);
   }
 

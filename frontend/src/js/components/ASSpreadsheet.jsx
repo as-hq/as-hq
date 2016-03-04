@@ -6,7 +6,6 @@ import type {
 
 import type {
   ASCursorStyle,
-  ASViewingWindow,
 } from '../types/State';
 
 import type {
@@ -30,20 +29,20 @@ import invariant from 'invariant';
 import React from 'react';
 import {findDOMNode} from 'react-dom';
 
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 import ExpressionActions from '../actions/ASExpressionActionCreators';
 
 import API from '../actions/ASApiActionCreators';
 
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
-import SelectionStore from '../stores/ASSelectionStore';
 import FindStore from '../stores/ASFindStore';
 import BarStore from '../stores/ASBarStore.js';
 import OverlayStore from '../stores/ASOverlayStore';
 import FocusStore from '../stores/ASFindStore';
-import ConfigStore from '../stores/ASConfigurationStore';
+import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
+import FocusActions from '../actions/ASFocusActionCreators';
 
 import U from '../AS/Util';
 let {
@@ -52,6 +51,7 @@ let {
   Shortcut: ShortcutUtils
 } = U;
 
+import ASPoint from '../classes/ASPoint';
 import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
@@ -89,7 +89,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   $storeLinks: Array<StoreLink>;
   _grid: any;
   _onGridFocus: Callback<SyntheticEvent>;
-  _configStoreListener: StoreToken;
+  _gridStoreListener: StoreToken;
   _cellStoreListener: StoreToken;
 
   mousePosition: ?HGPoint;
@@ -133,9 +133,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
     };
 
     this.state = {
-      // keep scroll values in state so overlays autoscroll with grid
-      scroll: { x: 0, y: 0 },
-      scrollPixels: { x: 0, y: 0},
       cursorStyle: 'auto'
     };
 
@@ -148,47 +145,38 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
       { store: BarStore, listener: () => this._onBarPropsChange() },
     ]);
 
-    this._cellStoreListener = CellStore.addListener(() => {
-      this._grid.getBehavior().changed();
-    });
-    this._configStoreListener = ConfigStore.addListener(() =>
-      this._grid.repaint()
+    this._cellStoreListener = CellStore.addListener(() =>
+      this._grid.getBehavior().changed()
     );
 
     // apply hypergrid customizations when its canvas is ready.
     document.addEventListener('fin-ready', () => {
-      this.initHypergrid();
+      this._initHypergrid();
       this.pullInitialData();
+      window.onresize = () => {
+        GridActions.setDimensions(this._getDimensions());
+      }
     });
-  }
 
-  initHypergrid() {
-    hgPatches.forEach((patch) => { patch(this); });
-    SpreadsheetActions.initialize();
+    document.addEventListener('grid-repaint', () => {
+      console.error('REPAINTED GRID!');
+      this._grid.repaint();
+    });
+
   }
 
   componentWillUnmount() {
     U.React.removeStoreLinks(this);
     this._cellStoreListener.remove();
-    this._configStoreListener.remove();
   }
 
   /*************************************************************************************************************************/
   // Handle mouse events by overriding hypergrid default
 
-  getCoordsFromMouseEvent(grid: HGElement, evt: HGMouseEvent): HGPoint {
-    let {x, y} = evt.mousePoint,
-        point = finRect.point.create(evt.gridCell.x, evt.gridCell.y),
-        {origin} = grid.getBoundsOfCell(point),
-        pX = origin.x + x,
-        pY = origin.y + y;
-    return {x: pX, y: pY};
-  }
-
   drawDraggedSelection(dragOrigin: ASIndex, selRange: ASRange, targetX: number, targetY: number) {
-    let dX = targetX - dragOrigin.col,
-        dY = targetY - dragOrigin.row;
-    let range = selRange.shift({ dr: dY, dc: dX });
+    const dX = targetX - dragOrigin.col;
+    const dY = targetY - dragOrigin.row;
+    const range = selRange.shift({ dY: dY, dX: dX });
     Render.setDragRect(range);
   }
 
@@ -241,69 +229,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   }
 
   /*************************************************************************************************************************/
-  // Default getter methods, relating to location/scrolling/selection
-
-  getSelectionArea(): ASSelection {
-    const hg = this._grid;
-    const [selection] = hg.getSelectionModel().getSelections();
-    if (!! selection) {
-      const ul = selection.origin;
-      const range = {
-        tl: {row:  ul.y + 1,
-             col:  ul.x + 1},
-        br: {row: ul.y + selection.height() + 1,
-             col: ul.x + selection.width() + 1}
-      };
-      const sel = {
-        range: range,
-        origin: {row: ul.y + 1, col: ul.x + 1}
-      };
-      return new ASSelection(sel);
-    } else {
-      return ASSelection.defaultSelection();
-    }
-  }
-
-  getScroll(): HGPoint {
-    let hg = this._grid;
-    return {x: hg.hScrollValue, y: hg.vScrollValue};
-  }
-
-  getViewingWindow(): ASViewingWindow {
-    let hg = this._grid,
-        [vs, hs] = [hg.vScrollValue, hg.hScrollValue],
-        [cols, rows] = [hg.getVisibleColumns(), hg.getVisibleRows()];
-        let colLength = cols.length, rowLength = rows.length;
-        // This might fail on the initial load, since getVisibleColumns() and
-        // getVisibleRows() might return nothing, ergo the below hack.
-        if (colLength == 0) colLength = 20;
-        if (rowLength == 0) rowLength = 30;
-    return ASRange.fromNaked({
-      tl: {
-        row: vs + 1,
-        col: hs + 1
-      },
-      br: {
-        row: vs + rowLength - 1,
-        col: hs + colLength - 1
-      }
-    });
-    // getVisibleColumns and getVisibleRows were manually modified to show one more
-    // column/row than what hypergrid says is visible (...since they're actually visible)
-    // but that messed with the boundaries shown here, which is why we're subtracting 1
-    // from rowLength and colLength.
-  }
-
-  isVisible(col: number, row: number): boolean { // faster than accessing hypergrid properties
-    return (this.state.scroll.x <= col && col <= this.state.scroll.x+Constants.numVisibleCols) &&
-           (this.state.scroll.y <= row && row <= this.state.scroll.y+Constants.numVisibleRows);
-  }
-
-  getVisibleRows(): number {
-    return this._grid.getVisibleRows().length;
-  }
-
-  /*************************************************************************************************************************/
   // Hypergrid initialization
 
   finishColumnResize() {
@@ -347,25 +272,164 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   pullInitialData() {
     API.openSheet(SheetStateStore.getCurrentSheetId());
     // lazy-loading disabled (anand 2/15)
-    // SpreadsheetActions.scroll(this.getViewingWindow());
+    // GridActions.scroll(this.getViewingWindow());
   }
 
 
   /*************************************************************************************************************************/
-  // Hypergrid methods for updating selection, focus, scrolling
+  // Render
 
-  repaint() {
-    this._grid.repaint();
+  render(): ReactElement {
+    const {height} = this.props;
+    const {cursorStyle} = this.state;
+
+    return (
+      <Dropzone onDrop={files => API.import(files[0])}
+                disableClick={true}
+                style={{cursor: cursorStyle, ...styles.root}}>
+
+        <ASOverlayController
+          computeTopLeftPxOfLoc={(c, r) => this._computeTopLeftPxOfLoc(c, r)}
+          />
+
+        <div style={styles.sheetContainer} >
+
+          <Textbox getPixelCoordinates={idx => this._getPixelCoordinates(idx)} />
+
+          <fin-hypergrid
+            ref={elem => this._grid = elem}
+            style={styles.sheet}
+            onKeyDown={evt => this._onKeyDown(evt)}
+            onFocus={evt => this._onGridFocus(evt)}
+            onMouseEnter={() => FocusActions.hover(name)}
+          >
+            <fin-hypergrid-behavior-default />
+          </fin-hypergrid>
+
+          <ASRightClickMenu ref="rightClickMenu" />
+
+
+        </div>
+      </Dropzone>
+    );
   }
 
-  // do not call before polymer is ready.
-  select(selection: ASSelection, shouldScroll: boolean = true) {
+  /*************************************************************************************************************************/
+  // Private getters
+  // do not call any of these before polymer is ready.
+
+  _getPixelCoordinates({col, row}: ASIndex): PXRectangle {
+    if (!! this._grid) {
+      const scroll = this._getScroll();
+      const point = finRect.point.create(col - scroll.x + 1, row - scroll.y + 1);
+      const {origin, extent} =  this._grid.getBoundsOfCell(point);
+      return {origin, extent};
+
+    } else {
+      console.error('no grid found in getTextboxPosition!');
+      return U.Hypergrid.defaultRectangle();
+    }
+  }
+
+  // Given a column and row number, compute the location of that cell relative to the
+  // top left of the grid. Used for positioning overlays.
+  // Note that the results can be negative.
+  // If this function turns out to be a bit slow (because it does some looping),
+  // some stuff can be moved into store, but this doesn't seem to be a bottleneck currently.
+  _computeTopLeftPxOfLoc(col: number, row: number) : {top: number, left: number} {
+    const {x, y} = this._getScroll();
+    const bounds = this._grid.getBoundsOfCell(finRect.point.create(col, row));
+
+    let scrollPxX = 0, scrollPxY = 0;
+    for (let i = 1 ; i <= x; i++) {
+      scrollPxX += this._grid.getColumnWidth(i);
+    }
+    for (let j = 1 ; j <= y; j++) {
+      scrollPxY += this._grid.getRowHeight(j);
+    }
+    return {top: bounds.origin.y - scrollPxY, left: bounds.origin.x - scrollPxX};
+  }
+
+  _getCoordsFromMouseEvent(evt: HGMouseEvent): HGPoint {
+    const {x, y} = evt.mousePoint;
+    const point = finRect.point.create(evt.gridCell.x, evt.gridCell.y);
+    const {origin} = this._grid.getBoundsOfCell(point);
+    const pX = origin.x + x;
+    const pY = origin.y + y;
+    return {x: pX, y: pY};
+  }
+
+  _getBehavior(): HGBehaviorElement {
+    return this._grid.getBehavior();
+  }
+
+  _getScroll(): ASPoint {
+    const hg = this._grid;
+    return new ASPoint({
+      x: hg.hScrollValue + 1,
+      y: hg.vScrollValue + 1
+    });
+  }
+
+  _getDimensions(): Dimensions {
+    return {
+      width: this._grid.getViewableColumns() - 1, // hypergrid is actually just wrong.
+      height: this._grid.getViewableRows() - 1
+    };
+  }
+
+  _getSelection(): ASSelection {
+    const hg = this._grid;
+    const [selection] = hg.getSelectionModel().getSelections();
+    if (!! selection) {
+      const ul = selection.origin;
+      const range = {
+        tl: {row:  ul.y + 1,
+             col:  ul.x + 1},
+        br: {row: ul.y + selection.height() + 1,
+             col: ul.x + selection.width() + 1}
+      };
+      const sel = {
+        range: range,
+        origin: {row: ul.y + 1, col: ul.x + 1}
+      };
+      return new ASSelection(sel);
+    } else {
+      return ASSelection.defaultSelection();
+    }
+  }
+
+  // Hypergrid's first paint cycle is non-trivial to detect,
+  // so instead repeatedly query the grid dimensions until they
+  // are established.
+  _initializeDimensions() {
+    setTimeout(() => {
+      const {width, height} = this._getDimensions();
+      if (width === 0 || height === 0) {
+        this._initializeDimensions();
+      } else {
+        GridActions.setDimensions({width, height});
+      }
+    }, 20);
+  }
+
+  /*************************************************************************************************************************/
+  // Private setters
+  // do not call any of these before polymer is ready.
+
+  _initHypergrid() {
+    hgPatches.forEach((patch) => { patch(this); });
+    this._initializeDimensions();
+    GridActions.initialize();
+  }
+
+  _select(selection: ASSelection) {
     const {
       range: {tl, br},
       origin: {col, row}
     } = selection;
 
-    const oldSelection = SelectionStore.getLastActiveSelection();
+    const oldSelection = GridStore.getLastActiveSelection();
     const originIsCorner = selection.originIsCorner();
 
     let c, r, dC, dR;
@@ -388,193 +452,22 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
     this._grid.clearSelections();
     this._grid.select(c, r, dC, dR);
 
-    // set mousedown
-    // hypergrid sucks -- doesn't set the mouse focus automatically
-    // with select, so we have to do it ourselves.
+    // set mousedown manually, since hypergrid doesn't do it for you.
     const myDown = finRect.point.create(c,r);
     const myExtent = finRect.point.create(dC, dR);
     this._grid.setMouseDown(myDown);
     this._grid.setDragExtent(myExtent);
 
-    const win = this.getViewingWindow();
-    // set scroll
-    if (shouldScroll) {
-      const scroll = this._getViewingWindowFromOldAndNewSelections(oldSelection, selection);
-      this.scrollTo(scroll.x, scroll.y);
+    this._grid.repaint();
+  }
+
+  _scrollTo({x, y}: ASPoint) {
+    const hg = this._grid;
+    const [x_hg, y_hg] = [x-1, y-1]; // hypergrid is off-by-one.
+    if (hg.getHScrollValue() != x_hg || hg.getVScrollValue() != y_hg) {
+      hg.setVScrollValue(y_hg),
+      hg.setHScrollValue(x_hg);
     }
-    this.repaint();
-  }
-
-  rowVisible(loc: ASIndex): boolean {
-    const vWindow = this.getViewingWindow();
-    return (vWindow.tl.row <= loc.row && loc.row <= vWindow.br.row);
-  }
-
-  columnVisible(loc: ASIndex): boolean {
-    const vWindow = this.getViewingWindow();
-    return (vWindow.tl.col <= loc.col && loc.col <= vWindow.br.col);
-  }
-
-  scrollVForBottomEdge(row: number): number {
-    let hg = this._grid;
-    let vWindow = this.getViewingWindow();
-    return hg.getVScrollValue() + row - vWindow.br.row;
-  }
-
-  scrollVForTopEdge(row: number): number {
-    return row - 1;
-  }
-
-  scrollHForRightEdge(col: number): number {
-    let hg = this._grid;
-    let vWindow = this.getViewingWindow();
-    return hg.getHScrollValue() + col - vWindow.br.col;
-  }
-
-  scrollHForLeftEdge(col: number): number {
-    return col - 1;
-  }
-
-  _getViewingWindowFromOldAndNewSelections(oldSel: ?ASSelection, newSel: ASSelection): HGPoint {
-    let hg = this._grid;
-    let {
-      range: {tl, br},
-      origin: {col, row}
-    } = newSel;
-
-    let win = this.getViewingWindow();
-    let scrollH = hg.getHScrollValue(), scrollV = hg.getVScrollValue();
-
-    let oldOrigin, oldRange, oldTl, oldBr;
-    if (oldSel) {
-      let {origin: oldOrigin, range: oldRange} = oldSel;
-      let {tl: oldTl, br: oldBr} = oldRange;
-
-      // I think this code is a little hacky; I haven't thought this through deeply to ensure that
-      // it works in all cases. It does work for ctrl shift arrows and ctrl arrows though. (Alex 11/3/15)
-
-      if (oldOrigin) {
-        if (oldOrigin.equals(newSel.origin)) {
-          if (this.rowVisible(oldTl) && !this.rowVisible(tl)) {
-            scrollV = this.scrollVForTopEdge(tl.row);
-          } else if (this.rowVisible(oldBr) && !this.rowVisible(br)) {
-            scrollV = this.scrollVForBottomEdge(br.row); // for some reason it works better with the + 2
-          }
-
-          if (this.columnVisible(oldTl) && !this.columnVisible(tl)) {
-            scrollH = this.scrollHForLeftEdge(tl.col);
-          } else if (this.columnVisible(oldBr) && !this.columnVisible(br)) {
-            scrollH = this.scrollHForRightEdge(br.col);
-          }
-        } else {
-          if (col < win.tl.col) {
-            scrollH = this.scrollHForLeftEdge(col)
-          } else if (col > win.br.col) {
-            scrollH = this.scrollHForRightEdge(col);
-          }
-
-          if (row < win.tl.row) {
-            scrollV = this.scrollVForTopEdge(row);
-          } else if (row > win.br.row) {
-            scrollV = this.scrollVForBottomEdge(row);
-          }
-        }
-      }
-    }
-
-    return {x: scrollH, y: scrollV};
-  }
-
-  // when you press enter etc after eval, the selection origin shifts and the
-  // rest of the selection gets reset to a single cell
-  shiftAndResetSelection(byCoords: ({ dr: number; dc: number; })) {
-    const {origin} = SelectionStore.getActiveSelection();
-    this.select(origin.shift(byCoords).toSelection());
-  }
-
-  scrollTo(x: number, y: number) {
-    let hg = this._grid;
-    if (hg.getHScrollValue() != x || hg.getVScrollValue() != y) {
-      hg.setVScrollValue(y),
-      hg.setHScrollValue(x);
-      // Lazy loading disabled (anand 2/15)
-      // SpreadsheetActions.scroll(this.getViewingWindow());
-    }
-  }
-
-  /*************************************************************************************************************************/
-  // Render
-
-  render(): ReactElement {
-    const {height} = this.props;
-    const {scrollPixels, scroll, cursorStyle} = this.state;
-
-    return (
-      <Dropzone onDrop={files => API.import(files[0])}
-                disableClick={true}
-                style={{cursor: cursorStyle, ...styles.root}}>
-
-        <ASOverlayController 
-                    computeTopLeftPxOfLoc={(c, r) => this._computeTopLeftPxOfLoc(c, r)} />
-
-        <div style={styles.sheetContainer} >
-
-          <Textbox getPixelCoordinates={idx => this._getPixelCoordinates(idx)} />
-
-          <fin-hypergrid
-            ref={elem => this._grid = elem}
-            style={styles.sheet}
-            onKeyDown={evt => this._onKeyDown(evt)}
-            onFocus={evt => this._onGridFocus(evt)}>
-            <fin-hypergrid-behavior-default />
-          </fin-hypergrid>
-
-          <ASRightClickMenu ref="rightClickMenu" />
-
-
-        </div>
-      </Dropzone>
-    );
-  }
-
-  /*************************************************************************************************************************/
-  // Private getters
-
-  _getPixelCoordinates({col, row}: ASIndex): PXRectangle {
-    if (!! this._grid) {
-      const scroll = this.state.scroll;
-      const point = finRect.point.create(col - scroll.x, row - scroll.y);
-      const {origin, extent} =  this._grid.getBoundsOfCell(point);
-      return {origin, extent};
-
-    } else {
-      console.error('no grid found in getTextboxPosition!');
-      return U.Hypergrid.defaultRectangle();
-    }
-  }
-
-  // Given a column and row number, compute the location of that cell relative to the
-  // top left of the grid. Used for positioning overlays. 
-  // Note that the results can be negative. 
-  // If this function turns out to be a bit slow (because it does some looping), 
-  // some stuff can be moved into store, but this doesn't seem to be a bottleneck currently. 
-  _computeTopLeftPxOfLoc(col: number, row: number) : {top: number, left: number} {
-    let hg = this._grid,
-        scrollX = hg.getHScrollValue(), 
-        scrollY = hg.getVScrollValue();
-    let bounds = hg.getBoundsOfCell(finRect.point.create(col, row));
-    let scrollPxX = 0, scrollPxY = 0;
-    for (let i = 1 ; i <= scrollX; i++) {
-      scrollPxX += hg.getColumnWidth(i);
-    }
-    for (let j = 1 ; j <= scrollY; j++) {
-      scrollPxY += hg.getRowHeight(j);
-    }
-    return {top: bounds.origin.y - scrollPxY, left: bounds.origin.x - scrollPxX};
-  }
-
-  _getBehavior(): HGBehaviorElement {
-    return this._grid.getBehavior();
   }
 
   /*************************************************************************************************************************/
@@ -605,7 +498,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
 
     else {
       KeyUtils.killEvent(e);
-      SpreadsheetActions.executeKey(e);
+      GridActions.executeKey(e);
     }
   }
 
@@ -623,6 +516,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
 
 }
 
+const name = 'grid';
 const styles = {
     root: {
       position: 'relative',

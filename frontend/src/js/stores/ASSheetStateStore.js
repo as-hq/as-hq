@@ -63,7 +63,7 @@ let _data: SheetStateStoreData = {
 const ASSheetStateStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     switch (action._type) {
-      
+
       case 'LOGIN_SUCCESS':
         _data.currentSheetId = action.sheetId;
         console.warn('login success, got sheetId: ', action.sheetId);
@@ -146,17 +146,17 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
   /**************************************************************************************************************************/
   /* Data boundaries */
   getDataBoundary(start: ASIndex, direction: string): ASIndex {
-    let dr = 0, dc = 0;
+    let dY = 0, dX = 0;
 
     switch (direction) {
-      case "Right": dc = 1; break;
-      case "Left": dc = -1; break;
-      case "Down": dr = 1; break;
-      case "Up": dr = -1; break;
+      case "Right": dX = 1; break;
+      case "Left": dX = -1; break;
+      case "Down": dY = 1; break;
+      case "Up": dY = -1; break;
       default: throw "Invalid direction passed in";
     }
 
-    const shiftAmount = { dr: dr, dc: dc };
+    const shiftAmount = { dY: dY, dX: dX };
     let prev = start;
     let curIdx = start.shift(shiftAmount);
     let next = curIdx.shift(shiftAmount);

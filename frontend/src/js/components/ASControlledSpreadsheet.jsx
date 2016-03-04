@@ -8,8 +8,7 @@ import Focusable from './transforms/Focusable.jsx';
 import HOPurify from './transforms/HOPurify.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';
 
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 
 const ASControlledSpreadsheet = HOPurify({
   component: ASSpreadsheet,
@@ -23,17 +22,37 @@ const ASControlledSpreadsheet = HOPurify({
       },
 
       getValue(component: any): ASSelection {
-        return component.getSelectionArea();
+        return component._getSelection();
       },
 
       setValue({component, value: selection}) {
-        component.select(
-          selection,
-          SelectionStore.shouldScroll()
+        component._select(selection);
+      },
+    },
+
+    scroll: {
+      addChangeListener({component, listener}) {
+        component._grid.addFinEventListener(
+          'fin-scroll-x',
+          () => listener()
+        );
+        component._grid.addFinEventListener(
+          'fin-scroll-y',
+          () => listener()
         );
       },
+
+      getValue(component: any): ASPoint {
+        return component._getScroll();
+      },
+
+      setValue({component, value: scroll}) {
+        console.warn('set scroll:', scroll);
+        component._scrollTo(scroll);
+      }
     }
   },
+
   onReady(cb: () => void) {
     // purify when hypergrid is ready
     document.addEventListener('fin-ready', cb);

@@ -13,7 +13,7 @@ import type {
 } from '../../types/React';
 
 import CellStore from '../../stores/ASCellStore';
-import SelectionStore from '../../stores/ASSelectionStore';
+import GridStore from '../../stores/ASGridStore';
 import Util from '../../AS/Util';
 import React from 'react';
 import ASIndex from '../../classes/ASIndex';
@@ -31,8 +31,8 @@ export default class ASErrorPaneController
   extends React.Component<{}, ASErrorPaneControllerProps, ASErrorPaneControllerState>
 {
   $storeLinks: Array<StoreLink>;
-  _cellStoreToken: { remove: () => void };
-  _selectionStoreToken: { remove: () => void };
+  _cellStoreToken: StoreToken;
+  _gridStoreToken: StoreToken;
 
   constructor(props: ASErrorPaneControllerProps) {
     super(props);
@@ -44,31 +44,35 @@ export default class ASErrorPaneController
 
   componentDidMount() {
     this._cellStoreToken = CellStore.addListener(() => this.forceUpdate());
-    this._selectionStoreToken = SelectionStore.addListener(() => this.forceUpdate());
+    this._gridStoreToken = GridStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
     this._cellStoreToken.remove();
-    this._selectionStoreToken.remove();
+    this._gridStoreToken.remove();
   }
 
   render(): React.Element {
-    let errors = this._getCurrentErrorList();
-    let {onlyShowCurSelErrs} = this.state;
+    const errors = this._getCurrentErrorList();
+    const {onlyShowCurSelErrs} = this.state;
 
-    return <ASErrorPane
-      errors={errors}
-      onlyShowCurSelErrs={onlyShowCurSelErrs}
-      showAllValueLink={{
-        value: onlyShowCurSelErrs,
-        requestChange: (onlyShowCurSelErrs) => { this.setState({onlyShowCurSelErrs}); }
-      }} />;
+    return (
+      <ASErrorPane
+        errors={errors}
+        onlyShowCurSelErrs={onlyShowCurSelErrs}
+        showAllValueLink={{
+          value: onlyShowCurSelErrs,
+          requestChange: (onlyShowCurSelErrs) => {
+            this.setState({onlyShowCurSelErrs});
+          }}}
+      />
+    );
   }
 
   _getCurrentErrorList(): Array<ASClientError> {
-    const errors = CellStore.getAllErrors(),
-          {onlyShowCurSelErrs} = this.state,
-          currentSelection = SelectionStore.getActiveSelection();
+    const errors = CellStore.getAllErrors();
+    const {onlyShowCurSelErrs} = this.state;
+    const currentSelection = GridStore.getActiveSelection();
 
     if (onlyShowCurSelErrs && currentSelection) {
       return errors.filter(({location}) => location.isInRange(currentSelection.range));

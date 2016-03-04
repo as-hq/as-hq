@@ -7,7 +7,7 @@ import Dispatcher from '../Dispatcher';
 import ExpressionStore from '../stores/ASExpressionStore';
 import FocusStore from '../stores/ASFocusStore';
 
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 
 import U from '../AS/Util';
 import { actions as Shortcuts } from '../AS/Shortcuts';
@@ -83,7 +83,7 @@ const ExpressionActions = {
       ! hasFullFocus ||
       ExpressionStore.isInsertingRef()
     ))  {
-      SpreadsheetActions.executeKey(e);
+      GridActions.executeKey(e);
     } else {
       Shortcuts.try(e, 'textbox');
     }

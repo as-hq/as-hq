@@ -17,10 +17,8 @@ import Focusable from './transforms/Focusable.jsx';
 import ASControlledCodeField from './basic-controls/ASControlledCodeField.jsx';
 
 import ExpressionStore from '../stores/ASExpressionStore';
-import SelectionStore from '../stores/ASSelectionStore';
 import FocusActions from '../actions/ASFocusActionCreators';
 import ExpressionActions from '../actions/ASExpressionActionCreators';
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
 import ClipboardActions from '../actions/ASClipboardActionCreators';
 import {actions as Shortcuts} from '../AS/Shortcuts';
 
@@ -71,7 +69,9 @@ class Textbox extends React.Component<{}, Props, {}> {
             maxLines={Infinity}
             showGutter={false}
             onKeyDown={e => this._onKeyDown(e)}
-            onMouseDown={() => FocusActions.focusTextboxFully()} />
+            onMouseDown={() => FocusActions.focusTextboxFully()}
+            onMouseEnter={() => FocusActions.hover(name)}
+          />
       </div>
     );
   }
@@ -82,7 +82,7 @@ class Textbox extends React.Component<{}, Props, {}> {
 
   _onSelectionRequestChange(selection: EditorSelection, {eventSource}: any) {
     if (eventSource === 'keynav') {
-      if (ExpressionStore.canInsertRefFromEditor('textbox')) {
+      if (ExpressionStore.canInsertRefFromEditor(name)) {
         ExpressionActions.resync();
         return;
       }

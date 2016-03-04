@@ -15,6 +15,7 @@ import ASControlledCodeField from './basic-controls/ASControlledCodeField.jsx';
 import FocusStore from '../stores/ASFocusStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import ExpressionActions from '../actions/ASExpressionActionCreators';
+import FocusActions from '../actions/ASFocusActionCreators';
 import {actions as Shortcuts} from '../AS/Shortcuts';
 
 class ASCodeEditor extends React.Component<{}, {}, {}> {
@@ -44,6 +45,7 @@ class ASCodeEditor extends React.Component<{}, {}, {}> {
         <ASControlledCodeField
             ref={elem => this._editor = elem}
             name={name}
+            style={styles.editor}
             selection={{
               value: selection,
               requestChange: (selection: EditorSelection, metadata: any) =>
@@ -60,7 +62,8 @@ class ASCodeEditor extends React.Component<{}, {}, {}> {
             minLines={4}
             language={language}
             onKeyDown={e => this._onKeyDown(e)}
-            style={styles.editor} />
+            onMouseEnter={() => FocusActions.hover(name)}
+          />
       </div>
     );
   }

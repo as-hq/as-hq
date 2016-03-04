@@ -17,8 +17,6 @@ import type {
   Bar
 } from './Bar';
 
-export type ASViewingWindow = ASRange;
-
 export type FocusedElement = 'grid' | 'textbox' | 'editor' | 'header';
 
 export type BottomPane = 'header_output' | 'errors' | 'cell_output';

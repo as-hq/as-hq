@@ -21,7 +21,7 @@ import {logDebug} from './Logger';
 import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import HeaderStore from '../stores/ASHeaderStore';
 import FindStore from '../stores/ASFindStore';
 import ExpressionStore from '../stores/ASExpressionStore';
@@ -31,7 +31,7 @@ import API from '../actions/ASApiActionCreators';
 import APIActions from '../actions/APIActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import HeaderActions from '../actions/ASHeaderActionCreators';
-import SpreadsheetActions from '../actions/ASSpreadsheetActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import ClipboardActions from '../actions/ASClipboardActionCreators';
@@ -124,7 +124,7 @@ function installAllShortcuts() {
     APIActions.evaluate({dX: 0, dY: 0}, expression);
   });
   install('evalpane', 'format_value', 'Ctrl+Shift+2|3|4|5|6', (wildcard: string) => {
-    const sel = SelectionStore.getActiveSelection();
+    const sel = GridStore.getActiveSelection();
     let formatType;
     // TODO other wildcards
     if (wildcard === '$') {
@@ -134,21 +134,18 @@ function installAllShortcuts() {
     }
     if (formatType != null) {
       API.setFormat(formatType, sel.range);
-      // TODO determine if necessary
-      ConfigActions.repaintSpreadsheet();
+      GridActions.repaint();
     }
   });
   install("evalpane", "bold", "Ctrl+B", (wildcard: string) => {
-    const sel = SelectionStore.getActiveSelection();
+    const sel = GridStore.getActiveSelection();
     API.toggleProp({tag: "Bold", contents: []}, sel.range);
-    // TODO determine if necessary
-    ConfigActions.repaintSpreadsheet();
+    GridActions.repaint();
   });
   install("evalpane", "italic", "Ctrl+I", (wildcard: string) => {
-    const sel = SelectionStore.getActiveSelection();
+    const sel = GridStore.getActiveSelection();
     API.toggleProp({tag: "Italic", contents: []}, sel.range);
-    // TODO determine if necessary
-    ConfigActions.repaintSpreadsheet();
+    GridActions.repaint();
   });
 
   install('evalpane', 'esc', 'Esc', (wildcard: string) => {
@@ -181,45 +178,45 @@ function installAllShortcuts() {
   });
 
   install('grid', 'moveto_data_boundary', 'Ctrl+Up|Down|Left|Right', (dir) => {
-    const { origin } = SelectionStore.getActiveSelection();
+    const { origin } = GridStore.getActiveSelection();
     const newOrigin = SheetStateStore.getDataBoundary(origin, dir);
-    SpreadsheetActions.select(newOrigin.toSelection());
+    GridActions.select(newOrigin.toSelection());
   });
   install('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up|Down|Left|Right', (dir) => {
-    const selection = SelectionStore.getActiveSelection();
+    const selection = GridStore.getActiveSelection();
     const newSelection = SheetStateStore.getDataBoundSelection(selection, dir);
-    SpreadsheetActions.select(newSelection);
+    GridActions.select(newSelection);
   });
   install('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.copy(range.getTopRow(), range);
   });
   install('grid', 'grid_fill_right', 'Ctrl+R', (wildcard: string) => {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.copy(range.getLeftColumn(), range);
   });
   install('grid', 'grid_select_all', 'Ctrl+A', (wildcard: string) => {
-    const {origin: {row, col}} = SelectionStore.getActiveSelection();
-
-    // XXX(anand) this is a hack. Requires ScrollManager to execute properly.
-    SpreadsheetActions.select(
-      ASRange.fromNaked({
-        tl: {row: 1, col: 1},
-        br: {row: row + 20, col: col + 30}
-      }).toSelection(), true
+    const {origin} = GridStore.getActiveSelection();
+    const range = GridStore.getViewingWindow();
+    GridActions.select(
+      ASSelection.fromASLocations({origin, range})
     );
   });
   install('grid', 'grid_home', ['Home', 'Ctrl+Home'], (wildcard: string) => {
-    SpreadsheetActions.select(ASSelection.defaultSelection());
+    GridActions.select(ASSelection.defaultSelection());
   });
   install('grid', 'move_vwindow_above', 'PageUp', (wildcard: string) => {
-    // TODO fix!
+    const {height} = GridStore.getDimensions();
+    GridActions.scrollBy({dX: 0, dY: -1 * height});
+    GridActions.shiftSelection({dX: 0, dY: -1 * height});
   });
   install('grid', 'move_vwindow_above', 'PageDown', (wildcard: string) => {
-    // TODO fix!
+    const {height} = GridStore.getDimensions();
+    GridActions.scrollBy({dX: 0, dY: height});
+    GridActions.shiftSelection({dX: 0, dY: height});
   });
   install('grid', 'grid_delete', 'Del|Backspace', (wildcard: string) => {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.deleteRange(range);
   });
   install('grid', 'grid_undo', 'Ctrl+Z', (wildcard: string) => {
@@ -229,14 +226,14 @@ function installAllShortcuts() {
     API.redo();
   });
   install('grid', 'grid_repeat_last_action', 'Ctrl+Y', (wildcard: string) => {
-    const sel = SelectionStore.getActiveSelection();
+    const sel = GridStore.getActiveSelection();
     API.repeat(sel);
   });
   install('grid', 'chart', 'F11', (wildcard: string) => {
     // TODO
   });
   install('grid', 'select_row', 'Shift+Space', (wildcard: string) => {
-    const {origin: {col, row}} = SelectionStore.getActiveSelection();
+    const {origin: {col, row}} = GridStore.getActiveSelection();
     const selection = new ASSelection({
       origin: {col, row},
       range: {
@@ -244,10 +241,10 @@ function installAllShortcuts() {
         br: {col: Infinity, row}
       }
     });
-    SpreadsheetActions.select(selection, true);
+    GridActions.select(selection, false);
   });
   install('grid', 'select_col', 'Ctrl+Space', (wildcard: string) => {
-    const {origin: {col, row}} = SelectionStore.getActiveSelection();
+    const {origin: {col, row}} = GridStore.getActiveSelection();
     const selection = new ASSelection({
       origin: {col, row},
       range: {
@@ -255,7 +252,7 @@ function installAllShortcuts() {
         br: {col, row: Infinity}
       }
     });
-    SpreadsheetActions.select(selection, true);
+    GridActions.select(selection, false);
   });
   install('grid', 'insert_row', 'Ctrl+Shift+[', (wildcard: string) => {
     // TODO
@@ -267,7 +264,7 @@ function installAllShortcuts() {
     // TODO
   });
   install('grid', 'copy_expression_above', 'Ctrl+Shift+\'', (wildcard: string) => {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     const cell = CellStore.getCell(range.tl.above());
     if (!! cell) {
       ExpressionActions.setExpression(cell.expression.expression);
@@ -275,7 +272,7 @@ function installAllShortcuts() {
   });
   install('grid', 'copy_value_above', 'Ctrl+\'', (wildcard: string) => {
     // TODO test
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     const cell = CellStore.getCell(range.tl.above());
     if (cell) {
       const expression = U.Render.showValue(cell.value) || '';
@@ -284,10 +281,10 @@ function installAllShortcuts() {
   });
 
   install('grid', 'grid_tab', 'Tab', (wildcard: string) => {
-    SpreadsheetActions.shiftSelection({dX: 1, dY: 0}, false);
+    GridActions.shiftSelection({dX: 1, dY: 0}, false);
   });
   install('grid', 'grid_shift_tab', 'Shift+Tab', (wildcard: string) => {
-    SpreadsheetActions.shiftSelection({dX: -1, dY: 0}, false);
+    GridActions.shiftSelection({dX: -1, dY: 0}, false);
   });
   install('grid', 'grid_mac_cut', 'Cmd+X', () => {
     ClipboardActions.cut({

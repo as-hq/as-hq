@@ -19,7 +19,7 @@ import Immutable from 'immutable';
 import {ReduceStore} from 'flux/utils';
 import API from '../actions/ASApiActionCreators';
 import CellStore from '../stores/ASCellStore';
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import FocusStore from '../stores/ASFocusStore';
 
 import Render from '../AS/Renderers';
@@ -107,14 +107,14 @@ class ExpressionStore extends ReduceStore<State> {
       }
       
       case 'API_EVALUATE': {
-        this.getDispatcher().waitFor([SelectionStore.getDispatchToken()]);
+        this.getDispatcher().waitFor([GridStore.getDispatchToken()]);
 
-        const {origin} = SelectionStore.getActiveSelection();
+        const {origin} = GridStore.getActiveSelection();
         return displayActiveExpression(state, origin);
       }
 
       case 'SELECTION_CHANGED': {
-        this.getDispatcher().waitFor([SelectionStore.getDispatchToken()]);
+        this.getDispatcher().waitFor([GridStore.getDispatchToken()]);
 
         const { selection } = action;
         if (state.isEditing) {
@@ -141,7 +141,7 @@ class ExpressionStore extends ReduceStore<State> {
 
       case 'STOP_EDITING': {
         // revert to expression originally present in cell
-        const { origin } = SelectionStore.getActiveSelection();
+        const { origin } = GridStore.getActiveSelection();
         return displayActiveExpression(state, origin);
       }
 
@@ -228,7 +228,7 @@ function displayActiveExpression(state: State, origin: ASIndex): State {
 
 /**
  * Attempts to insert a ref.
- * Must wait on SelectionStore before calling.
+ * Must wait on GridStore before calling.
  */
 function tryInsertingRef(state: State, gridSelection: ASSelection): State {
   const {selection, expression, currentLanguage, isInsertingRef, textboxPosition} = state;
@@ -239,7 +239,7 @@ function tryInsertingRef(state: State, gridSelection: ASSelection): State {
   if (isInsertingRef) {
 
     // trim old ref, insert the new ref, move selection in front.
-    const oldRef = SelectionStore.getLastActiveSelection().range.toExcel().toString();
+    const oldRef = GridStore.getLastActiveSelection().range.toExcel().toString();
     const newExpression = prefix.slice(0, -1*oldRef.length) + ref + suffix;
     const newLead = {row, column: column - oldRef.length + ref.length};
     const newSelection = {

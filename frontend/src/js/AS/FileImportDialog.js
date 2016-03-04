@@ -6,9 +6,10 @@ import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';
 
 import ExpressionStore from '../stores/ASExpressionStore';
-import SelectionStore from '../stores/ASSelectionStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import GridStore from '../stores/ASGridStore';
 import API from '../actions/ASApiActionCreators';
+import NotificationActions from '../actions/ASNotificationActionCreators';
 
 import request from 'superagent';
 
@@ -25,14 +26,9 @@ const FileImportDialog = {
 
   // Given a file, get the index and language, and send a message to backend
   importCSVCallback(file: File) {
-    let sel = SelectionStore.getActiveSelection();
-    if (sel == null) {
-      return;
-    } else {
-      const simpleIndex = sel.origin;
-      const language = ExpressionStore.getLanguage();
-      API.importCSV(simpleIndex, language, file.name);
-    }
+    const {origin} = GridStore.getActiveSelection();
+    const language = ExpressionStore.getLanguage();
+    API.importCSV(origin, language, file.name);
   },
 
   importExcelCallback(file: File) {
@@ -47,7 +43,11 @@ const FileImportDialog = {
     req.end((err, res) => {
       if (err || !res.ok) {
         console.error(err);
-        alert('Could not import files');
+        NotificationActions.addNotification({
+          title: 'Could not import files.',
+          level: 'error',
+          autoDismiss: 3,
+        });
       } else {
         for (let i = 0; i < files.length; i++) {
           callback(files[i]);

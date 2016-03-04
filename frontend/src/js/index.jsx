@@ -19,7 +19,7 @@ window.Perf = require('react-addons-perf');
 
 window.imm = require('immutable');
 window.exp = require('./actions/ASExpressionActionCreators');
-window.sel = require('./actions/ASSpreadsheetActionCreators');
+window.grid = require('./actions/ASGridActionCreators');
 window.idx = require('./classes/ASIndex');
 window.focus = require('./actions/ASFocusActionCreators');
 window.expstore = require('./stores/ASExpressionStore');

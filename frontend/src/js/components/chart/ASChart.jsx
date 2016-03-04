@@ -88,9 +88,9 @@ export default class ASChart extends React.Component<{}, ASChartProps, ASChartSt
     // this._updateData(filteredCells);
   }
 
-  _getRelativeIndex({col, row}: ASIndex): ({ dr: number; dc: number; }) {
+  _getRelativeIndex({col, row}: ASIndex): Offset {
     let {tl} = this.props.valueRange;
-    return {dc: col - tl.col, dr: row - tl.row};
+    return {dX: col - tl.col, dY: row - tl.row};
   }
 
   _updateData(cs: Array<ASCell>) {

@@ -259,21 +259,6 @@ const Key = {
       return Key.keyToString(e);
   },
 
-  keyShiftValue(e: SyntheticKeyboardEvent): ({ dr: number, dc: number }) {
-    switch (e.which) {
-      case 37:
-        return {dr: 0, dc: -1};
-      case 38:
-        return {dr: -1, dc: 0};
-      case 39:
-        return {dr: 0, dc: 1};
-      case 40:
-        return {dr: 1, dc: 0};
-      default:
-        throw "Invalid keyboard event passed in to shiftIndexByKey";
-    }
-  },
-
   // the only relevant attribute here should be the which
   mockedKeyboardEvent(which: number): SyntheticKeyboardEvent {
     const noop = () => {};

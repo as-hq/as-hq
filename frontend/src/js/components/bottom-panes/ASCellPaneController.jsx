@@ -9,14 +9,14 @@ import type { StoreToken } from 'flux';
 import React from 'react';
 
 import CellStore from '../../stores/ASCellStore';
-import SelectionStore from '../../stores/ASSelectionStore';
+import GridStore from '../../stores/ASGridStore';
 
 import ASOutputPane from './ASOutputPane.jsx';
 
 class ASCellPaneController extends React.Component<{}, {}, {}> {
   _storeListener: () => void;
   _cellListener: StoreToken;
-  _selectionListener: StoreToken;
+  _gridListener: StoreToken;
 
   constructor(props: {}) {
     super(props);
@@ -25,12 +25,12 @@ class ASCellPaneController extends React.Component<{}, {}, {}> {
 
   componentDidMount() {
     this._cellListener = CellStore.addListener(this._storeListener);
-    this._selectionListener = SelectionStore.addListener(this._storeListener);
+    this._gridListener = GridStore.addListener(this._storeListener);
   }
 
   componentWillUnmount() {
     this._cellListener.remove();
-    this._selectionListener.remove();
+    this._gridListener.remove();
   }
 
   render(): React.Element {
@@ -47,7 +47,7 @@ class ASCellPaneController extends React.Component<{}, {}, {}> {
   // returns the stringified 'origin' of the selection.
   // e.g. if I have A1:B5 selected, the origin 'A1' is returned.
   _getOriginString(): string {
-    const sel = SelectionStore.getActiveSelection();
+    const sel = GridStore.getActiveSelection();
     if (!! sel) {
       return sel.origin.toExcel().toString();
     } else {

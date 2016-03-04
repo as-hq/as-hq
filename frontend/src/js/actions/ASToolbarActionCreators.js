@@ -3,7 +3,7 @@ import Dispatcher from '../Dispatcher';
 
 import API from './ASApiActionCreators';
 
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 
 import type {
   FormatType,
@@ -59,7 +59,7 @@ export default {
   },
 
   formatAs(tag: FormatType) {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     switch (tag) {
       case 'Money':
         API.setFormat('Money', range);
@@ -76,7 +76,7 @@ export default {
   },
 
   toggleBooleanCellTag(tag: BooleanCellTag) {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     // $FlowFixMe trust me on this one
     const prop: ASCellProp = {tag, contents: []};
     API.toggleProp(prop, range);
@@ -85,12 +85,12 @@ export default {
   setColor(tag: 'TextColor' | 'FillColor' | 'BorderColor', contents: string) {
     // TODO(joel) figure out BorderColor case
     const prop: ASCellProp = {tag, contents};
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.setProp(prop, range);
   },
 
   handleDecimalChange(i: number) {
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.handleChangeDecimalPrecision(i, range);
   },
 
@@ -101,7 +101,7 @@ export default {
     });
 
     // TODO(joel) - don't create two actions!
-    const {range} = SelectionStore.getActiveSelection();
+    const {range} = GridStore.getActiveSelection();
     API.setFormat(format, range);
   },
 };

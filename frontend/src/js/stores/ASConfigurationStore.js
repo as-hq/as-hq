@@ -44,20 +44,13 @@ class ConfigurationStore extends ReduceStore<State> {
         );
       }
 
-      case 'HEADER_EVALUATED': { 
+      case 'HEADER_EVALUATED': {
         if (!HeaderOutputStore.isOutputEmptyInCurrentHeaderLanguage()) {
           return state.set(
             'bottomPane',
             'header_output'
           );
         }
-      }
-
-      case 'START_EDITING':
-      case 'REPAINT_SPREADSHEET': {
-        // TODO (anand) probably more efficient to do this
-        // with a custom repaint event instead
-        this.__emitChange();
       }
 
       case 'FIND_BAR_VISIBILITY_CHANGED': {

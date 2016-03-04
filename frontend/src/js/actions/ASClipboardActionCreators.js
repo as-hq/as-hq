@@ -6,7 +6,7 @@ import ConfigActions from './ASConfigActionCreators';
 import NotificationActions from './ASNotificationActionCreators';
 
 import FocusStore from '../stores/ASFocusStore';
-import SelectionStore from '../stores/ASSelectionStore';
+import GridStore from '../stores/ASGridStore';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ExpressionStore from '../stores/ASExpressionStore';
@@ -85,7 +85,7 @@ function handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean)
   // understand why.
   U.Key.killEvent(e);
 
-  const sel = SelectionStore.getActiveSelection();
+  const sel = GridStore.getActiveSelection();
   const vals = CellStore.getRowMajorCellValues(sel.range);
 
   // XXX should not mutate stores!!!
@@ -94,13 +94,13 @@ function handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean)
   const plain = U.Clipboard.valsToPlain(vals);
   e.clipboardData.setData("text/html",html);
   e.clipboardData.setData("text/plain",plain);
-  ConfigActions.repaintSpreadsheet(); // render immediately
+  GridActions.repaint(); // render immediately
 }
 
 function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
   Render.setMode(null);
 
-  const sel = SelectionStore.getActiveSelection();
+  const sel = GridStore.getActiveSelection();
 
   const containsHTML = e.clipboardData.types.includes("text/html");
   const containsPlain = e.clipboardData.types.includes("text/plain");
@@ -146,7 +146,7 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
       });
     }
 
-    ConfigActions.repaintSpreadsheet(); // render immediately
+    GridActions.repaint(); // render immediately
 
   } else { // Not from AS
 

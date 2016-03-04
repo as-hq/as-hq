@@ -166,12 +166,12 @@ export default class ASRange {
   extendByCache(): ASRange {
     const {scrollCacheX, scrollCacheY} = Constants;
     return ASRange.fromNaked({
-      tl: this.tl.shift({ dr: -scrollCacheY, dc: -scrollCacheX }),
-      br: this.br.shift({ dr: scrollCacheY, dc: scrollCacheX })
+      tl: this.tl.shift({ dY: -scrollCacheY, dX: -scrollCacheX }),
+      br: this.br.shift({ dY: scrollCacheY, dX: scrollCacheX })
     }, this.sheetId);
   }
 
-  shift(delta: ({ dr: number; dc: number; })): ASRange {
+  shift(offset: Offst): ASRange {
     return ASRange.fromNaked({
       tl: this.tl.shift(delta),
       br: this.br.shift(delta)
@@ -179,7 +179,7 @@ export default class ASRange {
   }
 
   shiftByKey(e: SyntheticKeyboardEvent): ASRange {
-    return this.shift(Util.Key.keyShiftValue(e));
+    return this.shift(Util.Key.keyToOffset(e));
   }
 
   contains(idx: ASIndex): boolean {

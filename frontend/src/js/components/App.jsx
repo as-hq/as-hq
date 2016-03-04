@@ -43,11 +43,13 @@ import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import ClipboardActions from '../actions/ASClipboardActionCreators';
+import GridActions from '../actions/ASGridActionCreators';
 
+import ScrollManager from '../AS/ScrollManager';
+import ModalStore from '../stores/ASModalStore';
 import ConfigStore from '../stores/ASConfigurationStore';
 import HeaderOutputStore from '../stores/ASHeaderOutputStore';
 import LogStore from '../stores/ASLogStore';
-import ModalStore from '../stores/ASModalStore';
 
 // $FlowFixMe: missing annotations
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
@@ -70,14 +72,16 @@ class App extends React.Component<{}, Props, {}> {
   _copyHandler: Callback<SyntheticClipboardEvent>;
   _cutHandler: Callback<SyntheticClipboardEvent>;
   _pasteHandler: Callback<SyntheticClipboardEvent>;
+  _scrollHandler: Callback<any>; // TODO flow scroll event
 
   constructor(props: Props) {
     super(props);
     this.$storeLinks = [];
     this._logListener = () => this.forceUpdate();
-    this._copyHandler = evt => ClipboardActions.copy(evt);
-    this._cutHandler = evt => ClipboardActions.cut(evt);
-    this._pasteHandler = evt => ClipboardActions.paste(evt);
+    this._copyHandler = (e) => ClipboardActions.copy(e);
+    this._cutHandler = (e) => ClipboardActions.cut(e);
+    this._pasteHandler = (e) => ClipboardActions.paste(e);
+    this._scrollHandler = (e) => ScrollManager.handleEvent(e);
   }
 
   componentDidMount() {
@@ -96,6 +100,7 @@ class App extends React.Component<{}, Props, {}> {
     window.addEventListener('copy', this._copyHandler);
     window.addEventListener('cut', this._cutHandler);
     window.addEventListener('paste', this._pasteHandler);
+    window.addEventListener('mousewheel', this._scrollHandler);
   }
 
   componentWillUnmount() {

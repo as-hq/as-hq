@@ -28,12 +28,6 @@ export default {
     });
   },
 
-  repaintSpreadsheet() {
-    Dispatcher.dispatch({
-      _type: 'REPAINT_SPREADSHEET'
-    });
-  },
-
   submitBugReport() {
     const bugReport = window.prompt("Please describe the bug you encountered.","");
     API.bugReport(bugReport);

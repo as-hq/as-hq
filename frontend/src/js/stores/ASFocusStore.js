@@ -22,6 +22,7 @@ type State = any;
 const StateRecord = Immutable.Record({
   activeFocus: 'grid',
   lastActiveFocus: 'textbox',
+  activeHover: 'grid',
   textboxHasFullFocus: false
 });
 
@@ -41,9 +42,13 @@ class FocusStore extends ReduceStore<State> {
           this.refocus();
           return state;
         } else {
-          console.log('setting focus for:', focus);
           return setFocus(state, focus);
         }
+      }
+
+      case 'HOVERED': {
+        console.warn('hovereD:', action.hover);
+        return state.set('activeHover', action.hover);
       }
 
       case 'FOCUSED_TEXTBOX_FULLY': {
@@ -118,6 +123,10 @@ class FocusStore extends ReduceStore<State> {
 
   getFocus(): FocusedElement {
     return this.getState().activeFocus;
+  }
+
+  getHover(): FocusedElement {
+    return this.getState().activeHover;
   }
 
   textboxHasFullFocus(): boolean {
