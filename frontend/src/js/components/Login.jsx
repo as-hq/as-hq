@@ -12,23 +12,45 @@ import React from 'react';
 import Constants from '../Constants';
 // $FlowFixMe
 import { RouteHandler } from 'react-router';
+import CircularProgress from 'material-ui/lib/circular-progress';
 
 import API from '../actions/ASApiActionCreators';
 import LoginActions from '../actions/ASLoginActionCreators';
+import NotificationActions from '../actions/ASNotificationActionCreators';
 import LoginStore from '../stores/ASLoginStore';
+import ConfigStore from '../stores/ASConfigurationStore';
 
-type LoginProps = RoutedComponentProps;
+type Props = RoutedComponentProps;
 
-class Login extends React.Component<{}, LoginProps, {}> {
+class Login extends React.Component<{}, Props, {}> {
   _storeToken: StoreToken;
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      isLoggingIn: false
+    };
+  }
 
   componentDidMount() {
     // $FlowFixMe gapi is in scope due to a top-level script import in Index.html
     gapi.signin2.render('google-signin-button', {
-      onsuccess: this._onLoginSubmit,
+      onsuccess: (user) => this._onLoginSubmit(user),
       ...properties.googleSignin
     });
     this._storeToken = LoginStore.addListener(() => this._onLoginStateChange());
+
+    // Warn user if login appears to take more than 5 seconds.
+    setTimeout(() => {
+      if (! LoginStore.isLoggedIn() && ConfigStore.isConnected()) {
+        NotificationActions.addNotification({
+          title: 'The server appears to be taking a long time to respond.',
+          message: 'Try refreshing the page?',
+          level: 'info',
+          position: 'bc'
+        });
+      }
+    }, 5000);
   }
 
   componentWillUnmount() {
@@ -36,11 +58,16 @@ class Login extends React.Component<{}, LoginProps, {}> {
   }
 
   render(): React.Element {
+    const {isLoggingIn} = this.state;
+
     return (
       <div style={styles.root}>
         <div style={styles.loginContainer}>
           <h1 style={styles.title}>Login</h1>
-          <meta name="google-signin-client_id" content={Constants.google_client_id} />
+          { isLoggingIn &&
+            <CircularProgress style={styles.loader} size={1.5} color='grey' />
+          }
+          <meta name='google-signin-client_id' content={Constants.google_client_id} />
           <div id='google-signin-button' style={styles.googleSignin}/>
         </div>
       </div>
@@ -49,6 +76,7 @@ class Login extends React.Component<{}, LoginProps, {}> {
 
   _onLoginSubmit(user: any) {
     const idToken = user.getAuthResponse().id_token;
+    this.setState({isLoggingIn: true});
     LoginActions.login(idToken);
   }
 
@@ -63,6 +91,9 @@ class Login extends React.Component<{}, LoginProps, {}> {
       setTimeout(() => {
         this.props.history.push('/app');
       }, 0);
+    } else {
+      // Try logging in again upon failure.
+      LoginActions.relogin();
     }
   }
 }
@@ -104,6 +135,11 @@ const styles = {
     left: '30%',
     fontFamily: 'Code',
     textTransform: 'uppercase'
+  },
+  loader: {
+    position: 'absolute',
+    top: 250,
+    left: '35%'
   },
   googleSignin: {
     position: 'absolute',

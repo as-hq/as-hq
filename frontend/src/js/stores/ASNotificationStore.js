@@ -6,6 +6,7 @@ import shortid from 'shortid';
 
 import Dispatcher from '../Dispatcher';
 import BaseStore from './BaseStore';
+import LoginStore from './ASLoginStore';
 
 import NotificationRecord from '../classes/Notification';
 
@@ -53,6 +54,41 @@ const NotificationStore = Object.assign({}, BaseStore, {
         });
         _notifications.push(notif.uid);
         NotificationStore.emit('ADD', notif);
+        break;
+      }
+
+      case 'LOGIN_FAILURE': {
+        const uid = _notifications.pop();
+        if (uid != undefined) {
+          NotificationStore.emit('DISMISS', uid);
+        }
+        const notif = new NotificationRecord({
+          title: 'Login failure: ' + action.failureReason,
+          message: 'trying again...',
+          level: 'error',
+          position: 'bc'
+        });
+        _notifications.push(notif.uid);
+        NotificationStore.emit('ADD', notif);
+        break;
+      }
+
+      case 'SET_CONNECTING_STATE': {
+        if (action.isConnected) {
+          _notifications.forEach(uid => {
+            NotificationStore.emit('DISMISS', uid);
+          });
+          _notifications = [];
+        } else if (! LoginStore.isLoggedIn()){
+          const notif = new NotificationRecord({
+            title: 'Cannot reach server.',
+            message: 'Are you connected to the internet?',
+            level: 'error',
+            position: 'bc'
+          });
+          _notifications.push(notif.uid);
+          NotificationStore.emit('ADD', notif);
+        }
         break;
       }
     }

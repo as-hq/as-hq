@@ -17,12 +17,14 @@ import AS.Types.User hiding (userId)
 import AS.Types.Network 
 import AS.Types.Messages
 
+import Control.Exception
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Authentication
 
 authenticateUser :: AuthStrategy -> IO (Either String ASUserId)
 authenticateUser strat = case strat of 
-  GoogleAuth token -> do
+  GoogleAuth token -> handle onException $ do
     putStrLn $ "Received user id token: " ++ (T.unpack token)
     r <- get $ google_token_verify_url ++ (T.unpack token)
     let appClientId = r ^? responseBody . key "aud"
@@ -37,8 +39,10 @@ authenticateUser strat = case strat of
             Just uid -> Right uid
             Nothing -> Left "auth response did not have email field"
       _ -> return $ Left "received null app client id"
+    where
+      onException :: SomeException -> IO (Either String ASUserId)
+      onException e = return $ Left "connection failure"
   TestAuth -> return $ Right "test_user_id" -- when running tests, no authentication performed.
-  
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 
 

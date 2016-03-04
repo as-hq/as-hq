@@ -9,6 +9,7 @@ import type {
 import Immutable from 'immutable';
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
+import API from '../actions/ASApiActionCreators';
 
 // $FlowFixMe
 import invariant from 'invariant';
@@ -18,7 +19,11 @@ import shortid from 'shortid';
 import _ from 'lodash';
 
 type LoginState = Immutable.Record$Class;
-const LoginRecord = Immutable.Record({userId: null, loggedIn: false, token: null});
+const LoginRecord = Immutable.Record({
+  userId: null,
+  loggedIn: false,
+  token: null
+});
 
 class LoginStore extends ReduceStore<LoginState> {
 
@@ -32,10 +37,22 @@ class LoginStore extends ReduceStore<LoginState> {
         const {token} = action;
         return new LoginRecord({token});
       }
+
       case 'LOGIN_SUCCESS': {
         const {userId} = action;
         console.warn('Login success, got userId: ', userId);
+        window.isLoggedIn = true;
         return state.merge({userId, loggedIn: true});
+      }
+
+      case 'LOGIN_FAILURE': {
+        if (state.loggedIn) {
+          window.isLoggedIn = false;
+          return state.set('loggedIn', false);
+        } else {
+          this.__emitChange();
+          break;
+        }
       }
 
       default: {
@@ -62,9 +79,10 @@ class LoginStore extends ReduceStore<LoginState> {
 
   userIsDev(): boolean {
     const userId = this.getUserId();
-    const devs = ['ritesh@alphasheets.com', 'alex@alphasheets.com', 'anand@alphasheets.com', 'michael@alphasheets.com'];
     return _.contains(devs, userId);
   }
 }
+
+const devs = ['ritesh@alphasheets.com', 'alex@alphasheets.com', 'anand@alphasheets.com', 'michael@alphasheets.com'];
 
 export default new LoginStore(dispatcher);

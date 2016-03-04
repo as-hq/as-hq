@@ -151,15 +151,17 @@ let refreshDialogShown: boolean = false;
 */
 
 pws.ondisconnect = () => {
-  API.reinitialize(); // queue our handshake for the next time we reconnect
+  window.isLoggedIn = false;
+  ConfigActions.setConnectedState(false);
+  LoginActions.relogin();
   // Give up on progress on disconnect.
   // https://app.asana.com/0/47051356043702/84248459839482
   ProgressActions.markAllReceived();
-  ConfigActions.setConnectedState(false);
 };
 
 pws.onreconnect = () => {
   ConfigActions.setConnectedState(true);
+  API.openSheet();
 };
 
 pws.onmessage = (event: MessageEvent) => {
@@ -324,10 +326,10 @@ pws.onmessage = (event: MessageEvent) => {
       LoginActions.onLoginSuccess(authUserId, defaultSheetId);
       break;
     case 'AuthFailure':
-      NotificationActions.addNotification({
-        title: 'Authentication failure: ' + action.failureReason,
-        level: 'error',
-        autoDismiss: 3
+      const {failureReason} = action;
+      Dispatcher.dispatch({
+        _type: 'LOGIN_FAILURE',
+        failureReason
       });
       break;
     case 'SessionLog':
@@ -342,7 +344,7 @@ pws.onmessage = (event: MessageEvent) => {
         sessions: action.allSessions
       });
       break;
-    default: 
+    default:
       break;
   }
 };
@@ -400,16 +402,6 @@ const API = {
       idToken
     };
     API.send(msg);
-  },
-
-  reinitialize() {
-    LoginActions.relogin();
-    API.openSheet();
-
-    const vWindow = SheetStateStore.getViewingWindow();
-    if (vWindow) {
-      API.updateViewingWindow(vWindow);
-    }
   },
 
   /**************************************************************************************************************************/
@@ -946,7 +938,7 @@ const API = {
     const msg = {
       tag: "GetAllSessions",
       contents: []
-    }; 
+    };
     API.sendMessageWithAction(msg);
   },
 

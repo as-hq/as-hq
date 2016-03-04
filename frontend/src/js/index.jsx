@@ -26,6 +26,7 @@ window.expstore = require('./stores/ASExpressionStore');
 window.u = require('./AS/Util');
 window.ex = require('./classes/ASExcelRef');
 window.login = require('./stores/ASLoginStore');
+window.conf = require('./stores/ASConfigurationStore');
 
 const Index = ({children}) => (
   <div className="full">

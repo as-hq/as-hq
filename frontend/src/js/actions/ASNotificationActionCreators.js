@@ -22,6 +22,14 @@ export default {
     });
   },
 
+  dismissLast() {
+    const uid = NotificationStore.peek();
+    Dispatcher.dispatch({
+      _type: 'DISMISS_NOTIFICATION',
+      uid
+    });
+  },
+
   removeNotification(uid: string) {
     Dispatcher.dispatch({
       _type: 'REMOVE_NOTIFICATION',
