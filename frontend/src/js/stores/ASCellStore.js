@@ -234,7 +234,7 @@ function removeLocations(
 ): CellStoreData {
   let data_ = data;
   U.Location.asLocsToASIndices(locs).forEach(i => {
-    data_ = removeIndex(data, i);
+    data_ = removeIndex(data_, i);
   });
   return data_;
 }
