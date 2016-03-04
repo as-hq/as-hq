@@ -99,6 +99,13 @@ class ExpressionStore extends ReduceStore<State> {
         return state.set('selection', action.selection);
       }
 
+      case 'GOT_UPDATED_CELLS': {
+        this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
+
+        const {origin} = SelectionStore.getActiveSelection();
+        return displayActiveExpression(state, origin);
+      }
+      
       case 'API_EVALUATE': {
         this.getDispatcher().waitFor([SelectionStore.getDispatchToken()]);
 
@@ -201,6 +208,8 @@ class ExpressionStore extends ReduceStore<State> {
  * (3) not currently editing.
  * (4) textboxPosition === activeSelection.origin
  */
+// #needsrefactor shouldn't we just always be using SelectionStore.getActiveSelection()
+// instead of passing in an argument, which should be equal to that value anyway?
 function displayActiveExpression(state: State, origin: ASIndex): State {
   const cell = CellStore.getCell(origin);
   const expression = (!! cell) ? cell.expression.expression : '';
