@@ -13,7 +13,7 @@ import type {
 
 import React from 'react';
 import {fromJS, Map, Record, Record$Class} from 'immutable';
-// $FlowFixMe 
+// $FlowFixMe
 import { ReduceStore } from 'flux/utils';
 
 import Dispatcher from '../Dispatcher';
@@ -48,10 +48,6 @@ class ASOverlayStore extends ReduceStore<ASOverlayState> {
       case 'RESET':
         _data.overlays = {};
         break;
-      case 'ADD_OVERLAY':
-        ASOverlayStore.add(action.overlay);
-        ASOverlayStore.emitChange();
-        break;
       case 'ADD_OVERLAY_WITHOUT_LOC':
         let uid = U.Render.getUniqueId(),
             overlay = action.overlay;
@@ -76,8 +72,8 @@ class ASOverlayStore extends ReduceStore<ASOverlayState> {
         });
         return newState;
       case 'OVERLAY_RESIZED':
-        let newOverlay = action.overlay; 
-        newOverlay.imageWidth = action.width; 
+        let newOverlay = action.overlay;
+        newOverlay.imageWidth = action.width;
         newOverlay.imageHeight = action.height;
         // Modify the width and height of the overlay, and set in state
         if (newOverlay.loc !== null) {
@@ -93,7 +89,7 @@ class ASOverlayStore extends ReduceStore<ASOverlayState> {
         } else {
           return this._delFloatingOverlay(state, delOverlay);
         }
-      default: 
+      default:
         return state;
     }
   }
@@ -128,7 +124,7 @@ class ASOverlayStore extends ReduceStore<ASOverlayState> {
     if (!cell.isImage()) {
       return null;
     }
-    let imageSrc = Constants.getBackendUrl('http', 
+    let imageSrc = Constants.getBackendUrl('http',
       Constants.BACKEND_STATIC_PORT) + "/images/" + cell.value.imagePath;
 
     // Initialize prop values, then see if the cell has data that overrides them
@@ -172,15 +168,3 @@ class ASOverlayStore extends ReduceStore<ASOverlayState> {
 }
 
 export default new ASOverlayStore(Dispatcher);
-
-
-
-
-
-
-
-
-
-
-
-

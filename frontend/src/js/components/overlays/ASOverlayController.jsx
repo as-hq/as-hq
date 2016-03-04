@@ -6,7 +6,7 @@ import type {
 
 import type {
   ASOverlaySpec,
-  DragEventDetail, 
+  DragEventDetail,
   ResizeEventDetail
 } from '../../types/Overlay';
 
@@ -26,7 +26,7 @@ type ASOverlayControllerProps = {
   computeTopLeftPxOfLoc: (col: number, row: number) => {top: number, left: number};
 };
 
-// Keep track if any of the overlays is resizing. If so, then we shouldn't 
+// Keep track if any of the overlays is resizing. If so, then we shouldn't
 // allow for dragging
 type ASOverlayControllerState = {
   resizing: boolean;
@@ -43,7 +43,7 @@ export default class ASOverlayController
   }
 
   // Listen to the OverlayStore and rerender upon update. Cannot use StoreLinks
-  // for now because ReduceStore has addListener and not addChangeListener. 
+  // for now because ReduceStore has addListener and not addChangeListener.
   componentDidMount() {
     OverlayStore.addListener(() => {
       this.forceUpdate();
@@ -53,7 +53,6 @@ export default class ASOverlayController
   // If an overlay is a cell-bound overlay, then send an API message
   _setProp(prop: ASCellProp, overlay: ASOverlaySpec) {
     if (overlay.loc != null) {
-      debugger;
       API.setProp(prop, overlay.loc.toRange());
     }
   }
@@ -62,7 +61,7 @@ export default class ASOverlayController
     return detail.position.top !== 0 || detail.position.left !== 0;
   }
 
-  // Called when a drag of an overlay ends. If the drag actually moved the overlay, 
+  // Called when a drag of an overlay ends. If the drag actually moved the overlay,
   // send an update to backend, so that the position is correct on a reload.
   _onDragStop(overlay: ASOverlaySpec, detail: DragEventDetail) {
     if (this.state.resizing) {
@@ -97,24 +96,24 @@ export default class ASOverlayController
     this._setProp(prop, overlay);
   }
 
-  // Given an overlay, account for scrolling and the cell's position. 
+  // Given an overlay, account for scrolling and the cell's position.
   // The overlay's dragOffsetTop and dragOffsetLeft only account for the shifting due to the
   // dragging action. This function will account for Hypergrid scrolling and the initial location of the
   // cell that the overlay is bound to.
   _getTopLeftOfOverlay(overlay: ASOverlaySpec): {top: number, left: number} {
-    if (overlay.loc != null) { 
+    if (overlay.loc != null) {
       return this.props.computeTopLeftPxOfLoc(overlay.loc.col, overlay.loc.row);
-    } else { 
+    } else {
       return {top: 0, left: 0};
     }
   }
 
   // When a non-trivial resize is occurring, fire a resize event, which will update the
   // overlays in the store and thus cause a rerender here. Don't need to tell backend
-  // until the resize ends. 
+  // until the resize ends.
   _onResize(overlay: ASOverlaySpec, detail: ResizeEventDetail) {
     console.log("resize");
-    if (detail.size.width !== overlay.imageWidth || 
+    if (detail.size.width !== overlay.imageWidth ||
         detail.size.height !== overlay.imageHeight) {
       OverlayActionCreator.resize(overlay, detail.size.width, detail.size.height);
     }
@@ -133,9 +132,9 @@ export default class ASOverlayController
   }
 
   // Just render all of the overlays from the OverlayStore, with accurate props.
-  // In order to make sure that the overlay's don't go past the bars, you could 
+  // In order to make sure that the overlay's don't go past the bars, you could
   // have a div over here with top: colHeight, left: rowWidth, width, height: 100%,
-  // overflow: hidden, but this also requires updating this if those values are resized. 
+  // overflow: hidden, but this also requires updating this if those values are resized.
   // ^^ TODO
   // We're giving each overlay a key = uid for React's reconciliation
   // Just render all of the overlays from the store.
@@ -143,8 +142,8 @@ export default class ASOverlayController
     const overlays = OverlayStore.getAllOverlays();
     return (
       <div style={{width: '100%', height: '100%', position: 'absolute'}} >
-        {overlays.map((overlay) => 
-          <ASOverlay 
+        {overlays.map((overlay) =>
+          <ASOverlay
             key={overlay.id}
             overlay={overlay}
             topLeft={this._getTopLeftOfOverlay(overlay)}
@@ -152,7 +151,7 @@ export default class ASOverlayController
             onDrag={() => !this.state.resizing}
             onResize={(o, r) => this._onResize(o, r)}
             onResizeStart={() => this.setState({resizing: true})}
-            onDragStop={(o, d) => this._onDragStop(o, d)} 
+            onDragStop={(o, d) => this._onDragStop(o, d)}
             onResizeStop={(o, r) => this._onResizeStop(o, r)}/>
         )}
       </div>

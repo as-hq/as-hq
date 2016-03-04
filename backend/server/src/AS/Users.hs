@@ -23,6 +23,7 @@ import AS.Types.Messages
 authenticateUser :: AuthStrategy -> IO (Either String ASUserId)
 authenticateUser strat = case strat of 
   GoogleAuth token -> do
+    putStrLn $ "Received user id token: " ++ (T.unpack token)
     r <- get $ google_token_verify_url ++ (T.unpack token)
     let appClientId = r ^? responseBody . key "aud"
     case appClientId of 
