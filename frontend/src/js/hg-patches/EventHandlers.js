@@ -126,7 +126,7 @@ const callbacks: Array<InitCallback> = [
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
         let {origin} = spreadsheet._getSelection(),
             newBr = {col: evt.gridCell.x, row: evt.gridCell.y};
-        spreadsheet.select(
+        spreadsheet._select(
           ASSelection.fromASLocations({
             origin: origin,
             range: ASRange.fromASIndices({
@@ -269,7 +269,7 @@ const callbacks: Array<InitCallback> = [
           let toRange = Render.getDragRect(),
               fromRange = sel.range;
           if (!! toRange) {
-            spreadsheet.select(toRange.toSelection(), false);
+            spreadsheet._select(toRange.toSelection(), false);
             Render.setDragRect(null);
             spreadsheet._repaint();
             API.cut(fromRange, toRange);
@@ -283,7 +283,7 @@ const callbacks: Array<InitCallback> = [
             let activeSelection = GridStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
-              spreadsheet.select(dottedSel,true);
+              spreadsheet._select(dottedSel,true);
             }
           }
         } else if (model.featureChain) { // resizing a bar or dragging a bar to another location
