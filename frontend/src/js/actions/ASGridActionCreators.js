@@ -54,13 +54,6 @@ const GridActions = {
     });
   },
 
-  scrollWithWindow(viewingWindow: ASRange) {
-    Dispatcher.dispatch({
-      _type: 'GRID_SCROLL_CHANGED',
-      viewingWindow
-    });
-  },
-
   setDimensions({width, height}) {
     Dispatcher.dispatch({
       _type: 'GRID_DIMENSIONS_CHANGED',
