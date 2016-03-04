@@ -383,7 +383,9 @@ function installAllShortcuts() {
           break;
       }
     ExpressionActions.setLanguage(language);
-    APIActions.evaluate({dX: 0, dY: 0});
+    if (!ExpressionStore.isEditing() && ExpressionStore.getExpression() != "") {
+      APIActions.evaluate({dX: 0, dY: 0});
+    }
   });
 
   install('toplevel', 'toggle_header', 'Alt+H', (wildcard: string) => {
