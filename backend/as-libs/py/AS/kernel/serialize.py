@@ -29,7 +29,7 @@ def wrapValue(val):
     savePath = imageSavePath + uid
     figures[-1].savefig(savePath)
     print("DETECTED IMAGE, SAVING TO: " + savePath, file=sys.__stdout__)
-    mpl.Gcf.destroy_all()
+    mpl.Gcf.destroy_all() # #incomplete: is only correct for one user.
     return json.dumps({'tag': 'CellValue',
                        'cellValueType': 'Image',
                        'imagePath': uid})
@@ -41,7 +41,7 @@ def shouldShowImage(val):
   return True
 
 def isImageInScope():
-  return len(mpl.Gcf.get_all_fig_managers()) > 0
+  return len(mpl.Gcf.get_all_fig_managers()) > 0 # #incomplete: is only correct for one user.
 
 def serialize(val):
   if isinstance(val, list):

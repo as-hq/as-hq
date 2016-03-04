@@ -13,6 +13,8 @@ from IPython.utils.py3compat import builtin_mod
 from IPython.core.error import InputRejected, UsageError
 from IPython.core.display_trap import DisplayTrap
 
+import matplotlib._pylab_helpers as mpl
+
 from traitlets import Instance, Type
 
 from .compiler import ASCompiler
@@ -491,6 +493,8 @@ class ASShell(InteractiveShell):
     simply call this method."""
 
     try:
+        # If you created any images during the computation, remove it. 
+        mpl.Gcf.destroy_all() # #incomplete: is only correct for one user. Also is this the best place to put it?
         stb = None
         # catch exceptions while trying to get the exception
         try:
