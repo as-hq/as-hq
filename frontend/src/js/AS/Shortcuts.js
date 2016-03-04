@@ -112,7 +112,7 @@ function installAllShortcuts() {
     // TODO
   });
   install('evalpane', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
-    APIActions.evaluate({dX: 0, dY: 1});
+    APIActions.evaluate({dX: 0, dY: 0});
   });
   install('evalpane', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
     let expression = ExpressionStore.getExpression();
