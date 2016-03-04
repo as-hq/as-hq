@@ -134,9 +134,13 @@ class ASIterable(object):
     def __getitem__(self, idx):
         return self._to1DListIf1D()[idx]
 
+    # Does not yet handle setting equalities like "x = A1:B2; x[0][0] = 15; x"
+    def __setitem__(self, idx, val):
+        self._apply1DListFunction(lambda x: x.__setitem__(idx, val))
+
     def get(self, idx):
         return self.__getitem__(idx)
-
+        
     def __iter__(self):
         return ASIterator(self)
 

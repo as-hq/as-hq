@@ -763,6 +763,16 @@ describe('backend', () => {
               ]);
             });
 
+            it ('should work with setting values when vertical', (done) => {
+              _do([
+                python('A1', 'range(10)'),
+                python('B1', 'x=A1:A10;x[1]=15;x'),
+                shouldBe('B2', valueI(15)),
+
+                exec(done)
+              ]);
+            });
+
             it ('should act like lists when horizontal', (done) => {
               _do([
                 python('A1', '[range(10)]'),
@@ -772,6 +782,16 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
+            it ('should work with setting values when horizontal', (done) => {
+              _do([
+                python('A1', '[range(10)]'),
+                python('A2', 'x=A1:J1;x[1]=15;x'),
+                shouldBe('B2', valueI(15)),
+
+                exec(done)
+              ]);
+            })
 
             it ('initialized to strings works', (done) => {
               _do([
@@ -793,6 +813,8 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
+
           });
 
           describe('2D ranges', () => {
@@ -828,6 +850,36 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
+            it ('should work with setting rows', (done) => {
+              _do([
+                python('A1', '5'),
+                python('A2', '6'),
+                python('B1', '7'),
+                python('B2', '8'),
+
+                python('C1', 'x=A1:B2;x[1]=[13,14];x'),
+                shouldBe('C2', valueI(13)),
+                shouldBe('D2', valueI(14)),
+
+                exec(done)
+              ]);
+            })
+
+            // does not yet work
+            xit ('should work with setting values directly', (done) => {
+              _do([
+                python('A1', '5'),
+                python('A2', '6'),
+                python('B1', '7'),
+                python('B2', '8'),
+
+                python('C1', 'x=A1:B2;x[0][0]=15;x'),
+                shouldBe('C1', valueI(15)),
+
+                exec(done)
+              ]);
+            })
 
             it ('can be initialized to strings', (done) => {
               _do([
