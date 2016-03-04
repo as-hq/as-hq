@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import math
 import random
 from AS.iterable import ASIterable
 from AS.hidden import Hidden
