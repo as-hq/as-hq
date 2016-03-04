@@ -135,6 +135,7 @@ handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO (
 handleFirstMessage state wsConn msg =
   case (decode msg :: Maybe LoginMessage) of
     Just (Login auth) -> do -- first message must be user auth
+      putStrLn $ "got auth!:" ++ (show auth)
       authResult <- US.authenticateUser auth
       case authResult of 
         Right uid -> do
