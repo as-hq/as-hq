@@ -13,6 +13,8 @@ import App from './components/App.jsx';
 import Login from './components/Login.jsx';
 import NotificationController from './components/NotificationController.jsx';
 import LoginStore from './stores/ASLoginStore';
+import FocusActions from './actions/ASFocusActionCreators';
+import GridActions from './actions/ASGridActionCreators';
 
 // XXX(joel) - only include in dev
 window.Perf = require('react-addons-perf');
@@ -54,4 +56,15 @@ const main = (
 // render the app when polymer is ready
 document.addEventListener('polymer-ready', () => {
   render(main, document.getElementById('main'));
+});
+
+/*
+When typing and evaluating rapidly in the grid, occasionally both the grid and
+the editor lose focus. When this happens, restore focus.
+ */
+document.addEventListener('keydown', (e) => {
+  if (e.srcElement.tagName === 'BODY') {
+    FocusActions.focus('grid');
+    GridActions.executeKey(e);
+  }
 });

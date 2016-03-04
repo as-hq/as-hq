@@ -78,8 +78,6 @@ type Props = {
 };
 
 type State = {
-  scroll: HGPoint;
-  scrollPixels: HGPoint;
   cursorStyle: ASCursorStyle;
 };
 
@@ -474,31 +472,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
 
   _onKeyDown(e: SyntheticKeyboardEvent) {
     e.persist(); // prevent react gc
-
-    // initiate 'buffered' editing (capture all keys until
-    // textbox actually takes focus)
-    if (KeyUtils.initiatesEditMode(e)) {
-      KeyUtils.killEvent(e);
-      ExpressionActions.startEditingBuffered(
-        KeyUtils.keyToString(e)
-      );
-    }
-
-    // if already editing, send the key to textbox, since
-    // we must be in the middle of a focus transition.
-    else if (ExpressionStore.isEditing()) {
-      ExpressionActions.executeTextboxKey(e);
-    }
-
-    // let the window event handler take over.
-    else if (KeyUtils.isCopyPasteType(e)) {
-      return;
-    }
-
-    else {
-      KeyUtils.killEvent(e);
-      GridActions.executeKey(e);
-    }
+    GridActions.executeKey(e);
   }
 
   _onBarPropsChange() {

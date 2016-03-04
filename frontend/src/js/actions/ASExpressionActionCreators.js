@@ -83,7 +83,7 @@ const ExpressionActions = {
       ! hasFullFocus ||
       ExpressionStore.isInsertingRef()
     ))  {
-      GridActions.executeKey(e);
+      GridActions.executeGridOnlyKey(e);
     } else {
       Shortcuts.try(e, 'textbox');
     }

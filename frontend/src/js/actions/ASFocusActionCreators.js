@@ -6,6 +6,7 @@ import type { FocusedElement } from '../types/State';
 import ExpressionStore from '../stores/ASExpressionStore';
 
 export default {
+
   // Set the focus to either the grid, textbox, or editor.
   focus(focus: FocusedElement) {
     Dispatcher.dispatch({

@@ -84,7 +84,6 @@ export default class ASOverlayController
   // on a reload.
   _onResizeStop(overlay: ASOverlaySpec, detail: ResizeEventDetail) {
     this.setState({resizing: false});
-    console.log("resize stop", overlay);
     let {dragOffsetTop, dragOffsetLeft, imageWidth, imageHeight} = overlay,
         prop = {
           tag: 'ImageData',
@@ -112,7 +111,6 @@ export default class ASOverlayController
   // overlays in the store and thus cause a rerender here. Don't need to tell backend
   // until the resize ends.
   _onResize(overlay: ASOverlaySpec, detail: ResizeEventDetail) {
-    console.log("resize");
     if (detail.size.width !== overlay.imageWidth ||
         detail.size.height !== overlay.imageHeight) {
       OverlayActionCreator.resize(overlay, detail.size.width, detail.size.height);

@@ -34,7 +34,6 @@ class LogStore extends ReduceStore<LogStoreData> {
         const sessionMap = _.groupBy(action.sessions, 'seshUserId');
         return state.set('sessions', Map(sessionMap));
       case 'GOT_SESSION_LOG':
-        console.log(action);
         return state.set('logs', List(action.sessionLog));
       case 'LOG_VIEWER_OPENED':
         return state.set('isOpen', true);

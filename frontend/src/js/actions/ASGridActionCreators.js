@@ -15,6 +15,7 @@ import API from './ASApiActionCreators';
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import { actions as Shortcuts } from '../AS/Shortcuts';
+import ExpressionActions from './ASExpressionActionCreators';
 
 const GridActions = {
 
@@ -69,7 +70,35 @@ const GridActions = {
     GridActions.select(ASSelection.defaultSelection());
   },
 
+
   executeKey(e: SyntheticKeyboardEvent) {
+    // initiate 'buffered' editing (capture all keys until
+    // textbox actually takes focus)
+    if (KeyUtils.initiatesEditMode(e)) {
+      KeyUtils.killEvent(e);
+      ExpressionActions.startEditingBuffered(
+        KeyUtils.keyToString(e)
+      );
+    }
+
+    // if already editing, send the key to textbox, since
+    // we must be in the middle of a focus transition.
+    else if (ExpressionStore.isEditing()) {
+      ExpressionActions.executeTextboxKey(e);
+    }
+
+    // let the window event handler take over.
+    else if (KeyUtils.isCopyPasteType(e)) {
+      return;
+    }
+
+    else {
+      KeyUtils.killEvent(e);
+      GridActions.executeGridOnlyKey(e);
+    }
+  },
+
+  executeGridOnlyKey(e: SyntheticKeyboardEvent) {
     if (KeyUtils.offsetsSelection(e)) {
       GridActions.shiftSelection(
         KeyUtils.keyToOffset(e),

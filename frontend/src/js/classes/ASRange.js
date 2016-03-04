@@ -171,10 +171,10 @@ export default class ASRange {
     }, this.sheetId);
   }
 
-  shift(offset: Offst): ASRange {
+  shift(offset: Offset): ASRange {
     return ASRange.fromNaked({
-      tl: this.tl.shift(delta),
-      br: this.br.shift(delta)
+      tl: this.tl.shift(offset),
+      br: this.br.shift(offset)
     }, this.sheetId);
   }
 

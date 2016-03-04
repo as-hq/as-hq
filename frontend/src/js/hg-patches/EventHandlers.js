@@ -32,42 +32,6 @@ const callbacks: Array<InitCallback> = [
   ({ spreadsheet, hg }) => {
     let callbacks = ({
 
-      // #needsrefactor should put scrollPixels in a store instead,
-      // so globally accessible
-      'fin-scroll-x': function (event) {
-        if (event.detail.oldValue <= event.detail.value) {
-          const scrollPixels = {
-            x: spreadsheet.state.scrollPixels.x + hg.getColumnWidth(event.detail.oldValue),
-            y: spreadsheet.state.scrollPixels.y
-          };
-          spreadsheet.setState({scrollPixels});
-        } else {
-          const scrollPixels = {
-            x: spreadsheet.state.scrollPixels.x - hg.getColumnWidth(event.detail.value),
-            y: spreadsheet.state.scrollPixels.y
-          };
-          spreadsheet.setState({scrollPixels});
-        }
-      },
-
-      // #needsrefactor should put scrollPixels in a store instead,
-      // so globally accessible
-      'fin-scroll-y': function (event) {
-        if (event.detail.oldValue <= event.detail.value) {
-          const scrollPixels = {
-            y: spreadsheet.state.scrollPixels.y + hg.getRowHeight(event.detail.oldValue),
-            x: spreadsheet.state.scrollPixels.x
-          };
-          spreadsheet.setState({scrollPixels});
-        } else {
-          const scrollPixels = {
-            y: spreadsheet.state.scrollPixels.y - hg.getRowHeight(event.detail.value),
-            x: spreadsheet.state.scrollPixels.x
-          };
-          spreadsheet.setState({scrollPixels});
-        }
-      },
-
       'fin-double-click': function (event) {
         // should only fire when double click is inside grid. According to event.detail.gridCell here,
         // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.

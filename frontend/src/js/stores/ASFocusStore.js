@@ -33,6 +33,7 @@ class FocusStore extends ReduceStore<State> {
 
   reduce(state: State, action: ASAction): State {
     switch(action._type) {
+
       case 'FOCUSED': {
         const { focus } = action;
         console.error('focusing element:', focus);
@@ -47,7 +48,6 @@ class FocusStore extends ReduceStore<State> {
       }
 
       case 'HOVERED': {
-        console.warn('hovereD:', action.hover);
         return state.set('activeHover', action.hover);
       }
 
