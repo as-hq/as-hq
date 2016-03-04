@@ -227,16 +227,26 @@ pws.onmessage = (event: MessageEvent) => {
       SheetActions.setMySheets(action.contents);
       break;
     case 'AskDecouple':
-      NotificationActions.addNotification({
-        title: "You're about to decouple cells.",
-        message: 'Are you sure?',
-        level: 'warning',
-        position: 'tc',
-        action: {
-          label: 'OK',
-          callback: () => API.decouple()
-        }
-      });
+      // #needsrefactor should use notification; currently sticking with alert box because 
+      // it automatically takes the focus, which is better UX. (Can be implemented with notifications
+      // but not super-high priority at the moment.)
+      const shouldDecouple = window.confirm("You're about to decouple cells. Are you sure?");
+      if (shouldDecouple) {
+        API.decouple();
+      }
+      // Disabled because dialog is actually better UX right now, and it's faster to do that than 
+      // deal with focus. 
+      // NotificationActions.addNotification({
+      //   title: "You're about to decouple cells.",
+      //   message: 'Are you sure?',
+      //   level: 'warning',
+      //   position: 'tc',
+      //   action: {
+      //     label: 'OK',
+      //     callback: () => API.decouple()
+      //   }
+      // });
+
       // Clear all progress indicators if we received a Decouple message.
       // The messageId sent for
       // evaluation and the id after received after decoupling are not the same,
