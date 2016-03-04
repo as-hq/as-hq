@@ -150,7 +150,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
 
     this._cellStoreListener = CellStore.addListener(() => {
       this._grid.getBehavior().changed();
-      this._grid.repaint();
     });
     this._configStoreListener = ConfigStore.addListener(() =>
       this._grid.repaint()
