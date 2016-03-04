@@ -101,7 +101,7 @@ class ExpressionStore extends ReduceStore<State> {
       case 'GOT_UPDATED_CELLS': {
         this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
 
-        const {origin} = SelectionStore.getActiveSelection();
+        const {origin} = GridStore.getActiveSelection();
         return displayActiveExpression(state, origin);
       }
 
@@ -206,9 +206,10 @@ class ExpressionStore extends ReduceStore<State> {
  * (2) not inserting refs.
  * (3) not currently editing.
  * (4) textboxPosition === activeSelection.origin
+ *
+ * Pass in the origin as an argument, because the active "selection" according
+ * to GridStore is not always the displayed expression (e.g. during ref insertion)
  */
-// #needsrefactor shouldn't we just always be using SelectionStore.getActiveSelection()
-// instead of passing in an argument, which should be equal to that value anyway?
 function displayActiveExpression(state: State, origin: ASIndex): State {
   const cell = CellStore.getCell(origin);
   const expression = (!! cell) ? cell.expression.expression : '';

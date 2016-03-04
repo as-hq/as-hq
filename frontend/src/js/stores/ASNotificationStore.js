@@ -20,7 +20,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
       case 'RESET':
         _notifications = [];
         break;
-        
+
       case 'ADD_NOTIFICATION': {
         const notif = new NotificationRecord(action.spec);
         // $FlowFixMe
