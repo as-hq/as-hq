@@ -132,7 +132,6 @@ function setActiveSelection(
   // its value directly in the file. (Relayed from Anand -- Alex 12/9)
   Render.setSelection(selection);
   let state_ = state;
-  console.error('shouldScroll: ', shouldScroll);
   if (shouldScroll) {
     state_ = scrollTo(state_, selection);
   }

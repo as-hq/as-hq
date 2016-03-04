@@ -159,7 +159,6 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
     });
 
     document.addEventListener('grid-repaint', () => {
-      console.error('REPAINTED GRID!');
       this._grid.repaint();
     });
 
