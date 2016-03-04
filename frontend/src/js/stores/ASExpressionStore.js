@@ -190,7 +190,6 @@ class ExpressionStore extends ReduceStore<State> {
       U.Parsing.canInsertRef(expression, '')
     );
   }
-
 }
 
 
