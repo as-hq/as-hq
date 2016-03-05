@@ -21,7 +21,7 @@ done
 ## check if we are in the project directory, and navigate to the root
 CWD=${PWD##*/}
 
-if [ $CWD = "scripts" ] || [ $CWD = "frontend" ] || [ $CWD = "backend" ]; then
+if [ $CWD = "scripts" ] || [ $CWD = "frontend" ] || [ $CWD = "backend" ] || [ $CWD = "deployment" ]; then
   cd ../
 elif [ -d ./frontend ]; then
   continue
