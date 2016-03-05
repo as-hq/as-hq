@@ -16,9 +16,10 @@ type MoreFormatDropdownProps = {
   visible: boolean;
 }
 
+// Give all props a secondaryText so that they'll be aligned in the same way in GenerateToolbarMenu
 const menuProps: Array<MenuProps> = [
-  {tag: 'MenuItem', primaryText: 'Automatic', value: 'Automatic'},
-  {tag: 'MenuItem', primaryText: 'Plain Text', value: 'Plain Text'},
+  {tag: 'MenuItem', primaryText: 'Automatic', value: 'Automatic', secondaryText: ''},
+  {tag: 'MenuItem', primaryText: 'Plain Text', value: 'Plain Text', secondaryText: ''},
   {tag: 'Divider', style: {marginTop: 5, marginBottom: 5}},
   {tag: 'MenuItem', primaryText: 'Number', value: 'Number', secondaryText: '1000.12'},
   {tag: 'MenuItem', primaryText: 'Percent', value: 'Percent', secondaryText: '10.12%'},
@@ -53,6 +54,7 @@ export default class MoreFormatDropdown
   render(): React.Element {
     return (
       <ButtonWithMenu
+        menuShouldCheckSelections={false}
         toolbarControlProps={toolbarControlProps}
         menuProps={menuProps}
         value="Number"

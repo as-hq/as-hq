@@ -58,6 +58,7 @@ function VAlignPicker(props: VAlignPickerProps): React.Element {
   const {visible, value} = props;
   return (
     <ButtonWithMenu
+      menuShouldCheckSelections={false}
       toolbarControlProps={toolbarControlProps}
       menuProps={menuProps}
       menuWidth={65}

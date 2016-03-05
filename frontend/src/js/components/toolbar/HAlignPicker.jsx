@@ -58,14 +58,15 @@ function HAlignPicker(props: HAlignPickerProps): React.Element {
   const {visible, value} = props;
   return (
     <ButtonWithMenu
+      menuShouldCheckSelections={false}
       toolbarControlProps={toolbarControlProps}
       menuProps={menuProps}
       menuWidth={65}
       visible={visible}
       value={value}
       onSelect={align => { /* TODO */ }}
-      onOpen={() => ToolbarActionCreators.openItem('VAlignPicker')}
-      onClose={() => ToolbarActionCreators.closeItem('VAlignPicker')}
+      onOpen={() => ToolbarActionCreators.openItem('HAlignPicker')}
+      onClose={() => ToolbarActionCreators.closeItem('HAlignPicker')}
     />
   );
 }

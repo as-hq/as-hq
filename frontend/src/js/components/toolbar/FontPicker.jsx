@@ -46,6 +46,7 @@ function FontPicker(
 
   return (
     <ButtonWithMenu
+      menuShouldCheckSelections={false}
       toolbarControlProps={toolbarControlProps}
       menuProps={menuItems}
       menuWidth={65}

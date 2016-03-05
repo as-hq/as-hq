@@ -55,9 +55,10 @@ export default function LanguagePicker(
 
   return (
     <ButtonWithMenu
+      menuShouldCheckSelections={false}
       toolbarControlProps={toolbarControlProps}
       menuProps={menuProps}
-      menuWidth={65}
+      menuWidth={165}
       toolbarControlWidth={85}
       visible={visible}
       value={language}

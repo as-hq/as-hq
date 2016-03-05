@@ -83,6 +83,7 @@ export default class ASToolbar
     const activeButton = ToolbarStore.getActiveMenuItem();
     const cell = CellStore.getActiveCell();
 
+    // Currently not supporting horizontal or vertical alignment (Ritesh 3/4)
     return (
       <div
         style={styles.toolbarStyle}
@@ -150,13 +151,13 @@ export default class ASToolbar
         <Separator />
         <FontPicker
           visible={activeButton === 'FontPicker'}
-          value={null}
+          value={'Arial'}
         />
 
         <Separator />
         <FontSizePicker
           visible={activeButton === 'FontSizePicker'}
-          value={null}
+          value={'10'}
         />
         <Separator />
 
@@ -183,13 +184,14 @@ export default class ASToolbar
           // TODO(joel) Make strikethrough cell prop!
           onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Strikethrough')}
         />
+
         <ColorPicker
           propTag="TextColor"
           iconName="text_format"
           tooltip="Text color"
           active={activeButton === 'TextColor'}
-          value={null}
-          onSelect={color => ToolbarActionCreators.setColor('TextColor', color)}
+          value={'#212121'}
+          onSelect={color => ToolbarActionCreators.setColor('TextColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('TextColor')}
           onClose={() => ToolbarActionCreators.closeItem('TextColor')}
         />
@@ -201,8 +203,8 @@ export default class ASToolbar
           iconName="format_color_fill"
           tooltip="Fill color"
           active={activeButton === 'FillColor'}
-          value={null}
-          onSelect={color => ToolbarActionCreators.setColor('FillColor', color)}
+          value={'#ffffff'}
+          onSelect={color => ToolbarActionCreators.setColor('FillColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('FillColor')}
           onClose={() => ToolbarActionCreators.closeItem('FillColor')}
         />
@@ -211,19 +213,10 @@ export default class ASToolbar
           iconName="border_color"
           tooltip="Border color"
           active={activeButton === 'BorderColor'}
-          value={null}
-          onSelect={color => ToolbarActionCreators.setColor('BorderColor', color)}
+          value={'#0062b1'}
+          onSelect={color => ToolbarActionCreators.setColor('BorderColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('BorderColor')}
           onClose={() => ToolbarActionCreators.closeItem('BorderColor')}
-        />
-
-        <HAlignPicker
-          visible={activeButton === 'HAlignPicker'}
-          value={null}
-        />
-        <VAlignPicker
-          visible={activeButton === 'VAlignPicker'}
-          value={null}
         />
 
         <Separator />

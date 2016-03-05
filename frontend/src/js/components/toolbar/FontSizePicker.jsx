@@ -38,6 +38,7 @@ function FontSizePicker(props: FontSizePickerProps): React.Element {
   const {visible, value} = props;
   return (
     <ButtonWithMenu
+      menuShouldCheckSelections={false}
       toolbarControlProps={toolbarControlProps}
       menuProps={menuProps}
       menuWidth={65}

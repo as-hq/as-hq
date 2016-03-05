@@ -48,10 +48,17 @@ function GenerateToolbarMenu(ToolbarComponent) {
         const valueMatch = propSet.value === checkedValue;
         const extraProps = {key: propSet.value};
 
+        // Material ui vs 0.14.1 has a bug and misrenders the checkmark due to padding vs margin bug. I think this is
+        // fixed in 0.14.4, but upgrading will take a bit of time. For now, all toolbar components should have
+        // menuShouldCheckSelections = false (Ritesh 3/4)
+
         // If you should have checks, the value matches the checked value in
         // state, and there's no default left icon, render check
         if (!this.props.menuShouldCheckSelections) {
-          // intentionally empty
+          // // If the menuItem has secondary text, inset it a bit so that it's not left-aligned
+          if (propSet.secondaryText == null) {
+            extraProps.insetChildren = true;
+          }
         } else if (propSet.leftIcon == null) {
           extraProps.checked = valueMatch;
           extraProps.insetChildren = !valueMatch;
