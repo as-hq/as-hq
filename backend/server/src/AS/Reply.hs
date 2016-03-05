@@ -35,7 +35,7 @@ broadcastErrOrUpdate mid state _ (Right update) = broadcastSheetUpdate mid state
 broadcastSheetUpdate :: MessageId -> ServerState -> SheetUpdate -> IO ()
 broadcastSheetUpdate mid state sheetUpdate =
   mapM_ 
-    (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . userWindow $ uc) 
+    (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . view userWindow $ uc) 
     (state^.userClients)
 
 -- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
@@ -59,7 +59,7 @@ filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
     update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeys))
 
 sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
-sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (userConn uc)
+sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (uc^.userConn)
 
 sendToOriginal :: ASUserClient -> ClientMessage -> IO ()
-sendToOriginal uc msg = sendMessage msg (userConn uc)
+sendToOriginal uc msg = sendMessage msg (uc^.userConn)

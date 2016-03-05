@@ -32,6 +32,20 @@ import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readM
 -- Deals with server and client stuff
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
+-- Daemons
+
+data ASDaemonClient = DaemonClient { daemonConn :: WS.Connection, daemonOwner :: ASUserId, daemonLoc :: ASIndex }
+
+instance Eq ASDaemonClient where
+  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
+
+daemonCommitSource :: ASDaemonClient -> CommitSource
+daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
+
+initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
+initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc
+
+----------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 
 -- An API for state that abstracts away MVar.
@@ -113,6 +127,7 @@ class Client c where
   sessionId :: c -> SessionId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
+  lookupClient :: c -> ServerState -> c
   handleServerMessage :: c -> State -> ServerMessage -> IO ()
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
@@ -125,33 +140,17 @@ data ClientType = UserType | DaemonType
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- User client
 
-data ASUserClient = UserClient { userId :: ASUserId, userConn :: WS.Connection, userWindow :: ASWindow, userSessionId :: SessionId }
+data ASUserClient = UserClient { _userId :: ASUserId, _userConn :: WS.Connection, _userWindow :: ASWindow, _userSessionId :: SessionId }
+makeLenses ''ASUserClient
 
 instance Eq ASUserClient where
-  c1 == c2 = (userSessionId c1) == (userSessionId c2)
+  c1 == c2 = (c1^.userSessionId) == (c2^.userSessionId)
 
 userSheetId :: ASUserClient -> ASSheetId
 userSheetId (UserClient _ _ (Window sid _ _) _) = sid
 
 userCommitSource :: ASUserClient -> CommitSource
 userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
-
-updateWindow :: ASWindow -> ASUserClient -> ASUserClient
-updateWindow w (UserClient uid conn _ sid) = UserClient uid conn w sid
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Daemons
-
-data ASDaemonClient = DaemonClient { daemonConn :: WS.Connection, daemonOwner :: ASUserId, daemonLoc :: ASIndex }
-
-instance Eq ASDaemonClient where
-  c1 == c2 = (daemonLoc c1) == (daemonLoc c2)
-
-daemonCommitSource :: ASDaemonClient -> CommitSource
-daemonCommitSource (DaemonClient _ uid (Index sid _)) = CommitSource sid uid
-
-initDaemonFromMessageAndConn :: WS.Connection ->  ASUserId -> ASIndex -> ASDaemonClient
-initDaemonFromMessageAndConn c uid loc = DaemonClient c uid loc
 
 makeLenses ''ServerState
 makeLenses ''AppSettings

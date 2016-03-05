@@ -150,7 +150,7 @@ handleFirstMessage state wsConn msg =
               startLoggingActions (State state)
               -- Modify the MySQL DB of users
               --updateUserSession (userId userClient) (userSessionId userClient)
-          let defaultSid = windowSheetId . userWindow $ userClient
+          let defaultSid = windowSheetId . view userWindow $ userClient
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
           sendMessage successMsg wsConn
           catch (initClient userClient state) (handleRuntimeException userClient state)
@@ -251,7 +251,7 @@ handleRuntimeException user state e = do
 purgeZombies :: MVar ServerState -> IO ()
 purgeZombies state = do 
   ucs <- view userClients <$> readMVar state
-  mapM_ (\uc -> catch (WS.sendTextData (userConn uc) ("ACK" :: T.Text)) 
+  mapM_ (\uc -> catch (WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)) 
                       (onDisconnect' uc state)) ucs
 
 -- There's gotta be a cleaner way to do this... but for some reason even typecasting 
@@ -262,12 +262,13 @@ onDisconnect' user state _ = do
   printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
 
 processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
-processMessage client state message = do
-  dbConnection <- view dbConn <$> readMVar state -- state stores connection to db; pull it out
-  isPermissible <- DB.isPermissibleMessage (ownerName client) dbConnection message
+processMessage oldClient mstate message = do
+  state <- readMVar mstate 
+  let newClient = lookupClient oldClient state -- the client's properties might have been mutated; read it anew
+  isPermissible <- DB.isPermissibleMessage (ownerName newClient) (state^.dbConn) message
   if isPermissible || isDebug
-    then handleServerMessage client (State state) message
-    else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn client)
+    then handleServerMessage newClient (State mstate) message
+    else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn newClient)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do

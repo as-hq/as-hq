@@ -164,7 +164,7 @@ handleRepeat mid uc state selection = return () -- do
 handleBugReport :: ASUserClient -> String -> IO ()
 handleBugReport uc report = do
   logBugReport report (userCommitSource uc)
-  WS.sendTextData (userConn uc) ("ACK" :: T.Text)
+  WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)
 
 handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> CondFormatRuleUpdate -> IO ()
 handleUpdateCondFormatRules mid uc state u = do

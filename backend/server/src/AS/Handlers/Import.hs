@@ -70,7 +70,7 @@ handleImportBinary c mstate bin = do
 handleExport :: ASUserClient -> ServerState -> ASSheetId -> IO ()
 handleExport uc state sid = do
   exported <- DX.exportSheetData (state^.dbConn) sid
-  WS.sendBinaryData (userConn uc) (S.encodeLazy exported)
+  WS.sendBinaryData (uc^.userConn) (S.encodeLazy exported)
 
 -- #RoomForImprovement: Timchu. Right now, any error in EvaluateRequest, or in
 -- pattern matching that that to an EvaluateReply, or in Parsing, or in

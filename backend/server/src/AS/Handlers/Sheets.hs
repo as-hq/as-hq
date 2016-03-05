@@ -21,14 +21,14 @@ import AS.Eval.Core
 import AS.Reply
 import AS.DB.API
 import AS.DB.Users
-import qualified AS.Users as US
+import AS.Users
 import AS.Config.Settings (headerLangs)
 
 
 handleGetSheets :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleGetSheets mid uc state = do
   let conn = state^.dbConn
-  user <- $fromJust <$> lookupUser conn (userId uc)
+  user <- $fromJust <$> lookupUser conn (uc^.userId)
   let sids = Set.toList $ user^.sheetIds
   sheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn sids
   sharedSheets <- getS SharedSheetsKey dbValToSheet conn 
@@ -38,18 +38,14 @@ handleNewSheet :: MessageId -> ASUserClient -> ServerState -> SheetName -> IO ()
 handleNewSheet mid uc state name = do
   let conn = state^.dbConn
   sid <- sheetId <$> createSheet conn name
-  associateSheetWithUser conn (userId uc) sid
+  associateSheetWithUser conn (uc^.userId) sid
   handleGetSheets mid uc state -- update user's sheets
   sendToOriginal uc $ ClientMessage mid $ AskOpenSheet sid
 
 handleOpenSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpenSheet mid uc state sid = do 
-  -- update state
   conn <- view dbConn <$> readState state
   settings <- view appSettings <$> readState state
-  let makeNewWindow (UserClient uid c _ sid) = UserClient uid c startWindow sid
-      startWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
-  US.modifyUser makeNewWindow uc state
 
   -- get initial sheet data
   cells <- getCellsInSheet conn sid
@@ -58,8 +54,12 @@ handleOpenSheet mid uc state sid = do
   condFormatRules <- getCondFormattingRulesInSheet conn sid
   headers <- mapM (getEvalHeader conn sid) headerLangs
 
-  -- update lastOpenSheet for the user
-  modifyUser conn (userId uc) (\u -> u & lastOpenSheet .~ sid)
+  -- update server state
+  let newWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
+  modifyUserInState state (uc^.userId) (userWindow .~ newWindow) 
+
+  -- update database
+  modifyUser conn (uc^.userId) (& lastOpenSheet .~ sid)
 
   -- pre-evaluate the headers
   mapM (runEitherT . evaluateHeader settings) headers

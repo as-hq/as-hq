@@ -30,6 +30,7 @@ window.ex = require('./classes/ASExcelRef');
 window.login = require('./stores/ASLoginStore');
 window.conf = require('./stores/ASConfigurationStore');
 window.gridstore = require('./stores/ASGridStore');
+window.sheet = require('./stores/ASSheetStateStore');
 
 const Index = ({children}) => (
   <div className="full">

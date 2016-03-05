@@ -49,15 +49,16 @@ shouldPrintMessage _ = True
 
 instance Client ASUserClient where
   clientType _ = UserType
-  clientConn = userConn
-  sessionId = userSessionId
-  ownerName = userId
+  clientConn = view userConn
+  sessionId = view userSessionId
+  ownerName = view userId
   addClient uc s
     | uc `elem` (s^.userClients) = s
     | otherwise = s & userClients %~ (uc :)
   removeClient uc s
     | uc `elem` (s^.userClients) = s & userClients %~ (L.delete uc)
     | otherwise = s
+  lookupClient uc s = $fromJust $ L.find (== uc) (s^.userClients)
   handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
@@ -132,6 +133,7 @@ instance Client ASDaemonClient where
   removeClient dc s
     | dc `elem` (s^.daemonClients) = s & daemonClients %~ (L.delete dc)
     | otherwise = s
+  lookupClient dc s = $fromJust $ L.find (== dc) (s^.daemonClients)
   handleServerMessage daemon mstate message = case (serverAction message) of
     Evaluate xpsAndIndices -> do
       state <- readState mstate
