@@ -56,7 +56,7 @@ handleOpenSheet mid uc state sid = do
 
   -- update server state
   let newWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
-  modifyUserInState state (uc^.userId) (userWindow .~ newWindow) 
+  modifyUserInState state (uc^.userId) (& userWindow .~ newWindow) 
 
   -- update database
   modifyUser conn (uc^.userId) (& lastOpenSheet .~ sid)
