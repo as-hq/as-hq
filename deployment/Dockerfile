@@ -49,5 +49,10 @@ RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; 
 # Expose port 80, which will be bound to port 80 on the host upon docker run, and
 # run a startup script upon starting
 EXPOSE 80
+
+# Expose backend ports
+EXPOSE 8000
+EXPOSE 8001
+EXPOSE 8002
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
 
