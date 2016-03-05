@@ -57,6 +57,14 @@ const NotificationStore = Object.assign({}, BaseStore, {
         break;
       }
 
+      case 'LOGIN_SUCCESS': {
+        _notifications.forEach(uid => {
+          NotificationStore.emit('DISMISS', uid);
+        });
+        _notifications = [];
+        break;
+      }
+
       case 'LOGIN_FAILURE': {
         const uid = _notifications.pop();
         if (uid != undefined) {

@@ -18,6 +18,7 @@ import Constants from '../Constants.js'
 const TRY_FLUSH_QUEUE_INTERVAL = 50; // every n ms, try sending queued messages
 const CHECK_ALIVE_INTERVAL = 100; // perform the alive check every n ms
 const HEARTBEAT_TIMEOUT = 20; // if we don't receive a heartbeat at least once in this many intervals, timeout the connection
+const CHECK_CONNECTION_INTERVAL = 3000; // every 3s, check internet connection.
 
 class PersistentWebSocket {
   _url: string;
@@ -76,14 +77,21 @@ class PersistentWebSocket {
     this._ondisconnect = this._ondisconnectInternal;
     this._onreconnect = this._onreconnectInternal;
 
-    // initialize heartbeat and message loops
+    // initialize main loops
+    // (1) hearbeat
     this._heartbeat = setInterval(() => {
       this._checkHeartbeat();
     }, CHECK_ALIVE_INTERVAL)
+
+    // (2) message pump
     this._messagePump = setInterval(() => {
       this._tryFlushingQueue();
     }, TRY_FLUSH_QUEUE_INTERVAL);
 
+    // (3) internet connection detector
+    this._connectionWatch = setInterval(() => {
+      this._checkConnection();
+    }, CHECK_CONNECTION_INTERVAL);
   }
 
   static install(w) {
@@ -141,6 +149,7 @@ class PersistentWebSocket {
     this._client.close();
     clearInterval(this._heartbeat);
     clearInterval(this._messagePump);
+    clearInterval(this._connectionWatch);
   }
 
   /******************************* Private functions **************************/
@@ -166,16 +175,13 @@ class PersistentWebSocket {
     if (this._connecting()) {
       this._timeoutCounter++;
     } else {
-      // call ondisconnect only the first time we detect a connection loss
-      if (!this._isDisconnected) {
-        this._ondisconnect();
-      }
-      // Keep track of our state as being currently disconnected or not.
-      this._isDisconnected = true;
-      this._client.close();
-      if (Constants.shouldReconnect) {
-        this._attemptReconnect();
-      }
+      this._onConnectionLoss();
+    }
+  }
+
+  _checkConnection() {
+    if (! hasInternetConnection() || this._isDisconnected) {
+      this._onConnectionLoss();
     }
   }
 
@@ -196,6 +202,19 @@ class PersistentWebSocket {
     fn(this._client);
   }
 
+  _onConnectionLoss() {
+    // call ondisconnect only the first time we detect a connection loss
+    if (! this._isDisconnected) {
+      this._ondisconnect();
+    }
+    // Keep track of our state as being currently disconnected or not.
+    this._isDisconnected = true;
+    this._client.close();
+    if (Constants.shouldReconnect) {
+      this._attemptReconnect();
+    }
+  }
+
   _attemptReconnect() {
     console.log("attempting reconnect");
     let {onmessage, onopen} = this._client;
@@ -205,6 +224,22 @@ class PersistentWebSocket {
     this._resetCounter();
   }
 
+}
+
+function hasInternetConnection() {
+  // Handle IE and more capable browsers
+  const xhr = new ( window.ActiveXObject || XMLHttpRequest )( "Microsoft.XMLHTTP" );
+
+  // Open new request as a HEAD with a random param to bust the cache
+  xhr.open("HEAD", "http://enable-cors.org" +  "/?rand=" + Math.floor((1 + Math.random()) * 0x10000), false);
+
+  // Issue request and handle response
+  try {
+    xhr.send();
+    return ( xhr.status >= 200 && (xhr.status < 300 || xhr.status === 304) );
+  } catch (error) {
+    return false;
+  }
 }
 
 export default PersistentWebSocket;
