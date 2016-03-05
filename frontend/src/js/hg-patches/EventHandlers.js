@@ -88,14 +88,15 @@ const callbacks: Array<InitCallback> = [
     // (1,1) rather than (0,0).
     model.handleMouseDown = (grid, evt) => {
       if (evt.primitiveEvent.detail.primitiveEvent.shiftKey) { // shift+click
-        let {origin} = spreadsheet._getSelection(),
-            newBr = {col: evt.gridCell.x, row: evt.gridCell.y};
-        spreadsheet._select(
+        const { origin } = GridStore.getActiveSelection();
+        const {col, row} = origin;
+        const lead = {col: evt.gridCell.x, row: evt.gridCell.y};
+        GridActions.select(
           ASSelection.fromASLocations({
-            origin: origin,
-            range: ASRange.fromASIndices({
-              tl: origin,
-              br: ASIndex.fromNaked(newBr)
+            origin,
+            range: ASRange.fromNaked({
+              tl: {col, row},
+              br: lead
             })
           }),
         false);
@@ -177,7 +178,7 @@ const callbacks: Array<InitCallback> = [
         spreadsheet.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
                               y: evt.primitiveEvent.detail.mouse.y};
         spreadsheet.scrollWithDraggables(grid);
-        spreadsheet._repaint();
+        spreadsheet._grid.repaint();
       } else if (spreadsheet.mouseDownInBox && !evt.primitiveEvent.detail.isRightClick) {
         // box dragging
         let {x,y} = evt.gridCell; // accounts for scrolling
@@ -185,7 +186,7 @@ const callbacks: Array<InitCallback> = [
         spreadsheet.mousePosition = {x: evt.primitiveEvent.detail.mouse.x,
                               y: evt.primitiveEvent.detail.mouse.y};
         spreadsheet.scrollWithDraggables(grid);
-        spreadsheet._repaint(); // show dotted lines
+        spreadsheet._grid.repaint(); // show dotted lines
       } else if (model.featureChain) {
         model.featureChain.handleMouseDrag(grid, evt);
         model.setCursor(grid);
@@ -233,9 +234,9 @@ const callbacks: Array<InitCallback> = [
           let toRange = Render.getDragRect(),
               fromRange = sel.range;
           if (!! toRange) {
-            spreadsheet._select(toRange.toSelection(), false);
+            GridActions.select(toRange.toSelection(), false);
             Render.setDragRect(null);
-            spreadsheet._repaint();
+            spreadsheet._grid.repaint();
             API.cut(fromRange, toRange);
           }
         } else if (Render.getDragCorner() !== null) { // dragging one range to another
@@ -247,7 +248,7 @@ const callbacks: Array<InitCallback> = [
             let activeSelection = GridStore.getActiveSelection();
             if (!! activeSelection) {
               API.drag(activeSelection.range, dottedSel.range);
-              spreadsheet._select(dottedSel,true);
+              GridActions.select(dottedSel);
             }
           }
         } else if (model.featureChain) { // resizing a bar or dragging a bar to another location
