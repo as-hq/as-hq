@@ -1162,7 +1162,11 @@ describe('backend', () => {
         it ('plots shit', (done) => {
           _do([
             r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
+            r('A2', 'hist(table(iris$Species))'),
+            r('A3', 'pie(table(iris$Species))'),
             shouldBeImage('A1'),
+            shouldBeImage('A2'),
+            shouldBeImage('A3'),
             exec(done)
           ]);
         });

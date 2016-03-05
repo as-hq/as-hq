@@ -90,25 +90,31 @@ execOnString str f = do
 -- takes (current project dir, isGlobalExecution, str)
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
-execR isGlobal s =
+execR isGlobal s = do 
   let fp = S.main_dir
       fpStatic = S.static_dir
       onException :: SomeException -> IO CompositeValue
       onException e = do
         R.runRegion $ castR =<< [r| setwd(fp_hs) |]
         return . CellValue $ ValueError (show e) "R error"
-  in handle onException $ R.runRegion $ castR =<< if isGlobal
+  uid <- liftIO getUniqueId
+  -- See comment under possiblyOverrideWithImage for how images work
+  let imageName = uid ++ ".png"
+      imagePath = "images/" ++ imageName
+  handle onException $ possiblyOverrideWithImage imageName =<< (R.runRegion $ castR =<< if isGlobal
     then [r| eval(parse(text=s_hs)) |]
     else [r| 
     AS_LOCAL_ENV <- function() {
       setwd(fpStatic_hs) 
+      png(imagePath_hs)
       result = eval(parse(text=s_hs))
+      dev.off()
       setwd(fp_hs)
       result
     }; 
     AS_LOCAL_EXEC<-AS_LOCAL_ENV()
     AS_LOCAL_EXEC 
-    |]
+    |])
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
@@ -126,6 +132,16 @@ execR isGlobal s =
 
 castR :: R.SomeSEXP a -> R a CompositeValue
 castR (R.SomeSEXP s) = castSEXP s
+
+-- | In the R code, png(imagePath_hs) means that any image generated gets saved into the file
+-- named imagePath (within the directory of fpStatic). If any code generates an image without returning
+-- an error, we override the return value of that code with the image. 
+possiblyOverrideWithImage :: String -> CompositeValue -> IO CompositeValue
+possiblyOverrideWithImage imageName cv = do 
+  exist <- doesFileExist $ S.images_dir ++ imageName
+  return $ if exist 
+    then CellValue . ValueImage $ imageName
+    else cv 
 
 castSEXP :: R.SEXP s a -> R s CompositeValue
 castSEXP x = case x of
@@ -168,7 +184,7 @@ castVector v = do
       else do
         listNames <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
         let nameStrs = map (\(ValueS s) -> s) listNames
-        if (isRPlot nameStrs)
+        if (isRGgPlot nameStrs)
           then do
             uid <- liftIO getUniqueId
             let imageName = uid ++ ".png"
@@ -176,6 +192,9 @@ castVector v = do
             [r|ggsave(filename=savePath_hs, plot=AS_LOCAL_EXEC)|]
             return . CellValue $ ValueImage imageName
           else return . Expanding . VRList $ zip nameStrs vals
+          -- ggplot plots generated within functions don't save, so we're adding
+          -- special case code here to deal with this. 
+          -- http://stackoverflow.com/questions/7034647/save-ggplot-within-a-function
     else return . Expanding . VList . M $ vals
 
 rdVectorVals :: [CompositeValue] -> Matrix
@@ -184,7 +203,7 @@ rdVectorVals = map mkArray
     mkArray row = case row of 
       Expanding (VList (A arr)) -> arr
       CellValue v               -> [v]
-      _ -> $error "cannot cast multi-dimensional vector"
+      _ -> [ValueError "cannot cast multi-dimensional vector" "R Error"]
 
 castNames :: CompositeValue -> [ASValue]
 castNames val = case val of
@@ -208,7 +227,5 @@ fromReal d
   | otherwise             = ValueD d
   where dInt = round d
 
-isRPlot :: [RListKey] -> Bool
-isRPlot = elem "plot_env"
-
-
+isRGgPlot :: [RListKey] -> Bool
+isRGgPlot = elem "plot_env"
