@@ -232,7 +232,7 @@ pws.onmessage = (event: MessageEvent) => {
       // #needsrefactor should use notification; currently sticking with alert box because
       // it automatically takes the focus, which is better UX. (Can be implemented with notifications
       // but not super-high priority at the moment.)
-      const shouldDecouple = window.confirm("You're about to decouple cells. Are you sure?");
+      const shouldDecouple = API.isTesting || window.confirm("You're about to decouple cells. Are you sure?");
       if (shouldDecouple) {
         API.decouple();
       }
