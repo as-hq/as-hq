@@ -2,7 +2,7 @@ import requests
 import subprocess
 import sys
 
-name = sys.argv[0]
+name = sys.argv[1]
 
 # Send a post to a Python server to let it know about a deletion
 requests.post('http://localhost:10000', json = {'action': 'destroy', 'name': name})
