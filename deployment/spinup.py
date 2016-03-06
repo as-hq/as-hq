@@ -7,9 +7,9 @@ rep = requests.post('http://localhost:10000', json = {'action': 'create'})
 instance = json.loads(rep.headers['instance'])
 
 # Build up the docker run command
-backendPort = '-p ' + str(instance['backend_port']) + ':8000 '
-filePort = '-p ' + str(instance['fileinput_port']) + ':8001 '
-staticPort = '-p ' + str(instance['static_port']) + ':8002 '
+backendPort = '-p ' + str(instance['backend_port']) + ':80 '
+filePort = '-p ' + str(instance['fileinput_port']) + ':9000 '
+staticPort = '-p ' + str(instance['static_port']) + ':8000 '
 securityConfig = '--cap-add=SYS_PTRACE --security-opt=apparmor:unconfined '
 nameConfig = '--name=' + instance['name'] + ' ' 
 cmd = 'docker run -d ' + \
