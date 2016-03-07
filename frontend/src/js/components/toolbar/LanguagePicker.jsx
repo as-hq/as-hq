@@ -8,6 +8,8 @@ import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
 import ExpressionActions from '../../actions/ASExpressionActionCreators';
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 
+import U from '../../AS/Util';
+
 import type {
   MenuProps,
 } from '../../types/Toolbar';
@@ -27,10 +29,10 @@ type LanguagePickerProps = {
 };
 
 const languages: Array<LanguageMenuOption> = [
-  {name: 'Excel', shortcut: 'Ctrl+1'},
-  {name: 'Python', shortcut: 'Ctrl+2'},
-  {name: 'R', shortcut: 'Ctrl+3'},
-  {name: 'SQL', shortcut: 'Ctrl+4'},
+  {name: 'Excel', shortcut: U.Browser.metaKeyName()+'+1'},
+  {name: 'Python', shortcut: U.Browser.metaKeyName()+'+2'},
+  {name: 'R', shortcut: U.Browser.metaKeyName()+'+3'},
+  {name: 'SQL', shortcut: U.Browser.metaKeyName()+'+4'},
 ];
 
 const menuProps: Array<MenuProps> = languages.map(({name, shortcut}) => ({

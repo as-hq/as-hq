@@ -8,12 +8,15 @@ import HeaderActions from '../../actions/ASHeaderActionCreators';
 import { actions as Shortcuts } from '../../AS/Shortcuts';
 
 import KeyUtils from '../../AS/utils/Key';
+import U from '../../AS/Util';
+
 // $FlowFixMe
 import {Toolbar, Styles, FlatButton} from 'material-ui';
 import ASControlledCodeField from '../basic-controls/ASControlledCodeField.jsx';
 import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 // $FlowFixMe
 let NavigationClose = require('material-ui/lib/svg-icons/navigation/close');
+import Tooltip from 'react-tooltip';
 
 import type {
   ASLanguage
@@ -75,9 +78,22 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
             valueLink={languageLink}
             underlineStyle={styles.dropdownUnderline} />
 
-          <FlatButton label={buttonText}
-                      style={styles.evalButton}
-                      onClick={() => onEvaluate()} />
+          <span>
+            <FlatButton label={buttonText}
+                        style={styles.evalButton}
+                        onClick={() => onEvaluate()}
+                        data-for={"headerShortcut"}
+                        data-tip={U.Browser.metaKeyName() + '+S'} />
+
+            <Tooltip
+              id={"headerShortcut"}
+              delayHide={50}
+              delayShow={300}
+              place="bottom"
+              type="info"
+              effect="solid"
+              offset={{'top': 10, 'left': 0}} />
+          </span>
 
         </Toolbar>
 
