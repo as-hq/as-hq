@@ -141,6 +141,7 @@ library
                      , mysql-simple
                      , old-time
                      , old-locale
+                     , parallel-io
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

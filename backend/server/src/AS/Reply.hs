@@ -1,6 +1,7 @@
 module AS.Reply (broadcastTo, broadcastErrOrUpdate, broadcastSheetUpdate, sendSheetUpdate, sendToOriginal) where
 
 import Control.Concurrent
+import Control.Concurrent.ParallelIO.Global (parallel_)
 import Control.Lens
 
 import AS.Types.Bar
@@ -24,7 +25,7 @@ broadcastTo state sids message = do
   let ucs = state^.userClients
       ucsSheetIds = zip ucs (map userSheetId ucs)
       affectedUsers = map fst $ filter (\(_, sid) ->  sid `elem` sids) ucsSheetIds
-  (flip mapM_) affectedUsers $ \(UserClient _ conn _ _) -> sendMessage message conn
+  parallel_ $ map (\uc -> sendMessage message (uc^.userConn)) affectedUsers
 
 -- Given a message that's either a failure or updatea message, only send (to each user) the cells in their viewing window. 
 -- Unless there was a failure, in which case send the failure message back to the original user. 
@@ -34,7 +35,7 @@ broadcastErrOrUpdate mid state _ (Right update) = broadcastSheetUpdate mid state
 
 broadcastSheetUpdate :: MessageId -> ServerState -> SheetUpdate -> IO ()
 broadcastSheetUpdate mid state sheetUpdate =
-  mapM_ 
+  parallel_ $ map
     (\uc -> sendSheetUpdate mid uc . filterSheetUpdate sheetUpdate . view userWindow $ uc) 
     (state^.userClients)
 
