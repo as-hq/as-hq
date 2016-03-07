@@ -4,12 +4,16 @@ import cgi
 import json
 import uuid
 import random
+import subprocess
+from docker import Client
 
 router_address          = ('0.0.0.0', 10000)
 
 default_backend_port    = 20000
 default_fileinput_port  = 30000
 default_static_port     = 40000
+
+cli = Client(base_url='unix://var/run/docker.sock')
 
 # this class should be treated as immutable.
 # all instance methods return new objects and do not mutate the underlying.
@@ -25,6 +29,37 @@ class ASInstance(object):
     return ASInstance(backend_port = self.backend_port + 1, \
                       fileinput_port = self.fileinput_port + 1, \
                       static_port = self.static_port + 1)
+
+  def getDockerID(self):
+    return cli.inspect_container(self.name)['Id']
+
+  def getStatus(self):
+    gen = cli.stats(self.name)
+    status = json.loads(next(gen))
+    status.update(self.toJSON())
+    return status
+
+  def spinup(self):
+    # Build up the docker run command
+    backendPort = '-p ' + str(self.backend_port) + ':80 '
+    filePort = '-p ' + str(self.fileinput_port) + ':9000 '
+    staticPort = '-p ' + str(self.static_port) + ':8000 '
+    securityConfig = '--cap-add=SYS_PTRACE --security-opt=apparmor:unconfined '
+    nameConfig = '--name=' + self.name + ' ' 
+
+    cmd = 'docker run -d ' + \
+          backendPort + \
+          filePort + \
+          staticPort + \
+          nameConfig + \
+          securityConfig + 'c283787c2064'
+
+    # Execute 'docker run'
+    subprocess.call([cmd], shell = True)
+
+  def spindown(self):
+    cli.stop(self.name)
+    cli.remove_container(self.name)
 
   # immutable
   def toJSON(self):
@@ -52,10 +87,11 @@ class ASRouter(BaseHTTPRequestHandler):
 
     ASRouter.instances[newInstance.name] = newInstance
     ASRouter.last_created_instance = newInstance
-    return newInstance
+    newInstance.spinup()
 
   def destroyInstance(self, name): 
     if (name in ASRouter.instances):
+      ASRouter.instances[name].spindown()
       del ASRouter.instances[name]
 
   # allow cross-origin from all origins
@@ -75,23 +111,36 @@ class ASRouter(BaseHTTPRequestHandler):
 
   # the container spinup and spindown scripts will use to create and destroy instances
   def do_POST(self):
-    print "got post request"
     content_len = int(self.headers.getheader('content-length', 0))
     post_body = json.loads(self.rfile.read(content_len))
 
     if post_body['action'] == 'create':
-      resp = self.createInstance().toJSON()
-      self.send_response(200)
-      self.send_header('instance', json.dumps(resp))
-      self.end_headers()
+      self.createInstance()
+      self.sendReply()
 
     elif post_body['action'] == 'destroy':
       self.destroyInstance(post_body['name'])
-      self.send_response(200)
+      self.sendReply()
+
+    elif post_body['action'] == 'get_status':
+      status = ASRouter.instances[post_body['name']].getStatus()
+      self.sendReply('status', json.dumps(status))
+
+    elif post_body['action'] == 'get_all_status':
+      statuses = [c.getStatus() for c in ASRouter.instances.values()]
+      self.sendReply('statuses', json.dumps(statuses))
 
     else:
       self.send_response(400)
       print "ERROR: received action other than create or destroy"
+
+  def sendReply(self, header=None, value=None):
+    self.send_response(200)
+    if header != None:
+      self.send_header(header, value)
+    self.send_header('Access-Control-Allow-Origin', '*')
+    self.send_header('Access-Control-Expose-Headers', header)
+    self.end_headers()
 
 if __name__ == '__main__':
   httpd = HTTPServer(router_address, ASRouter)
