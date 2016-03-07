@@ -75,7 +75,7 @@ export default class ASToolbar
       <div
         style={{
           display: 'inline-block',
-          marginLeft: 50,
+          marginLeft: 60,
           position: 'relative',
         }}
       />
@@ -91,6 +91,12 @@ export default class ASToolbar
       >
 
         {shiftRight}
+
+        <LanguagePicker
+          visible={activeButton === 'LanguagePicker'}
+          language={ExpressionStore.getLanguage()} />
+
+        <Separator />
 
         <ToolbarButton
           iconName="print"
@@ -140,12 +146,6 @@ export default class ASToolbar
 
         <MoreFormatDropdown
           visible={activeButton === 'MoreFormat'}
-        />
-
-        <Separator />
-        <LanguagePicker
-          visible={activeButton === 'LanguagePicker'}
-          language={ExpressionStore.getLanguage()}
         />
 
         <Separator />
