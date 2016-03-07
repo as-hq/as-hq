@@ -41,9 +41,9 @@ new_sheet_name = "Sheet1"
 
 pythonHeaderDefaultText :: String
 pythonHeaderDefaultText = unlines [
-  "# This is the Python evaluation header. Any ", 
-  "# functions and variables defined here can ", 
-  "# be referenced within any Python cell. ",
+  "# This is the Python global code editor. ", 
+  "# Any functions and variables defined here ", 
+  "# can be referenced within any Python cell. ",
   "# ",
   "# Try uncommenting the below lines (select", 
   "# lines 8-11 and press Ctrl+/):",
@@ -67,7 +67,7 @@ pythonHeaderDefaultText = unlines [
 
 rHeaderDefaultText :: String
 rHeaderDefaultText = unlines [ 
-  "# This is the R evaluation header. Any ",
+  "# This is the R global code editor. Any ",
   "# functions and variables defined here can ",
   "# be referenced within any R cell. ",
   "# ",

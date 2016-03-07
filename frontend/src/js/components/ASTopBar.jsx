@@ -209,7 +209,7 @@ export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
 
           {title: 'Code', menuItems: [
             simple({
-              title: 'Toggle header',
+              title: 'Global code editor',
               callback() {
                 self.props.toggleEvalHeader();
               }
