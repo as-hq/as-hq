@@ -21,6 +21,16 @@ from .compiler import ASCompiler
 from .displayhook import ASDisplayHook
 from .ast_transformers import wrap_serialize
 
+# Error thrown when user tries to use IPython magics in Python
+class CannotRunIPythonMagicsInsideAlphaSheets(Exception):
+  def __repr__(self):
+    return "Cannot run IPython magics inside AlphaSheets!"
+
+# Error thrown when user tries to run commands using IPython syntax in Python
+class CannotRunSystemCommandsInsideAlphaSheets(Exception):
+  def __repr__(self):
+    return "Cannot execute system commands inside AlphaSheets!"
+
 class ASExecutionResult(object):
     """The result of a call to :meth:`ASShell.run_block`
 
@@ -564,3 +574,36 @@ class ASShell(InteractiveShell):
         print(rw)
     except UnicodeEncodeError:
         print("------> " + cmd)
+
+  # -------------------------------------------------------------------------------------
+  # Disabling magics
+  # -------------------------------------------------------------------------------------
+
+  def run_line_magic(self, magic_name, line):
+    """
+    Behavior in normal IPython:
+      Execute the given line magic.
+      Parameters
+      ----------
+      magic_name : str
+        Name of the desired magic function, without '%' prefix.
+      line : str
+        The rest of the input line as a single string.
+    """
+    # The init_magics function calls self.magics('colors ...'), which calls this function. 
+    # That function should really be placed in a displayhook, but we don't want the kernel
+    # to error on startup, and we want the colors to show up for tracebacks. The workaround is
+    # to allow magics for coloring.
+    if magic_name == 'colors':
+      super(ASShell, self).run_line_magic(magic_name, line)
+    else:
+      raise CannotRunIPythonMagicsInsideAlphaSheets
+
+  # -------------------------------------------------------------------------------------
+  # Disabling command execution
+  # -------------------------------------------------------------------------------------
+
+  def system(self, cmd):
+    raise CannotRunSystemCommandsInsideAlphaSheets
+
+

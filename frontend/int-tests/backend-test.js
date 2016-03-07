@@ -751,6 +751,32 @@ describe('backend', () => {
           ]);
         });
 
+        describe('IPython disabling', () => {
+
+          it ('should not allow IPython magics', (done) => {
+            _do([
+              python('A1', '%cd'),
+              python('A2', '%config'),
+              python('A3', '%magicthatdoesnotexist'),
+              shouldBeError('A1'),
+              shouldBeError('A2'),
+              shouldBeError('A3'),
+              exec(done)
+            ]);
+          });
+
+          it ('should not allow IPython commands', (done) => {
+            _do([
+              python('A1', '!(pip install fuzzywuzzy)'),
+              python('A2', '!(ls)'),
+              shouldBeError('A1'),
+              shouldBeError('A2'),
+              exec(done)
+            ]);
+          });
+
+        });
+
         describe('ASIterable', () => {
           describe('1D ranges', () => {
             it ('should act like lists when vertical', (done) => {
