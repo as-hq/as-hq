@@ -6,6 +6,7 @@ import type {EditorSelection} from '../types/Editor';
 import Dispatcher from '../Dispatcher';
 import ExpressionStore from '../stores/ASExpressionStore';
 import FocusStore from '../stores/ASFocusStore';
+import APIActions from '../actions/APIActionCreators';
 
 import GridActions from '../actions/ASGridActionCreators';
 
@@ -24,6 +25,10 @@ const ExpressionActions = {
       _type: 'LANGUAGE_CHANGED',
       language
     });
+
+    if (!ExpressionStore.isEditing() && ExpressionStore.getExpression() != "") {
+      APIActions.evaluate({dX: 0, dY: 0});
+    }
   },
 
   setSelection(selection: EditorSelection) {
