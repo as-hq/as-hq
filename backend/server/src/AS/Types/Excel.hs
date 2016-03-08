@@ -86,6 +86,7 @@ instance Show ExRef where
       ExColRangeRef (ExColRange tl r) _ _ -> prefix ++ (show tl) ++ ":" ++ (show r)
       ExRangeRef (ExRange tl br) _ _ -> prefix ++ (show tl) ++ ":" ++ (show br)
       ExPointerRef l _ _           -> '@':prefix ++ (show l)
+      ExTemplateRef l _ _           -> prefix ++ show l
 
 instance Show ExCol where
   show (ExCol t c) = d1 ++ c
@@ -102,6 +103,10 @@ instance Show ExIndex where
         ABS_REL -> ("$","")
         REL_ABS -> ("","$")
         REL_REL -> ("","")
+
+instance Show ExTemplateExpr where
+  show (ExSampleExpr sampleNum ind) = "!{" ++ show sampleNum ++ ", " ++ show ind ++ "}"
+
 
 showRefQualifier :: Maybe WorkbookName -> Maybe SheetName -> String
 showRefQualifier wb sh = case wb of 

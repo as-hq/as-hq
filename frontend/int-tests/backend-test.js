@@ -243,6 +243,17 @@ describe('backend', () => {
           ]);
         });
 
+        it ('should update when a range ancestor updates', (done) => {
+          _do([
+            python('A1', '10'),
+            python('B1', 'A1+1'),
+            python('B2', 'sum(B1:B1)'),
+            python('B3', '!{2,B2}'),
+            shouldBe('B3', valueI(11)),
+            exec(done)
+          ]);
+        });
+
 
         it ('should cause descendants to update when it updates', (done) => {
           _do([
@@ -254,6 +265,18 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it ('should update when shifted via copy/paste', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '!{3, A1}'),
+            copy('B1', 'C1'),
+            python('D1', 'sum(@C1)'),
+            shouldBe('D1', valueI(3)),
+            exec(done)
+          ]);
+        });
+
 
         it ('should cause circ dep if user is stupid', (done) => {
           _do([

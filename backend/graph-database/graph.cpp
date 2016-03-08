@@ -56,14 +56,14 @@ void clearSheetIdFromColNeighbors(DAG::ColNeighbors& adj, string sheetId) {
 
 
 void DAG::clearDAG() {
-  toFromAdjList.clear();
-  fromToAdjList.clear();
+  childrenToParents.clear();
+  parentsToChildren.clear();
   fromColumnTo.clear();
 }
 
 void DAG::clearSheetDAG(string sheetId) {
-  clearSheetIdFromAdjacencyList(toFromAdjList, sheetId);
-  clearSheetIdFromAdjacencyList(fromToAdjList, sheetId);
+  clearSheetIdFromAdjacencyList(childrenToParents, sheetId);
+  clearSheetIdFromAdjacencyList(parentsToChildren, sheetId);
   clearSheetIdFromColNeighbors(fromColumnTo, sheetId);
 }
 
@@ -113,16 +113,18 @@ void addToMapOfMap (const T1& t1,
 // Updating the DAG
 
 // Set one relation in the DAG 
+// fromLocs = new parents of the vertex toLoc
 void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
-  DAG::VertexSet vl = toFromAdjList[toLoc]; //old fromLocs
+  DAG::VertexSet vl = childrenToParents[toLoc]; //old fromLocs
     // Loop over the current fromLocs of toLoc and delete from forward adjacency list 
   for (const auto& oldFl : vl){
-    // if oldFl is a pointer, convert to index and delete toLoc from the index's dependencies
-    // To clarify with an example, when D5=@C5 is entered, D5's ancestor is Pointer C5 and Index C5's descendant is D5.
-    // When you want to update D5's ancestors, you have to delete Index C5 -> D5 from fromTo, and not Pointer C5 -> D5, which doesn't exist.
-    // Similar logic exists for ranges and colRanges;  there's a symmetry between updating and replacing.
     if (oldFl.getLocationType() == Location::LocationType::POINTER) {
-      fromToAdjList[oldFl.pointerToIndex()].erase(toLoc);
+      // if oldFl is a pointer, convert to index and delete toLoc from the index's dependencies
+      // To clarify with an example, when D5=@C5 is entered, D5's ancestor is Pointer C5 and 
+      // Index C5's descendant is D5. When you want to update D5's ancestors, you have to delete 
+      // Index C5 -> D5 from fromTo, and not Pointer C5 -> D5, which doesn't exist. Similar logic 
+      // exists for ranges and colRanges; there's a symmetry between updating and replacing.
+      parentsToChildren[oldFl.pointerToIndex()].erase(toLoc);
     } else if (oldFl.getLocationType() == Location::LocationType::COLRANGE) {
       int minRow;
       vector<Column> columns;
@@ -134,17 +136,17 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
       vector<Location> indices;
       oldFl.rangeToIndices(indices); // indices now has the decomposed Indices
       for (const auto& index: indices) {
-        fromToAdjList[index].erase(toLoc);
+        parentsToChildren[index].erase(toLoc);
       }
     } else { // normal index erasal
-      fromToAdjList[oldFl].erase(toLoc);
+      parentsToChildren[oldFl].erase(toLoc);
     }
 
     // If a vertex no longer has fromLocs, delete it
-    if (fromToAdjList[oldFl].empty())
-      fromToAdjList.erase(oldFl);
+    if (parentsToChildren[oldFl].empty())
+      parentsToChildren.erase(oldFl);
   }
-  toFromAdjList.erase(toLoc);
+  childrenToParents.erase(toLoc);
 
 
   /* Loop over the new fromLocs and add to the forward adjacency list */
@@ -154,16 +156,12 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
       For D5 = @C5, we have D5(to) -> @C5(pointer,from)
       Conceptually, this adjacency list stores direct info from AS/ the expression
     */
-    toFromAdjList[toLoc].insert(fl);
-    /* If Pointer reference, put an Index ref in the forward list, and put the Pointer ref in the backward list.
-      then evalChain' triggers the recomputation of an expression with an @ reference in it correctly
-      using getDescendants, then uses getAncestors on those descendants to get the actual Pointer reference.
-      If range reference, then decompose the range and set the toLoc as an immediate descendant of each of the
-      decomposed indices. For example, for C1 = sum(A1:A1000), set A1 -> C1, A2 -> C1 etc in the fromTo map,
-      so that descendants are computed correctly.
-    */
+    childrenToParents[toLoc].insert(fl);
     if (fl.getLocationType() == Location::LocationType::POINTER) {
-      fromToAdjList[fl.pointerToIndex()].insert(toLoc);
+      // If Pointer reference, put an Index ref in the forward list, and put the Pointer ref in the backward list.
+      // then evalChain' triggers the recomputation of an expression with an @ reference in it correctly
+      // using getDescendants, then uses getAncestors on those descendants to get the actual Pointer reference.
+      parentsToChildren[fl.pointerToIndex()].insert(toLoc);
     } else if (fl.getLocationType() == Location::LocationType::COLRANGE) {
       int minRow;
       vector<Column> columns;
@@ -172,13 +170,17 @@ void DAG::updateDAG(DAG::Vertex toLoc, const DAG::VertexSet& fromLocs) {
         addToMapOfMap(column, minRow, toLoc, fromColumnTo);
       }
     } else if (fl.getLocationType() == Location::LocationType::RANGE) {
+      // If range reference, then decompose the range and set the toLoc as an immediate descendant of each of the
+      // decomposed indices. For example, for C1 = sum(A1:A1000), set A1 -> C1, A2 -> C1 etc in the fromTo map,
+      // so that descendants are computed correctly. Also, set A1 -> A1:A1000, A2 -> A1:A1000, etc. as ancestors.
       vector<Location> indices;
       fl.rangeToIndices(indices); // indices now has the decomposed range
       for (const auto& index: indices){
-        fromToAdjList[index].insert(toLoc);
+        parentsToChildren[index].insert(toLoc);
+        childrenToParents[fl].insert(index);
       }
-    } else {
-      fromToAdjList[fl].insert(toLoc);
+    } else { // must be Index reference
+      parentsToChildren[fl].insert(toLoc);
     }
   }
 
@@ -279,8 +281,8 @@ DAG::VertexSet DAG::findColDescendantSet(const DAG::Vertex& loc){
 // Only apply this to indices.
 DAG::VertexSet DAG::getImmediateDescendantSet(const DAG::Vertex& loc) {
   VertexSet a;
-  if (fromToAdjList.count(loc) > 0) { // Don't create loc key if fromToAdjList doesn't have loc.
-    a = fromToAdjList[loc];
+  if (parentsToChildren.count(loc) > 0) { // Don't create loc key if parentsToChildren doesn't have loc.
+    a = parentsToChildren[loc];
   }
   VertexSet s = findColDescendantSet(loc);
   s.insert(a.begin(), a.end());
@@ -305,8 +307,8 @@ DAG::DAGResponse DAG::getImmediateAncestors(const vector<DAG::Vertex>& locs){
 
 DAG::VertexSet DAG::getImmediateAncestorSet(const DAG::Vertex& loc) {
   VertexSet a;
-  if (toFromAdjList.count(loc) > 0) { // so that the toFromAdjList key isn't created if there's nothing there
-    a = toFromAdjList[loc];
+  if (childrenToParents.count(loc) > 0) { // so that the childrenToParents key isn't created if there's nothing there
+    a = childrenToParents[loc];
   }
   return a;
   // TODO: Ignoring column ancestors for now
@@ -344,7 +346,7 @@ bool DAG::containsCycle(const DAG::Vertex& start) {
 
 // DAGs are equal if their adjacency lists are equal 
 bool DAG::operator==(const DAG& rhs) {
-  return (toFromAdjList == rhs.toFromAdjList) && (fromToAdjList == rhs.fromToAdjList);
+  return (childrenToParents == rhs.childrenToParents) && (parentsToChildren == rhs.parentsToChildren);
 }
 
 /****************************************************************************************************************************************/
@@ -380,8 +382,8 @@ void showAdjList(const DAG::AdjacencyList& al, string msg) {
 void DAG::showGraph(string msg) {
   cout << "==========================================================================";
   cout << "\n" << msg << "\n";
-  showAdjList(fromToAdjList, "\tFrom To Adjacency List");
-  showAdjList(toFromAdjList, "\tTo From Adjacency List");
+  showAdjList(parentsToChildren, "\tFrom To Adjacency List");
+  showAdjList(childrenToParents, "\tTo From Adjacency List");
 }
 
 void printIndex(const Location& location){

@@ -46,13 +46,14 @@ public:
   void showGraph(string msg);
   bool operator==(const DAG& rhs);
 
-  AdjacencyList toFromAdjList;
-  AdjacencyList fromToAdjList;
+  // arrow from A1 to B1 means A1 is a parent of B1
+  AdjacencyList childrenToParents; // an element of this adjacency list takes in a child and returns its parents
+  AdjacencyList parentsToChildren; // an element of this adjacency list takes in a parent and returns its children
   ColNeighbors fromColumnTo;
 
   /* Fills the locs vector with the immediate descendants loc.
    * Immediate descendants of loc are a mix of descendants referenced as part of a
-   * range, pointer, or index expression (in the fromToAdjList), and the colRange
+   * range, pointer, or index expression (in the parentsToChildren), and the colRange
    * descendants (in the fromColTo map). */
 
 private:
