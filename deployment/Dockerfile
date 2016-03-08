@@ -24,10 +24,12 @@ ADD installs.sh /usr/local/bin/installs.sh
 RUN sudo chmod +x /usr/local/bin/installs.sh
 RUN ./usr/local/bin/installs.sh
 
-# Copy the startup script in the right place
-# This startup script pulls from the github builds repo, and runs the executables.
-ADD startup.sh /usr/local/bin/startup.sh
-RUN sudo chmod +x /usr/local/bin/startup.sh
+# Install R package dependencies
+RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile&& \
+    Rscript -e "install.packages('rjson')" && \
+    Rscript -e "install.packages('ggplot2')" && \
+    Rscript -e "install.packages('party')" && \
+    Rscript -e "install.packages('jpeg')"
 
 # Make an alphasheets folder inside the home directory
 # Pull from the builds folder using OAuth
@@ -39,20 +41,17 @@ RUN cd ../home && \
     git init && \
     git pull https://fa848255af68ed0e25ffe52a241be236781272bd@github.com/ooblahman/alphasheets-builds.git
 
-# Install R package dependencies
-RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile&& \
-    Rscript -e "install.packages('rjson')" && \
-    Rscript -e "install.packages('ggplot2')" && \
-    Rscript -e "install.packages('party')" && \
-    Rscript -e "install.packages('jpeg')"
-
-# Expose port 80, which will be bound to port 80 on the host upon docker run, and
-# run a startup script upon starting
+# Expose port 80, 8000, and 9000 for backend, static server, and file-input server
 EXPOSE 80
+EXPOSE 8000 
+EXPOSE 9000
 
-# Expose backend ports
-EXPOSE 8000
-EXPOSE 8001
-EXPOSE 8002
+# Copy the startup script in the right place
+# This startup script pulls from the github builds repo, and runs the executables.
+ADD startup.sh /usr/local/bin/startup.sh
+RUN sudo chmod +x /usr/local/bin/startup.sh
+
+USER redis
+
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
 
