@@ -82,11 +82,9 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
             <FlatButton label={buttonText}
                         style={styles.evalButton}
                         onClick={() => onEvaluate()}
-                        data-for={"headerShortcut"}
                         data-tip={U.Browser.metaKeyName() + '+S'} />
 
             <Tooltip
-              id={"headerShortcut"}
               delayHide={50}
               delayShow={300}
               place="bottom"
