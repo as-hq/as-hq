@@ -101,6 +101,25 @@ rm -rf backend/server/static/dist
 rm -rf backend/server/static/build
 rm -rf backend/server/static/file-input-handler.spec
 
+###### deployment materials
+# copy deployment materials
+cp -r deployment build/
+# build dashboard
+cd build/deployment/dashboard
+npm run dist
+cd ..
+cp -r dashboard/dist ./
+rm -rf dashboard
+mv dist dashboard
+# build router
+pyinstaller router.py
+rm router.spec
+rm router.py
+mv dist/router ./
+rm -rf dist
+rm -rf build
+cd ..
+
 ## push to remote
 if [ -n "$BRANCH" ]; then
   echo "pushing to remote branch: $BRANCH"
