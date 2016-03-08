@@ -12,7 +12,7 @@ import qualified Network.WebSockets as WS
 
 import Prelude()
 import AS.Prelude
-import AS.Config.Settings (google_token_verify_url, google_client_id)
+import AS.Config.Settings (google_token_verify_url, google_client_id, getWhitelistedUsers)
 import AS.Types.User hiding (userId)
 import AS.Types.Network 
 import AS.Types.Messages
@@ -31,13 +31,16 @@ authenticateUser strat = case strat of
     case appClientId of 
       Just (String clientId) -> do
         -- use the user's email as the unique user identifier
-        
         let uid = (\(String t) -> t) <$> r ^? responseBody . key "email"
-        return $ if (T.unpack clientId) /= google_client_id
-          then Left "received incorrect app client id"
+        if (T.unpack clientId) /= google_client_id
+          then return $ Left "received incorrect app client id"
           else case uid of 
-            Just uid -> Right uid
-            Nothing -> Left "auth response did not have email field"
+            Just uid -> do 
+              whitelist <- getWhitelistedUsers
+              return $ if uid `elem` whitelist
+                then Right uid
+                else Left "You have not yet received an invitation to use AlphaSheets"
+            Nothing -> return $ Left "auth response did not have email field"
       _ -> return $ Left "received null app client id"
     where
       onException :: SomeException -> IO (Either String ASUserId)

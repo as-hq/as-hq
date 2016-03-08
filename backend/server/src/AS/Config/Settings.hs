@@ -4,6 +4,7 @@ import Prelude()
 import AS.Prelude
 import AS.Types.Network
 import AS.Types.Cell
+import AS.Types.User 
 
 import System.Directory
 import System.FilePath.Posix
@@ -11,6 +12,8 @@ import System.IO.Unsafe (unsafePerformIO)
 
 import Data.Aeson hiding (Success)
 import Data.IORef
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.ByteString.Char8 as BC
 import Control.Exception
@@ -92,9 +95,11 @@ google_client_id = "347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleuse
 
 images_dir = "static/images/"
 eval_dir   = "eval_files/"
-env_dir    = ".." </> "Environment.json"
+env_path   = ".." </> "Environment.json"
 log_dir    = "logs/"
 static_dir = "static/"
+whitelist_path = ".." </> "email_whitelist.txt"
+
 
 --------------------------------------------------------------------------------------
 -- configuration-dependent parameters
@@ -163,7 +168,7 @@ getRuntimeSettings = catch readEnvironment handleException
   where 
     readEnvironment = do
       mainDir <- getCurrentDirectory
-      env <- B.readFile $ mainDir </> env_dir
+      env <- B.readFile $ mainDir </> env_path
       case eitherDecode env of 
         Right settings -> do 
           putStrLn $ "using settings from Environment.json: "
@@ -173,3 +178,13 @@ getRuntimeSettings = catch readEnvironment handleException
         Left err -> $error $ "couldn't decode environment file, because: " ++ err
     handleException :: SomeException -> IO AppSettings
     handleException e = $error $ "decoding Environment failed with error: " ++ show e 
+
+getWhitelistedUsers :: IO [ASUserId]
+getWhitelistedUsers = catch getWhitelistedUsers' handleException
+  where 
+    getWhitelistedUsers' = do
+      mainDir <- getCurrentDirectory
+      whitelist <- T.readFile $ mainDir </> whitelist_path
+      return $ T.lines whitelist
+    handleException :: SomeException -> IO [ASUserId]
+    handleException e = $error $ "opening whitelist file failed with error: " ++ show e 
