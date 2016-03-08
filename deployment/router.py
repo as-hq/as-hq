@@ -41,18 +41,16 @@ class ASInstance(object):
 
   def spinup(self):
     # Build up the docker run command
-    backendPort = '-p ' + str(self.backend_port) + ':80 '
+    backendPort = '-p ' + str(self.backend_port) + ':5000 '
     filePort = '-p ' + str(self.fileinput_port) + ':9000 '
     staticPort = '-p ' + str(self.static_port) + ':8000 '
-    securityConfig = '--cap-add=SYS_PTRACE --security-opt=apparmor:unconfined '
     nameConfig = '--name=' + self.name + ' ' 
 
     cmd = 'docker run -d ' + \
           backendPort + \
           filePort + \
           staticPort + \
-          nameConfig + \
-          securityConfig + 'c283787c2064'
+          nameConfig + 'c283787c2064'
 
     # Execute 'docker run'
     subprocess.call([cmd], shell = True)

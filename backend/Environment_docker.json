@@ -1,6 +1,6 @@
 {
   "backendWsAddress": "0.0.0.0",
-  "backendWsPort": 80,
+  "backendWsPort": 5000,
   "graphDbAddress_haskell": "tcp://localhost:5555",
   "pyKernelAddress_haskell": "tcp://localhost:20000",
   "graphDbAddress_cpp": "tcp://*:5555",
