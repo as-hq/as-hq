@@ -281,7 +281,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
-        
+
       });
 
       describe('= detection', () => {
@@ -1193,6 +1193,44 @@ describe('backend', () => {
             shouldBeImage('A1'),
             shouldBeImage('A2'),
             shouldBeImage('A3'),
+            exec(done)
+          ]);
+        });
+
+        it ('creates matrices', (done) => {
+          _do([
+            r('A1', 'matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
+            shouldBe('A3', valueI(3)),
+            shouldBe('B3', valueI(6)),
+            r('C1', '@A1'),
+            shouldBe('C3', valueI(3)),
+            shouldBe('D3', valueI(6)),
+            exec(done)
+          ]);
+        });
+
+        it('exchanges matrices with python correctly', (done) => {
+          _do([
+            r('A1', 'matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
+            python('C1', '@A1'),
+            shouldBe('C3', valueI(3)),
+            shouldBe('D3', valueI(6)),
+            r('E1', '@C1'),
+            shouldBe('E3', valueI(3)),
+            shouldBe('F3', valueI(6)),
+            exec(done)
+          ]);
+        });
+
+        it('multiples with python matrices', (done) => {
+          _do([
+            python('A1', 'np.matrix([[1,2],[3,4]])'),
+            r('C1', 'matrix(c(1,2,3,4), nrow=2, ncol=2)'),
+            python('A3', '@A1.dot(@C1)'),
+            shouldBe('A3', valueI(5)),
+            shouldBe('B3', valueI(11)),
+            shouldBe('A4', valueI(11)),
+            shouldBe('B4', valueI(25)),
             exec(done)
           ]);
         });

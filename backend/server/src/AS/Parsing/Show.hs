@@ -102,7 +102,13 @@ showExpanding l v = $error $ "cannot insert value " ++ (show v) ++ " in language
 showCollection :: ASLanguage -> Collection -> String
 showCollection lang coll = case coll of 
   A arr -> list lang $ map (showPrimitive lang) arr
-  M mat -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
+  M mat -> case lang of 
+    R -> "matrix(" ++ elems ++ ", nrow=" ++ height ++ ", ncol=" ++ width ++ ")"
+      where 
+        width = show $ length mat
+        height = show . length $ $head mat
+        elems = list R $ map (showPrimitive R) (concat $ L.transpose mat) 
+    _ -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
 
 wrapList :: ASLanguage -> String -> String
 wrapList lang l = wrapL ++ l ++ wrapR

@@ -10,6 +10,7 @@ module AS.Kernels.R
   ) where
 
 import Data.List (transpose, dropWhile, dropWhileEnd)
+import Data.List.Split (chunksOf)
 import Data.Word (Word8)
 import System.Directory
 import Control.Monad.IO.Class
@@ -27,7 +28,7 @@ import Foreign.Marshal.Array (peekArray)
 import Language.Haskell.TH.Ppr (bytesToString)
 import qualified Foreign.R as R
 import Foreign.R.Type as R
-import Foreign.R (SEXP, SEXPTYPE)
+import Foreign.R (SEXP, SEXPTYPE, printValue)
 import Language.R.Instance as R
 import Language.R as LR
 import Language.R.QQ
@@ -101,20 +102,21 @@ execR isGlobal s = do
   -- See comment under possiblyOverrideWithImage for how images work
   let imageName = uid ++ ".png"
       imagePath = "images/" ++ imageName
-  handle onException $ possiblyOverrideWithImage imageName =<< (R.runRegion $ castR =<< if isGlobal
-    then [r| eval(parse(text=s_hs)) |]
-    else [r| 
-    AS_LOCAL_ENV <- function() {
-      setwd(fpStatic_hs) 
-      png(imagePath_hs)
-      result = eval(parse(text=s_hs))
-      dev.off()
-      setwd(fp_hs)
-      result
-    }; 
-    AS_LOCAL_EXEC<-AS_LOCAL_ENV()
-    AS_LOCAL_EXEC 
-    |])
+  handle onException $ 
+    possiblyOverrideWithImage imageName =<< (R.runRegion $ castR =<< if isGlobal
+      then [r| eval(parse(text=s_hs)) |]
+      else [r| 
+      AS_LOCAL_ENV <- function() {
+        setwd(fpStatic_hs) 
+        png(imagePath_hs)
+        result = eval(parse(text=s_hs))
+        dev.off()
+        setwd(fp_hs)
+        result
+      }; 
+      AS_LOCAL_EXEC<-AS_LOCAL_ENV()
+      AS_LOCAL_EXEC 
+      |])
 
 -- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
 --castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
@@ -131,7 +133,11 @@ execR isGlobal s = do
 -- Casting helpers
 
 castR :: R.SomeSEXP a -> R a CompositeValue
-castR (R.SomeSEXP s) = castSEXP s
+castR s@(R.SomeSEXP x) = do
+  (CellValue (ValueB isMatrix)) <- (\(R.SomeSEXP b) -> castSEXP b) =<< [r|is.matrix(s_hs)|]
+  if isMatrix
+    then castMatrix x
+    else castSEXP x
 
 -- | In the R code, png(imagePath_hs) means that any image generated gets saved into the file
 -- named imagePath (within the directory of fpStatic). If any code generates an image without returning
@@ -175,6 +181,7 @@ castVector v = do
   vals <- rdVectorVals <$> (mapM castR $ SV.toList v)
   (CellValue (ValueB isList)) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
   (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
+
   if isList
     then if isDf
       then do
@@ -196,6 +203,13 @@ castVector v = do
           -- special case code here to deal with this. 
           -- http://stackoverflow.com/questions/7034647/save-ggplot-within-a-function
     else return . Expanding . VList . M $ vals
+
+castMatrix :: R.SEXP s a -> R s CompositeValue
+castMatrix x = do
+  (Expanding (VList (A vals))) <- castSEXP x
+  (Expanding (VList (A dims))) <- castR =<< [r|dim(AS_LOCAL_EXEC)|]
+  let [(ValueI nrows), _] = dims
+  return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
 
 rdVectorVals :: [CompositeValue] -> Matrix
 rdVectorVals = map mkArray

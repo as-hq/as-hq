@@ -110,16 +110,17 @@ initializeSettings = do
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory
 
-  writeIORef appDirectory appDir
-  writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
-  writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
-  writeIORef graphAddress (appSettings^.graphDbAddress)
-  writeIORef pykernelAddress (appSettings^.pyKernelAddress)
-  writeIORef serverHost (appSettings^.backendWsAddress)
-  writeIORef serverPort (appSettings^.backendWsPort)
-  writeIORef dbHost (appSettings^.redisHost)
-  writeIORef dbPort (appSettings^.redisPort)
-  writeIORef dbPassword (appSettings^.redisPassword)
+  _ <- writeIORef appDirectory appDir
+  _ <- writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
+  _ <- writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
+  _ <- writeIORef graphAddress (appSettings^.graphDbAddress)
+  _ <- writeIORef pykernelAddress (appSettings^.pyKernelAddress)
+  _ <- writeIORef serverHost (appSettings^.backendWsAddress)
+  _ <- writeIORef serverPort (appSettings^.backendWsPort)
+  _ <- writeIORef dbHost (appSettings^.redisHost)
+  _ <- writeIORef dbPort (appSettings^.redisPort)
+  _ <- writeIORef dbPassword (appSettings^.redisPassword)
+  return ()
 
 appDirectory :: IORef String
 appDirectory = declareGlobal "string"

@@ -168,19 +168,3 @@ recomposeCells :: Dimensions -> [ASCell] -> Collection
 recomposeCells dims cells = case (width dims) of 
   1 -> A $ map (view cellValue) cells
   _ -> M . map (map (view cellValue)) $ reshapeList cells dims
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Helpers
-
-reshapeList :: [a] -> Dimensions -> [[a]]
-reshapeList xs dims = chunksOf (width dims) xs
-
--- transposes non-rectangular matrices by filling in gaps with NoValue
-transpose' :: [[ASValue]] -> [[ASValue]]
-transpose' vals = L.transpose matrixified
-  where
-    width       = maximum $ map length vals
-    matrixified = map (\row -> take width $ row ++ (repeat NoValue)) vals
-
-prependColumn :: Array -> Matrix -> Matrix
-prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat

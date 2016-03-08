@@ -4,9 +4,12 @@ module AS.Types.Values where
 
 import AS.ASJSON
 
+import AS.Types.Locations (Dimensions(..))
 import GHC.Generics
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
+import Data.List.Split (chunksOf)
+import qualified Data.List as L
 import qualified Data.Map as M
 import Data.SafeCopy
 
@@ -60,3 +63,19 @@ instance NFData ASValue             where rnf = genericRnf
 instance NFData Collection          where rnf = genericRnf
 instance NFData ExpandingValue      where rnf = genericRnf
 instance NFData CompositeValue      where rnf = genericRnf
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Helpers
+
+reshapeList :: [a] -> Dimensions -> [[a]]
+reshapeList xs dims = chunksOf (width dims) xs
+
+-- transposes non-rectangular matrices by filling in gaps with NoValue
+transpose' :: [[ASValue]] -> [[ASValue]]
+transpose' vals = L.transpose matrixified
+  where
+    width       = maximum $ map length vals
+    matrixified = map (\row -> take width $ row ++ (repeat NoValue)) vals
+
+prependColumn :: Array -> Matrix -> Matrix
+prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
