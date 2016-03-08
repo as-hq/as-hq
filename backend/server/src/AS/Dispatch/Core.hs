@@ -93,7 +93,6 @@ runDispatchCycle state cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   time <- getASTime 
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
   rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
   errOrUpdate <- runEitherT $ do
     printWithTimeT $ "about to start dispatch"
@@ -110,7 +109,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
 
     let ctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
 
-    DT.updateDBWithContext state src ctx
+    DT.updateDBWithContext conn src ctx
     return $ ctx^.updateAfterEval
   -- DAG may have changed during dispatch; if not committed, reset it. Note that it is *not* 
   -- fully correct to just recompute what's in the current sheet. If we start in sheet A, and 
@@ -118,7 +117,7 @@ runDispatchCycle state cs descSetting src updateTransform = do
   -- a dependency in it, that dependency doesn't get restored by recomputing sheet A. For now though
   -- we aren't worrying about this. 
   -- #incomplete (--Alex 3/1/2016)
-  either (const $ G.recomputeSheetDAG graphAddress conn (srcSheetId src)) (const $ return ()) errOrUpdate
+  either (const $ G.recomputeSheetDAG conn (srcSheetId src)) (const $ return ()) errOrUpdate
   return errOrUpdate
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
@@ -129,17 +128,16 @@ dispatch :: ServerState -> [ASCell] -> EvalContext -> DescendantsSetting -> Eith
 dispatch state [] context _ = printWithTimeT "empty dispatch" >> return context
 dispatch state roots oldContext descSetting = do
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
-  G.setCellsAncestors graphAddress roots
+  G.setCellsAncestors roots
   descLocs       <- getEvalLocs state roots descSetting
   printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
   cellsToEval    <- getCellsToEval conn oldContext descLocs
   printObjT "Got cells to evaluate" cellsToEval
-  ancLocs        <- G.getImmediateAncestors graphAddress $ indicesToAncestryRequestInput descLocs
+  ancLocs        <- G.getImmediateAncestors $ indicesToAncestryRequestInput descLocs
   printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
@@ -158,10 +156,9 @@ dispatch state roots oldContext descSetting = do
 -- TODO: throw exceptions for permissions/locking
 -- Currently, the graph returns only indices as descendants
 getEvalLocs :: ServerState -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
-getEvalLocs state origCells descSetting = getter graphAddress locs
+getEvalLocs state origCells descSetting = getter locs
   where
     locs = mapCellLocation origCells
-    graphAddress = state^.appSettings.graphDbAddress
     getter = case descSetting of 
       ProperDescendants -> G.getProperDescendantsIndices 
       DescendantsWithParent -> G.getDescendantsIndices 

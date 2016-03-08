@@ -45,7 +45,6 @@ handleNewSheet mid uc state name = do
 handleOpenSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpenSheet mid uc state sid = do 
   conn <- view dbConn <$> readState state
-  settings <- view appSettings <$> readState state
 
   -- get initial sheet data
   cells <- getCellsInSheet conn sid
@@ -62,6 +61,6 @@ handleOpenSheet mid uc state sid = do
   modifyUser conn (uc^.userId) (& lastOpenSheet .~ sid)
 
   -- pre-evaluate the headers
-  mapM (runEitherT . evaluateHeader settings) headers
+  mapM (runEitherT . evaluateHeader) headers
   let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
   sendToOriginal uc $ ClientMessage mid $ SetSheetData sid sheetUpdate headers

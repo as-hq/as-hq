@@ -64,18 +64,18 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) f = catchE
         -- loading the initial entities
       SQL -> do 
         pythonSqlCode <- lift $ sqlToPythonCode state sid ctx xp f
-        return <$> KP.evaluateSql (state^.appSettings.pyKernelAddress) sid pythonSqlCode
+        return <$> KP.evaluateSql sid pythonSqlCode
       otherwise -> do 
         header <- lift $ DB.getEvalHeader conn sid lang
         xpWithValuesSubstituted <- lift $ insertValues state sid ctx xp f
-        return <$> execEvalInLang (state^.appSettings) header xpWithValuesSubstituted 
+        return <$> execEvalInLang header xpWithValuesSubstituted 
         -- didn't short-circuit, proceed with eval as usual
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-evaluateHeader :: AppSettings -> EvalHeader -> EitherTExec EvalResult
-evaluateHeader sett evalHeader = 
+evaluateHeader :: EvalHeader -> EitherTExec EvalResult
+evaluateHeader evalHeader = 
   case lang of 
-    Python -> KP.evaluateHeader (sett^.pyKernelAddress) sid str
+    Python -> KP.evaluateHeader sid str
     R      -> KR.evaluateHeader str
   where 
     sid  = evalHeader^.evalHeaderSheetId
@@ -158,8 +158,7 @@ referenceToCompositeValue state ctx (TemplateRef t) f =
     SampleExpr n idx -> $fromRight <$> (runEitherT $ do 
       -- Get all ancestors
       let conn = state^.dbConn
-      let graphAddress = state^.appSettings.graphDbAddress
-      ancRefs <- G.getAllAncestors graphAddress $ indicesToAncestryRequestInput [idx]
+      ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
       ancInds <- concat <$> mapM (refToIndices conn) ancRefs
       ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds
       let ctxWithAncs = addCellsToContext ancCells ctx
@@ -269,10 +268,10 @@ handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-execEvalInLang :: AppSettings -> EvalHeader -> EvalCode -> EitherTExec EvalResult
-execEvalInLang settings evalHeader = 
+execEvalInLang :: EvalHeader -> EvalCode -> EitherTExec EvalResult
+execEvalInLang evalHeader = 
   case lang of
-    Python  -> KP.evaluate (settings^.pyKernelAddress) sid
+    Python  -> KP.evaluate sid
     R       -> KR.evaluate headerCode
     -- OCaml   -> KO.evaluate headerCode
   where 

@@ -28,6 +28,7 @@ import qualified AS.Kernels.Python as KP
 
 import AS.Async
 
+import System.FilePath.Posix ((</>))
 import System.Directory (createDirectoryIfMissing)
 import System.Posix.Signals
 import Control.Exception
@@ -60,38 +61,36 @@ import qualified Network.Wai.Application.Static as Static
 import Language.R.Instance as R
 import Language.R.QQ
 
-
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
 
 main :: IO ()
-main = R.withEmbeddedR R.defaultConfig $ do
+main = alphaMain $ R.withEmbeddedR R.defaultConfig $ do
   _ <- installHandler sigPIPE Ignore Nothing
   -- initializations
   putStrLn "STARTING APP"
   state <- initApp
   curState <- readMVar state
-  let settings = curState^.appSettings
-   -- set in Settings.hs
   when isDebug $ initDebug state
 
-  G.recomputeAllDAGs (settings^.graphDbAddress) (curState^.dbConn)
+  G.recomputeAllDAGs (curState^.dbConn)
   putStrLn "RECOMPUTED DAG"
 
-  putStrLn $ "server started on port " ++ show (settings^.backendWsPort)
+  port <- S.getSetting S.serverPort
+  putStrLn $ "server started on port " ++ show port
   runServer state
   putStrLn "DONE WITH MAIN"
 
 initApp :: IO (MVar ServerState)
 initApp = do
-  -- init log path
-  createDirectoryIfMissing True S.log_dir
+  -- init paths
+  appDir <- S.getSetting S.appDirectory
+  createDirectoryIfMissing True (appDir </> S.log_dir)
   -- init state
-  settings <- S.getSettings 
-  conn <- DI.connectRedis settings
-  state <- newMVar $ emptyServerState conn settings
+  conn <- DI.connectRedis
+  state <- newMVar $ emptyServerState conn
   -- init python kernel
-  KP.initialize (settings^.pyKernelAddress) conn
+  KP.initialize conn
   -- init R
   R.runRegion $ do
     -- the app needs sudo to install packages.
@@ -109,10 +108,11 @@ initDebug _ = do
 
 runServer :: MVar ServerState -> IO ()
 runServer mstate = do
-  state <- readMVar mstate
+  host <- S.getSetting S.serverHost
+  port <- S.getSetting S.serverPort
   Warp.runSettings
-    (Warp.setHost (fromString $ state^.appSettings.backendWsAddress)
-      . Warp.setPort (state^.appSettings.backendWsPort)
+    (Warp.setHost (fromString host)
+      . Warp.setPort port
       $ Warp.defaultSettings)
     $ application mstate
 

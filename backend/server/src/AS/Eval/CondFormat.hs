@@ -109,8 +109,7 @@ evaluateBoolExpression state evalLoc ctx f xp@(Expression str lang) = do
 -- | Evaluates a Python function that returns a format or an error, rather than an ASValue. 
 evaluateFormatExpression :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EvalChainFunc -> EitherTExec FormatResult
 evaluateFormatExpression state sid ctx lambdaExpr v f = do
-  let kerAddr = state^.appSettings.pyKernelAddress 
-      conn    = state^.dbConn
+  let conn = state^.dbConn
   ctx' <- updatedContextForEval state sid ctx lambdaExpr
   lambdaExpr' <- lift $ insertValues state sid ctx' lambdaExpr f
-  evaluateLambdaFormat kerAddr sid lambdaExpr' v
+  evaluateLambdaFormat sid lambdaExpr' v

@@ -34,27 +34,27 @@ import AS.DB.API (getEvalHeader, getAllSheets)
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-initialize :: KernelAddress -> Connection -> IO ()
-initialize addr conn = do
+initialize :: Connection -> IO ()
+initialize conn = do
   -- run all the headers in db to initialize the sheet namespaces
   sids <- map sheetId <$> getAllSheets conn
   headers <- mapM (\sid -> getEvalHeader conn sid Python) sids
-  mapM_ (\h -> runEitherT $ evaluateHeader addr (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
+  mapM_ (\h -> runEitherT $ evaluateHeader (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
 
-evaluate :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluate addr = evaluateWithScope addr Cell
+evaluate :: ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluate = evaluateWithScope Cell
 
-evaluateHeader :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateHeader addr = evaluateWithScope addr Header
+evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateHeader = evaluateWithScope Header
 
 -- #needsrefactor Should not hard core errors
-evaluateLambdaFormat :: KernelAddress -> ASSheetId -> LambdaConditionExpr -> ASValue -> EitherTExec FormatResult
-evaluateLambdaFormat addr sid lambdaExpr val = do 
+evaluateLambdaFormat :: ASSheetId -> LambdaConditionExpr -> ASValue -> EitherTExec FormatResult
+evaluateLambdaFormat sid lambdaExpr val = do 
   (mFormatStr, mErr) <- case val of 
     ValueError _ _ -> return (Nothing, Just "can't format cell with error")
     v              -> do 
       let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ showValue Python (CellValue v) ++ ")"
-      EvaluateFormatReply f e <- sendMessage addr $ EvaluateFormatRequest sid evalExpr
+      EvaluateFormatReply f e <- sendMessage $ EvaluateFormatRequest sid evalExpr
       return (f,e)
   return $ case mFormatStr of 
     Just formatStr -> case R.parseFormatValue formatStr of 
@@ -64,17 +64,17 @@ evaluateLambdaFormat addr sid lambdaExpr val = do
       Just err -> FormatError err
       Nothing  -> FormatError "Formatting returned neither value nor error."
 
-clear :: KernelAddress -> ASSheetId -> IO ()
-clear addr = sendMessage_ addr . ClearRequest
+clear :: ASSheetId -> IO ()
+clear = sendMessage_ . ClearRequest
 
-evaluateSql :: KernelAddress -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateSql addr sid code = evaluateWithScope addr Cell sid =<< (liftIO $ formatSqlCode code)
+evaluateSql :: ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateSql sid code = evaluateWithScope Cell sid =<< (liftIO $ formatSqlCode code)
 
-testCell :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
-testCell addr sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate addr sid code)
+testCell :: ASSheetId -> EvalCode -> IO ()
+testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
 
-testHeader :: KernelAddress -> ASSheetId -> EvalCode -> IO ()
-testHeader addr sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader addr sid code)
+testHeader :: ASSheetId -> EvalCode -> IO ()
+testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
 
 formatSqlCode :: EvalCode -> IO EvalCode
 formatSqlCode code = do
@@ -136,10 +136,10 @@ instance FromJSON KernelResponse where
       "clear" -> ClearReply <$> v .: "success"
       "error" -> ErrorReply <$> v .: "error"
 
-evaluateWithScope :: KernelAddress -> EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateWithScope _ _ _ "" = return emptyResult
-evaluateWithScope addr scope sid code = do
-  (EvaluateReply v err disp) <- sendMessage addr $ EvaluateRequest scope sid code
+evaluateWithScope :: EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateWithScope _ _ "" = return emptyResult
+evaluateWithScope scope sid code = do
+  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
   case v of 
     Nothing -> case err of 
       Just e -> return $ EvalResult (CellValue $ ValueError e "") disp
@@ -148,10 +148,10 @@ evaluateWithScope addr scope sid code = do
       cval <- hoistEither $ R.parseValue Python v
       return $ EvalResult cval disp
 
-sendMessage :: KernelAddress -> KernelMessage -> EitherTExec KernelResponse
-sendMessage addr msg = do
+sendMessage :: KernelMessage -> EitherTExec KernelResponse
+sendMessage msg = do
   resp <- liftIO $ runZMQ $ do
-    reqSocket <- connectToKernel addr
+    reqSocket <- connectToKernel
     send' reqSocket [] $ encode msg
     eitherDecodeStrict <$> receive reqSocket
   case resp of 
@@ -161,13 +161,14 @@ sendMessage addr msg = do
     Right (ErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
-sendMessage_ :: KernelAddress -> KernelMessage -> IO ()
-sendMessage_ addr msg = runZMQ $ do
-  reqSocket <- connectToKernel addr 
+sendMessage_ :: KernelMessage -> IO ()
+sendMessage_ msg = runZMQ $ do
+  reqSocket <- connectToKernel  
   send' reqSocket [] $ encode msg
   return ()
 
-connectToKernel addr = do
+connectToKernel = do
+  addr <- liftIO $ getSetting pykernelAddress
   reqSocket <- socket Req 
   connect reqSocket addr
   return reqSocket

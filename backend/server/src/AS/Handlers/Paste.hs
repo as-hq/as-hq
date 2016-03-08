@@ -36,7 +36,7 @@ handleCopy mid uc state from to = do
 
 handleCut :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
 handleCut mid uc state from to = do
-  newCells <- getCutCells (state^.appSettings.graphDbAddress) (state^.dbConn) from to
+  newCells <- getCutCells (state^.dbConn) from to
   errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
@@ -104,11 +104,11 @@ shiftRangeKey offset c = case c^.cellRangeKey of
   Nothing -> Just c
   Just (RangeKey ind dims) -> ((c &) . set cellRangeKey . Just . flip RangeKey dims) <$> shiftInd offset ind
 
-getCutCells :: GraphAddress -> Connection -> ASRange -> ASRange -> IO [ASCell]
-getCutCells addr conn from to = do 
+getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
+getCutCells conn from to = do 
   let offset = getRangeOffset from to
   toCells      <- getCutToCells conn from offset
-  newDescCells <- getCutNewDescCells addr conn from offset
+  newDescCells <- getCutNewDescCells conn from offset
   let blankedCells = blankCellsAt (rangeToIndices from) -- want to forget about tags
   -- precedence: toCells > updated descendant cells > blank cells
   return $ mergeCells toCells (mergeCells newDescCells blankedCells)
@@ -128,9 +128,9 @@ getCutToCells conn from offset = do
   return $ catMaybes $ map modifyCell sanitizedFromCells
 
 -- | Returns the cells that reference the cut cells with their expressions updated. 
-getCutNewDescCells :: GraphAddress -> Connection -> ASRange -> Offset -> IO [ASCell]
-getCutNewDescCells addr conn from offset = do 
-  immDescLocs <- getImmediateDescendantsForced addr (rangeToIndices from)
+getCutNewDescCells :: Connection -> ASRange -> Offset -> IO [ASCell]
+getCutNewDescCells conn from offset = do 
+  immDescLocs <- getImmediateDescendantsForced (rangeToIndices from)
   let immDescLocs' = filter (not . (rangeContainsIndex from)) immDescLocs
       changeExpr   = shiftExpressionForCut from offset
   descs <- catMaybes <$> getCells conn immDescLocs'

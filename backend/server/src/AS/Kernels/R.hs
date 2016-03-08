@@ -91,8 +91,8 @@ execOnString str f = do
 -- change wd and then change back so that things like read.table will read from the static folder
 execR :: Bool -> EvalCode -> IO CompositeValue
 execR isGlobal s = do 
-  let fp = S.main_dir
-      fpStatic = S.static_dir
+  fp <- S.getSetting S.appDirectory
+  let fpStatic = S.static_dir
       onException :: SomeException -> IO CompositeValue
       onException e = do
         R.runRegion $ castR =<< [r| setwd(fp_hs) |]

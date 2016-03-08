@@ -63,7 +63,7 @@ handleImportBinary c mstate bin = do
       let msg = failureMessage import_message_id $ "could not process binary file, decode error: " ++ s
       in U.sendMessage msg (clientConn c)
     Right exportedData -> do
-      DX.importSheetData (state^.appSettings) (state^.dbConn) exportedData
+      DX.importSheetData (state^.dbConn) exportedData
       let msg = ClientMessage import_message_id $ AskOpenSheet $ exportDataSheetId exportedData
       U.sendMessage msg (clientConn c)
 
@@ -77,10 +77,10 @@ handleExport uc state sid = do
 -- extracting Excel Cells from the jsonBlob, will give an undescriptive
 -- Left parseError. That is the extent of error handling in evaluateExcelSheet.
 -- Timchu, 2/15/16.
-evaluateExcelSheet :: KernelAddress -> ASSheetId -> EvalCode
+evaluateExcelSheet :: ASSheetId -> EvalCode
                    -> EitherTExec [ASCell]
-evaluateExcelSheet kAddr sid code = do
-  (KP.EvaluateReply val err disp) <- KP.sendMessage kAddr $ KP.EvaluateRequest KP.Cell sid code
+evaluateExcelSheet sid code = do
+  (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell sid code
   let maybeCells = do
                 jsonString <- val 
                 jsonBlob <- case parse (json Python) "" jsonString of
@@ -98,16 +98,13 @@ excelImportFuncString = "readSheet"
 handleExcelImport :: MessageId -> ASUserClient -> ServerState -> ASSheetId -> String -> IO ()
 handleExcelImport mid uc state sid fileName = do
   let code = excelImportFuncString ++ "('" ++ fileName ++ "')"
-      settings = state^.appSettings
       dConn = state^.dbConn
-      kAddr = settings^.pyKernelAddress
-      gAddr = settings^.graphDbAddress
   update <- runEitherT $ do
-              cells <- evaluateExcelSheet kAddr sid code
+              cells <- evaluateExcelSheet sid code
               -- clears the sheet, sends a message to the frontend.
               lift $ handleClear mid uc state sid
               lift $ DB.setCells dConn cells
-              G.setCellsAncestors gAddr cells
+              G.setCellsAncestors cells
               return $ sheetUpdateFromCells cells
   broadcastErrOrUpdate mid state uc update
 
@@ -134,7 +131,7 @@ handleCSVImport mid uc state ind lang fileName = do
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
-      DT.updateDBWithCommit (state^.appSettings.graphDbAddress) (state^.dbConn) src commit
+      DT.updateDBWithCommit (state^.dbConn) src commit
       -- send list of cells back to frontend
       broadcastSheetUpdate mid state $ sheetUpdateFromCells cells
 

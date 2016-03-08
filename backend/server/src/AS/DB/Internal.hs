@@ -4,6 +4,7 @@ module AS.DB.Internal where
 
 import Prelude()
 import AS.Prelude
+import AS.Config.Settings
 
 import AS.Types.DB
 import AS.Types.Cell
@@ -40,11 +41,15 @@ import Network.Socket.Internal
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings
 
-connectRedis :: AppSettings -> IO Connection
-connectRedis settings = connect $ ConnInfo
-    { connectHost           = settings^.redisHost
-    , connectPort           = PortNumber $ fromIntegral (settings^.redisPort)
-    , connectAuth           = settings^.redisPassword
+connectRedis :: IO Connection
+connectRedis = do
+  host <- getSetting dbHost
+  port <- getSetting dbPort
+  pwd <- getSetting dbPassword
+  connect $ ConnInfo
+    { connectHost           = host
+    , connectPort           = PortNumber $ fromIntegral port
+    , connectAuth           = pwd
     , connectDatabase       = 0
     , connectMaxConnections = 100
     , connectMaxIdleTime    = 1000000

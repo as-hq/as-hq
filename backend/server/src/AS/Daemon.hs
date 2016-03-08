@@ -71,22 +71,24 @@ possiblyCreateDaemon state owner cell =
 -- Does so by creating client that talks to server, pinging it with the regularity 
 -- specified by the user. 
 createDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
-createDaemon state s loc msg = do -- msg is the message that the daemon will send to the server regularly
-  putStrLn $ "POTENTIALLY CREATING A daemon"
-  let name = getDaemonName loc
-  putStrLn $ "NAME: " ++ (show name)
-  running <- isRunning name
-  if (running)
-    then return ()
-    else do 
-      runDetached (Just name) def $ do 
-        let daemonId = T.pack $ getDaemonName loc
-            initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc
-            settings = state^.appSettings
-        WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
-          U.sendMessage initMsg conn
-          regularlyReEval s loc msg conn -- is an eval message on the cell
-      putStrLn $ "DONE WITH createDaemon"
+createDaemon state s loc msg = $undefined
+-- not supported right now (anand 3/7) 
+--do -- msg is the message that the daemon will send to the server regularly
+  --putStrLn $ "POTENTIALLY CREATING A daemon"
+  --let name = getDaemonName loc
+  --putStrLn $ "NAME: " ++ (show name)
+  --running <- isRunning name
+  --if (running)
+  --  then return ()
+  --  else do 
+  --    runDetached (Just name) def $ do 
+  --      let daemonId = T.pack $ getDaemonName loc
+  --          initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc
+  --          settings = state^.appSettings
+  --      WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
+  --        U.sendMessage initMsg conn
+  --        regularlyReEval s loc msg conn -- is an eval message on the cell
+  --    putStrLn $ "DONE WITH createDaemon"
 
 regularlyReEval :: Stream -> ASIndex -> ServerMessage -> WS.Connection -> IO ()
 regularlyReEval (Stream src x) loc msg conn = forever $ do 

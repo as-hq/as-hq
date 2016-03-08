@@ -74,7 +74,7 @@ badCellsHandler :: ServerState -> ASUserClient -> SomeException -> IO ()
 badCellsHandler state uc e = do
   logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
   printWithTime "Undoing last commit"
-  DT.undo (state^.appSettings.graphDbAddress) (state^.dbConn) (userCommitSource uc)
+  DT.undo (state^.dbConn) (userCommitSource uc)
   return ()
 
 handleGet :: MessageId -> ASUserClient -> ServerState -> [ASIndex] -> IO ()
@@ -110,25 +110,21 @@ handleIsCoupled mid uc state loc = do
 handleClear :: MessageId -> ASUserClient -> ServerState -> ASSheetId -> IO ()
 handleClear mid client state sid = do
   let conn = state^.dbConn
-      settings = state^.appSettings
-      graphAddr = settings^.graphDbAddress
-  DC.clearSheet settings conn sid
+  DC.clearSheet conn sid
   broadcastTo state [sid] $ ClientMessage mid $ ClearSheet sid
 
 handleUndo :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleUndo mid uc state = do
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
   printWithTime "right before commit"
-  commit <- DT.undo graphAddress conn (userCommitSource uc)
+  commit <- DT.undo conn (userCommitSource uc)
   let errOrUpdate = maybe (Left TooFarBack) (Right . sheetUpdateFromCommit . flipCommit) commit
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 handleRedo :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleRedo mid uc state = do
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
-  commit <- DT.redo graphAddress conn (userCommitSource uc)
+  commit <- DT.redo conn (userCommitSource uc)
   let errOrUpdate = maybe (Left TooFarForwards) (Right . sheetUpdateFromCommit) commit
   broadcastErrOrUpdate mid state uc errOrUpdate
 
@@ -169,7 +165,6 @@ handleBugReport uc report = do
 handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> CondFormatRuleUpdate -> IO ()
 handleUpdateCondFormatRules mid uc state u = do
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
       src = userCommitSource uc 
       sid = srcSheetId src
       deleteRuleIds = u^.oldKeys
@@ -182,7 +177,7 @@ handleUpdateCondFormatRules mid uc state u = do
   errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext DP.evalChain
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
-  either (const $ return ()) (DT.updateDBWithCommit graphAddress conn src) errOrCommit
+  either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit
   broadcastErrOrUpdate mid state uc $ fmap sheetUpdateFromCommit errOrCommit
 
 handleGetBar :: MessageId -> ASUserClient -> ServerState -> BarIndex -> IO ()
@@ -195,11 +190,10 @@ handleGetBar mid uc state bInd = do
 handleSetBarProp :: MessageId -> ASUserClient -> ServerState -> BarIndex -> BarProp -> IO ()
 handleSetBarProp mid uc state bInd prop = do 
   let conn = state^.dbConn
-      graphAddress = state^.appSettings.graphDbAddress
   time <- getASTime
   oldPropsAtInd <- maybe BP.emptyProps barProps <$> DB.getBar conn bInd
   let newPropsAtInd = BP.setProp prop oldPropsAtInd
       (oldBar, newBar) = (Bar bInd oldPropsAtInd, Bar bInd newPropsAtInd)
       commit = (emptyCommitWithTime time) { barDiff = Diff { beforeVals = [oldBar], afterVals = [newBar] } } -- #lens
-  DT.updateDBWithCommit graphAddress conn (userCommitSource uc) commit
+  DT.updateDBWithCommit conn (userCommitSource uc) commit
   broadcastSheetUpdate mid state $ emptySheetUpdate & barUpdates.newVals .~ [newBar]

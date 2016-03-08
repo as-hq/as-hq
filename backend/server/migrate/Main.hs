@@ -24,9 +24,9 @@ import Types
 import DB
 
 main :: IO ()
-main = do  
-	settings <- CS.getSettings 
-	conn <- DI.connectRedis settings
+main = alphaMain $ do  
+	-- perform migration
+	conn <- DI.connectRedis 
 	-- Sheets weren't stored correctly in AllSheetsType or as key-value pairs before. 
 	-- We remedy that for the first migration (this is preparation work for the migration)
 	if isFirstMigration 

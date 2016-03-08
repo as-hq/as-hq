@@ -32,7 +32,6 @@ library
                        AS.Dispatch.Expanding
                        AS.Clients
                        AS.Config.Constants
-                       AS.Config.Internal
                        AS.Config.Settings
                        AS.Eval.CondFormat
                        AS.Eval.Core
@@ -186,6 +185,7 @@ executable alphasheets-exe
                      , file-embed
                      , containers
                      , directory
+                     , filepath
   default-language:    Haskell2010
 
 

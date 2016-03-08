@@ -66,57 +66,14 @@ type ThreadMap = M.Map MessageId ThreadId
 data ServerState = ServerState { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
-                          , _appSettings :: AppSettings
                           , _threads :: ThreadMap
                           , _isDebuggingLog :: Bool}
 -- #needsrefactor rename isDebuggingLog to stopLoggingMessages or something. The idea is that in "dev debug"
 -- mode, you shouldn't be logging replays. 
 
-emptyServerState :: R.Connection -> AppSettings -> ServerState
-emptyServerState conn settings = ServerState [] [] conn settings M.empty False
+emptyServerState :: R.Connection -> ServerState
+emptyServerState conn = ServerState [] [] conn M.empty False 
 
-data AppSettings = AppSettings  { _backendWsAddress :: WsAddress
-                                , _backendWsPort :: Port
-                                , _graphDbAddress :: GraphAddress
-                                , _pyKernelAddress :: KernelAddress
-                                , _redisPort :: Port
-                                , _redisHost :: Host
-                                , _redisPassword :: Maybe B.ByteString
-                                , _shouldWriteToConsole :: Bool
-                                , _shouldWriteToSlack :: Bool}
-                                deriving (Show)
-
-type Host = String
-type Port = Int
-type GraphAddress = String
-type KernelAddress = String
-type WsAddress = String
-
--- default values represent what should happen on localhost; the Environment.json values *should* 
--- all be set remotely. 
-instance FromJSON AppSettings where
-  parseJSON (Object v) = do
-    wsAddr <- v .: "backendWsAddress"
-    wsPort <- v .: "backendWsPort"
-    graphAddr <- v .: "graphDbAddress_haskell"
-    pyAddr <- v .: "pyKernelAddress_haskell"
-    redisPort <- v .: "redisPort"
-    redisHost <- v .: "redisHost"
-    redisPassword <- v .:? "redisPassword"
-    shouldWriteToConsole <- v .: "shouldWriteToConsole"
-    shouldWriteToSlack <- v .: "shouldWriteToSlack"
-    return $ AppSettings 
-              wsAddr 
-              wsPort 
-              graphAddr 
-              pyAddr 
-              redisPort 
-              redisHost 
-              (B.pack <$> redisPassword) 
-              shouldWriteToConsole 
-              shouldWriteToSlack
-  parseJSON _ = $error "expected environment to be an object"
-  
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 
@@ -153,4 +110,3 @@ userCommitSource :: ASUserClient -> CommitSource
 userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
 
 makeLenses ''ServerState
-makeLenses ''AppSettings

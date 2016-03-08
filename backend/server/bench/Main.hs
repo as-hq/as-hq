@@ -1,10 +1,12 @@
-{-# LANGUAGE DeriveGeneric, StandaloneDeriving, OverloadedStrings, BangPatterns #-}
+{-# LANGUAGE DeriveGeneric, StandaloneDeriving, OverloadedStrings, BangPatterns, TemplateHaskell #-}
 
 module Main where
 
-import Prelude
-
 import Lib
+
+import Prelude()
+import AS.Prelude
+
 
 import AS.Types.Network
 import AS.Types.DB
@@ -14,14 +16,14 @@ import AS.Types.Eval
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Handlers.Paste (performCopy)
+import AS.Types.Commits
 
 import AS.Dispatch.Core 
 import qualified AS.DB.API as DB
 import qualified AS.DB.Graph as G
 import qualified AS.DB.Internal as DI
-import AS.Window
 import AS.Util
-import qualified AS.Kernels.Python.Eval as KP
+import qualified AS.Kernels.Python as KP
 import qualified AS.Serialize as S
 
 import qualified Database.Redis as R
@@ -36,19 +38,24 @@ import qualified Data.HashTable.IO as HI
 import Control.Monad.Trans.Either
 import Control.Lens hiding (has)
 import Criterion.Main (defaultMain)
+import Control.Concurrent
+
+import AS.Config.Settings
 
 setTestCellsInDB :: [Int] -> IO ()
-setTestCellsInDB = (R.connect DI.cInfo >>=) . flip DB.setCells . testCells
+setTestCellsInDB = (DI.connectRedis >>=) . flip DB.setCells . testCells
 
 main :: IO ()
-main = do
+main = alphaMain $ do
   setTestCellsInDB [1]
 
   defaultMain [
-    xdescribe "dispatch"
+    describe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
           it "dispatches 1000 cells" $ 
-            runIO $ runDispatchCycle (envState myEnv) cells DescendantsWithParent (envSource myEnv) id
+            runIO $ do 
+              curState <- readMVar $ envState myEnv 
+              runDispatchCycle curState cells DescendantsWithParent (envSource myEnv) id
       ]
 
     , has (testCells [1..1000]) $ \ ~(_, cells) -> 
@@ -61,7 +68,7 @@ main = do
 
           , has (map S.encode cells) $ \ ~(_, scells) -> 
               it "deserializes 1000 cells" $ 
-                run (map (fromRight . S.decode) :: [B.ByteString] -> [ASCell]) (scells :: [B.ByteString])
+                run (map ($fromRight . S.decode) :: [B.ByteString] -> [ASCell]) (scells :: [B.ByteString])
           ]
 
     , has ((testMap [1..10000], testCells [1..10000])) $ \ ~(_, (m, cells)) -> 
@@ -83,7 +90,7 @@ main = do
           ]
 
     , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
-        xdescribe "DB"
+        describe "DB"
           [ it "inserts 10000 cells with binary serialization" $ 
               runIO $ DB.setCells (envConn myEnv) cells1 
 
@@ -97,7 +104,7 @@ main = do
               runIO $ DB.deleteLocsInSheet (envConn myEnv) "BENCH_ID"
           ]
 
-    , xdescribe "python kernel"
+    , describe "python kernel"
       [ it "evaluates a simple expression using the new kernel" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "1+1"
 
@@ -106,8 +113,10 @@ main = do
       ]
 
     , has () $ \ ~(myEnv, _) -> 
-        describe "copy/paste" 
+        xdescribe "copy/paste" 
           [ it "copies 20x20 grid" $
-              runIO $ performCopy (envState myEnv) (Range "BENCH_ID" ((1,1),(1,1))) (Range "BENCH_ID" ((1,1), (20,20))) (CommitSource "BENCH_ID" "")
+              runIO $ do
+                curState <- readMVar $ envState myEnv 
+                performCopy curState (Range "BENCH_ID" ((Coord 1 1),(Coord 1 1))) (Range "BENCH_ID" ((Coord 1 1), (Coord 20 20))) (CommitSource "BENCH_ID" "")
           ]
     ]

@@ -50,7 +50,7 @@ handleEval mid uc state evalInstructions  = do
 handleEvalHeader :: MessageId -> ASUserClient -> ServerState -> EvalHeader -> IO ()
 handleEvalHeader mid uc state evalHeader = do
   setEvalHeader (state^.dbConn) evalHeader
-  result <- runEitherT $ evaluateHeader (state^.appSettings) evalHeader
+  result <- runEitherT $ evaluateHeader evalHeader
   sendToOriginal uc $ case result of 
         Left e -> failureMessage mid $ generateErrorMessage e
         Right (EvalResult value display) -> 
@@ -69,7 +69,7 @@ handleDecouple mid uc state = do
   case mCommit of
     Nothing -> return ()
     Just c -> do
-      updateDBWithCommit (state^.appSettings.graphDbAddress) conn src c
+      updateDBWithCommit conn src c
       broadcastSheetUpdate mid state $ sheetUpdateFromCommit c
 
 handleSetLanguagesInRange :: MessageId -> ASUserClient -> ServerState -> ASLanguage -> ASRange -> IO ()
