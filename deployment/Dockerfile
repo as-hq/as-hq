@@ -31,6 +31,11 @@ RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; 
     Rscript -e "install.packages('party')" && \
     Rscript -e "install.packages('jpeg')"
 
+# Expose port 80, 8000, and 9000 for backend, static server, and file-input server
+EXPOSE 80
+EXPOSE 8000 
+EXPOSE 9000
+
 # Make an alphasheets folder inside the home directory
 # Pull from the builds folder using OAuth
 # The user for this OAuth is favoriteshirt, who only has access to the builds repo
@@ -41,17 +46,15 @@ RUN cd ../home && \
     git init && \
     git pull https://fa848255af68ed0e25ffe52a241be236781272bd@github.com/ooblahman/alphasheets-builds.git
 
-# Expose port 80, 8000, and 9000 for backend, static server, and file-input server
-EXPOSE 80
-EXPOSE 8000 
-EXPOSE 9000
-
 # Copy the startup script in the right place
 # This startup script pulls from the github builds repo, and runs the executables.
 ADD startup.sh /usr/local/bin/startup.sh
 RUN sudo chmod +x /usr/local/bin/startup.sh
 
+RUN chown -R root:redis /home/alphasheets/
+RUN sudo chmod -R 777 /home/alphasheets/
+RUN sudo chmod -R 777 /usr/local/bin/startup.sh
 USER redis
 
-ENTRYPOINT ["/usr/local/bin/startup.sh"]
+#ENTRYPOINT ["/usr/local/bin/startup.sh"]
 
