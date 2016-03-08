@@ -30,7 +30,7 @@ else
   exit 1
 fi
 
-## prepare destination
+## prepare destination, match the current directory structure of codebase
 echo "preparing directories..."
 rm -rf build
 mkdir build
@@ -40,7 +40,7 @@ git remote add origin git@github.com:ooblahman/alphasheets-builds.git
 # preserve the branch history
 git pull origin master
 rm -rf *
-mkdir frontend backend graph pykernel file-input-handler
+mkdir frontend server graph pykernel
 
 # back to root directory
 cd ..
@@ -57,7 +57,7 @@ cd ..
 cp -r frontend/dist/* build/frontend/
 echo "frontend build finished."
 
-# Haskell executable
+# Haskell executable (use sudo if applicable, copy the executable to the build/server folder)
 cd backend/server
 if $USE_SUDO; then
   sudo stack build
@@ -65,30 +65,38 @@ else
   stack build 
 fi
 cd ../..
-cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/backend
+cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server
 cp backend/Environment_docker.json build/Environment.json
 echo "backend build finished."
 
-# C++ executable
+# C++ executable (compile, move executable over to build/graph
 cd backend/graph-database
 g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -std=c++11
 cd ../../
 cp backend/graph-database/server build/graph/
 
-# Python executables using pyinstaller
+# Python executables for pykernel
+# Copy all of the needed executables for the pykernel right into the build/pykernel folder
 pip install pyinstaller
 cd backend/pykernel
 pyinstaller server.py
 cd ../..
-cp -r backend/pykernel/dist/server build/pykernel
+cp -r backend/pykernel/dist/server/* build/pykernel/
 rm -rf backend/pykernel/dist
 rm -rf backend/pykernel/build
 rm -rf backend/pykernel/server.spec
 
+# Make a static directory inside of the build/server for images + file input handler
+cd build/server
+mkdir static
+cd ../..
+
+# Python executables for file-input-handler
+# Copy all executables needed into the build/server/static folder
 cd backend/server/static
 pyinstaller file-input-handler.py
 cd ../../..
-cp -r backend/server/static/dist/file-input-handler build/file-input-handler
+cp -r backend/server/static/dist/file-input-handler/* build/server/static/
 rm -rf backend/server/static/dist
 rm -rf backend/server/static/build
 rm -rf backend/server/static/file-input-handler.spec

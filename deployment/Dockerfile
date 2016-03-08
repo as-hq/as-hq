@@ -36,7 +36,8 @@ EXPOSE 5000
 EXPOSE 8000 
 EXPOSE 9000
 
-ENV stupid stupid
+# Environment variable to enable if you want to pull from github and bust the cache
+ENV test1 test1
 # Make an alphasheets folder inside the home directory
 # Pull from the builds folder using OAuth
 # The user for this OAuth is favoriteshirt, who only has access to the builds repo
@@ -48,14 +49,23 @@ RUN cd ../home && \
     git pull https://fa848255af68ed0e25ffe52a241be236781272bd@github.com/ooblahman/alphasheets-builds.git
 
 # Copy the startup script in the right place
-# This startup script pulls from the github builds repo, and runs the executables.
+# This startup script starts redis, then calls execute.sh as a non-root user
 ADD startup.sh /usr/local/bin/startup.sh
 RUN sudo chmod +x /usr/local/bin/startup.sh
 
-RUN chown -R root:redis /home/alphasheets/
-RUN sudo chmod -R 777 /home/alphasheets/
-RUN sudo chmod -R 777 /usr/local/bin/startup.sh
-USER redis
+# Add the execute script in the right place (runs the executables)
+ADD execute.sh /usr/local/bin/execute.sh
+
+# Permissions for demo (non-root user)
+# Own, read, and execute /home/alphasheets, write to /server/static/X (but not executable) (for images)
+# Own and execute execute.sh
+RUN useradd demo && \
+    chown -R demo: /home/alphasheets/ && \
+    chmod -R 500 /home/alphasheets/ && \
+    chmod -R 700 /home/alphasheets/server/ && \
+    chmod 500 /home/alphasheets/server/alphasheets-exe && \
+    chown demo: /usr/local/bin/execute.sh && \
+    chmod 500 /usr/local/bin/execute.sh
 
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
 

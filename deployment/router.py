@@ -50,7 +50,7 @@ class ASInstance(object):
           backendPort + \
           filePort + \
           staticPort + \
-          nameConfig + 'c283787c2064'
+          nameConfig + 'alphasheets/demo'
 
     # Execute 'docker run'
     subprocess.call([cmd], shell = True)

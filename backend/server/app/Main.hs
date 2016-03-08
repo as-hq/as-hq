@@ -86,6 +86,8 @@ initApp = do
   -- init paths
   appDir <- S.getSetting S.appDirectory
   createDirectoryIfMissing True (appDir </> S.log_dir)
+  createDirectoryIfMissing True (appDir </> S.images_dir)
+  putStrLn "Created log and image directories if they didn't already exist"
   -- init state
   conn <- DI.connectRedis
   state <- newMVar $ emptyServerState conn
