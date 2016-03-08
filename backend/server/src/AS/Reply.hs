@@ -3,6 +3,7 @@ module AS.Reply (broadcastTo, broadcastErrOrUpdate, broadcastSheetUpdate, sendSh
 import Control.Concurrent
 import Control.Concurrent.ParallelIO.Global (parallel_)
 import Control.Lens
+import Control.Monad (unless)
 
 import AS.Types.Bar
 import AS.Types.Cell
@@ -60,7 +61,8 @@ filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
     update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeys))
 
 sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
-sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (uc^.userConn)
+sendSheetUpdate mid uc update = unless (update == emptySheetUpdate) $ 
+  sendMessage (ClientMessage mid $ UpdateSheet update) (uc^.userConn)
 
 sendToOriginal :: ASUserClient -> ClientMessage -> IO ()
 sendToOriginal uc msg = sendMessage msg (uc^.userConn)
