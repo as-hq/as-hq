@@ -129,3 +129,7 @@ if [ -n "$BRANCH" ]; then
   git commit -m "automated build: $NOW"
   git push origin "$BRANCH"
 fi
+
+# Remove the created builds folder from the root directory
+cd ..
+rm -rf build
