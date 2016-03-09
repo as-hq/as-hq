@@ -30,6 +30,14 @@ class Login extends React.Component<{}, Props, {}> {
     this.state = {
       isLoggingIn: false
     };
+    if (Constants.isRemote) {
+      request.get(Constants.getRouterUrl()).end(function(err, res){
+        const {backend_port, static_port, fileinput_port} = JSON.parse(res.header['instance']);
+        Constants.BACKEND_WS_PORT = backend_port;
+        Constants.BACKEND_STATIC_PORT = static_port;
+        Constants.BACKEND_IMPORT_PORT = fileinput_port;
+      });
+    }
   }
 
   componentDidMount() {
