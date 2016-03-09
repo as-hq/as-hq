@@ -151,6 +151,16 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     return this.getCell(origin);
   }
 
+  activeCellHasError(): boolean { 
+    const cell = this.getActiveCell();
+    return !!cell ? cell._value.tag === "ValueError" : false;
+  }
+
+  activeCellHasOutput(): boolean { 
+    const disp = this.getActiveCellDisplay();
+    return disp != null && disp !== ""; 
+  }
+
   getActiveCellDisplay(): ?string {
     const cell = this.getActiveCell();
     return !!cell ? cell._display : null;

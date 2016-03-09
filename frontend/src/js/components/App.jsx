@@ -21,7 +21,7 @@ import React, {PropTypes} from 'react';
 import ASEvaluationPane from './ASEvaluationPane.jsx';
 import ASTopBar from './ASTopBar.jsx';
 import ASConnectionBar from './ASConnectionBar.jsx';
-import ASBottomBar from './ASBottomBar.jsx';
+import ASBottomBarController from './ASBottomBarController.jsx';
 
 import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASChartDialog from './chart/ASChartDialog.jsx';
@@ -165,7 +165,7 @@ class App extends React.Component<{}, Props, {}> {
         </div>
 
         <div style={styles.bottomBar} >
-          <ASBottomBar />
+          <ASBottomBarController />
         </div>
         <ShortcutHelper />
       </div>

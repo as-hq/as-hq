@@ -1,49 +1,41 @@
-// @flow
-
-import type {
-  Callback
-} from '../types/Base';
-
-import type {
-  StoreLink
-} from '../types/React';
-
 import React from 'react';
+import {Paper} from 'material-ui';
+
 import U from '../AS/Util';
 
-import {Paper} from 'material-ui';
 // $FlowFixMe
 import IconButton from 'material-ui/lib/icon-button';
 // $FlowFixMe
 import FontIcon from 'material-ui/lib/font-icon';
-import SheetStateStore from '../stores/ASSheetStateStore';
-import ConfigActions from '../actions/ASConfigActionCreators';
 
 import {bottomBar as bottomBarZIndex} from '../styles/zIndex';
 
+import SheetStateStore from '../stores/ASSheetStateStore';
+
 type Props = {
-  toggleBottomPane: Callback<string>;
+  errorIconStyle: any; 
+  outputIconStyle: any; 
 };
 
-export default class ASBottomBar extends React.Component<{}, Props, {}> {
-  $storeLinks: Array<StoreLink>;
-
-  componentDidMount() {
-    U.React.addStoreLinks(this, [
-      { store: SheetStateStore },
-    ]);
+export default class ASErrorPane extends React.Component<{}, Props, {}>
+{
+  constructor(props: Props) {
+    super(props);
   }
 
-  componentWillUnmount() {
-    U.React.removeStoreLinks(this);
+  shouldComponentUpdate(nextProps: Props, nextState: {}): boolean { 
+    return !_.isEqual(nextProps, this.props); 
   }
 
-  render(): ReactElement {
+  render(): React.Element {
+    const {errorIconStyle, outputIconStyle, 
+           onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props; 
     return (
       <Paper style={styles.root}>
         <IconButton
           style={styles.button}
-          onClick={ () => ConfigActions.toggleBottomPane('errors') }
+          iconStyle={errorIconStyle}
+          onClick={onErrorIconClick}
           iconClassName="material-icons"
           tooltip={`Errors (${U.Browser.metaKeyName()}+Alt+E)`}
           tooltipPosition="top-right"
@@ -53,7 +45,8 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
 
         <IconButton
           style={styles.button}
-          onClick={ () => ConfigActions.toggleBottomPane('cell_output') }
+          iconStyle={outputIconStyle}
+          onClick={onOutputIconClick}
           iconClassName="material-icons"
           tooltip={`Cell output (${U.Browser.metaKeyName()}+Alt+O)`}
           tooltipPosition="top-right"
@@ -63,7 +56,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
 
         <IconButton
           style={styles.button}
-          onClick={ () => ConfigActions.toggleBottomPane('header_output') }
+          onClick={onHeaderIconClick}
           iconClassName="material-icons"
           tooltip={`Header output (${U.Browser.metaKeyName()}+Alt+H)`}
           tooltipPosition="top-right"
