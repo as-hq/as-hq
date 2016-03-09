@@ -167,6 +167,19 @@ function installAllShortcuts() {
     ExpressionActions.toggleReference();
   });
 
+  // error, header, and cell pane stuff
+  install('evalpane', 'toggle_error_pane', 'Ctrl+Alt+E', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('errors');
+  });
+
+  install('evalpane', 'toggle_cell_pane', 'Ctrl+Alt+O', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('cell_output');
+  });
+
+  install('evalpane', 'toggle_header_pane', 'Ctrl+Alt+H', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('header_output');
+  });
+
   // grid shortcuts -------------------------------------------------------------------------------
 
   install('grid', 'start_editing', ['Enter', 'Shift+Enter'], () => {

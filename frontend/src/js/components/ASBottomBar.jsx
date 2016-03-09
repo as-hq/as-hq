@@ -45,7 +45,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
           style={styles.button}
           onClick={ () => ConfigActions.toggleBottomPane('errors') }
           iconClassName="material-icons"
-          tooltip="Errors"
+          tooltip={`Errors (${U.Browser.metaKeyName()}+Alt+E)`}
           tooltipPosition="top-right"
           tooltipStyles={styles.tooltip} >
           error_outline
@@ -55,7 +55,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
           style={styles.button}
           onClick={ () => ConfigActions.toggleBottomPane('cell_output') }
           iconClassName="material-icons"
-          tooltip="Cell output"
+          tooltip={`Cell output (${U.Browser.metaKeyName()}+Alt+O)`}
           tooltipPosition="top-right"
           tooltipStyles={styles.tooltip}>
           label_outline
@@ -65,7 +65,7 @@ export default class ASBottomBar extends React.Component<{}, Props, {}> {
           style={styles.button}
           onClick={ () => ConfigActions.toggleBottomPane('header_output') }
           iconClassName="material-icons"
-          tooltip="Header output"
+          tooltip={`Header output (${U.Browser.metaKeyName()}+Alt+H)`}
           tooltipPosition="top-right"
           tooltipStyles={styles.tooltip}>
           input
