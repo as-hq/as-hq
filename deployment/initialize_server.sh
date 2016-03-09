@@ -1,15 +1,16 @@
 #!/bin/bash
 
 # This script deploys AlphaSheets on a clean server. It:
-# (a) installs dependencies
-# (c) writes the various configuration files
-# (d) deploys frontend via nginx
-# (e) deploys a docker container running backend
-# (f) deploys an admin dashboard for the server.
+# * installs dependencies
+# * writes the various configuration files
+# * deploys frontend via nginx
+# * builds the backend container image
+# * deploys an admin dashboard for the server.
 
-# It requires:
-# the alphasheets-builds folder (the parent of this directory)
-# Ubuntu 14.04 (trusty)
+# Requirements:
+# * the alphasheets-builds folder (if you see this file, you have it.)
+# * Ubuntu 14.04 (trusty)
+# * the build server's public key is in ~/.ssh/authorized_keys
 
 ###### Install dependencies ######
 apt-get update
@@ -43,16 +44,20 @@ cp -r config/sites-enabled /etc/nginx/
 
 ###### Build and deploy ######
 
-# docker
+# start router
+cd deployment/router
+tmux new -s "router" -d "./router"
+
+# build image
 cd container
 ./docker_build.sh
 
-# sites
+# deploy a backend instance
+curl -H "Content-Type: application/json" -X POST \
+     -d '{"action":"create"}' http://localhost:10000
+
+# start sites
 cd ..
 cp -r frontend /www/alphasheets
 cp -r dashboard /www/dashboard
 nginx -s reload
-
-# router
-cd deployment/router
-tmux new -s "router" -d "./router"

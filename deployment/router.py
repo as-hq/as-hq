@@ -128,6 +128,12 @@ class ASRouter(BaseHTTPRequestHandler):
       statuses = [c.getStatus() for c in ASRouter.instances.values()]
       self.sendReply('statuses', json.dumps(statuses))
 
+    elif post_body['action'] == 'redeploy_all':
+      for c in ASRouter.instances.values():
+        c.spindown()
+        c.spinup()
+      self.sendReply()
+
     else:
       self.send_response(400)
       print "ERROR: received action other than create or destroy"
