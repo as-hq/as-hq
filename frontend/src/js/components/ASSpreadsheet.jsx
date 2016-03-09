@@ -41,6 +41,7 @@ import BarStore from '../stores/ASBarStore.js';
 import OverlayStore from '../stores/ASOverlayStore';
 import FocusStore from '../stores/ASFindStore';
 import GridStore from '../stores/ASGridStore';
+import ConfigStore from '../stores/ASConfigurationStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import FocusActions from '../actions/ASFocusActionCreators';
 
@@ -87,8 +88,8 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   $storeLinks: Array<StoreLink>;
   _grid: any;
   _onGridFocus: Callback<SyntheticEvent>;
-  _gridStoreListener: StoreToken;
   _cellStoreListener: StoreToken;
+  _configStoreListener: StoreToken;
 
   mousePosition: ?HGPoint;
   mouseDownInBox: boolean;
@@ -147,6 +148,17 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
       this._grid.getBehavior().changed()
     );
 
+    this._configStoreListener = ConfigStore.addListener(() => {
+      // setTimeout to circumvent dispatch-in-dispatch.
+      // Technically this should be in store logic, but the grid element
+      // is required in scope to compute the dimensions.
+      setTimeout(() => {
+        const dims = this._getDimensions();
+        GridActions.setDimensions(dims);
+      }, 200);
+      // ^ wait for the component(s) to actually mount upon a view configuration change. 
+    });
+
     // apply hypergrid customizations when its canvas is ready.
     document.addEventListener('fin-ready', () => {
       this._initHypergrid();
@@ -165,6 +177,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   componentWillUnmount() {
     U.React.removeStoreLinks(this);
     this._cellStoreListener.remove();
+    this._configStoreListener.remove();
   }
 
   /*************************************************************************************************************************/
