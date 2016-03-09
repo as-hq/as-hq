@@ -59,5 +59,4 @@ curl -H "Content-Type: application/json" -X POST \
 # start sites
 cd ../..
 cp -r frontend /www/alphasheets
-cp -r deployment/dashboard /www/dashboard
 nginx -s reload

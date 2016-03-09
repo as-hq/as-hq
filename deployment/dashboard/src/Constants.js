@@ -1,6 +1,8 @@
 export default {
   monitored_hosts: [
-    'localhost',
+    'master.alphasheets.com',
+    'demo.alphasheets.com',
+    'stable.alphasheets.com'
   ],
   router_port: 10000,
 }
