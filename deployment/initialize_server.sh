@@ -57,7 +57,7 @@ curl -H "Content-Type: application/json" -X POST \
      -d '{"action":"create"}' http://localhost:10000
 
 # start sites
-cd ..
+cd ../..
 cp -r frontend /www/alphasheets
-cp -r dashboard /www/dashboard
+cp -r deployment/dashboard /www/dashboard
 nginx -s reload
