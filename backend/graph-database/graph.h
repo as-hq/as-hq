@@ -41,7 +41,7 @@ public:
   DAGResponse getEntireRootedSubgraph(const vector<Vertex>& locs, const bool& searchForward);
   DAGResponse getProperDescendants(const vector<Vertex>& locs);
   DAGResponse getImmediateAncestors(const vector<Vertex>& locs);
-  bool containsCycle(const DAG::Vertex&);
+  int indexOfFirstVertexInCycle(const vector<DAG::Vertex>&);
 
   void showGraph(string msg);
   bool operator==(const DAG& rhs);

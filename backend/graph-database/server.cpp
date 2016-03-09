@@ -92,14 +92,15 @@ DAG::DAGResponse applySetRelations(DAG& dag, const vector<string>& requestParts)
         toLocs.push_back(toLoc);
         i++;
     }
+    
     vector<Location> responseLocs = {};
-    // Handle circular dependencies
-    for (const auto& tl : toLocs) { 
-        if (dag.containsCycle(tl)) {
-            responseLocs.push_back(tl);
-            return {responseLocs,DAG::DAGStatus::CIRC_DEP};
-        }
+
+    int ind = dag.indexOfFirstVertexInCycle(toLocs);
+    if (ind != -1) { 
+        responseLocs.push_back(toLocs[ind]);
+        return {responseLocs, DAG::DAGStatus::CIRC_DEP};
     }
+
     return {responseLocs, DAG::DAGStatus::OK};
 }
 

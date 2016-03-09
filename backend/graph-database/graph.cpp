@@ -335,9 +335,16 @@ bool DAG::cycleCheck(const Vertex& loc, unordered_map<Vertex,bool>& visited, uno
   return false;
 }
 
-bool DAG::containsCycle(const DAG::Vertex& start) {
+// Given a list of starting indices, returns the index of the first of these that are contained
+// within a cycle; if there are none, return -1. 
+int DAG::indexOfFirstVertexInCycle(const vector<DAG::Vertex>& starts) {
   unordered_map<DAG::Vertex,bool> visited, rec_stack;
-  return cycleCheck(start, visited, rec_stack);
+  for (int i = 0; i < starts.size(); ++i) { 
+    if (cycleCheck(starts[i], visited, rec_stack)) {
+      return i; 
+    }
+  }
+  return -1; 
 }
 
 
