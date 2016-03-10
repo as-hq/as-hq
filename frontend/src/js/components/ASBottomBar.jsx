@@ -12,6 +12,8 @@ import {bottomBar as bottomBarZIndex} from '../styles/zIndex';
 
 import SheetStateStore from '../stores/ASSheetStateStore';
 
+import _ from 'lodash';
+
 type Props = {
   errorIconStyle: any; 
   outputIconStyle: any; 
@@ -24,7 +26,9 @@ export default class ASErrorPane extends React.Component<{}, Props, {}>
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: {}): boolean { 
-    return !_.isEqual(nextProps, this.props); 
+    // have to check this manually because we can't compare functions (which get passed as props)
+    return !(_.isEqual(nextProps.errorIconStyle, this.props.errorIconStyle) &&
+             _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle)); 
   }
 
   render(): React.Element {
