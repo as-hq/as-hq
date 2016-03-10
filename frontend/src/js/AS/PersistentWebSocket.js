@@ -49,6 +49,9 @@ class PersistentWebSocket {
     this._client = new ws(url);
     this._timeoutCounter = 0;
     this._isDisconnected = false;
+    // used as a lock (MVar) to ensure that the various loops
+    // don't interfere with each others' attempts to reestablish connection.
+    this._isAttemptingReconnect = false;
 
     // define internal callbacks that are always executed for proper operation
     this._onMessageInternal = (evt) => {
@@ -203,15 +206,21 @@ class PersistentWebSocket {
   }
 
   _onConnectionLoss() {
-    // call ondisconnect only the first time we detect a connection loss
-    if (! this._isDisconnected) {
-      this._ondisconnect();
-    }
-    // Keep track of our state as being currently disconnected or not.
-    this._isDisconnected = true;
-    this._client.close();
-    if (Constants.shouldReconnect) {
-      this._attemptReconnect();
+    if (! this._isAttemptingReconnect) {
+      this._isAttemptingReconnect = true;
+
+      // call ondisconnect only the first time we detect a connection loss
+      if (! this._isDisconnected) {
+        this._ondisconnect();
+      }
+      // Keep track of our state as being currently disconnected or not.
+      this._isDisconnected = true;
+      this._client.close();
+      if (Constants.shouldReconnect) {
+        this._attemptReconnect();
+      }
+
+      this._isAttemptingReconnect = false;
     }
   }
 
