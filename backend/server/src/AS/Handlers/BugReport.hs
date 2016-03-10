@@ -98,7 +98,8 @@ makePostRequest :: String -> [(B.ByteString, B.ByteString)] -> IO BL.ByteString
 makePostRequest endpt body = do 
   initReq <- parseUrl $ maniphestURL ++ endpt
   let req = urlEncodedBody body initReq
-  response <- withManager $ httpLbs req
+  manager <- newManager tlsManagerSettings
+  response <- httpLbs req manager
   return $ responseBody response
 
 -- | Connect to conduit using authentication and the conduit.connect endpoint
@@ -120,18 +121,18 @@ type TaskDesc = String
 -- would be overloaded (will be fixed in a newer GHC).
 -- Given the sessionKey, connectionId, and the title/description of the task
 taskToJSON :: ConduitSessionKey -> ConduitConnectionID -> TaskTitle -> TaskDesc -> String
-taskToJSON key id title desc = "{\"title\":\"" ++ title ++ ",\", \"description\":\"" ++ desc ++ "\", \"__conduit__\":" ++ conduit ++ "}"
+taskToJSON key id title desc = "{\"title\":\"" ++ title ++ "\", \"description\":\"" ++ desc ++ "\", \"__conduit__\":" ++ conduit ++ "}"
   where conduit = "{\"sessionKey\":\"" ++ key ++ "\", \"connectionID\":"  ++ (show id) ++ "}" 
 
 -- | Get the description of the task from the userClient (sessionId, userId, last sheet). This is useful info for debugging.
 getDescription :: ASUserClient -> Connection -> IO TaskDesc
 getDescription uc conn = do 
   maybeUser <- lookupUser conn $ uc^.userId
-  let sheet = case maybeUser of 
-    Nothing -> "No last sheet found"
-    Just u  -> T.unpack $ u^.lastOpenSheet
   let uid = T.unpack $ uc^.userId
   let sid = T.unpack $ uc^.userSessionId
+  sheet <- case maybeUser of 
+    Nothing -> return "No last sheet found"
+    Just u  -> return $ T.unpack $ u^.lastOpenSheet
   return $ "User ID: " ++ uid ++ ", Session ID: " ++ sid ++ ", Sheet: " ++ sheet ++ "."
 
 -- | Create a maniphest task by posting to /api/maniphest.createtask. 

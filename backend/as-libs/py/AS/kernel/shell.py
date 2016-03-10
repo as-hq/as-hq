@@ -603,7 +603,8 @@ class ASShell(InteractiveShell):
   # Disabling command execution
   # -------------------------------------------------------------------------------------
 
-  def system(self, cmd):
-    raise CannotRunSystemCommandsInsideAlphaSheets
+  # Temporarily allowing users to run system commands (Ritesh 3/10)
+  # def system(self, cmd):
+  #   raise CannotRunSystemCommandsInsideAlphaSheets
 
 

@@ -788,7 +788,7 @@ describe('backend', () => {
             ]);
           });
 
-          it ('should not allow IPython commands', (done) => {
+          xit ('should not allow IPython commands', (done) => {
             _do([
               python('A1', '!(pip install fuzzywuzzy)'),
               python('A2', '!(ls)'),
