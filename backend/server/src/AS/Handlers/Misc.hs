@@ -99,11 +99,6 @@ handleGet mid uc state locs = do
 --   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWorkbookSheets wss)
 -- Will uncomment when we're actually using this code; in the meantime let's not bother to maintain it. (12/28)
 
--- Had relevance back when UserClients could have multiple windows, which never made sense anyway.
--- (Alex 11/3)
--- handleClose :: ASUserClient -> State -> ASPayload -> IO ()
--- handleClose _ _ _ = return ()
-
 handleIsCoupled :: MessageId -> ASUserClient -> ServerState -> ASIndex -> IO ()
 handleIsCoupled mid uc state loc = do 
   mCell <- DB.getCell (state^.dbConn) loc
@@ -157,13 +152,6 @@ handleRepeat mid uc state selection = return () -- do
   --   otherwise -> sendToOriginal uc $ failureMessage "Repeat not supported for this action"
   -- temporarily disabling until we implement this for realsies (Alex 12/28)
 
--- | For now, all this does is acknowledge that a bug report got sent. The actual contents
--- of the bug report (part of the payload) are output to the server log in handleServerMessage,
--- which is where we want it end up anyway, for now. (Alex 10/28/15)
-handleBugReport :: ASUserClient -> String -> IO ()
-handleBugReport uc report = do
-  logBugReport report (userCommitSource uc)
-  WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)
 
 handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> [CondFormatRule] -> [CondFormatRuleId] -> IO ()
 handleUpdateCondFormatRules mid uc state updatedRules deleteRuleIds = do

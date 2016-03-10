@@ -49,6 +49,7 @@ library
                        AS.Handlers.Import
                        AS.Handlers.Sheets
                        AS.Handlers.LogAction
+                       AS.Handlers.BugReport
                        AS.InferenceUtils
                        AS.Kernels.Excel.Eval
                        AS.Kernels.Excel.Compiler
@@ -146,6 +147,8 @@ library
                      , old-time
                      , old-locale
                      , parallel-io
+                     , cryptohash
+                     , http-conduit
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

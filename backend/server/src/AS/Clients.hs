@@ -24,6 +24,7 @@ import AS.Handlers.Misc
 import AS.Handlers.Import
 import AS.Handlers.Sheets
 import AS.Handlers.LogAction
+import AS.Handlers.BugReport
 
 import qualified AS.Daemon as DM
 import AS.DB.API (getPropsAt, storeLastMessage, getCellsInSheet)
@@ -100,7 +101,7 @@ instance Client ASUserClient where
       SetProp prop rng            -> handleSetProp mid user curState prop rng
       ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user curState i rng
       Repeat sel                  -> handleRepeat mid user curState sel
-      BugReport report            -> handleBugReport user report
+      BugReport report            -> handleBugReport user curState report
       -- JumpSelect            -> handleJumpSelect user curState payload
       MutateSheet mutateType      -> handleMutateSheet mid user curState mutateType
       Drag selRng dragRng         -> handleDrag mid user curState selRng dragRng
