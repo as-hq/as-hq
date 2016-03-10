@@ -106,7 +106,7 @@ instance Client ASUserClient where
       Drag selRng dragRng         -> handleDrag mid user curState selRng dragRng
       Decouple                    -> handleDecouple mid user curState
       Timeout timeoutMid          -> handleTimeout timeoutMid state
-      UpdateCondFormatRules cfru  -> handleUpdateCondFormatRules mid user curState cfru
+      UpdateCondFormatRules rs ids-> handleUpdateCondFormatRules mid user curState rs ids
       GetBar bInd                 -> handleGetBar mid user curState bInd
       SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
       ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName

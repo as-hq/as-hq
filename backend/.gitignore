@@ -37,3 +37,7 @@ graph-database/server
 # Environment files
 Environment.json
 server/src/AS/Config/Environment.hs
+
+# Profiling files
+alphasheets-profiling-exe.hp
+alphasheets-profiling-exe.prof

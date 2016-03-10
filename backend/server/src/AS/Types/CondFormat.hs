@@ -28,6 +28,10 @@ data CondFormatRule = CondFormatRule { condFormatRuleId :: CondFormatRuleId
                                      , formatMapConstructor :: FormatMapConstructor }  
                                      deriving (Show, Read, Generic, Data, Typeable, Eq)
 
+instance Ord CondFormatRule where 
+  (<=) cfr1 cfr2 =  (condFormatRuleId cfr1) <= (condFormatRuleId cfr2)
+
+
 type LambdaConditionExpr = String
 
 data FormatMapConstructor = BoolFormatMapConstructor { boolFormatMapCondition :: BoolCondition
@@ -115,7 +119,6 @@ instance HasKey CondFormatRule where
 
 asToFromJSON ''CondFormatRule
 asToFromJSON ''CondFormatRuleDiff
-asLensedToFromJSON ''CondFormatRuleUpdate
 asToFromJSON ''FormatMapConstructor
 asToFromJSON ''NoExprBoolCondType
 asToFromJSON ''OneExprBoolCondType

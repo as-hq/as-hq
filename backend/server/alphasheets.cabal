@@ -150,6 +150,7 @@ library
                        TemplateHaskell
                        DeriveGeneric
                        DeriveDataTypeable
+  ghc-options: -fprof-auto
 
 executable alphasheets-exe
   hs-source-dirs:      app
@@ -188,6 +189,42 @@ executable alphasheets-exe
                      , filepath
   default-language:    Haskell2010
 
+executable alphasheets-profiling-exe
+  hs-source-dirs:      profiling 
+  main-is:             Main.hs
+  ghc-options:         -O2 
+                       -threaded
+                       -fprof-auto
+                       "-with-rtsopts=-p -N -s -h -i"
+  build-depends:       base
+                     , alphasheets
+                     , aeson
+                     , websockets
+                     , text
+                     , transformers
+                     , bytestring
+                     , hedis
+                     , daemons
+                     , data-default
+                     , either
+                     , inline-r
+                     , parsec
+                     , cassava
+                     , vector
+                     , unordered-containers
+                     , lens
+                     , split
+                     , unix
+                     , wai
+                     , warp
+                     , wai-websockets
+                     , wai-app-static
+                     , file-embed
+                     , containers
+                     , directory
+                     , deepseq
+                     , deepseq-generics
+  default-language:    Haskell2010
 
 benchmark alphasheets-bench
   type:               exitcode-stdio-1.0

@@ -24,7 +24,8 @@ import GHC.Generics
 import Data.Aeson
 import Data.List
 import Data.SafeCopy
-import qualified Data.Map as M 
+import qualified Data.Map as M
+import qualified Data.Set as S
 
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
@@ -53,6 +54,9 @@ data ASCell = Cell { _cellLocation :: ASIndex
 makeLenses ''ASExpression
 makeLenses ''ASCell
 
+instance Ord ASCell where 
+  (<=) c1 c2 = (c1^.cellLocation) <= (c2^.cellLocation)
+
 -- NORM: never expand this type; always modify it using the records. (So we don't confuse 
 -- before and after accidentally.)
 type CellDiff = Diff ASCell 
@@ -79,7 +83,6 @@ asToFromJSON ''ASLanguage
 
 asLensedToJSON ''ASCell
 asToJSON ''CellDiff
-asLensedToJSON ''CellUpdate
 
 deriveSafeCopy 1 'base ''ASExpression
 deriveSafeCopy 1 'base ''ASLanguage
@@ -153,3 +156,25 @@ getFormattedVal c = Formatted (c^.cellValue) (getCellFormat c)
 setFormattedVal :: ASCell -> Formatted ASValue -> ASCell
 setFormattedVal c fv = c & cellValue .~ (fv^.orig) 
                          & cellProps %~ maybe id (setProp . ValueFormat) (fv^.format)
+
+insertCellsIntoUpdate :: [ASCell] -> CellUpdate -> CellUpdate
+insertCellsIntoUpdate cells cu = cu & newValsSet %~ (insertNewCellsIntoSet cells)
+
+-- | Insert new cells into a set of a cells, such that if one of the new cells is colocated with 
+-- a cell already in the set, that old cell gets replaced by the new cell. If there are N new cells
+-- and M old cells, this is O(N log M). 
+-- 
+-- Assumes that all locations passed into newCells are distinct. 
+
+insertNewCellsIntoSet :: [ASCell] -> S.Set ASCell -> S.Set ASCell
+insertNewCellsIntoSet newCells cs = foldl' insertCell cs newCells
+  where
+    insertCell :: S.Set ASCell -> ASCell -> S.Set ASCell
+    insertCell cellSet c = c `S.insert` cellSet' 
+      where 
+        mNeighborGE = c `S.lookupGE` cellSet
+        cellSet' = case mNeighborGE of 
+          Nothing -> cellSet 
+          Just neighborGE -> if neighborGE^.cellLocation == c^.cellLocation
+            then neighborGE `S.delete` cellSet 
+            else cellSet

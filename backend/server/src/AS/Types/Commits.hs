@@ -16,6 +16,7 @@ import GHC.Generics
 import Data.List
 import qualified Data.Text as T
 import Data.SafeCopy
+import qualified Data.Set as S
 import Control.Lens
 import Control.Lens.TH
 
@@ -66,7 +67,7 @@ emptySheetUpdate = SheetUpdate emptyUpdate emptyUpdate emptyUpdate emptyUpdate
 -- #RoomForImprovement: some data.data magic to have the args be [ValType CellUpdate]
 -- instead of [ASCell]?
 makeSheetUpdateWithNoOldKeys :: [ASCell] -> [Bar] -> [RangeDescriptor] -> [CondFormatRule] -> SheetUpdate
-makeSheetUpdateWithNoOldKeys cells bars ds cfs = SheetUpdate (Update cells []) (Update bars []) (Update ds []) (Update cfs [])
+makeSheetUpdateWithNoOldKeys cells bars ds cfs = SheetUpdate (newValuesUpdate cells) (newValuesUpdate bars) (newValuesUpdate ds) (newValuesUpdate cfs)
 
 sheetUpdateFromCommit :: ASCommit -> SheetUpdate
 sheetUpdateFromCommit (Commit cd bd rdd cfrd _) = SheetUpdate cu bu rdu cfru
@@ -80,7 +81,7 @@ sheetUpdateFromCells :: [ASCell] -> SheetUpdate
 sheetUpdateFromCells cs = emptySheetUpdate & cellUpdates.newVals .~ cs
 
 addCellsToUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
-addCellsToUpdate cs = cellUpdates.newVals %~ (++ cs)
+addCellsToUpdate cs = cellUpdates.newValsSet %~ (S.union $ S.fromList cs)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers

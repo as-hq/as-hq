@@ -1,6 +1,7 @@
 module AS.Handlers.Delete (handleDelete) where
 
 import Data.List
+import qualified Data.Set as S
 import Control.Concurrent
 import Control.Applicative
 import Control.Lens
@@ -43,12 +44,12 @@ handleDelete mid uc state rng = do
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate
 modifyUpdateForDelete rng =
-  cellUpdates %~ (& newVals %~ removeUpdateCellsInRange).(& oldKeys %~ addRangeRefs)
+  cellUpdates %~ (& newValsSet %~ removeUpdateCellsInRange) . (& oldKeysSet %~ addRangeRefs)
     where 
-      rngs  = [rng] 
+      rngs  = S.singleton rng
       cellContainedInRange r = rangeContainsIndex r . view cellLocation 
-      cellContainedInRngs = or <$> sequence (map cellContainedInRange rngs)
+      cellContainedInRngs = or <$> sequence (map cellContainedInRange (S.toList rngs))
       shouldKeepCell = not . liftA2 (&&) isEmptyCell cellContainedInRngs
-      addRangeRefs = (map RangeRef rngs ++ )
-      removeUpdateCellsInRange = filter shouldKeepCell
+      addRangeRefs = (S.union (S.map RangeRef rngs))
+      removeUpdateCellsInRange = S.filter shouldKeepCell
   -- #incomplete the type here should NOT be Selection. It should be a yet-to-be implemented type representing finite lists of cells

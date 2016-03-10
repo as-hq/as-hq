@@ -12,6 +12,7 @@ import Control.Applicative ((<$>), (<*>))
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (isJust)
+import qualified Data.Set as S
 import Safe (headMay)
 
 import AS.Types.CellProps
@@ -71,6 +72,9 @@ virtualRangeDescriptorAt ctx rk = headMay $ filter ((== rk) . descriptorKey) $ v
 
 newCellsInContext :: EvalContext -> [ASCell]
 newCellsInContext = view (updateAfterEval.cellUpdates.newVals)
+
+newCellsInContextSet :: EvalContext -> S.Set ASCell
+newCellsInContextSet = view (updateAfterEval.cellUpdates.newValsSet)
 
 newRangeDescriptorsInContext :: EvalContext -> [RangeDescriptor]
 newRangeDescriptorsInContext = view (updateAfterEval.descriptorUpdates.newVals)
@@ -145,10 +149,9 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens
 addCellsToContext :: [ASCell] -> EvalContext -> EvalContext
 addCellsToContext cells ctx =
-  ctx & virtualCellsMap .~ newMap & (updateAfterEval . cellUpdates) .~ Update newAddedCells []
+  ctx & virtualCellsMap .~ newMap & (updateAfterEval . cellUpdates) %~ (insertCellsIntoUpdate cells)
     where
-      newAddedCells = mergeCells cells (newCellsInContext ctx)
-      newMap   = insertMultiple (ctx^.virtualCellsMap) (mapCellLocation cells) cells
+      newMap        = insertMultiple (ctx^.virtualCellsMap) (mapCellLocation cells) cells
 
 -- Inserts multiple elements into a map
 insertMultiple :: (Ord k) => M.Map k v -> [k] -> [v] -> M.Map k v

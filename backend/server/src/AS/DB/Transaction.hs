@@ -24,6 +24,7 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import qualified Data.List as L
 import Data.Maybe 
+import qualified Data.Set as S
 
 import Database.Redis hiding (time)
 import Control.Monad.IO.Class (liftIO)
@@ -59,8 +60,10 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
   cfdiff <- updateToDiff cfru $ DB.getCondFormattingRules conn sid
   time   <- getASTime
   -- Doing this manually here instead of using updateToDiff, because we need mOldCells for didDecouple
-  let deletedLocs = refsToIndices (cu^.oldKeys)
-      newCells    = L.union (cu^.newVals) (blankCellsAt deletedLocs)
+  let deletedLocs = S.fromList $ refsToIndices $ cu^.oldKeys
+      overwrittenDeletedLocs = S.map (view cellLocation) $ cu^.newValsSet
+      nonOverwrittenBlankLocs = S.toList $ deletedLocs S.\\ overwrittenDeletedLocs
+      newCells = cu^.newVals ++ blankCellsAt nonOverwrittenBlankLocs
   mOldCells <- DB.getCells conn $ mapCellLocation newCells
   let cdiff = Diff { beforeVals = catMaybes mOldCells, afterVals = newCells }
       commit = Commit cdiff bdiff ddiff cfdiff time
@@ -141,7 +144,10 @@ applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
 applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du cfru) = do 
   let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
-      allUpdatedCells = L.unionBy isColocated (cu^.newVals) (blankCellsAt . refsToIndices $ cu^.oldKeys)
+  let deletedLocs = S.fromList $ refsToIndices $ cu^.oldKeys
+      overwrittenDeletedLocs = S.map (view cellLocation) $ cu^.newValsSet
+      nonOverwrittenBlankLocs = S.toList $ deletedLocs S.\\ overwrittenDeletedLocs
+      allUpdatedCells = cu^.newVals ++ blankCellsAt nonOverwrittenBlankLocs
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
   deleteLocs' conn $ (mapCellLocation emptyCells)

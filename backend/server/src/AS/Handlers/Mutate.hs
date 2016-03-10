@@ -27,7 +27,10 @@ import AS.Logging
 import Control.Concurrent
 import Control.Monad
 import Control.Lens
+
 import Data.Maybe hiding (fromJust)
+import qualified Data.Set as S
+
 
 handleMutateSheet :: MessageId -> ASUserClient -> ServerState -> MutateType -> IO ()
 handleMutateSheet mid uc state mutateType = do
@@ -45,12 +48,12 @@ handleMutateSheet mid uc state mutateType = do
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = map (barMutate mutateType) oldBars
       (oldBars', newBars') = keepUnequal $ zip oldBars newBars
-      bu = emptyUpdate & newVals .~ newBars' & oldKeys .~ map barIndex oldBars' 
+      bu = updateFromLists newBars' $ map barIndex oldBars'
   -- update conditional formatting rules
   oldCondFormatRules <- DB.getCondFormattingRulesInSheet conn sid
   let newCondFormatRules = map (condFormattingRulesMutate mutateType) oldCondFormatRules
       (oldCondFormatRules', newCondFormatRules') = keepUnequal $ zip oldCondFormatRules newCondFormatRules
-      cfru = emptyUpdate & newVals .~ newCondFormatRules' & oldKeys .~ map condFormatRuleId oldCondFormatRules'
+      cfru = updateFromLists newCondFormatRules' $ map condFormatRuleId oldCondFormatRules'
   -- propagate changes
   let updateTransform update = update & barUpdates .~ bu & condFormatRuleUpdate .~ cfru
   errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform

@@ -18,6 +18,8 @@ import AS.Types.Errors
 import AS.Types.Window
 import AS.Util
 
+import qualified Data.Set as S
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Sending message to user client(s)
 
@@ -57,8 +59,8 @@ filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
     -- should never be applicable over multiple sheets.) It's currently ok to ask frontend to delete
     -- conditional formatting rules that don't exist on the sheet (currently a noop), but we *really*
     -- shouldn't tell it to add rules from a separate sheet. (Alex 1/25)
-    filteredCfrs = filter (all ((==) sid . rangeSheetId) . cellLocs) (cfru^.newVals)
-    update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeys))
+    filteredCfrs = S.filter (all ((==) sid . rangeSheetId) . cellLocs) (cfru^.newValsSet)
+    update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeysSet))
 
 sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
 sendSheetUpdate mid uc update = sendMessage (ClientMessage mid $ UpdateSheet update) (uc^.userConn)

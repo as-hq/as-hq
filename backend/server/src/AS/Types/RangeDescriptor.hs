@@ -18,6 +18,9 @@ import qualified Data.Map as M
 data RangeDescriptor = RangeDescriptor { descriptorKey :: RangeKey, expandingType :: ExpandingType, attrs :: JSON }
   deriving (Show, Read, Eq, Generic)
 
+instance Ord RangeDescriptor where 
+  (<=) rd1 rd2 = (descriptorKey rd1) <= (descriptorKey rd2)
+
 
 data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame | PSeries deriving (Show, Read, Eq, Generic)
 
@@ -25,7 +28,10 @@ data ExpandingType = List | RList | RDataFrame | NPArray | NPMatrix | PDataFrame
 -- e.g. for embedded lists and objects
 data RangeKey = RangeKey { keyIndex :: ASIndex
                          , keyDimensions :: Dimensions } 
-                         deriving (Show, Read, Eq, Generic)
+                           deriving (Show, Read, Eq, Generic)
+
+instance Ord RangeKey where 
+  (<=) rk1 rk2 = (keyIndex rk1) <= (keyIndex rk2)
 
 -- NORM: never expand this type. always modify and access it using beforeVals and afterVals.
 type DescriptorDiff = Diff RangeDescriptor
@@ -53,7 +59,6 @@ asToJSON ''RangeDescriptor
 asToJSON ''ExpandingType
 asToJSON ''RangeKey
 asToJSON ''DescriptorDiff
-asLensedToJSON ''DescriptorUpdate
 asToJSON ''JSONField
 asToJSON ''JSONValue
 

@@ -877,11 +877,8 @@ const API = {
   updateCondFormattingRule(rule: ASCondFormatRule) {
     let msg = {
       tag: "UpdateCondFormatRules",
-      contents: {
-        tag: "Update",
-        newVals: [rule.obj()],
-        oldKeys: []
-      }
+      newRules: [rule.obj()],
+      oldRuleIds: []
     };
     API.sendMessageWithAction(msg);
   },
@@ -889,11 +886,8 @@ const API = {
   removeCondFormattingRule(ruleId: string) {
     let msg = {
       tag: "UpdateCondFormatRules",
-      contents: {
-        tag: "Update",
-        newVals: [],
-        oldKeys: [ruleId]
-      }
+      newRules: [], 
+      oldRuleIds: [ruleId]
     };
     API.sendMessageWithAction(msg);
   },

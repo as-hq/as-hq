@@ -21,6 +21,7 @@ import AS.Reply
 import AS.Util
 
 import Data.List
+import qualified Data.Set as S
 import Control.Applicative ((<*>))
 import Control.Concurrent
 import Control.Lens
@@ -75,16 +76,12 @@ transformPropsInDatabase mid f uc state rng = do
   -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
   errOrUpdate <-
     -- This case, the cells in cells' at the end of the dispatch cycle are guaranteed to be the same as cs, except with props set.
-    DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) (injectCellsIntoSheetUpdate cells')
+    DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) (insertCellsIntoSheetUpdate cells')
   broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
--- #Lenses
-injectCells :: [ASCell] -> CellUpdate -> CellUpdate
-injectCells cells cu = cu & newVals %~ mergeCells cells
-
 -- #Lenses.
-injectCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
-injectCellsIntoSheetUpdate cells su = su & cellUpdates %~ (injectCells cells)
+insertCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
+insertCellsIntoSheetUpdate cells su = su & cellUpdates %~ (insertCellsIntoUpdate cells)
 
 handleSetProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
 handleSetProp mid uc state prop rng = transformPropsInDatabase mid (setProp prop . view cellProps) uc state rng

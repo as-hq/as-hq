@@ -102,7 +102,7 @@ data ServerAction =
   | Drag { initialRange :: ASRange, dragRange :: ASRange }
   | Decouple
   | Timeout MessageId
-  | UpdateCondFormatRules CondFormatRuleUpdate
+  | UpdateCondFormatRules { newRules :: [CondFormatRule], oldRuleIds :: [CondFormatRuleId] }
   | SetBarProp BarIndex BarProp
   | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }

@@ -526,7 +526,8 @@ export type Timeout = {
 
 export type UpdateCondFormatRules = {
   tag: "UpdateCondFormatRules";
-  contents: CondFormatRuleUpdate;
+  newRules: Array<CondFormatRule>;
+  oldRuleIds: Array<string>;
 }
 
 export type SetBarProp = {

@@ -52,6 +52,9 @@ import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 import qualified AS.DB.Clear              as DC
 
+import qualified Data.Set as S
+
+
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 
 handleUpdateWindow :: MessageId -> ASUserClient -> ServerState -> ASWindow -> IO ()
@@ -162,16 +165,15 @@ handleBugReport uc report = do
   logBugReport report (userCommitSource uc)
   WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)
 
-handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> CondFormatRuleUpdate -> IO ()
-handleUpdateCondFormatRules mid uc state u = do
+handleUpdateCondFormatRules :: MessageId -> ASUserClient -> ServerState -> [CondFormatRule] -> [CondFormatRuleId] -> IO ()
+handleUpdateCondFormatRules mid uc state updatedRules deleteRuleIds = do
   let conn = state^.dbConn
       src = userCommitSource uc 
       sid = srcSheetId src
-      deleteRuleIds = u^.oldKeys
+      u   = updateFromLists updatedRules deleteRuleIds
   rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
   oldRules <- DB.getCondFormattingRulesInSheet conn sid
-  let updatedRules = u^.newVals
-      allRulesUpdated = applyUpdate u oldRules
+  let allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
   errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext DP.evalChain
