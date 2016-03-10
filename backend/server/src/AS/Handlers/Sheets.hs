@@ -31,8 +31,7 @@ handleGetSheets mid uc state = do
   user <- $fromJust <$> lookupUser conn (uc^.userId)
   let sids = Set.toList $ user^.sheetIds
   sheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn sids
-  sharedSheets <- getS SharedSheetsKey dbValToSheet conn 
-  sendToOriginal uc $ ClientMessage mid $ SetMySheets $ sheets ++ sharedSheets
+  sendToOriginal uc $ ClientMessage mid $ SetMySheets sheets 
 
 handleNewSheet :: MessageId -> ASUserClient -> ServerState -> SheetName -> IO ()
 handleNewSheet mid uc state name = do
@@ -61,6 +60,6 @@ handleOpenSheet mid uc state sid = do
   modifyUser conn (uc^.userId) (& lastOpenSheet .~ sid)
 
   -- pre-evaluate the headers
-  mapM (runEitherT . evaluateHeader) headers
+  mapM_ (runEitherT . evaluateHeader) headers
   let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
   sendToOriginal uc $ ClientMessage mid $ SetSheetData sid sheetUpdate headers

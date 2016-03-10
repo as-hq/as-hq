@@ -58,7 +58,6 @@ data DBKey =
   | RedisRangeKey        RangeKey  
   | LogKey               LogSource 
   | AllSheetsKey
-  | SharedSheetsKey
   deriving (Generic, Show)
 
 data DBValue = 

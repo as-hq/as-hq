@@ -57,8 +57,8 @@ isFirstMigration = True
 exhaustiveParser :: [ByteString -> Maybe a] -> ByteString -> Maybe a
 exhaustiveParser [] b = Nothing
 exhaustiveParser (f:fs) b = case f b of
-	Nothing -> exhaustiveParser fs b
-	Just x  -> Just x
+  Nothing -> exhaustiveParser fs b
+  Just x  -> Just x
 
 ------------------------------------------------------------------------------------------------------
 -- Decoding and encoding DBValues
@@ -70,43 +70,43 @@ exhaustiveParser (f:fs) b = case f b of
 newValueBS :: DBKey -> ByteString -> Maybe ByteString
 newValueBS (LastMessageKey _) b = Just b
 newValueBS (EvalHeaderKey _ _) b = if isFirstMigration
-	then Just (S.encode $ HeaderValue b) -- Headers were originally just bytestrings
-	else S.encode <$> ((toDBValue b) :: Maybe DBValue)
+  then Just (S.encode $ HeaderValue b) -- Headers were originally just bytestrings
+  else S.encode <$> ((toDBValue b) :: Maybe DBValue)
 newValueBS _ b = S.encode <$> ((toDBValue b) :: Maybe DBValue)
 
 toDBKey :: ByteString -> Maybe DBKey
 toDBKey = if isFirstMigration 
-	then exhaustiveParser 
-		[ toSheetRangesKey
-		, toSheetKey
-		, toEvalHeaderKey
-		, toTempCommitKey
-		, toPushCommitKey
-		, toPopCommitKey
-		, toLastMessageKey
-		, toRedisRangeKey
-		, toIndexKey
-		, toAllSheetsKey
-		, toBarKey 
-		] 
-	else S.maybeDecode
+  then exhaustiveParser 
+    [ toSheetRangesKey
+    , toSheetKey
+    , toEvalHeaderKey
+    , toTempCommitKey
+    , toPushCommitKey
+    , toPopCommitKey
+    , toLastMessageKey
+    , toRedisRangeKey
+    , toIndexKey
+    , toAllSheetsKey
+    , toBarKey 
+    ] 
+  else S.maybeDecode
 
 toDBValue :: ToDBValue
 toDBValue = if isFirstMigration 
-	then exhaustiveParser
-		[ toKeyValue
-		, toSheetValue
-		, toCellValue
-		, toCommitValue
-		, toCFValue
-		, toSheetValue
-		, toBarValue
-		, toCFValue
-		, toIndexValue
-		, toRangeDescriptorValue
-		, toUserValue
-		]
-	else S.maybeDecode
+  then exhaustiveParser
+    [ toKeyValue
+    , toSheetValue
+    , toCellValue
+    , toCommitValue
+    , toCFValue
+    , toSheetValue
+    , toBarValue
+    , toCFValue
+    , toIndexValue
+    , toRangeDescriptorValue
+    , toUserValue
+    ]
+  else S.maybeDecode
 
 
 ------------------------------------------------------------------------------------------------------
@@ -123,13 +123,13 @@ type ToDBKey = ByteString -> Maybe DBKey
 
 getRest :: String -> ByteString -> Maybe String 
 getRest prefix b = do 
-	let str = BC.unpack b 
-	stripPrefix (prefix ++ sep) str
+  let str = BC.unpack b 
+  stripPrefix (prefix ++ sep) str
 
 toCommitSource :: String -> CommitSource
 toCommitSource s = CommitSource (T.pack sid) (T.pack uid)
-	where
-		[sid, uid] = splitOn delim s
+  where
+    [sid, uid] = splitOn delim s
 
 toSheetRangesKey :: ToDBKey
 toSheetRangesKey b = (SheetGroupKey . SheetRangesKey . T.pack) <$> getRest "SheetRangesType" b
@@ -139,9 +139,9 @@ toSheetKey b = (SheetKey . T.pack) <$> getRest "SheetType" b
 
 toEvalHeaderKey :: ToDBKey
 toEvalHeaderKey b = do 
-	rest <- getRest "EvalHeaderType" b
-	let [sid, lang] = splitOn delim rest
-	return $ EvalHeaderKey (T.pack sid) ($read lang :: ASLanguage)
+  rest <- getRest "EvalHeaderType" b
+  let [sid, lang] = splitOn delim rest
+  return $ EvalHeaderKey (T.pack sid) ($read lang :: ASLanguage)
 
 toTempCommitKey :: ToDBKey
 toTempCommitKey b = (TempCommitKey . toCommitSource) <$> getRest "TempCommitType" b
@@ -160,21 +160,21 @@ toAllSheetsKey b = (\_ -> AllSheetsKey) <$> getRest "AllSheetsType" b
 
 toRedisRangeKey :: ToDBKey
 toRedisRangeKey b = do 
-	rest <- getRest "RangeType" b
-	let [ind, dim] = splitOn delim rest
-	return $ RedisRangeKey $ RangeKey ((read2 ind) :: ASIndex) ((read2 dim) :: Dimensions)
+  rest <- getRest "RangeType" b
+  let [ind, dim] = splitOn delim rest
+  return $ RedisRangeKey $ RangeKey ((read2 ind) :: ASIndex) ((read2 dim) :: Dimensions)
 
 toIndexKey :: ToDBKey
 toIndexKey b = IndexKey <$> S.maybeDecode b
 
 toBarKey :: ToDBKey
 toBarKey b = do
-	rest <- getRest "BarType2" b
-	let [sidStr, typStr, indStr] = splitOn delim rest
-	let sid = T.pack sidStr
-	let typ = $read typStr :: BarType
-	let ind = $read indStr :: Int
-	return $ BarKey $ BarIndex sid typ ind
+  rest <- getRest "BarType2" b
+  let [sidStr, typStr, indStr] = splitOn delim rest
+  let sid = T.pack sidStr
+  let typ = $read typStr :: BarType
+  let ind = $read indStr :: Int
+  return $ BarKey $ BarIndex sid typ ind
 
 ------------------------------------------------------------------------------------------------------
 -- Decodeable functions for values
@@ -184,15 +184,15 @@ type ToDBValue = ByteString -> Maybe DBValue
 -- The DB stores show of ASSheet0, but the ASSheet type no longer has sheetPermissions. 
 toSheetValue :: ToDBValue
 toSheetValue b = do 
-	let str = BC.unpack b
-	let (first:_) = splitOn ", sheetPermissions" str
-	let newSheetStr = first ++ "}"
-	let fixSheetName (Sheet id name) = (Sheet id (T.unpack id))
-	-- Make sure that the sheet names and ids are the same
-	let mDBValue = (SheetValue . fixSheetName) <$> readMaybe newSheetStr
-	case mDBValue of
-		Nothing -> mDBValue
-		Just v -> trace (show v) mDBValue
+  let str = BC.unpack b
+  let (first:_) = splitOn ", sheetPermissions" str
+  let newSheetStr = first ++ "}"
+  let fixSheetName (Sheet id name) = (Sheet id (T.unpack id))
+  -- Make sure that the sheet names and ids are the same
+  let mDBValue = (SheetValue . fixSheetName) <$> readMaybe newSheetStr
+  case mDBValue of
+    Nothing -> mDBValue
+    Just v -> trace (show v) mDBValue
 
 toCommitValue :: ToDBValue
 toCommitValue b = CommitValue <$> S.maybeDecode b

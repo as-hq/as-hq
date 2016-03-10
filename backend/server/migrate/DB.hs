@@ -14,9 +14,9 @@ import Types (MigrateError(..))
 -- Throw an error if we get a Redis error (Left _)
 handleErr :: Redis (Either Reply a) -> Redis a
 handleErr r = r >>= f
-	where
-		f (Left e) = throw $ RedisError e
-		f (Right x) = return x
+  where
+    f (Left e) = throw $ RedisError e
+    f (Right x) = return x
 
 -------------------------------------------------------------------------------------
 -- Getters and setters
@@ -31,10 +31,10 @@ type Setter = Connection -> ByteString -> [ByteString] -> IO ()
 
 getVRaw :: Getter
 getVRaw conn bs = runRedis conn $ do 
-	v <- handleErr $ get bs 
-	case v of 
-		Nothing -> return []
-		Just x -> return [x]
+  v <- handleErr $ get bs 
+  case v of 
+    Nothing -> return []
+    Just x -> return [x]
 
 setVRaw :: Setter
 setVRaw conn bs lbs = void $ runRedis conn $ mapM_ (set bs) lbs

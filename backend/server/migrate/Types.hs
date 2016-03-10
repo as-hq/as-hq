@@ -46,18 +46,18 @@ type RawKey = (Int, ByteString)
 -- encoding of the key, the actual key type, and the newly encoded values associated with 
 -- the key.
 data DBSetterObject = DBSetterObject {
-	origEncoding :: ByteString, 
-	setterKey :: DBKey, 
-	setterVals :: [ByteString]
+  origEncoding :: ByteString, 
+  setterKey :: DBKey, 
+  setterVals :: [ByteString]
 }
 
 -- A MigrateError occurs when we can't decode some keys, when we can't decode some values
 -- (in which case we report the rawkey, the decoded RedisQuery, and the undecoded values 
 -- corresponding to that key), or a RedisError (for example, smembers on a list)
 data MigrateError = CouldNotDecodeKeys [RawKey] 
-	| CouldNotDecodeValues RawKey DBKey [ByteString]
-	| RedisError Reply deriving (Show, Typeable)
-	
+  | CouldNotDecodeValues RawKey DBKey [ByteString]
+  | RedisError Reply deriving (Show, Typeable)
+  
 instance Exception MigrateError
 
 
