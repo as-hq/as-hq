@@ -289,7 +289,7 @@ function tryTogglingRef(state: State): State {
     const { row } = U.String.getSelectionLead(selection);
     const newLead = {
       row,
-      column: prefix.split('\n').slice(-1).length + newRef.length
+      column: prefix.split('\n').slice(-1)[0].length + newRef.length
     };
 
     const newExpression = prefix + newRef + suffix;
