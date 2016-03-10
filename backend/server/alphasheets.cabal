@@ -25,6 +25,7 @@ library
                        AS.DB.Clear 
                        AS.DB.Users
                        AS.DB.Export
+                       AS.DB.Eval
                        AS.DB.Transaction
                        AS.DB.Internal
                        AS.DB.Graph
@@ -70,6 +71,7 @@ library
                        AS.Types.CellProps
                        AS.Types.Commits
                        AS.Types.CondFormat
+                       AS.Types.DataModification
                        AS.Types.DB
                        AS.Types.Graph
                        AS.Types.Errors
@@ -77,13 +79,16 @@ library
                        AS.Types.EvalHeader
                        AS.Types.Excel
                        AS.Types.Formats
+                       AS.Types.Infinites
                        AS.Types.Locations
-                       AS.Types.Migrations.Locations
                        AS.Types.Messages
+                       AS.Types.Migrations.Locations
+                       AS.Types.Mutate
                        AS.Types.Network
                        AS.Types.RangeDescriptor
                        AS.Types.Selection
                        AS.Types.Sheets
+                       AS.Types.Shift
                        AS.Types.Updates
                        AS.Types.User
                        AS.Types.Values

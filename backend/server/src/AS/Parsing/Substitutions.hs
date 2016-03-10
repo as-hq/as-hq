@@ -18,6 +18,7 @@ import AS.Types.Excel
 import AS.Types.Cell
 import AS.Types.Locations
 import AS.Types.Sheets
+import AS.Types.Shift
 import AS.Kernels.Excel.Compiler (formula)
 
 import AS.Util
@@ -130,10 +131,10 @@ getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getEx
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
 
 shiftExpression :: Offset -> ASExpression -> ASExpression
-shiftExpression offset = replaceRefs (show . shiftExRef offset)
+shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
 shiftCell offset c = ((c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) <$> mLoc
   where
-    mLoc  = shiftInd offset $ c^.cellLocation
+    mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation

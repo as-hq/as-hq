@@ -13,6 +13,7 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User
 import AS.Types.Eval
+import AS.Types.Shift
 import AS.Types.Commits
 import AS.Types.DB hiding (Clear)
 import AS.Types.Graph
@@ -125,7 +126,7 @@ handleCSVImport mid uc state ind lang fileName = do
     Left e -> void (putStrLn e)
     Right csv -> do 
       -- Create cells, taking offset, lang, and parsing into account
-      let indices = imap2D (\dx dy -> $fromJust $ shiftInd (Offset dx dy) ind) csv
+      let indices = imap2D (\dx dy -> $fromJust $ shiftByOffsetWithBoundsCheck (Offset dx dy) ind) csv
           values = map2D (csvValue lang) csv
           vCells = zipWith3In2D (\ind str val -> Cell ind (Expression str lang) val emptyProps Nothing Nothing) indices csv values
           cells = toList2D vCells
@@ -143,7 +144,7 @@ map2D f = V.map (V.map f)
 imap2D :: (Col -> Row -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)
 imap2D f = V.imap innerMap
   where
-    innerMap i = V.imap (\j _ -> f j i)
+    innerMap i = V.imap (\j _ -> f (Col j) (Row i))
 
 -- ZipWith3 in 2D, used to construct cells
 zipWith3In2D :: (a -> b -> c -> d) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b) -> V.Vector (V.Vector c) -> V.Vector (V.Vector d)

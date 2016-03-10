@@ -42,11 +42,13 @@ pos = view (cellLocation.index)
 
 -- Given the sel and drag ranges, and the current position, return all the corresponding positions in the drag rng 
 -- Ex selRng A1:A3 and drag range A1:A6, pos (1,2) -> absolute positions (1,2) and (1,5)
--- #ExposedConstructor : Coord
-getAbsoluteDragPositions :: ASRange -> ASRange -> Position -> [Position]
-getAbsoluteDragPositions (Range _ (rangeCoord1, rangeCoord2)) (Range _ (rangeCoord1', rangeCoord2')) pos = positions
+-- Only works on finite ranges.
+getFiniteAbsoluteDragPositions :: ASRange -> ASRange -> Position -> [Position]
+getFiniteAbsoluteDragPositions (Range _ (rangeCoord1, extendedRangeCoord2)) (Range _ (rangeCoord1', extendedRangeCoord2')) pos = positions
   where 
-    positions = map(\(x,y) -> Coord x y) positionPairs
+    rangeCoord2 = fromExtendedCoord extendedRangeCoord2
+    rangeCoord2' = fromExtendedCoord extendedRangeCoord2'
+    positions = map(\(x,y) -> makeCoord x y) positionPairs
     positionPairs
       | (a==a') && (b==b') && (d==d') = takeWhile (\(i,_) -> i<=c') $ zip [x,x+(c-a+1)..] (repeat y)
       | (c==c') && (d==d') && (b==b') = takeWhile (\(i,_) -> i>=a') $ zip [x,x-(c-a+1)..] (repeat y)
@@ -65,9 +67,8 @@ getAbsoluteDragPositions (Range _ (rangeCoord1, rangeCoord2)) (Range _ (rangeCoo
 
 -- Same as above, but only return the offsets and not the absolute positions
 getDragOffsets :: ASRange -> ASRange -> Position -> [Offset]
--- TODO: timchu, deterine if there's a better way to construct Offset.
 getDragOffsets r1 r2 coord =
-  map (\c -> Offset (c^.col-coord^.col) (c^.row-coord^.row)) $ getAbsoluteDragPositions r1 r2 coord
+  map (\c -> Offset (c^.col-coord^.col) (c^.row-coord^.row)) $ getFiniteAbsoluteDragPositions r1 r2 coord
 
 -- Given the sel range and drag range, return the cells in the sel range by DB lookup
 -- If the selection was horizontal, row-major, else column major
@@ -78,25 +79,25 @@ getCellsRect conn r1@(Range _ (coord1,coord2)) r2@(Range _ (coord1',coord2')) = 
   where
     rectCells 
       | (a==a') && (b==b') && (d==d') = do 
-        cells <- DB.getCells conn $ rangeToIndicesRowMajor r1
+        cells <- DB.getCells conn $ finiteRangeToIndices r1
         return $ formatRect (c-a+1) cells 
       | (c==c') && (d==d') && (b==b') = do 
-        cells <- DB.getCells conn $ rangeToIndicesRowMajor r1
+        cells <- DB.getCells conn $ finiteRangeToIndices r1
         return $ map reverse $ formatRect (c-a+1) cells
       | (a==a') && (b==b') && (c==c') = do 
-        cells <- DB.getCells conn $ rangeToIndices r1
+        cells <- DB.getCells conn $ finiteRangeToIndices r1
         return $ formatRect (d-b+1) cells
       | otherwise = do 
-        cells <- DB.getCells conn $ rangeToIndices r1
+        cells <- DB.getCells conn $ finiteRangeToIndices r1
         return $ map reverse $ formatRect (d-b+1) cells
-    a  = coord1 ^.col
-    b  = coord1 ^.row
-    c  = coord2 ^.col
-    d  = coord2 ^.row
-    a' = coord1'^.col
-    b' = coord1'^.row
-    c' = coord2'^.col
-    d' = coord2'^.row
+    a  = coord1 ^.col^.int
+    b  = coord1 ^.row^.int
+    c  = coord2 ^.finiteCol^.int
+    d  = coord2 ^.finiteRow^.int
+    a' = coord1'^.col^.int
+    b' = coord1'^.row^.int
+    c' = coord2'^.finiteCol^.int
+    d' = coord2'^.finiteRow^.int
 
 
 formatRect :: Int -> [a] -> [[a]]
@@ -193,7 +194,7 @@ translatePatternCells r1 r2 pattern = concatMap translatePatternCell indexCells
     indexCells = zip (fst pattern) [0..(len-1)]
     translatePatternCell (cell,ind) = newCells
       where
-        newPositions = getAbsoluteDragPositions r1 r2 (pos cell)
+        newPositions = getFiniteAbsoluteDragPositions r1 r2 (pos cell)
         num = length newPositions
         seriesIndices = [ind,(ind+len)..(ind+(num-1)*len)]
         lang = cell^.cellExpression.language

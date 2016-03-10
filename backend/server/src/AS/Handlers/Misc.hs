@@ -66,12 +66,12 @@ handleUpdateWindow mid uc state w = sendToOriginal uc $ ClientMessage mid NoActi
 --   let oldWindow = userWindow user'
 --   (flip catch) (badCellsHandler state user') (do
 --     let newLocs = getScrolledLocs oldWindow w
---     mcells <- DB.getCells conn $ concatMap rangeToIndices newLocs
+--     mcells <- DB.getCells conn $ concatMap finiteRangeToIndices newLocs
 --     sendSheetUpdate mid user' $ sheetUpdateFromCells $ catMaybes mcells
 --     US.modifyUser (updateWindow w) user' mstate)
 
 -- | If a message is failing to parse from the server, undo the last commit (the one that added
--- the message to the server.) I doubt this fix is completely foolproof, but it keeps data
+-- the message to the server.) I doubt this fix is completely barlproof, but it keeps data
 -- from getting lost and doesn't require us to manually reset the server.
 badCellsHandler :: ServerState -> ASUserClient -> SomeException -> IO ()
 badCellsHandler state uc e = do
@@ -147,7 +147,7 @@ handleRepeat mid uc state selection = return () -- do
   -- case lastAction of
   --   Evaluate -> do
   --     let PayloadCL ((Cell l e v ts):[]) = lastPayload
-  --         cells = map (\l' -> Cell l' e v ts) (rangeToIndices range)
+  --         cells = map (\l' -> Cell l' e v ts) (finiteRangeToIndices range)
   --     handleEval uc state (PayloadCL cells)
   --   Copy -> do
   --     let PayloadPaste from to = lastPayload
@@ -174,7 +174,7 @@ handleUpdateCondFormatRules mid uc state updatedRules deleteRuleIds = do
   rulesToDelete <- DB.getCondFormattingRules conn sid deleteRuleIds
   oldRules <- DB.getCondFormattingRulesInSheet conn sid
   let allRulesUpdated = applyUpdate u oldRules
-      updatedLocs = concatMap rangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
+      updatedLocs = concatMap finiteRangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
   errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext DP.evalChain
   time <- getASTime

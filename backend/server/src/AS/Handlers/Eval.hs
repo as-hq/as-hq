@@ -74,7 +74,7 @@ handleDecouple mid uc state = do
 
 handleSetLanguagesInRange :: MessageId -> ASUserClient -> ServerState -> ASLanguage -> ASRange -> IO ()
 handleSetLanguagesInRange mid uc state lang rng = do 
-  let inds = rangeToIndices rng
+  let inds = finiteRangeToIndices rng
       conn = state^.dbConn
   cells <- catMaybes <$> getCells conn inds -- disregard cells that are empty
   let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells

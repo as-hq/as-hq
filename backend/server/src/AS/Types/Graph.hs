@@ -16,6 +16,7 @@ import AS.Types.Bar
 import AS.Types.CondFormat
 import AS.Types.User
 
+import Text.Read (readMaybe)
 import Debug.Trace
 
 import Data.List.Split (splitOn)
@@ -119,48 +120,73 @@ class Show2 a where
 class Read2 a where
   read2 :: (Show2 a) => String -> a
 
+instance Show2 Col where
+  show2 col = show $ col^.int
+
+instance Show2 Row where
+  show2 row = show $ row^.int
+
 instance Show2 Coord where
-  show2 coord = "(" ++ show (coord^.col) ++ "," ++ show (coord^.row) ++ ")"
+  show2 coord = "(" ++ show (coord^.col^.int) ++ "," ++ show (coord^.row^.int) ++ ")"
 
-instance Show2 InfiniteRowCoord where
-  show2 infiniteRowCoord = show $ infiniteRowCoord^.col
+-- Unfortunately doesn't have any type safety checks. on the order the values are passed in
+-- Unfortunately the name here is bad.
+-- extendedCoordCase :: ExtendedCoord -> a -> a -> a -> a
+-- extendedCoordCase extendedCoord (valIfFiniteCoord, valIfInfiniteRows, valIfInfiniteCols) = undefined
+-- rangeCase :: ASRange -> a -> a -> a -> a
 
-instance Show2 Rect where
-  show2 (coord1, coord2) = "(" ++ show2 coord1 ++ "," ++ show2 coord2 ++ ")" 
+instance Show2 ExtendedCoord where
+  show2 extendedCoord =
+    case (isFinite (extendedCoord^.extendedCol),
+          isFinite (extendedCoord^.extendedRow)) of
+      -- Coord (Finite 12) (Finite 14) -> (12, 14)
+      (True, True) -> show2 $ fromExtendedCoord extendedCoord
+      -- Coord (Finite 12) (Infinite) -> 12. In this case, the Coord is the br of a colrange.
+      (True, False) -> show $ (fromInfinite $ extendedCoord^.extendedCol)^.int
+      _ -> ""
 
-instance Show2 (Coord, InfiniteRowCoord) where
-  show2 (coord1, infRowCoord2) = "(" ++ show2 coord1 ++ "," ++ show2 infRowCoord2 ++ ")" 
+-- Cases on which elements of extendedCoord are finite.
+-- Currently only hase cases for finite ranges and colRanges.
 
-instance (Show2 ASIndex) where 
+instance Show2 ExtendedRect where
+  show2 (coord1, extendedCoord2) = "(" ++ show2 coord1 ++ "," ++ show2 extendedCoord2 ++ ")" 
+
+instance Show2 ASIndex where 
   show2 (Index sid a) = 'I':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
-instance (Show2 ASPointer) where
+instance Show2 ASPointer where
   show2 (Pointer (Index sid a)) = 'P':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
 
-instance (Show2 ASRange) where 
-  show2 (Range sid a) = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
-
-instance (Show2 ASColRange) where 
-  show2 (ColRange sid a) = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+-- Cases on whether a range is a colRange, or a Finite range.
+-- Code duplication with exendedCoord.
+instance Show2 ASRange where 
+  show2 range@(Range sid a@(_, extendedCoord))
+    | isColRange range = 'C':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+    | isFiniteRange range = 'R':refDelimiter:(T.unpack sid) ++ (refDelimiter:(show2 a))
+    | otherwise = "DIDN'T GET A COLRANGE OR A FINITE RANGE"
 
 instance (Show2 AncestryRequestInput) where
   show2 (IndexInput i) = show2 i
   show2 (RangeInput r) = show2 r
 
-instance (Show2 GraphDescendant) where
+-- Requires that a <= extendedB, c <= extendedD
+intervalIntersect :: (Ord a) => (a, Infinite a) -> (a, Infinite a) -> Bool
+intervalIntersect (a, extendedB) (c, extendedD) = 
+  inInterval (a, extendedB) c || inInterval (c, extendedD) a
+
+instance Show2 GraphDescendant where
   show2 (IndexDesc i) = show2 i
 
-instance (Show2 ASReference) where
+instance Show2 ASReference where
   show2 (IndexRef il) = show2 il 
   show2 (RangeRef rl) = show2 rl
-  show2 (ColRangeRef cr) = show2 cr
   show2 (PointerRef p) = show2 p
   show2 (OutOfBounds) = "OUTOFBOUNDS"
 
-instance (Show2 Dimensions) where
-  show2 dims = show (width dims, height dims)
+instance Show2 Dimensions where
+  show2 dims = show ((width dims)^.int, (height dims)^.int)
 
-instance (Read2 ASReference) where
+instance Read2 ASReference where
   read2 str = loc
     where
       loc = case str of 
@@ -173,48 +199,50 @@ instance (Read2 ASReference) where
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
-              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: Rect)
-              "C" -> ColRangeRef $ ColRange (T.pack sid) (read2 locstr :: (Coord, InfiniteRowCoord))
+              "R" -> RangeRef $ Range (T.pack sid) (read2 locstr :: ExtendedRect)
+              "C" -> RangeRef $ Range (T.pack sid) (read2 locstr :: ExtendedRect)
 
+-- Right now, pairToCoord is the identity map, but it is kept since future
+-- changes to the type of Coord will make this function relevant.
 pairToCoord :: (Int, Int) -> Coord
-pairToCoord (x, y) = Coord x y
+pairToCoord (a, b) = makeCoord (Col a) (Row b)
 
-instance (Read2 Coord) where
-  read2 str = pairToCoord ($read str :: (Int, Int))
+instance Read2 Coord where
+  read2 str = pairToCoord ( $read str :: (Int, Int))
+-- No read2 on Infinite a. All casing is done within reading ExtendedCoord.
 
-instance (Read2 InfiniteRowCoord) where
-  read2 str = InfiniteRowCoord $ ($read str)
+-- Parsers for Read2 on ExtendedCoord. These are here temporarily until
+-- I fix the parsing in the Graph.cpp. The final version of our code will not 
+-- have these.
 
-instance (Read2 Rect) where
-  read2 str =  (pairToCoord pair1, pairToCoord pair2)
-    where
-      (pair1, pair2) = $read str :: ((Int, Int), (Int, Int))
 
-instance (Read2 (Coord, InfiniteRowCoord)) where
-  read2 str = (pairToCoord pair, InfiniteRowCoord col)
-    where
-      (pair, col) = $read str :: ((Int, Int), Int)
+-- Read2 "((11, 12),(13,14))" = (11,12) (Finite 13, Finite 14)
+-- Read2 "((11, 12),13)" = (11, 12), (Finite 13, Infinite)
 
-instance (Read2 ASIndex) where 
+instance Read2 ExtendedRect where
+  read2 str = 
+    case (readMaybe str :: Maybe ((Int, Int), Int)) of
+      Just ((a, b), c) -> (makeCoord (Col a) (Row b), makeExtendedCoord (Finite $ Col c) Infinite)
+      Nothing ->
+        case (readMaybe str :: Maybe ((Int, Int), (Int, Int))) of
+          Just ((a, b), (c, d)) -> (makeCoord (Col a) (Row b), makeExtendedCoord (Finite $ Col c) (Finite $ Row d))
+
+instance Read2 ASIndex where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     IndexRef i -> i
 
-instance (Read2 ASRange) where 
+instance Read2 ASRange where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     RangeRef r -> r
 
-instance (Read2 ASColRange) where 
-  read2 str = case ((read2 :: String -> ASReference) str) of 
-    ColRangeRef r -> r
-
-instance (Read2 ASPointer) where 
+instance Read2 ASPointer where 
   read2 str = case ((read2 :: String -> ASReference) str) of 
     PointerRef p -> p
 
-instance (Read2 GraphDescendant) where
+instance Read2 GraphDescendant where
   read2 s = IndexDesc (read2 s :: ASIndex)
 
-instance (Read2 Dimensions) where
-  read2 str = Dimensions { width = w, height = h }
+instance Read2 Dimensions where
+  read2 str = Dimensions { width = Col w, height = Row h }
     where (w, h) = $read str :: (Int, Int)
 

@@ -18,9 +18,9 @@ data BarProp =
   | FromCell CP.CellProp
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
-data BarPropType = DimensionProp | FromCellProp CP.CellPropType deriving (Show, Read, Eq, Generic, Ord)
+data BarPropType = DimensionProp | FromCellProp CP.CellPropType deriving (Show, Read, Eq, Generic, Ord, Data)
 
-data ASBarProps = ASBarProps { underlyingProps :: M.Map BarPropType BarProp } deriving (Show, Read, Generic)
+data ASBarProps = ASBarProps { underlyingProps :: M.Map BarPropType BarProp } deriving (Show, Read, Generic, Data)
 
 instance Eq ASBarProps where
   (==) (ASBarProps m1) (ASBarProps m2) = (m1 == m2)

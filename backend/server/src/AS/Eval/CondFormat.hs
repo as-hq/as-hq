@@ -4,6 +4,7 @@ import Prelude()
 import AS.Prelude
 
 import AS.DB.API as DB
+import AS.DB.Eval
 
 import AS.Types.Cell
 import AS.Types.CondFormat
@@ -12,6 +13,7 @@ import AS.Types.Eval
 import AS.Types.Formats
 import AS.Types.Messages
 import AS.Types.Network
+import AS.Types.Shift
 
 import AS.Kernels.Python
 
@@ -56,7 +58,7 @@ ruleToCellTransform state sid ctx f (CondFormatRule _ rngs condMapConstructor) c
           shiftXp = shiftExpression offset
           determineFormats v = case condMapConstructor of 
             BoolFormatMapConstructor boolCond props -> do 
-              let mEvalLoc = shiftInd offset tl
+              let mEvalLoc = shiftByOffsetWithBoundsCheck offset tl
               case mEvalLoc of 
                 Nothing -> return []
                 Just evalLoc -> do 
@@ -84,7 +86,7 @@ updatedContextForEval state sid ctx xp = do
   let valMap = ctx^.virtualCellsMap
       deps = getDependencies sid xp 
       conn = state^.dbConn
-  depInds <- concat <$> mapM (refToIndices conn) deps
+  depInds <- concat <$> mapM (refToIndicesInCondFormatting conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells

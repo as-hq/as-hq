@@ -7,6 +7,7 @@ import AS.Types.Cell
 import AS.Types.Errors
 import AS.Types.Excel
 import AS.Types.Formats
+import AS.Types.Shift
 
 import AS.Kernels.Excel.Compiler
 import AS.Util
@@ -38,8 +39,8 @@ matrixTo2DList (EMatrix c r v) = (V.toList firstRow):otherRows
 -- | Extracts an element of a matrix
 matrixIndex :: Coord -> EMatrix -> EValue
 matrixIndex coord (EMatrix numCols numRows v) = (V.!) v (r*numCols+c)
-  where r = coord^.row
-        c = coord^.col
+  where r = coord^.row^.int
+        c = coord^.col^.int
 
 -- | Cast ASValue (from CellMap) to an Excel entity. 
 asValueToEntity :: Formatted ASValue -> Maybe EEntity
@@ -71,7 +72,6 @@ entityToVal :: EEntity -> ThrowsError EValue
 entityToVal (EntityVal v) = Right v
 entityToVal other = Left $ ArrayFormulaUnMappable
 
---TODOX: timchu, rename!
 valToEitherT :: EValue -> EitherT EError IO EEntity
 valToEitherT = return . EntityVal
 
@@ -137,12 +137,7 @@ topLeftLoc (IndexRef (Index _ x)) = x
 topLeftLoc (RangeRef (Range _ (a,_))) = a
 
 dimension :: ASReference -> (Int,Int)
-dimension (IndexRef (Index _ _)) = (1,1)
-dimension (RangeRef (Range _ (coord1, coord2))) = (c-a+1,d-b+1)
-  where a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+dimension r = ((getFiniteWidth r)^.int, (getFiniteHeight r)^.int)
 
 -- | Given current reference and another reference, only return the relevant part of the second reference
 -- | Returns Nothing if the second reference is 2D, or if no intersection possible
@@ -154,16 +149,16 @@ scalarizeLoc (IndexRef (Index sh1 indexCoord)) r@(RangeRef (Range sh2 (rangeCoor
   | sh1 /= sh2 = Nothing
   | h /= 1 && w/= 1 = Nothing
   | h == 1 = if e>=a && e<=c
-    then Just $ IndexRef $ Index sh1 (Coord e b) -- intersect column;  b==d
+    then Just $ IndexRef $ Index sh1 (makeCoord e b) -- intersect column;  b==d
     else Nothing
   | w == 1 = if f>=b && f<=d
-    then Just $ IndexRef $ Index sh1 (Coord a f) -- intersect row;  a==c
+    then Just $ IndexRef $ Index sh1 (makeCoord a f) -- intersect row;  a==c
     else Nothing
     where
       a = rangeCoord1^.col
       b = rangeCoord1^.row
-      c = rangeCoord2^.col
-      d = rangeCoord2^.row
+      c = rangeCoord2^.finiteCol
+      d = rangeCoord2^.finiteRow
       e = indexCoord^.col
       f = indexCoord^.row
       h = d-b+1
@@ -179,11 +174,11 @@ locIntersect a b = Just b
 matchDimension :: ERef -> ERef -> ERef
 matchDimension (ERef r1) (ERef r2) = if topLeft == botRight
   then ERef $ IndexRef $ Index sh topLeft
-  else ERef $ RangeRef $ Range sh (topLeft, botRight)
+  else ERef $ RangeRef $ Range sh (topLeft, toExtendedCoord $ botRight)
   where
     topLeft = topLeftLoc r2
-    o = Offset (getWidth r1 - 1) (getHeight r1 - 1)
-    botRight = shiftCoordIgnoreOutOfBounds o topLeft
+    o = Offset (getFiniteWidth r1 - Col 1) (getFiniteHeight r1 - Row 1)
+    botRight = shiftByOffset o topLeft
     sh = shName r2
 
 extractRefs :: [EEntity] -> [ERef]

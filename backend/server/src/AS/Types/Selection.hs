@@ -1,6 +1,6 @@
 -- #needsrefactor selectedRanges should not be exposed, Currently it is because the correct type for Delete doesn't 
 -- quite exist yet.
-module AS.Types.Selection (Selection, activeIndex, indicesInSelection, selectedRanges) where
+module AS.Types.Selection (Selection, activeIndex, indicesInFiniteSelection, selectedRanges) where
 
 import AS.Prelude
 import Prelude()
@@ -14,8 +14,8 @@ import Data.SafeCopy
 -- will eventually need to include support for columns too
 data Selection = Selection { activeIndex :: ASIndex, selectedRanges :: [ASRange] } deriving (Eq, Show, Read, Data, Typeable, Generic)
 
-indicesInSelection :: Selection -> IO [ASIndex]
-indicesInSelection = return . concatMap rangeToIndices . selectedRanges 
+indicesInFiniteSelection :: Selection -> IO [ASIndex]
+indicesInFiniteSelection = return . concatMap finiteRangeToIndices . selectedRanges 
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Ancestors

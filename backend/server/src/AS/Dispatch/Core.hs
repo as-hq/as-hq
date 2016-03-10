@@ -28,6 +28,7 @@ import AS.Logging
 import AS.Dispatch.Expanding        as DE
 import qualified AS.Eval.Core       as EC 
 import qualified AS.DB.API          as DB
+import qualified AS.DB.Eval         as DE
 import qualified AS.DB.Transaction  as DT
 import qualified AS.DB.Internal     as DI
 import AS.Util                      as U
@@ -182,7 +183,7 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWit
 -- see the comments above dispatch to see why an old evalContext is passed in.
 getModifiedContext :: Connection -> [ASReference] -> EvalTransform
 getModifiedContext conn ancs oldContext = do
-   ancIndices <-  lift $ concat <$> mapM (EC.refToIndicesWithContextBeforeEval conn oldContext) ancs 
+   ancIndices <-  lift $ concat <$> mapM (DE.refToIndicesWithContextBeforeEval conn oldContext) ancs 
    let nonContextAncIndices = filter (not . (flip M.member (oldContext^.virtualCellsMap))) ancIndices
    cells <- lift $ DB.getPossiblyBlankCells conn nonContextAncIndices
    let oldMap = oldContext^.virtualCellsMap
@@ -288,7 +289,7 @@ delPrevFatCellFromContext conn c@(Cell idx xp _ _ rk _) ctx = case rk of
   Nothing  ->  return (ctx, Nothing)
   Just key -> if (isFatCellHead c)
     then do 
-      let indices = rangeKeyToIndices key
+      let indices = finiteRangeKeyToIndices key
           blankCells = map blankCellAt indices
           descriptor = virtualRangeDescriptorAt ctx key
       printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
@@ -320,7 +321,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
-  let decoupledLocs = concatMap (rangeKeyToIndices . descriptorKey) newlybeforeVals
+  let decoupledLocs = concatMap (finiteRangeKeyToIndices . descriptorKey) newlybeforeVals
   decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of

@@ -39,6 +39,7 @@ import AS.Types.DB
 import AS.Types.Graph
 import AS.Types.User
 import qualified AS.Serialize as S
+import AS.Util
 
 import Types
 
@@ -172,9 +173,12 @@ toBarKey b = do
   rest <- getRest "BarType2" b
   let [sidStr, typStr, indStr] = splitOn delim rest
   let sid = T.pack sidStr
-  let typ = $read typStr :: BarType
+  let typ = $read typStr :: BarType0
   let ind = $read indStr :: Int
-  return $ BarKey $ BarIndex sid typ ind
+  let barInd = case typ of
+                 ColumnType -> BarIndex sid (BarCol $ Col ind)
+                 RowType -> BarIndex sid (BarRow $ Row ind)
+  return $ BarKey barInd
 
 ------------------------------------------------------------------------------------------------------
 -- Decodeable functions for values

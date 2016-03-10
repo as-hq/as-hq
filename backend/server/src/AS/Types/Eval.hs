@@ -23,6 +23,7 @@ import AS.Types.Errors
 import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Updates
+import AS.Types.Shift
 import AS.ASJSON
 
 
@@ -85,16 +86,24 @@ oldRangeKeysInContext = view (updateAfterEval.descriptorUpdates.oldKeys)
 indexIsHead :: ASIndex -> RangeKey -> Bool
 indexIsHead idx (RangeKey idx' _) = idx == idx'
 
-rangeKeyToIndices :: RangeKey -> [ASIndex]
-rangeKeyToIndices k = rangeToIndices range
-  where range = Range (view locSheetId.keyIndex $ k) (rangeRect k)
+-- Only works if the Rangekey specifies a finiteRange.
+finiteRangeKeyToIndices :: RangeKey -> [ASIndex]
+finiteRangeKeyToIndices k = finiteRangeToIndices range
+  where range = Range (view locSheetId . keyIndex $ k) (rangeRect k)
 
-rangeRect :: RangeKey -> Rect
+-- #RoomForImprovement: Timchu. Default all range keys to finite for the time being.
+isFiniteRangeKey :: RangeKey -> Bool
+isFiniteRangeKey _ = True
+
+isColRangeKey :: RangeKey -> Bool
+isColRangeKey _ = False
+
+rangeRect :: RangeKey -> ExtendedRect
 rangeRect (RangeKey idx dims) = (tl, br)
   where 
     tl = idx^.index
     o = Offset ((width dims) -1) ((height dims) -1)
-    br = shiftCoordIgnoreOutOfBounds o tl
+    br = toExtendedCoord $ shiftByOffset o tl
 
 rangeKeyToSheetId :: RangeKey -> ASSheetId
 rangeKeyToSheetId = view locSheetId . keyIndex
@@ -109,19 +118,12 @@ isEvaluable :: ASCell -> Bool
 isEvaluable c = isFatCellHead c || (not $ isCoupled c)
 
 -- assumes all the indices are in the same sheet
+-- assumes all ranges are finite.
 getFatCellIntersections :: EvalContext -> Either [ASIndex] [RangeKey] -> [RangeDescriptor]
 getFatCellIntersections ctx (Left locs) = filter descriptorIntersects $ virtualRangeDescriptors ctx
   where
-    indexInRect :: Rect -> ASIndex -> Bool
-    indexInRect (rectCoord1, rectCoord2) (Index _ indexCoord) = a >= a' && b >= b' &&  a <= a2' && b <= b2'
-      where a   = view col indexCoord
-            b   = view row indexCoord
-            a'  = view col rectCoord1
-            b'  = view row rectCoord1
-            a2' = view col rectCoord2
-            b2' = view row rectCoord2
-    anyLocsContainedInRect :: [ASIndex] -> Rect -> Bool
-    anyLocsContainedInRect ls r = any id $ map (indexInRect r) ls
+    anyLocsContainedInRect :: [ASIndex] -> ExtendedRect -> Bool
+    anyLocsContainedInRect ls r = any id $ map (rectContainsCoord r . (view index)) ls
     descriptorIntersects :: RangeDescriptor -> Bool
     descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)
 
@@ -132,18 +134,9 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
     descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
     descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
     keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
-    rectsIntersect (rect1Coord1, rect1Coord2) (rect2Coord1, rect2Coord2)
-      | y2 < y' = False 
-      | y > y2' = False
-      | x2 < x' = False 
-      | x > x2' = False
-      | otherwise = True 
-        where
-          (y, x)     = (view col rect1Coord1, view row rect1Coord1) -- top left in rect 1
-          (y', x')   = (view col rect2Coord1, view row rect2Coord1) -- bottom right in rect 1
-          (y2, x2)   = (view col rect1Coord2, view row rect1Coord2) -- top left in rect 2
-          (y2', x2') = (view col rect2Coord2, view row rect2Coord2) -- bottom right in rect 2
-
+    rectsIntersect (tl1, br1) (tl2, br2) =
+      intervalIntersect (tl1^.col, br1^.extendedCol) (tl2^.col, br2^.extendedCol) && 
+        intervalIntersect (tl1^.row, br1^.extendedRow) (tl2^.row, br2^.extendedRow)
 
 -- #needsrefactor -- should add blank cells locations to oldKeys, rather than to newly added cells. 
 -- Helper function that adds cells to a context, by merging them to addedCells and the map (with priority). #lens

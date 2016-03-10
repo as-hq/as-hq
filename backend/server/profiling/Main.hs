@@ -73,7 +73,7 @@ testCellsWithExpression :: (Int -> ASExpression) -> Int -> [Int] -> [ASCell]
 testCellsWithExpression f col = map (\i -> U.testCell & cellLocation .~ testIndex col i & cellExpression .~ (f i))
 
 testIndex :: Int -> Int -> ASIndex
-testIndex x y = Index "BENCH_ID" (Coord x y)
+testIndex x y = Index "BENCH_ID" (Col x, Row y)
 
 main :: IO ()
 main = alphaMain $ do 

@@ -59,7 +59,7 @@ data CellPropType =
   | BoldProp | ItalicProp | UnderlineProp
   | VolatileProp
   | TrackingProp
-  deriving (Show, Read, Eq, Generic, Ord)
+  deriving (Show, Read, Eq, Generic, Ord, Data)
 
 data CellProp =
     TextColor Color

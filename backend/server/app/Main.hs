@@ -10,7 +10,6 @@ import AS.Config.Settings as S
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Window
-import AS.Types.Locations
 
 import AS.Config.Constants
 
@@ -179,7 +178,7 @@ preprocess conn state = do
 
   mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
     putStrLn ("PROCESSING LINE " ++ show i ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
-    let win = Window (T.pack sid) (Coord (-1) (-1)) (Coord (-1) (-1))
+    let win = Window (T.pack sid) (-1, -1) (-1, -1)
         uid' = T.pack uid
         -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
         mockUc = UserClient uid' conn win uid'

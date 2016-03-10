@@ -153,11 +153,6 @@ deleteDescriptor conn rk = deleteDescriptors conn [rk]
 deleteDescriptors :: Connection -> [RangeKey] -> IO ()
 deleteDescriptors = delWithSheetFunc (SheetRangesKey . rangeKeyToSheetId) RedisRangeKey 
 
--- Don't modify DB (we want to send a decoupling warning)
--- Still gets the cells before decoupling, but don't set range keys
-getCellsBeforeDecoupling :: Connection -> RangeKey -> IO [ASCell]
-getCellsBeforeDecoupling conn key = catMaybes <$> getCells conn (rangeKeyToIndices key)
-
 getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet = getInSheet SheetRangesKey dbValToRDesc
 
@@ -192,7 +187,7 @@ isPermissibleMessage uid conn _ = return True
 --   PayloadLL locs -> canAccessAll conn uid locs
 --   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
 --   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
---   PayloadProp _ rng -> canAccessAll conn uid (rangeToIndices rng)
+--   PayloadProp _ rng -> canAccessAll conn uid (finiteRangeToIndices rng)
 --   _ -> return True
 -- commenting out 12/28 -- Alex
 

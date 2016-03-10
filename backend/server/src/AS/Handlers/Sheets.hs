@@ -53,7 +53,7 @@ handleOpenSheet mid uc state sid = do
   headers <- mapM (getEvalHeader conn sid) headerLangs
 
   -- update server state
-  let newWindow = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
+  let newWindow = Window sid (-1, -1) (-1, -1)
   modifyUserInState state (uc^.userId) (& userWindow .~ newWindow) 
 
   -- update database

@@ -32,7 +32,7 @@ import Database.Redis (Connection)
 handleToggleProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
 handleToggleProp mid uc state prop rng = do
   let conn = state^.dbConn
-      locs = rangeToIndices rng
+      locs = finiteRangeToIndices rng
       pt = propType prop
   cells <- getPossiblyBlankCells conn locs
   let (cellsWithProp, cellsWithoutProp) = partition (hasPropType pt . view cellProps) cells
@@ -67,7 +67,7 @@ removePropEndware _ _ _ = return ()
 -- that takes a cell, and isolates the new cell props to apply to that cell.
 transformPropsInDatabase :: MessageId -> (ASCell -> ASCellProps) -> ASUserClient -> ServerState -> ASRange -> IO ()
 transformPropsInDatabase mid f uc state rng = do
-  let locs = rangeToIndices rng
+  let locs = finiteRangeToIndices rng
       conn = state^.dbConn
   cs <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 

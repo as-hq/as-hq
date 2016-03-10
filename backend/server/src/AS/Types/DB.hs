@@ -31,6 +31,7 @@ import AS.Types.Formats
 import AS.Types.Updates
 import AS.Types.Window
 import AS.Types.Selection
+import AS.Types.Mutate
 import AS.Serialize as S 
 
 data DBSheetGroupKey = 
@@ -275,7 +276,7 @@ instance NFData CommitSource     where rnf = genericRnf
 instance NFData ASLanguage     where rnf = genericRnf
 instance NFData BarIndex     where rnf = genericRnf
 instance NFData RangeKey     where rnf = genericRnf
-instance NFData BarType     where rnf = genericRnf
+instance NFData BarCoord     where rnf = genericRnf
 instance NFData Dimensions     where rnf = genericRnf
 instance NFData ASWorkbook     where rnf = genericRnf
 instance NFData ASUser     where rnf = genericRnf
@@ -314,8 +315,8 @@ instance NFData EvalHeader      where rnf = genericRnf
 instance NFData Bloomberg      where rnf = genericRnf
 instance NFData ASWindow      where rnf = genericRnf
 instance NFData Selection      where rnf = genericRnf
-instance NFData MutateType      where rnf = genericRnf
+instance NFData Mutate where rnf = genericRnf
+instance (NFData a) => NFData (MutateTypeNew a) where rnf = genericRnf
 instance NFData EvalInstruction      where rnf = genericRnf
 instance NFData LogSource where rnf = genericRnf
 instance NFData LogData where rnf = genericRnf
-

@@ -4,13 +4,15 @@ import AS.Prelude
 import Prelude()
 
 import AS.Types.Excel
+import AS.Types.Shift
 import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.Formats
+import AS.Eval.ColRangeHelpers (rangeWithCellMapToFiniteRange)
+
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
-import AS.Eval.ColRangeHelpers (colRangeWithCellMapToRange)
 
 import qualified Data.Map.Strict as M
 import Data.Either
@@ -45,6 +47,8 @@ import AS.Parsing.Excel (refMatch)
 import Control.Exception.Base hiding (try)
 import Control.Lens hiding (Context, transform)
 
+import Control.Monad.Trans.Either
+
 import AS.Util
 
 import qualified Statistics.Matrix as SM
@@ -55,9 +59,10 @@ import Control.Lens.TH
 import Control.Monad.Trans.Either
 import Control.Applicative ((<*))
 
-data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Col,Row)} deriving (Show)
+data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Int, Int)} deriving (Show)
+
 type Arg a = (Int,a)
-type Dim = (Col,Row)
+type Dim = (Int,Int)
 
 -- | TODO: might need a wrapper around stuff to get 0.999999 -> 1 for things like correl
 -- | TODO: use unboxing if performance is a problem
@@ -282,10 +287,11 @@ topLeftForMatrix f (Right (EntityMatrix (EMatrix _ _ v)))
   | otherwise = valToResult $ V.head v
 topLeftForMatrix _ r = r
 
+-- #RoomForImprovement: this is not cleanly written. Ask Ritesh for further
+-- clarification.
 evalBasicFormula :: Context -> BasicFormula -> EitherT EError IO EEntity
 evalBasicFormula context (Ref exIndex) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
 evalBasicFormula c (Var val)   = valToEitherT val
---TDOOX: timchu. Names + wasted code.
 evalBasicFormula context (Fun f inputFormulas)  = do
   fDescriptor <- hoistEither $ getFunc f
   args <- lift $ mapM (runEitherT . getFunctionArg context fDescriptor) (zip [1..argNumLimit] inputFormulas)
@@ -300,7 +306,7 @@ evalFormula context (ArrayConst basicFormulas) = do
   lstChildren <- mapM ( mapM (evalBasicFormula context)) basicFormulas
   hoistEither $ fmap EntityMatrix $ arrConstToResult context $ lstChildren
 
--- TODOX: timchu, lots of code duplication. Especially in args <- ....
+-- #RoomForImprovement: lots of code duplication. Especially in args <- ....
 evalArrayFormula :: Context -> Formula -> EitherT EError IO EEntity
 evalArrayFormula context (Basic (Ref exIndex)) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
 evalArrayFormula _       (Basic (Var val)) = valToEitherT val
@@ -384,7 +390,7 @@ getRangeRefs s fDes (numArg,(Basic (Ref exIndex)))
   | otherwise = []
 getRangeRefs s _ (_,f) = getUnexpectedRefs s f
 
--- TODOX: timchu. Comments here would be nice. I don't know what this does.
+-- #RoomForImrpovement: by timchu. @Ritesh. Comments here would be nice. I don't know what this does.
 -- | Returns a map of replacements for "unexpected" range references
 -- | All must have same dimension, same width and height (or 1), or same height and width (or 1)
 unexpectedRefMap :: Context -> [ERef] -> ThrowsError (Maybe RefMap)
@@ -399,6 +405,7 @@ unexpectedRefMap c refs = case dim' of
     dim' = getCommonDimension refs
 
 -- | Helper: gets the common dimensionality of the unexpected references
+-- TODO: Refactor Dim to be DimConstructor Col Row, instead of (Int, Int)
 getCommonDimension :: [ERef] -> Maybe Dim
 getCommonDimension [] = Nothing
 getCommonDimension refs = dim
@@ -466,35 +473,18 @@ refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
         Nothing -> dbLookup (dbConn c) i
         c -> cellToFormattedVal c
 
-refToEntity context (ERef (l@(RangeRef r))) =
+refToEntity context (ERef (l@(RangeRef r))) = do
+  let mp = evalMap context
+      r' = rangeWithCellMapToFiniteRange mp r
+      (l, idxs) = (RangeRef r', finiteRangeToIndices r')
+      (inMap,needDB) = partition ((flip M.member) mp) idxs
+      -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
+      mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
+      dbVals = dbLookupBulk (dbConn context) needDB
+      vals = map toEValue $ mapVals ++ dbVals
   if any isNothing vals
-      then Left $ CannotConvertToExcelValue l
-      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
-  where
-    mp = evalMap context
-    idxs = rangeToIndicesRowMajor r
-    (inMap,needDB) = partition ((flip M.member) mp) idxs
-    -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
-    mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
-    dbVals = dbLookupBulk (dbConn context) needDB
-    vals = map toEValue $ mapVals ++ dbVals
-
--- #ErrorSource. This does not do DB lookups, which are needed for some Excel functions like indirect.
-refToEntity context (ERef (colRange@(ColRangeRef cr))) =
-  if any isNothing vals
-      then Left $ CannotConvertToExcelValue l
-      else Right $ EntityMatrix $ EMatrix (getWidth l) (getHeight l) $ V.fromList $ catMaybes vals
-  where
-    mp = evalMap context
-    r = colRangeWithCellMapToRange mp cr
-    l = RangeRef r
-    idxs = rangeToIndicesRowMajor r
-    (inMap,areBlank) = partition ((flip M.member) mp) idxs
-    -- excel cannot operate on objects/expanding values, so it's safe to assume all composite values passed in are cell values
-    mapVals = map (cellToFormattedVal . Just . (mp M.!)) inMap
-    -- this code is silly. Timchu, 1/3/15.
-    blankVals = map (\index -> return NoValue) areBlank
-    vals = map toEValue $ mapVals ++ blankVals
+     then Left $ CannotConvertToExcelValue l
+     else Right $ EntityMatrix $ EMatrix ((getFiniteWidth l)^.int) ((getFiniteHeight l)^.int) $ V.fromList $ catMaybes vals
 
 refToEntity _ (ERef (PointerRef _)) = Left $ REF $ "Can't convert pointer to entity"
 
@@ -526,14 +516,14 @@ substituteRefsInArgs c fDes es = map (subsRef c fDes) enum
 -- | The function descriptor contains which arguments to map for an array formula
 -- | Mapping requires that entity to be a matrix
 mapArgs :: Dim -> FuncDescriptor -> EFuncResultEitherT
-mapArgs (c,r) funcDescriptor context e = do
+mapArgs (cNum,rNum) funcDescriptor context e = do
   -- | Row-major accumulation of results
   let evalAF :: Coord -> EitherT EError IO EValue
       evalAF coord = do
         val <- callback funcDescriptor context $ getOffsetArgs funcDescriptor e coord
         hoistEither $ entityToVal $ val
-  vals <- sequence [evalAF (Coord c' r') | r'<-[0..(r-1)],c'<-[0..(c-1)]]
-  return $ EntityMatrix (EMatrix c r (V.fromList vals))
+  vals <- sequence [evalAF (makeCoord (Col cNum') (Row rNum')) | rNum'<-[0..(rNum-1)],cNum'<-[0..(cNum-1)]]
+  return $ EntityMatrix (EMatrix cNum rNum (V.fromList vals))
 
 -- | Given a function descriptor, a list of arguments (results) and an offset
 -- | Replace each argument with the offsetted value if fDes says to
@@ -887,7 +877,7 @@ getSheetPrefix "" = ""
 getSheetPrefix s = s ++ "!"
 
 -- | Helper for address; produces R1C1 format string from col num, row num, and relative/absolute type
-refToStringRC :: Col -> Row -> Int -> ThrowsError String
+refToStringRC :: Int -> Int -> Int -> ThrowsError String
 refToStringRC col row 1 = Right $ "R" ++ (show row) ++ "C" ++ (show col)
 refToStringRC col row 2 = Right $ "R" ++ (show row) ++ "C[" ++ (show col) ++ "]"
 refToStringRC col row 3 = Right $ "R[" ++ (show row) ++ "]C" ++ (show col)
@@ -895,7 +885,7 @@ refToStringRC col row 4 = Right $ "R[" ++ (show row) ++ "]C[" ++ (show col) ++ "
 refToStringRC _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
 -- | Helper for address; produces $A$1 format string from col num, row num, and relative/absolute type
-refToString :: Col -> Row -> Int -> ThrowsError String
+refToString :: Int -> Int -> Int -> ThrowsError String
 refToString col row 1 = Right $ "$" ++ (intToCol col) ++ "$" ++ (show row)
 refToString col row 2 = Right $ (intToCol col) ++ "$" ++ (show row)
 refToString col row 3 = Right $ "$" ++ (intToCol col) ++ (show row)
@@ -903,7 +893,7 @@ refToString col row 4 = Right $  (intToCol col)  ++ (show row)
 refToString _ _ _ = Left $ VAL "Third argument of ADDRESS is invalid."
 
 -- | Given a column number, produce the column letter (3 -> C)
-intToCol :: Col -> String
+intToCol :: Int -> String
 intToCol = intToColStr -- from AS.Util
 
 -- | Returns the column of a reference; returns a matrix if the input is a range reference
@@ -916,15 +906,14 @@ eColumn c e = do
   case loc of
     IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral a
       where
-        a = coord^.col
-        b = coord^.row
+        a = coord^.col^.int
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _ (coord1, coord2)) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
-        a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+        a = coord1^.col^.int
+        b = coord1^.row^.int
+        c = coord2^.finiteCol^.int
+        d = coord2^.finiteRow^.int
         m = V.replicate (d-b+1) firstRow
         firstRow = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
@@ -935,15 +924,14 @@ eRow c e = do
   (ERef loc) <- getOptional (ERef (IndexRef $ curLoc c)) "row" 1 e :: ThrowsError ERef
   case loc of
     IndexRef (Index _ coord) -> valToResult $ EValueNum $ return $ EValueI $ fromIntegral b
-      where a = coord^.col
-            b = coord^.row
+      where b = coord^.row^.int
     PointerRef _ -> Left $ REF $ "Can't convert pointer to entity"
     RangeRef (Range _(coord1,coord2)) -> Right $ EntityMatrix $ EMatrix (c-a+1) (d-b+1) (flattenMatrix m)
       where
-        a = coord1^.col
-        b = coord1^.row
-        c = coord2^.col
-        d = coord2^.row
+        a = coord1^.col^.int
+        b = coord1^.row^.int
+        c = coord2^.finiteCol^.int
+        d = coord2^.finiteRow^.int
         m = V.map (V.replicate (d-b+1)) colValues
         colValues = V.map (EValueNum . return . EValueI . fromIntegral) $ V.enumFromN a (c-a+1)
 
@@ -967,7 +955,7 @@ r1c1 sid = do
   char 'C' <|> char 'c'
   col <- many1 digit
   let [colNum, rowNum] = map $read [col, row] :: [Int]
-  return $ IndexRef $ Index sid (Coord colNum rowNum)
+  return $ IndexRef $ Index sid (makeCoord (Col colNum) (Row rowNum))
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
@@ -985,14 +973,14 @@ eOffset c e = do
   (ERef loc) <- getRequired "offset" 1 e :: ThrowsError ERef
   rows <- getRequired "offset" 2 e :: ThrowsError Int
   cols <- getRequired "offset" 3 e :: ThrowsError Int
-  height <- getOptional (getHeight loc) "offset" 4 e :: ThrowsError Int
-  width <- getOptional (getWidth loc) "offset" 5 e :: ThrowsError Int
+  height <- getOptional ((getFiniteHeight loc)^.int) "offset" 4 e :: ThrowsError Int
+  width <- getOptional ((getFiniteWidth loc)^.int) "offset" 5 e :: ThrowsError Int
   let topLeftOfLoc = topLeftLoc loc
-      tl = shiftCoordIgnoreOutOfBounds (Offset cols rows) topLeftOfLoc
+      tl = shiftByOffset (Offset (Col cols) (Row rows)) topLeftOfLoc
   let loc' = case (height,width) of
-                (1,1) -> IndexRef $ Index (shName loc) tl
-                (h,w) -> RangeRef $ Range (shName loc) (tl, br) where
-                  br = shiftCoordIgnoreOutOfBounds (Offset (w-1) (h-1)) tl
+                (1, 1) -> IndexRef $ Index (shName loc) tl
+                (h,w) -> RangeRef $ makeFiniteRange (shName loc) tl br where
+                  br = shiftByOffset (Offset (Col $ w - 1) (Row $ h - 1)) tl
   verifyInBounds loc'
 
 -- | Makes sure that an ASLocation doesn't have negative coordinates etc.
@@ -1000,12 +988,12 @@ verifyInBounds :: ASReference -> EResult
 verifyInBounds l@(IndexRef (Index _ a)) = if coordIsSafe a
   then locToResult l
   else Left $ Default "Location index out of bounds"
-verifyInBounds l@(RangeRef (Range _ (a,b))) = if coordIsSafe a && coordIsSafe b
+verifyInBounds l@(RangeRef (Range _ (a,b))) = if coordIsSafe a && coordIsSafe (fromExtendedCoord b)
   then locToResult l
   else Left $ Default "Location index out of bounds"
 
 coordIsSafe :: Coord -> Bool
-coordIsSafe coord = coord^.col > 0 && coord^.row > 0
+coordIsSafe coord = coord^.col > Col 0 && coord^.row > Row 0
 
 -- | Depending on match type (-1,0,1; 0=equality), return the index (starting at 1) of the matrix
 -- | Allowed to use wildcards if val = string and type = 0, doesn't care about upper/lower case for strings,
@@ -1061,7 +1049,7 @@ indexOrSlice m@(EMatrix nCol nRow v) row col
   | row==0 && col>=1 = Right $ EntityMatrix $ EMatrix 1 nRow vertical
   | row>=1 && col==0 = Right $ EntityMatrix $ EMatrix nCol 1 horizontal
   | row==0 && col==0 = Right $ EntityMatrix m -- whole matrix
-  | row>=1 && col>=1 = valToResult $ matrixIndex (Coord (col-1) (row-1)) m
+  | row>=1 && col>=1 = valToResult $ matrixIndex (makeCoord (Col $ col-1) (Row $ row-1)) m
     where
       err = Left $ REF $ "Index out of bounds"
       horizontal = V.unsafeSlice ((row-1)*nCol) nCol v
@@ -1112,7 +1100,7 @@ eVlookup c e = do
 getElemFromCol :: EMatrix -> Int -> Int -> EResult
 getElemFromCol m@(EMatrix c _ _) colNum i
   | c < colNum || colNum < 1 = Left $ REF "Requested column number for VLOOKUP is out of bounds"
-  | otherwise = valToResult $ matrixIndex (Coord (colNum-1) i) m
+  | otherwise = valToResult $ matrixIndex (makeCoord (Col $ colNum-1) $ Row i) m
     
 
 
@@ -1794,7 +1782,7 @@ instance ShowE EValue where
   showE (EValueNum (Formatted (EValueD d) _)) = show d
   showE (EValueNum (Formatted (EValueI i) _)) = show i
   showE EBlank = ""
-  -- TODO: timchu, 12/17. showE for EValueE and EMissing is not correct, but currently isn't used.
+  -- TODO: 12/17. showE for EValueE and EMissing is not exactly correct, but currently isn't used.
   showE EMissing = "#ERROR!"
   showE (EValueE s) = "#ERROR!"
 

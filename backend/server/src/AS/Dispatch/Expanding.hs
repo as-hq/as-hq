@@ -106,8 +106,8 @@ decomposeCells (RangeDescriptor key etype _) (Cell (Index sheet coord) xp _ ps _
 
 getDimensions :: Collection -> Dimensions
 getDimensions coll = case coll of 
-  A arr -> Dimensions { width = 1, height = length arr }
-  M mat -> Dimensions { width = maximum $ map length mat, height = length mat }
+  A arr -> Dimensions { width = Col 1, height = Row $ length arr }
+  M mat -> Dimensions { width = Col (maximum $ map length mat), height = Row $ length mat }
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- value recomposition
@@ -162,7 +162,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Ex
     val       = VPSeries indices vals
     (JSONLeaf (ListValue (A indices))) = $valAt "seriesIndices" attrs
     (A vals)  = recomposeCells dims cells
-    dims      = Dimensions { width = 1, height = length cells }
+    dims      = Dimensions { width = Col 1, height = Row $ length cells }
 
 recomposeCells :: Dimensions -> [ASCell] -> Collection
 recomposeCells dims cells = case (width dims) of 

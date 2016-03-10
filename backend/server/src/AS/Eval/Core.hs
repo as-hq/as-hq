@@ -44,14 +44,13 @@ import AS.Parsing.Substitutions
 import AS.Logging
 import AS.Config.Settings
 import qualified AS.DB.API as DB
+import qualified AS.DB.Eval as DE
 import qualified AS.DB.Graph as G
-
-type EvalChainFunc = ServerState -> [ASCell] -> EvalContext -> EitherTExec EvalContext
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> EvalChainFunc -> EitherTExec (Formatted EvalResult)
+evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
 evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
@@ -95,10 +94,10 @@ evaluateHeader evalHeader =
 -- Interpolation
 
 -- #mustrefactor IO String should be EitherTExec string
-lookUpRef :: ServerState -> ASLanguage -> EvalContext -> ASReference -> EvalChainFunc -> IO String
-lookUpRef state lang context ref f = showValue lang <$> referenceToCompositeValue state context ref f
+lookUpRef :: ServerState -> ASLanguage -> EvalContext -> ASReference -> DE.EvalChainFunc -> IO String
+lookUpRef state lang context ref f = showValue lang <$> DE.referenceToCompositeValue state context ref f
 
-insertValues :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EvalChainFunc -> IO EvalCode
+insertValues :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
 insertValues state sheetid ctx xp f = view expression <$> replaceRefsIO replacer xp
   where replacer ref = lookUpRef state (xp^.language) ctx (exRefToASRef sheetid ref) f
 
@@ -106,7 +105,7 @@ insertValues state sheetid ctx xp f = view expression <$> replaceRefsIO replacer
 -- file that imports pysql and defines helper functions for SQL.  
 -- Note: this can probably be significantly optimized. 
 -- TODO clean up SQL mess
-sqlToPythonCode :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EvalChainFunc -> IO EvalCode
+sqlToPythonCode :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
 sqlToPythonCode state sheetid ctx xp f = do 
   let exRefs = getExcelReferences xp
       matchedRefs = map (exRefToASRef sheetid) exRefs -- ASReferences found inside xp
@@ -116,99 +115,6 @@ sqlToPythonCode state sheetid ctx xp f = do
       contextStmt = "setGlobals(" ++ show context ++ ")\n"
       evalStmt = "db(\'" ++ newExp ++ "\')"
   return $ contextStmt ++ evalStmt
-
--- used by lookUpRef
---  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
---  #mustrefactor why isn't this left IndexOfPointerNonExistant
-referenceToCompositeValue :: ServerState -> EvalContext -> ASReference -> EvalChainFunc -> IO CompositeValue
-referenceToCompositeValue _ ctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ ctx^.virtualCellsMap
-referenceToCompositeValue _ ctx (PointerRef p) _ = do 
-  let idx = pointerIndex p
-  let mp = ctx^.virtualCellsMap
-  let cell = $valAt idx mp
-  case cell^.cellRangeKey of 
-    Nothing -> $error "Pointer to normal expression!" 
-    Just rKey -> do 
-      case virtualRangeDescriptorAt ctx rKey of
-        Nothing -> $error "Couldn't find range descriptor of coupled expression!"
-        Just descriptor -> do 
-          let indices = rangeKeyToIndices rKey
-              cells  = map ((ctx^.virtualCellsMap) M.!) indices
-              fatCell = FatCell cells descriptor
-          printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
-          return $ DE.recomposeCompositeValue fatCell
--- TODO: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
-referenceToCompositeValue _ ctx (ColRangeRef cr) _ = return $ Expanding . VList . M $ vals
-  where
-    indices = colRangeWithContextToIndicesRowMajor2D ctx cr
-    -- The only case where the index is not in the virtualCellsMap is when the
-    -- current dispatch created new cells in the bottom of a column whose
-    -- colRange is being evaluated.
-    indToVal ind = case M.member ind (ctx^.virtualCellsMap) of
-                        True -> view cellValue $ $valAt ind (ctx^.virtualCellsMap)
-                        False -> NoValue
-    vals    = map (map indToVal) indices
-referenceToCompositeValue _ ctx (RangeRef r) _ = return . Expanding . VList . M $ vals
-  where
-    indices = rangeToIndicesRowMajor2D r
-    indToVal ind = view cellValue $ $valAt ind (ctx^.virtualCellsMap)
-    vals    = map (map indToVal) indices
-referenceToCompositeValue state ctx (TemplateRef t) f = 
-  case t of 
-    SampleExpr n idx -> $fromRight <$> (runEitherT $ do 
-      -- Get all ancestors
-      let conn = state^.dbConn
-      ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
-      ancInds <- concat <$> mapM (refToIndices conn) ancRefs
-      ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds
-      let ctxWithAncs = addCellsToContext ancCells ctx
-      -- After adding ancestors to context, evaluate n times
-      samples <- replicateM n $ evaluateNode state ctxWithAncs idx ancCells f
-      return $ Expanding $ VList $ A samples)
-
--- Evaluate a node by running an evaluation function and extracting the answer from the context at the end. 
--- Assumes all ancestors are already in the context.
-evaluateNode :: ServerState -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
-evaluateNode state ctx idx ancestors f = do
-  ctx' <- f state ancestors ctx
-  return $ view cellValue . $valAt idx $ ctx'^.virtualCellsMap
-
-
-----------------------------------------------------------------------------------------------------------------------
--- Reference conversions/lookups
-
--- Only used in conditional formatting.
--- TODO: timchu, 12/25/15. not sure if return $ colRange ... or  lift colRangeWithDB..
-refToIndices :: Connection -> ASReference -> EitherTExec [ASIndex]
-refToIndices conn (IndexRef i) = return [i]
-refToIndices conn (ColRangeRef cr) = lift $ colRangeWithDBAndContextToIndices conn emptyContext cr
-refToIndices conn (RangeRef r) = return $ rangeToIndices r
-refToIndices conn (PointerRef p) = do
-  let index = pointerIndex p
-  cell <- lift $ DB.getCell conn index
-  case cell of
-    Nothing -> left IndexOfPointerNonExistant
-    Just cell' -> case cell'^.cellRangeKey of
-        Nothing -> left PointerToNormalCell
-        Just rKey -> return $ rangeKeyToIndices rKey
-
--- This is the function we use to convert ref to indices for updating the map PRIOR TO eval. There are some cases where we don't flip a shit. 
--- For example, if the map currently has A1 as a normal expression, and we have @A1 somewhere downstream, we won't flip a shit, and instead expect that
--- by the time the pointer is evalled, A1 will have a coupled expression due to toposort. We flip a shit if it's not the case then. 
---  #record after PointerRef
-refToIndicesWithContextBeforeEval :: Connection -> EvalContext -> ASReference -> IO [ASIndex]
-refToIndicesWithContextBeforeEval conn _ (IndexRef i) = return [i]
-refToIndicesWithContextBeforeEval conn _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextBeforeEval conn ctx (ColRangeRef r) = colRangeWithDBAndContextToIndices conn ctx r
-refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do 
-  let index = pointerIndex p
-  case (M.lookup index $ ctx^.virtualCellsMap) of 
-    Just c -> return $ maybe [] rangeKeyToIndices $ c^.cellRangeKey
-    Nothing -> do
-      cell <- DB.getCell conn index 
-      case cell of
-        Nothing -> return []
-        Just cell' -> return $ maybe [] rangeKeyToIndices $ cell'^.cellRangeKey
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -235,7 +141,7 @@ catchEitherT a = do
 possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
 possiblyShortCircuit conn sheetid ctx xp = do 
   let depRefs = getDependencies sheetid xp -- :: [ASReference]
-  let depInds = concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) depRefs
+  let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
   bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
 
 -- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will
@@ -278,23 +184,3 @@ execEvalInLang evalHeader =
     sid         = evalHeader^.evalHeaderSheetId
     lang        = evalHeader^.evalHeaderLang
     headerCode  = evalHeader^.evalHeaderExpr
-
--- #needsrefactor DRY this up
--- converts ref to indices using the evalContext, then the DB, in that order.
--- because our evalContext might contain information the DB doesn't (e.g. decoupling)
--- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
--- TODO: timchu. Only used in shortCircuitDuringEval. This could be renamed to be more clear.
---  #record after PointerRef
-refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
-refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
-refToIndicesWithContextDuringEval conn _ (RangeRef r) = return $ rangeToIndices r
-refToIndicesWithContextDuringEval conn ctx (ColRangeRef cr) = lift $ colRangeWithDBAndContextToIndices conn ctx cr
-refToIndicesWithContextDuringEval conn ctx (PointerRef p) = do 
-  let index = pointerIndex p
-  case (M.lookup index $ ctx^.virtualCellsMap) of
-    Just c -> maybe (left PointerToNormalCell) (return . rangeKeyToIndices) $ c^.cellRangeKey
-    Nothing -> do
-      cell <- lift $ DB.getCell conn index 
-      case cell of
-        Nothing -> left IndexOfPointerNonExistant
-        Just cell' -> maybe (left PointerToNormalCell) (return . rangeKeyToIndices) $ cell'^.cellRangeKey

@@ -4,9 +4,10 @@ module AS.Types.Values where
 
 import AS.ASJSON
 
-import AS.Types.Locations (Dimensions(..))
+import AS.Types.Locations (Dimensions(..), int)
 import GHC.Generics
 import Control.DeepSeq
+import Control.Lens
 import Control.DeepSeq.Generics (genericRnf)
 import Data.List.Split (chunksOf)
 import qualified Data.List as L
@@ -67,8 +68,12 @@ instance NFData CompositeValue      where rnf = genericRnf
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+-- #RoomForImprovement: timchu. Do not use ^.int?
 reshapeList :: [a] -> Dimensions -> [[a]]
-reshapeList xs dims = chunksOf (width dims) xs
+reshapeList xs dims = chunksOf ((width dims)^.int) xs
+
+prependColumn :: Array -> Matrix -> Matrix
+prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat
 
 -- transposes non-rectangular matrices by filling in gaps with NoValue
 transpose' :: [[ASValue]] -> [[ASValue]]
@@ -76,6 +81,3 @@ transpose' vals = L.transpose matrixified
   where
     width       = maximum $ map length vals
     matrixified = map (\row -> take width $ row ++ (repeat NoValue)) vals
-
-prependColumn :: Array -> Matrix -> Matrix
-prependColumn arr mat = map (\(x,xs) -> x:xs) $ zip arr mat

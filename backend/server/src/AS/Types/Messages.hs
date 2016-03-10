@@ -23,6 +23,7 @@ import AS.Types.Eval
 import AS.Types.EvalHeader
 import AS.Types.CellProps
 import AS.Types.CondFormat
+import AS.Types.Mutate hiding (Delete, Drag)
 import AS.Types.Updates 
 import AS.Types.User
 
@@ -98,7 +99,7 @@ data ServerAction =
   | SetProp CellProp ASRange
   | Repeat Selection
   | BugReport String
-  | MutateSheet MutateType
+  | MutateSheet Mutate
   | Drag { initialRange :: ASRange, dragRange :: ASRange }
   | Decouple
   | Timeout MessageId
@@ -138,11 +139,6 @@ data SessionData = SessionData {seshUserId :: ASUserId, seshId :: SessionId, ses
 data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } 
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
-data MutateType = InsertCol { insertColNum :: Int } | InsertRow { insertRowNum :: Int } |
-                  DeleteCol { deleteColNum :: Int } | DeleteRow { deleteRowNum :: Int } |
-                  DragCol { oldColNum :: Int, newColNum :: Int } | DragRow { oldRowNum :: Int, newRowNum :: Int }
-                  deriving (Show, Read, Eq, Data, Typeable, Generic)
-
 -- should get renamed
 -- data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
 
@@ -164,7 +160,6 @@ instance ToJSON ServerMessage where
                                               , "serverAction" .= action ]
 
 asToFromJSON ''ServerAction
-asToFromJSON ''MutateType
 asToFromJSON ''EvalInstruction
 
 instance ToJSON ClientMessage where
@@ -184,7 +179,6 @@ asFromJSON ''LogSource
 
 deriveSafeCopy 1 'base ''ServerMessage
 deriveSafeCopy 1 'base ''ServerAction
-deriveSafeCopy 1 'base ''MutateType
 deriveSafeCopy 1 'base ''EvalInstruction
 deriveSafeCopy 1 'base ''LogSource
 deriveSafeCopy 1 'base ''LogData

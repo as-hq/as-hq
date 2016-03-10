@@ -65,7 +65,7 @@ createUserClient dbConn wsConn uid = do
       user <- createUser dbConn uid
       return $ user^.lastOpenSheet
   seshId <- T.pack . toString <$> nextRandom
-  let window = Window sid (Coord (-1) (-1)) (Coord (-1) (-1))
+  let window = Window sid (makeCoord (-1) (-1)) (makeCoord (-1) (-1))
   return $ UserClient uid wsConn window seshId
 
 lookupUser :: Connection -> ASUserId -> IO (Maybe ASUser)

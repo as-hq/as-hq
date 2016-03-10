@@ -86,16 +86,6 @@ addCellsToUpdate cs = cellUpdates.newValsSet %~ (S.union $ S.fromList cs)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
--- Timchu, 12/14/15. Commented out this existing function. This does not appear to be used anywhere.
--- mergeCommits :: ASCommit -> ASCommit -> ASCommit
--- mergeCommits (Commit cdiff' ddiff' t) (Commit cdiff ddiff _) = Commit cdiff'' ddiff'' t
---   where
---     cdiff'' = CellDiff { beforeVals = mergeCells (beforeVals cdiff') (beforeVals cdiff)
---                        , afterVals = mergeCells (afterVals cdiff') (afterVals cdiff) }
---     ddiff'' = DescriptorDiff { afterVals = unionBy hasSameKey (afterVals ddiff') (afterVals ddiff)
---                              , beforeVals = unionBy hasSameKey (beforeVals ddiff') (beforeVals ddiff) }
---     hasSameKey d1 d2 = (descriptorKey d1) == (descriptorKey d2)
-
 getASTime :: IO ASTime
 getASTime = return $ Time "hi" 1 2 3
 
