@@ -51,6 +51,7 @@ export default class ASBottomBarController extends React.Component<{}, Props, {}
     return <ASBottomBar 
               errorIconStyle={errorIconStyle}
               outputIconStyle={outputIconStyle}
+              sheetName={SheetStateStore.getCurrentSheetName()}
               onErrorIconClick={onErrorIconClick}
               onOutputIconClick={onOutputIconClick}
               onHeaderIconClick={onHeaderIconClick} />;

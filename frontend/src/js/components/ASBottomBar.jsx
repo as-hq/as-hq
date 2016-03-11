@@ -10,13 +10,12 @@ import FontIcon from 'material-ui/lib/font-icon';
 
 import {bottomBar as bottomBarZIndex} from '../styles/zIndex';
 
-import SheetStateStore from '../stores/ASSheetStateStore';
-
 import _ from 'lodash';
 
 type Props = {
   errorIconStyle: any; 
   outputIconStyle: any; 
+  sheetName: string; 
 };
 
 export default class ASErrorPane extends React.Component<{}, Props, {}>
@@ -28,11 +27,12 @@ export default class ASErrorPane extends React.Component<{}, Props, {}>
   shouldComponentUpdate(nextProps: Props, nextState: {}): boolean { 
     // have to check this manually because we can't compare functions (which get passed as props)
     return !(_.isEqual(nextProps.errorIconStyle, this.props.errorIconStyle) &&
-             _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle)); 
+             _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle) && 
+             nextProps.sheetName === this.props.sheetName); 
   }
 
   render(): React.Element {
-    const {errorIconStyle, outputIconStyle, 
+    const {errorIconStyle, outputIconStyle, sheetName, 
            onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props; 
     return (
       <Paper style={styles.root}>
@@ -69,7 +69,7 @@ export default class ASErrorPane extends React.Component<{}, Props, {}>
         </IconButton>
 
         <span style={styles.sheetName}>
-          { SheetStateStore.getCurrentSheetName() }
+          { sheetName }
         </span>
 
       </Paper>
@@ -102,7 +102,7 @@ const styles = {
 
   sheetName: {
     position: 'absolute',
-    right: 10,
+    right: '50%', 
     top: 3,
     width: 'auto',
     color: 'white',
