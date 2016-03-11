@@ -183,7 +183,8 @@ function installAllShortcuts() {
   // grid shortcuts -------------------------------------------------------------------------------
 
   install('grid', 'start_editing', ['Enter', 'Shift+Enter'], () => {
-    ExpressionActions.startEditing(t => t, true);
+    const text = ExpressionStore.getExpression();
+    ExpressionActions.startEditing(text, true);
   });
 
   install('grid', 'conditional_formatting', 'Ctrl+Shift+F', () => {

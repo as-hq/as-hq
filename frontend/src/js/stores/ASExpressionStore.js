@@ -124,10 +124,9 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'START_EDITING': {
-        const expression = action.textMutator(state.expression);
         return state.merge({
           isEditing: true,
-          expression,
+          expression: action.initialText,
         });
       }
 

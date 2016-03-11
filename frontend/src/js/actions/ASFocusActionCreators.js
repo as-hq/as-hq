@@ -38,7 +38,7 @@ export default {
     } else {
       Dispatcher.dispatch({
         _type: 'START_EDITING',
-        textMutator: t => t,
+        initialText: ExpressionStore.getExpression(),
         textboxHasFullFocus: true
       });
     }

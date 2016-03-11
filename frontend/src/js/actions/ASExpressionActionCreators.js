@@ -46,10 +46,10 @@ const ExpressionActions = {
     });
   },
 
-  startEditing(textMutator: (t: string) => string, textboxHasFullFocus: boolean) {
+  startEditing(initialText: string, textboxHasFullFocus: boolean) {
     Dispatcher.dispatch({
       _type: 'START_EDITING',
-      textMutator,
+      initialText,
       textboxHasFullFocus
     });
   },
@@ -63,9 +63,10 @@ const ExpressionActions = {
    */
   startEditingBuffered(inputText: string) {
     if (! ExpressionStore.isEditing()) {
-      ExpressionActions.startEditing(_ => inputText, false);
+      ExpressionActions.startEditing(inputText, false);
     } else {
-      ExpressionActions.startEditing(text => text + inputText, false);
+      const text = ExpressionStore.getExpression();
+      ExpressionActions.startEditing(text + inputText, false);
     }
   },
 

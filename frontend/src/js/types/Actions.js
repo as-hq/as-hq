@@ -315,7 +315,7 @@ export type APIEvaluateAction = {
 
 export type StartEditingAction = {
   _type: 'START_EDITING';
-  textMutator: (text: string) => string;
+  inputText: string;
   textboxHasFullFocus: boolean;
 };
 

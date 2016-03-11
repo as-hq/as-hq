@@ -14,6 +14,8 @@ import rowHeaderMenuItems from '../components/menus/RowHeaderMenuItems.jsx';
 import columnHeaderMenuItems from '../components/menus/ColumnHeaderMenuItems.jsx';
 
 import GridStore from '../stores/ASGridStore';
+import ExpressionStore from '../stores/ASExpressionStore';
+
 import API from '../actions/ASApiActionCreators';
 import ExpressionActions from '../actions/ASExpressionActionCreators';
 import FocusActions from '../actions/ASFocusActionCreators';
@@ -36,7 +38,8 @@ const callbacks: Array<InitCallback> = [
         // should only fire when double click is inside grid. According to event.detail.gridCell here,
         // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.
         if (event.detail.gridCell.y >= 0 && event.detail.gridCell.x >= 0) {
-          ExpressionActions.startEditing(t => t, true);
+          const text = ExpressionStore.getExpression();
+          ExpressionActions.startEditing(text, true);
         }
       },
 
