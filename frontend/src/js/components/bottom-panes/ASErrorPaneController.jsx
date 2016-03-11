@@ -9,7 +9,8 @@ import type {
 } from '../../types/Errors';
 
 import type {
-  StoreLink
+  StoreLink, 
+  StoreToken
 } from '../../types/React';
 
 import CellStore from '../../stores/ASCellStore';
@@ -19,22 +20,20 @@ import React from 'react';
 import ASIndex from '../../classes/ASIndex';
 import ASErrorPane from './ASErrorPane.jsx';
 
-type ASErrorPaneControllerProps = {
-  selectCellAtLocation: Callback<ASIndex>;
-};
-
 type ASErrorPaneControllerState = {
   onlyShowCurSelErrs: boolean;
 };
 
-export default class ASErrorPaneController
-  extends React.Component<{}, ASErrorPaneControllerProps, ASErrorPaneControllerState>
-{
+export default class ASErrorPaneController extends React.Component {
+  static defaultProps: {} = {}; 
+  props: {};
+  state: ASErrorPaneControllerState;
+
   $storeLinks: Array<StoreLink>;
   _cellStoreToken: StoreToken;
   _gridStoreToken: StoreToken;
 
-  constructor(props: ASErrorPaneControllerProps) {
+  constructor(props: {}) {
     super(props);
 
     this.state = {

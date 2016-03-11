@@ -40,8 +40,10 @@ const toolbarControlProps: ToolbarControlProps = {
 
 const ButtonWithMenu = GenerateToolbarMenu(ToolbarButton);
 
-export default class MoreFormatDropdown
-  extends React.Component<{}, MoreFormatDropdownProps, {}> {
+export default class MoreFormatDropdown extends React.Component {
+  static defaultProps = {}; 
+  props: MoreFormatDropdownProps;
+  state: {};
 
   // TODO(joel) - make functional component
   shouldComponentUpdate(

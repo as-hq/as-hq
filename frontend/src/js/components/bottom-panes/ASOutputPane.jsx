@@ -17,8 +17,10 @@ type ASOutputPaneProps = {
   title: ?string;
 };
 
-export default class ASOutputPane
-  extends React.Component<{}, ASOutputPaneProps, {}> {
+export default class ASOutputPane extends React.Component {
+  static defaultProps = {}; 
+  props: ASOutputPaneProps;
+  state: {};
 
   shouldComponentUpdate(nextProps: ASOutputPaneProps, _: {}): boolean {
     return (
@@ -52,7 +54,7 @@ export default class ASOutputPane
   }
 
   // transform an ANSI-formatted string into a list of formatted div's
-  _getFormattedAnsiHTML(content: string): Array<ReactElement> {
+  _getFormattedAnsiHTML(content: string): Array<React.Element> {
     return content
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')

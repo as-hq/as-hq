@@ -2,7 +2,10 @@
 
 import React from 'react';
 
-export default class Separator extends React.Component<{}, {}, {}> {
+export default class Separator extends React.Component {
+  static defaultProps: {} = {};
+  props: {}; 
+  state: {};  
 
   shouldComponentUpdate(nextProps: {}, nextState: {}): boolean { 
     return false;

@@ -11,6 +11,8 @@ import type {
 import React from 'react';
 import U from '../AS/Util';
 
+import type { StoreToken } from 'flux';
+
 import SheetStateStore from '../stores/ASSheetStateStore';
 import CellStore from '../stores/ASCellStore';
 import GridStore from '../stores/ASGridStore';
@@ -21,10 +23,14 @@ type Props = {
   toggleBottomPane: Callback<string>;
 };
 
-export default class ASBottomBarController extends React.Component<{}, Props, {}> {
-  $storeLinks: Array<StoreLink>;
+export default class ASBottomBarController extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
   _gridStoreListener: StoreToken;
   _cellStoreListener: StoreToken;
+
+  $storeLinks: Array<StoreLink>;
 
   componentDidMount() {
     U.React.addStoreLinks(this, [

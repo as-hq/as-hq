@@ -77,8 +77,8 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 import ProgressStore from '../stores/ASProgressStore';
 import LoginStore from '../stores/ASLoginStore';
 
-import * as ProgressActions from './ASProgressActionCreators';
-import * as HeaderActions from './ASHeaderActionCreators';
+import ProgressActions from './ASProgressActionCreators';
+import HeaderActions from './ASHeaderActionCreators';
 
 import ConfigActions from '../actions/ASConfigActionCreators';
 import LoginActions from '../actions/ASLoginActionCreators';
@@ -124,7 +124,7 @@ function setCallbacks(messageId: string) {
 // if they're found.
 // It's called when a message comes back from the server, so that we trigger the
 // integration tests to continue from the current promise
-function fulfillCallbacks(msg: ClientMessage | ServerMessage) {
+function fulfillCallbacks(msg: ClientMessage) {
   const {messageId} = msg;
   const cbs = callbackStore[messageId];
 
@@ -135,7 +135,7 @@ function fulfillCallbacks(msg: ClientMessage | ServerMessage) {
 }
 
 // Same as above but for rejection
-function rejectCallbacks(msg: ClientMessage | ServerMessage) {
+function rejectCallbacks(msg: ClientMessage) {
   const {messageId} = msg;
   const cbs = callbackStore[messageId];
 
@@ -965,7 +965,7 @@ const API = {
   /**************************************************************************************************************************/
   /* Testing */
 
-  withWS<A>(fn: (givenPws: ws) => A): A {
+  withWS<A>(fn: (givenPws: WebSocket) => A): A {
     return fn(pws);
   },
 

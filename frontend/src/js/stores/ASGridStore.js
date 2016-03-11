@@ -1,23 +1,27 @@
 /* @flow */
 
 import type { ASAction } from '../types/Actions';
+import type { NakedRange } from '../types/Eval';
+import type { Dimensions } from '../types/Hypergrid';
 
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
 import Immutable from 'immutable';
-// $FlowFixMe
-//
 import invariant from 'invariant';
-import dispatcher from '../Dispatcher';
+import Dispatcher from '../Dispatcher';
+
 import ASSelection from '../classes/ASSelection';
 import ASPoint from '../classes/ASPoint';
 import ASRange from '../classes/ASRange';
+import ASIndex from '../classes/ASIndex';
+
 import Render from '../AS/Renderers';
 
 import SheetStateStore from './ASSheetStateStore';
 import ExpressionStore from './ASExpressionStore';
 
-type State = Immutable.Record$Class;
+// #flowlens
+type State = any; 
 const StateRecord = Immutable.Record({
   activeSelection: null,
   lastActiveSelection: null,
@@ -51,7 +55,7 @@ class GridStore extends ReduceStore<State> {
       case 'EXPRESSION_CHANGED':
       case 'REPAINT_SPREADSHEET': {
         document.dispatchEvent(
-          new CustomEvent('grid-repaint')
+          document.createEvent('grid-repaint') // used to be (new CustomEvent('grid-repaint'))
         );
         return state;
       }
@@ -71,7 +75,8 @@ class GridStore extends ReduceStore<State> {
       }
 
       case 'GRID_SCROLL_OFFSET': {
-        return state.update('scroll', s => s.shift(action.offset));
+        const {offset} = action;
+        return state.update('scroll', s => s.shift(offset));
       }
 
       case 'API_EVALUATE': {
@@ -222,4 +227,4 @@ function scrollHForLeftEdge(col: number): number {
   return col;
 }
 
-export default new GridStore(dispatcher);
+export default new GridStore(Dispatcher);

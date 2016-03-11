@@ -3,7 +3,8 @@
 import type {
   NakedIndex,
   NakedRange,
-  ASIndexObject
+  ASIndexObject,
+  Offset
 } from '../types/Eval';
 
 import Constants from '../Constants';

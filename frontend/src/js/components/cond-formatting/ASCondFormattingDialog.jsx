@@ -45,9 +45,11 @@ type ASCondFormattingDialogState = {
   currentRange: ?string;
 };
 
-export default class ASCondFormattingDialog
-  extends React.Component<{}, ASCondFormattingDialogProps, ASCondFormattingDialogState>
-{
+export default class ASCondFormattingDialog extends React.Component {
+  static defaultProps: {} = {}; 
+  props: ASCondFormattingDialogProps;
+  state: ASCondFormattingDialogState;
+
   $storeLinks: Array<StoreLink>;
   _selectionListener: StoreToken;
 

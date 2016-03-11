@@ -17,6 +17,7 @@ import type {
   NakedIndex,
   HAlignType,
   VAlignType,
+  Offset
 } from './Eval';
 
 import type {
@@ -24,7 +25,6 @@ import type {
 } from './Overlay';
 
 import type {
-  ASViewingWindow,
   FocusedElement,
   BottomPane
 } from './State';
@@ -81,7 +81,7 @@ export type GotFailureAction = {
 
 export type ScrolledAction = {
   _type: 'SCROLLED';
-  vWindow: ASViewingWindow;
+  vWindow: ASRange;
 };
 
 export type GotSelectionAction = {
@@ -311,6 +311,7 @@ export type SetActiveSelectionAction = {
 
 export type APIEvaluateAction = {
   _type: 'API_EVALUATE';
+  offset: Offset;
 };
 
 export type StartEditingAction = {
@@ -364,10 +365,19 @@ export type FocusedTextboxFullyAction = {
   _type: 'FOCUSED_TEXTBOX_FULLY';
 };
 
+export type GridScrollOffsetAction = {
+  _type: 'GRID_SCROLL_OFFSET';
+  offset: Offset;
+};
+
+export type HoveredAction = {
+  _type: 'HOVERED';
+  hover: FocusedElement;
+};
+
 export type ASAction =
   ToggleShortcutHelper
   | CloseShortcutHelper
-  | AddOverlayAction
   | AddOverlayWithoutLocAction
   | OverlayDeletedAction
   | OverlayResizedAction
@@ -428,4 +438,6 @@ export type ASAction =
   | FindBarVisibilityChangedAction
   | FindModalVisibilityChangedAction
   | FocusedTextboxFullyAction
+  | HoveredAction
+  | GridScrollOffsetAction
   ;

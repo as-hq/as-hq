@@ -7,7 +7,7 @@ export default React.createClass({
     return this.refs.colorPicker.value;
   },
 
-  render(): ReactElement {
+  render(): any { // ::ALEX::
     let {value, defaultValue, valueLink, ...etc} = this.props;
 
     return this.props.valueLink ? (

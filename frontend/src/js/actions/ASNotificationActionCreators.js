@@ -22,13 +22,14 @@ export default {
     });
   },
 
-  dismissLast() {
-    const uid = NotificationStore.peek();
-    Dispatcher.dispatch({
-      _type: 'DISMISS_NOTIFICATION',
-      uid
-    });
-  },
+  // seems outdated? --Alex 3/10 
+  // dismissLast() {
+  //   const uid = NotificationStore.peek();
+  //   Dispatcher.dispatch({
+  //     _type: 'DISMISS_NOTIFICATION',
+  //     uid
+  //   });
+  // },
 
   removeNotification(uid: string) {
     Dispatcher.dispatch({

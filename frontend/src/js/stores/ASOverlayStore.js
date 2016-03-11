@@ -4,12 +4,20 @@ import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
 
 import type {
+  ASClientError
+} from '../types/Errors';
+
+import type {
   ASOverlaySpec
 } from '../types/Overlay';
 
 import type {
   ASAction
 } from '../types/Actions';
+
+import type {
+  ASCellGrid
+} from '../types/State';
 
 import React from 'react';
 import {fromJS, Map, Record, Record$Class} from 'immutable';
@@ -38,7 +46,6 @@ class ASOverlayStore extends ReduceStore<State> {
 
   reduce(state: State, action: ASAction): State {
     switch (action._type) {
-
       case 'ADD_OVERLAY_WITHOUT_LOC': {
         const uid = U.Render.getUniqueId();
         const overlay = action.overlay;
@@ -161,7 +168,13 @@ function setCellOverlay(state: State, overlay: ASOverlaySpec): State {
 }
 
 function delCellOverlay(state: State, overlay: ASOverlaySpec): State {
-  return delLoc(state, overlay.loc);
+  const {loc} = overlay;
+
+  if (loc === null || loc === undefined) {
+    throw new Error('Undefined location not allowed in cell overlay');
+  } else {
+    return delLoc(state, loc);
+  }
 }
 
 function setFloatingOverlay(state: State, overlay: ASOverlaySpec): State {

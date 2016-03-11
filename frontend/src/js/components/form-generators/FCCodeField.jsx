@@ -19,9 +19,8 @@ export default function FCCodeField({defaultValue}: {
       return (
         <ASCodeField
           style={mergedStyle}
-          language="python"
-          text={valueLink}
-        />
+          language="Python"
+          text={valueLink} />
       );
     }
   });

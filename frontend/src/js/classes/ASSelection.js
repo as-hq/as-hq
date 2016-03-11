@@ -9,7 +9,7 @@ import type {
   PayloadSelection
 } from '../types/Messages';
 
-import type { Offset } from '../types/Hypergrid';
+import type { Offset } from '../types/Eval';
 
 import SheetStateStore from '../stores/ASSheetStateStore';
 
@@ -112,7 +112,7 @@ export default class ASSelection {
    * @param  {Offset} offset
    * @param  {boolean} extend [whether to extend the selection (e.g. the shift key is pressed) or to move it]
    */
-  shift({dX, dY}: Offset, extend: boolean): ASSelection {
+  shift({dX, dY}: Offset, extend: boolean = false): ASSelection {
     const {col: anchorX, row: anchorY} = this._origin;
 
     if (extend) {
@@ -132,7 +132,7 @@ export default class ASSelection {
         origin: this._origin,
         range: {tl, br}
       });
-      
+
     } else {
       return ASIndex.fromNaked({
         col: anchorX + dX,

@@ -115,6 +115,10 @@ export default class ASCell {
     return (propInd >= 0 && _.isEqual(cellProps[propInd], prop));
   }
 
+  hasPropWithTag(propTag: string): boolean {
+    return this.props.some(({tag}) => tag === propTag);
+  }
+
   hasPercentProp(): boolean {
     let cellProps = this._props;
     let propInd = cellProps.map(({tag}) => tag).indexOf("ValueFormat");

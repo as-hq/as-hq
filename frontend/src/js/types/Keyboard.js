@@ -33,6 +33,6 @@ export type ASKeyCombination = {
 };
 
 export type ASShortcut = {
-  set: ASShortcutTarget;
+  set: ShortcutTarget;
   config: Dict<boolean>;
 };

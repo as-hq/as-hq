@@ -16,10 +16,6 @@ import type {
 } from '../../types/Eval';
 
 import type {
-  ASViewingWindow,
-} from '../../types/State';
-
-import type {
   ASBackendWorkbookSheet,
   ASClientWindow,
   ServerMessage,
@@ -142,7 +138,7 @@ let CU = {
     }
   },
 
-  updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
+  updateIsEmpty(update: UpdateTemplate): boolean { // same problems as makeServerMessage
     return update.newVals.length == 0 && update.oldKeys.length == 0;
   },
 

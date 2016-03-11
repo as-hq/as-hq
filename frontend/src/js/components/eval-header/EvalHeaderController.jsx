@@ -4,6 +4,10 @@ import type {
   ASLanguage
 } from '../../types/Eval';
 
+import type {
+  Callback
+} from '../../types/Base';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import EvalHeader from './EvalHeader.jsx';
@@ -20,7 +24,11 @@ import API from '../../actions/ASApiActionCreators';
 // otherwise, ace will not attach itself until the next render.
 type Props = { open: boolean };
 
-class EvalHeaderController extends React.Component<{}, Props, {}> {
+class EvalHeaderController extends React.Component {
+  static defaultProps = {}; 
+  props: Props;
+  state: {};
+
   _view: any;
   _storeListener: any;
 

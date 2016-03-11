@@ -12,6 +12,7 @@ import React from 'react';
 import Constants from '../Constants';
 // $FlowFixMe
 import { RouteHandler } from 'react-router';
+// $FlowFixMe
 import CircularProgress from 'material-ui/lib/circular-progress';
 
 import API from '../actions/ASApiActionCreators';
@@ -23,8 +24,14 @@ import ConfigStore from '../stores/ASConfigurationStore';
 import pws from '../AS/PWSInstance';
 
 type Props = RoutedComponentProps;
+type State = { 
+  isLoggingIn: boolean; 
+}
 
-class Login extends React.Component<{}, Props, {}> {
+class Login extends React.Component {
+  static defaultProps: {} = {}; 
+  props: Props;
+  state: State;
   _storeToken: StoreToken;
 
   constructor(props: Props) {

@@ -45,9 +45,11 @@ type Props = {
   errors: Array<ASClientError>;
 };
 
-export default class ASErrorPane
-  extends React.Component<{}, Props, {}>
-{
+export default class ASErrorPane extends React.Component {
+  static defaultProps: {} = {}; 
+  props: Props;
+  state: {};
+
   constructor(props: Props) {
     super(props);
   }

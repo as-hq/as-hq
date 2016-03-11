@@ -38,11 +38,10 @@ const ExpressionActions = {
     });
   },
 
-  setExpression(expression: string, eventSource: EditorSelectionEventSource) {
+  setExpression(expression: string) {
     Dispatcher.dispatch({
       _type: 'EXPRESSION_CHANGED',
-      expression,
-      eventSource
+      expression
     });
   },
 

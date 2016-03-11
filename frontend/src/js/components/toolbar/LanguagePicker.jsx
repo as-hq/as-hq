@@ -45,8 +45,10 @@ const menuProps: Array<MenuProps> = languages.map(({name, shortcut}) => ({
 
 const ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
 
-export default class LanguagePicker
-  extends React.Component<{}, LanguagePickerProps, {}> {
+export default class LanguagePicker {
+  static defaultProps: {} = {}; 
+  props: LanguagePickerProps; 
+  state: {}; 
 
   shouldComponentUpdate(nextProps: LanguagePickerProps, nextState: {}): boolean { 
     return shallowCompare(this, nextProps, nextState);

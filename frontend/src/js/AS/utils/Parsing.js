@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {
+  EditorSelection
+} from '../../types/Editor';
+
+import type {
   ASLanguage
 } from '../../types/Eval';
 

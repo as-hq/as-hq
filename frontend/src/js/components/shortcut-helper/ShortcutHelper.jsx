@@ -160,7 +160,10 @@ const shortcutGroups: Array<ShortcutGroup> =
   }
 ];
 
-export default class ShortcutHelper extends React.Component<{}, {}, {}> {
+export default class ShortcutHelper extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
 
   constructor(props: {}) {
     super(props);

@@ -8,6 +8,7 @@ import type {
 
 import type { StoreToken } from 'flux';
 import ASSelection from '../classes/ASSelection';
+import ASPoint from '../classes/ASPoint';
 
 import {logError, isTesting} from '../AS/Logger';
 
@@ -32,9 +33,11 @@ import ResizablePanel from './ResizablePanel.jsx'
 import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
 
-export default class ASEvalPane
-  extends React.Component<{}, {}, {}>
-{
+export default class ASEvalPane extends React.Component {
+  static defaultProps: {} = {}; 
+  props: {};
+  state: {};
+
   _gridStoreToken: StoreToken;
   _configStoreToken: StoreToken;
   _spreadsheet: ASControlledSpreadsheet;

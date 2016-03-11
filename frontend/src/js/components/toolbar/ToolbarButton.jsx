@@ -9,10 +9,12 @@ import {Styles, FontIcon} from 'material-ui';
 const FlatButton = require('material-ui/lib/flat-button');
 // $FlowFixMe
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
+// $FlowFixMe: react-tooltip not actually defined
 import Tooltip from 'react-tooltip';
 
 
 type ToolbarButtonDefaultProps = {
+  activeBackgroundColor: string;
   width: number;
   height: number;
   // left margin
@@ -35,6 +37,7 @@ type ToolbarButtonDefaultProps = {
 };
 
 type ToolbarButtonProps = {
+  activeBackgroundColor: string;
   width: number;
   height: number;
   spacing: number;
@@ -49,8 +52,25 @@ type ToolbarButtonProps = {
   active?: boolean;
 };
 
-export default class ToolbarButton
-  extends React.Component<ToolbarButtonDefaultProps, ToolbarButtonProps, {}> {
+export default class ToolbarButton extends React.Component {
+  static defaultProps: ToolbarButtonDefaultProps = {
+    width: 36,
+    height: 36,
+    spacing: 2,
+    onClick: () => {},
+    iconName: 'home',
+    iconElement: null,
+    tooltip: '',
+    showTooltip: true,
+    includeDropdownArrow: false,
+    arrowSize: 15,
+    iconColor: Styles.Colors.grey500,
+    activeBackgroundColor: Styles.Colors.pink300,
+  };
+
+  props: ToolbarButtonProps;
+  state: {};
+
 
   shouldComponentUpdate(nextProps: ToolbarButtonProps): boolean {
     // XXX(joel) onClick is created fresh each time, ruins optimization
@@ -188,19 +208,4 @@ ToolbarButton.propTypes = {
   arrowSize: React.PropTypes.number,
   iconColor: React.PropTypes.string,
   activeBackgroundColor: React.PropTypes.string,
-};
-
-ToolbarButton.defaultProps = {
-  width: 36,
-  height: 36,
-  spacing: 2,
-  onClick: () => {},
-  iconName: 'home',
-  iconElement: null,
-  tooltip: '',
-  showTooltip: true,
-  includeDropdownArrow: false,
-  arrowSize: 15,
-  iconColor: Styles.Colors.grey500,
-  activeBackgroundColor: Styles.Colors.pink300,
 };

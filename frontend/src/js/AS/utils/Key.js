@@ -8,7 +8,7 @@ import type {
   Dict
 } from '../../types/Base';
 
-import type { Offset } from '../../types/Hypergrid';
+import type { Offset } from '../../types/Eval';
 
 import StringUtils from './String';
 

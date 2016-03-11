@@ -16,10 +16,16 @@ export type SimpleItemSpec = {
   callback: Callback;
 };
 
+export type FileList = Array<File>;
+
 export type FileItemSpec = {
   tag: 'FileItemSpec';
   title: string;
   callback: (files: FileList) => void;
+};
+
+export type FileInput = HTMLElement & {
+  files: FileList;
 };
 
 export type MenuItemSpec = NestedMenuSpec | SimpleItemSpec | FileItemSpec;

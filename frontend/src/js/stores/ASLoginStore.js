@@ -11,7 +11,6 @@ import Immutable from 'immutable';
 import { ReduceStore } from 'flux/utils';
 import API from '../actions/ASApiActionCreators';
 
-// $FlowFixMe
 import invariant from 'invariant';
 import dispatcher from '../Dispatcher';
 
@@ -79,7 +78,7 @@ class LoginStore extends ReduceStore<LoginState> {
 
   userIsDev(): boolean {
     const userId = this.getUserId();
-    return _.contains(devs, userId);
+    return _.includes(devs, userId);
   }
 }
 

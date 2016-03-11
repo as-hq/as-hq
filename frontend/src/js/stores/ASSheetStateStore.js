@@ -13,7 +13,6 @@ import type {
   ASUserId
 } from '../types/User';
 
-// $FlowFixMe
 import invariant from 'invariant';
 import {logDebug} from '../AS/Logger';
 
@@ -48,6 +47,7 @@ type SheetStateStoreData = {
 };
 
 let _data: SheetStateStoreData = {
+  decoupleAttempt: false,
   xscroll: 0,
   yscroll: 0,
   mySheets: [],

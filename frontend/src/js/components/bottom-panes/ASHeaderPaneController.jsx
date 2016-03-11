@@ -11,8 +11,15 @@ import HeaderOutputStore from '../../stores/ASHeaderOutputStore';
 
 import ASOutputPane from './ASOutputPane.jsx';
 
-class ASHeaderPaneController extends React.Component<{}, {}, {}> {
-  _storeListener: any;
+import type { StoreToken } from '../../types/React';
+
+class ASHeaderPaneController extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
+
+  _headerStoreListener: StoreToken;
+  _headerOutputStoreListener: StoreToken;
 
   constructor(props: {}) {
     super(props);

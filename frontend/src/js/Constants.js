@@ -16,7 +16,6 @@ function keyMirror<T>(obj: T): T {
   return (ret: T);
 }
 
-
 const Constants = Object.assign({
 
   REMOTE_ROUTER_PORT: 10000,

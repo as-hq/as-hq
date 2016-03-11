@@ -152,7 +152,7 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   getDisplayedValueAt(idx: ASIndex): string {
     const cell = this.getCell(idx);
     if (!! cell) {
-      return U.Render.showValue(cell.value);
+      return U.Render.showValue(cell.value).toString();
     } else {
       return '';
     }

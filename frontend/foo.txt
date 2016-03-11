@@ -1,0 +1,578 @@
+src/js/AS/PersistentWebSocket.js:54
+ 54:     this._isAttemptingReconnect = false;
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ assignment of property `_isAttemptingReconnect`
+ 54:     this._isAttemptingReconnect = false;
+              ^^^^^^^^^^^^^^^^^^^^^^ property `_isAttemptingReconnect`. Property not found in
+ 23: class PersistentWebSocket {
+           ^^^^^^^^^^^^^^^^^^^ PersistentWebSocket
+
+src/js/AS/PersistentWebSocket.js:95
+ 95:     this._connectionWatch = setInterval(() => {
+         ^^^^^^^^^^^^^^^^^^^^^ assignment of property `_connectionWatch`
+ 95:     this._connectionWatch = setInterval(() => {
+              ^^^^^^^^^^^^^^^^ property `_connectionWatch`. Property not found in
+ 23: class PersistentWebSocket {
+           ^^^^^^^^^^^^^^^^^^^ PersistentWebSocket
+
+src/js/AS/PersistentWebSocket.js:155
+155:     clearInterval(this._connectionWatch);
+                            ^^^^^^^^^^^^^^^^ property `_connectionWatch`. Property not found in
+ 23: class PersistentWebSocket {
+           ^^^^^^^^^^^^^^^^^^^ PersistentWebSocket
+
+src/js/AS/PersistentWebSocket.js:210
+210:       this._isAttemptingReconnect = true;
+                ^^^^^^^^^^^^^^^^^^^^^^ property `_isAttemptingReconnect`. Property not found in
+210:       this._isAttemptingReconnect = true;
+           ^^^^ PersistentWebSocket
+
+src/js/AS/PersistentWebSocket.js:223
+223:       this._isAttemptingReconnect = false;
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ assignment of property `_isAttemptingReconnect`
+223:       this._isAttemptingReconnect = false;
+                ^^^^^^^^^^^^^^^^^^^^^^ property `_isAttemptingReconnect`. Property not found in
+ 23: class PersistentWebSocket {
+           ^^^^^^^^^^^^^^^^^^^ PersistentWebSocket
+
+src/js/Constants.js:27
+ 27:     return 'http://' + Constants.REMOTE_HOST + ':' + REMOTE_ROUTER_PORT;
+                                                          ^^^^^^^^^^^^^^^^^^ identifier `REMOTE_ROUTER_PORT`. Could not resolve name
+
+src/js/Dispatcher.js:102
+102:     LogActionCreator.log(payload);
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call of method `log`
+102:     LogActionCreator.log(payload);
+                              ^^^^^^^ TPayload. This type is incompatible with
+ 13: export function log(action: ASAction) {
+                                 ^^^^^^^^ union: ToggleShortcutHelper | CloseShortcutHelper | AddOverlayWithoutLocAction | OverlayDeletedAction | OverlayResizedAction | GotFailureAction | GotUpdatedWorkbooksAction | GotNewWorkbooksAction | DeletedWorkbooksAction | GotUpdatedRulesAction | ScrolledAction | .... See: src/js/actions/ASLogActionCreators.js:13
+  Member 1:
+  379:   ToggleShortcutHelper
+         ^^^^^^^^^^^^^^^^^^^^ ToggleShortcutHelper. See: src/js/types/Actions.js:379
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  379:   ToggleShortcutHelper
+         ^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:379
+  Member 2:
+  380:   | CloseShortcutHelper
+           ^^^^^^^^^^^^^^^^^^^ CloseShortcutHelper. See: src/js/types/Actions.js:380
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  380:   | CloseShortcutHelper
+           ^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:380
+  Member 3:
+  381:   | AddOverlayWithoutLocAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^ AddOverlayWithoutLocAction. See: src/js/types/Actions.js:381
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  381:   | AddOverlayWithoutLocAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:381
+  Member 4:
+  382:   | OverlayDeletedAction
+           ^^^^^^^^^^^^^^^^^^^^ OverlayDeletedAction. See: src/js/types/Actions.js:382
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  382:   | OverlayDeletedAction
+           ^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:382
+  Member 5:
+  383:   | OverlayResizedAction
+           ^^^^^^^^^^^^^^^^^^^^ OverlayResizedAction. See: src/js/types/Actions.js:383
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  383:   | OverlayResizedAction
+           ^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:383
+  Member 6:
+  384:   | GotFailureAction
+           ^^^^^^^^^^^^^^^^ GotFailureAction. See: src/js/types/Actions.js:384
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  384:   | GotFailureAction
+           ^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:384
+  Member 7:
+  385:   | GotUpdatedWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ GotUpdatedWorkbooksAction. See: src/js/types/Actions.js:385
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  385:   | GotUpdatedWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:385
+  Member 8:
+  386:   | GotNewWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^ GotNewWorkbooksAction. See: src/js/types/Actions.js:386
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  386:   | GotNewWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:386
+  Member 9:
+  387:   | DeletedWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^^ DeletedWorkbooksAction. See: src/js/types/Actions.js:387
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  387:   | DeletedWorkbooksAction
+           ^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:387
+  Member 10:
+  388:   | GotUpdatedRulesAction
+           ^^^^^^^^^^^^^^^^^^^^^ GotUpdatedRulesAction. See: src/js/types/Actions.js:388
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  388:   | GotUpdatedRulesAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:388
+  Member 11:
+  389:   | ScrolledAction
+           ^^^^^^^^^^^^^^ ScrolledAction. See: src/js/types/Actions.js:389
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  389:   | ScrolledAction
+           ^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:389
+  Member 12:
+  390:   | HeaderDataResetAction
+           ^^^^^^^^^^^^^^^^^^^^^ HeaderDataResetAction. See: src/js/types/Actions.js:390
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  390:   | HeaderDataResetAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:390
+  Member 13:
+  391:   | GotSelectionAction
+           ^^^^^^^^^^^^^^^^^^ GotSelectionAction. See: src/js/types/Actions.js:391
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  391:   | GotSelectionAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:391
+  Member 14:
+  392:   | GotUpdatedCellsAction
+           ^^^^^^^^^^^^^^^^^^^^^ GotUpdatedCellsAction. See: src/js/types/Actions.js:392
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  392:   | GotUpdatedCellsAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:392
+  Member 15:
+  393:   | GotUpdatedRangeDescriptorsAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ GotUpdatedRangeDescriptorsAction. See: src/js/types/Actions.js:393
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  393:   | GotUpdatedRangeDescriptorsAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:393
+  Member 16:
+  394:   | GotUpdatedBarsAction
+           ^^^^^^^^^^^^^^^^^^^^ GotUpdatedBarsAction. See: src/js/types/Actions.js:394
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  394:   | GotUpdatedBarsAction
+           ^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:394
+  Member 17:
+  395:   | ClearedAction
+           ^^^^^^^^^^^^^ ClearedAction. See: src/js/types/Actions.js:395
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  395:   | ClearedAction
+           ^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:395
+  Member 18:
+  396:   | ClearedSheetAction
+           ^^^^^^^^^^^^^^^^^^ ClearedSheetAction. See: src/js/types/Actions.js:396
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  396:   | ClearedSheetAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:396
+  Member 19:
+  397:   | ChangedSheetAction
+           ^^^^^^^^^^^^^^^^^^ ChangedSheetAction. See: src/js/types/Actions.js:397
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  397:   | ChangedSheetAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:397
+  Member 20:
+  398:   | LanguageChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^ LanguageChangedAction. See: src/js/types/Actions.js:398
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  398:   | LanguageChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:398
+  Member 21:
+  399:   | HeaderEvaluatedAction
+           ^^^^^^^^^^^^^^^^^^^^^ HeaderEvaluatedAction. See: src/js/types/Actions.js:399
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  399:   | HeaderEvaluatedAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:399
+  Member 22:
+  400:   | HeaderDataResetAction
+           ^^^^^^^^^^^^^^^^^^^^^ HeaderDataResetAction. See: src/js/types/Actions.js:400
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  400:   | HeaderDataResetAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:400
+  Member 23:
+  401:   | HeaderUpdatedAction
+           ^^^^^^^^^^^^^^^^^^^ HeaderUpdatedAction. See: src/js/types/Actions.js:401
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  401:   | HeaderUpdatedAction
+           ^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:401
+  Member 24:
+  402:   | HeaderLanguageChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ HeaderLanguageChangedAction. See: src/js/types/Actions.js:402
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  402:   | HeaderLanguageChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:402
+  Member 25:
+  403:   | GotFindAction
+           ^^^^^^^^^^^^^ GotFindAction. See: src/js/types/Actions.js:403
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  403:   | GotFindAction
+           ^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:403
+  Member 26:
+  404:   | FindIncrementedAction
+           ^^^^^^^^^^^^^^^^^^^^^ FindIncrementedAction. See: src/js/types/Actions.js:404
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  404:   | FindIncrementedAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:404
+  Member 27:
+  405:   | FindDecrementedAction
+           ^^^^^^^^^^^^^^^^^^^^^ FindDecrementedAction. See: src/js/types/Actions.js:405
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  405:   | FindDecrementedAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:405
+  Member 28:
+  406:   | OpenCondFormattingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ OpenCondFormattingDialogAction. See: src/js/types/Actions.js:406
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  406:   | OpenCondFormattingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:406
+  Member 29:
+  407:   | CloseCondFormattingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CloseCondFormattingDialogAction. See: src/js/types/Actions.js:407
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  407:   | CloseCondFormattingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:407
+  Member 30:
+  408:   | OpenChartingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ OpenChartingDialogAction. See: src/js/types/Actions.js:408
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  408:   | OpenChartingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:408
+  Member 31:
+  409:   | CloseChartingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ CloseChartingDialogAction. See: src/js/types/Actions.js:409
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  409:   | CloseChartingDialogAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:409
+  Member 32:
+  410:   | MarkSentAction
+           ^^^^^^^^^^^^^^ MarkSentAction. See: src/js/types/Actions.js:410
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  410:   | MarkSentAction
+           ^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:410
+  Member 33:
+  411:   | MarkReceivedAction
+           ^^^^^^^^^^^^^^^^^^ MarkReceivedAction. See: src/js/types/Actions.js:411
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  411:   | MarkReceivedAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:411
+  Member 34:
+  412:   | MarkAllReceivedAction
+           ^^^^^^^^^^^^^^^^^^^^^ MarkAllReceivedAction. See: src/js/types/Actions.js:412
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  412:   | MarkAllReceivedAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:412
+  Member 35:
+  413:   | AddNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^ AddNotificationAction. See: src/js/types/Actions.js:413
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  413:   | AddNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:413
+  Member 36:
+  414:   | DismissNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ DismissNotificationAction. See: src/js/types/Actions.js:414
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  414:   | DismissNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:414
+  Member 37:
+  415:   | RemoveNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ RemoveNotificationAction. See: src/js/types/Actions.js:415
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  415:   | RemoveNotificationAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:415
+  Member 38:
+  416:   | SetConnectingStateAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ SetConnectingStateAction. See: src/js/types/Actions.js:416
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  416:   | SetConnectingStateAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:416
+  Member 39:
+  417:   | FocusedAction
+           ^^^^^^^^^^^^^ FocusedAction. See: src/js/types/Actions.js:417
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  417:   | FocusedAction
+           ^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:417
+  Member 40:
+  418:   | ToggledFocusF2Action
+           ^^^^^^^^^^^^^^^^^^^^ ToggledFocusF2Action. See: src/js/types/Actions.js:418
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  418:   | ToggledFocusF2Action
+           ^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:418
+  Member 41:
+  419:   | SetActiveSelectionAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ SetActiveSelectionAction. See: src/js/types/Actions.js:419
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  419:   | SetActiveSelectionAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:419
+  Member 42:
+  420:   | SetConnectingStateAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ SetConnectingStateAction. See: src/js/types/Actions.js:420
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  420:   | SetConnectingStateAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:420
+  Member 43:
+  421:   | OpenMenuItem
+           ^^^^^^^^^^^^ OpenMenuItem. See: src/js/types/Actions.js:421
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  421:   | OpenMenuItem
+           ^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:421
+  Member 44:
+  422:   | CloseMenuItem
+           ^^^^^^^^^^^^^ CloseMenuItem. See: src/js/types/Actions.js:422
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  422:   | CloseMenuItem
+           ^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:422
+  Member 45:
+  423:   | SetFormat
+           ^^^^^^^^^ SetFormat. See: src/js/types/Actions.js:423
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  423:   | SetFormat
+           ^^^^^^^^^ object type. See: src/js/types/Actions.js:423
+  Member 46:
+  424:   | SetFont
+           ^^^^^^^ SetFont. See: src/js/types/Actions.js:424
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  424:   | SetFont
+           ^^^^^^^ object type. See: src/js/types/Actions.js:424
+  Member 47:
+  425:   | SetHAlign
+           ^^^^^^^^^ SetHAlign. See: src/js/types/Actions.js:425
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  425:   | SetHAlign
+           ^^^^^^^^^ object type. See: src/js/types/Actions.js:425
+  Member 48:
+  426:   | SetVAlign
+           ^^^^^^^^^ SetVAlign. See: src/js/types/Actions.js:426
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  426:   | SetVAlign
+           ^^^^^^^^^ object type. See: src/js/types/Actions.js:426
+  Member 49:
+  427:   | LoginAttemptAction
+           ^^^^^^^^^^^^^^^^^^ LoginAttemptAction. See: src/js/types/Actions.js:427
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  427:   | LoginAttemptAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:427
+  Member 50:
+  428:   | LoginSuccessAction
+           ^^^^^^^^^^^^^^^^^^ LoginSuccessAction. See: src/js/types/Actions.js:428
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  428:   | LoginSuccessAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:428
+  Member 51:
+  429:   | APIEvaluateAction
+           ^^^^^^^^^^^^^^^^^ APIEvaluateAction. See: src/js/types/Actions.js:429
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  429:   | APIEvaluateAction
+           ^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:429
+  Member 52:
+  430:   | StartEditingAction
+           ^^^^^^^^^^^^^^^^^^ StartEditingAction. See: src/js/types/Actions.js:430
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  430:   | StartEditingAction
+           ^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:430
+  Member 53:
+  431:   | StopEditingAction
+           ^^^^^^^^^^^^^^^^^ StopEditingAction. See: src/js/types/Actions.js:431
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  431:   | StopEditingAction
+           ^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:431
+  Member 54:
+  432:   | ExpressionChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^ ExpressionChangedAction. See: src/js/types/Actions.js:432
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  432:   | ExpressionChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:432
+  Member 55:
+  433:   | EditorSelectionChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ EditorSelectionChangedAction. See: src/js/types/Actions.js:433
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  433:   | EditorSelectionChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:433
+  Member 56:
+  434:   | ReferenceToggledAction
+           ^^^^^^^^^^^^^^^^^^^^^^ ReferenceToggledAction. See: src/js/types/Actions.js:434
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  434:   | ReferenceToggledAction
+           ^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:434
+  Member 57:
+  435:   | HeaderToggledAction
+           ^^^^^^^^^^^^^^^^^^^ HeaderToggledAction. See: src/js/types/Actions.js:435
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  435:   | HeaderToggledAction
+           ^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:435
+  Member 58:
+  436:   | BottomPaneToggledAction
+           ^^^^^^^^^^^^^^^^^^^^^^^ BottomPaneToggledAction. See: src/js/types/Actions.js:436
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  436:   | BottomPaneToggledAction
+           ^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:436
+  Member 59:
+  437:   | RepaintSpreadsheetAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ RepaintSpreadsheetAction. See: src/js/types/Actions.js:437
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  437:   | RepaintSpreadsheetAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:437
+  Member 60:
+  438:   | FindBarVisibilityChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FindBarVisibilityChangedAction. See: src/js/types/Actions.js:438
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  438:   | FindBarVisibilityChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:438
+  Member 61:
+  439:   | FindModalVisibilityChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FindModalVisibilityChangedAction. See: src/js/types/Actions.js:439
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  439:   | FindModalVisibilityChangedAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:439
+  Member 62:
+  440:   | FocusedTextboxFullyAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ FocusedTextboxFullyAction. See: src/js/types/Actions.js:440
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  440:   | FocusedTextboxFullyAction
+           ^^^^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:440
+  Member 63:
+  441:   | HoveredAction
+           ^^^^^^^^^^^^^ HoveredAction. See: src/js/types/Actions.js:441
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  441:   | HoveredAction
+           ^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:441
+  Member 64:
+  442:   | GridScrollOffsetAction
+           ^^^^^^^^^^^^^^^^^^^^^^ GridScrollOffsetAction. See: src/js/types/Actions.js:442
+  Error:
+  102:     LogActionCreator.log(payload);
+                                ^^^^^^^ TPayload. This type is incompatible with
+  442:   | GridScrollOffsetAction
+           ^^^^^^^^^^^^^^^^^^^^^^ object type. See: src/js/types/Actions.js:442
+
+src/js/components/Login.jsx:15
+ 15: import CircularProgress from 'material-ui/lib/circular-progress';
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ material-ui/lib/circular-progress. Required module not found
+
+src/js/components/eval-header/EvalHeader.jsx:19
+ 19: import Tooltip from 'react-tooltip';
+            ^^^^^^^ import Tooltip from "react-tooltip". wrong number of type arguments (expected 1)
+
+src/js/components/toolbar/Toolbar.jsx:91
+ 91:         <LanguagePicker
+             ^ React element `LanguagePicker`
+ 21: import LanguagePicker from './LanguagePicker.jsx';
+            ^^^^^^^^^^^^^^ LanguagePicker. This type is incompatible with
+ 95: type _ReactClass<DefaultProps, Props, Config: $Diff<Props, DefaultProps>, C: React$Component<DefaultProps, Props, any>> = Class<C>;
+                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ React$Component. See: /tmp/flow/flowlib_24c4e68/react.js:95
+
+
+Found 10 errors

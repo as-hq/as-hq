@@ -3,6 +3,11 @@
 import type ASIndex from '../classes/ASIndex';
 import type ASRange from '../classes/ASRange';
 
+export type Offset = {
+  dX: number;
+  dY: number;
+}
+
 import type {
   ASExcelExecError
 } from './Errors';
@@ -152,7 +157,7 @@ export type Tracking = {
   contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
-export type BooleanCellTag = 'Bold' | 'Italic' | 'Underline' | 'Volatile' | 'Tracking';
+export type BooleanCellTag = 'Bold' | 'Italic' | 'Underline' | 'Volatile' | 'Tracking' | 'Strikethrough';
 
 export type Bloomberg = {
   tag: 'Bloomberg';

@@ -104,11 +104,22 @@ class ASRouter(BaseHTTPRequestHandler):
   # the route clients will use to request a backend instance to connect to 
   def do_GET(self):
     resp = random.choice(self.instances.values()).toJSON()
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    self.send_response(200)
+    self.send_header('instance', json.dumps(resp))
+=======
+>>>>>>> 5646e31... some flow errors
     print("Sending response to GET: " + json.dumps(resp))
     self.send_response(200)
     self.send_header('Access-Control-Allow-Origin', '*')
     self.end_headers()
     self.wfile.write(json.dumps(resp)) 
+<<<<<<< HEAD
+=======
+>>>>>>> master
+>>>>>>> 5646e31... some flow errors
 
   # the container spinup and spindown scripts will use to create and destroy instances
   def do_POST(self):

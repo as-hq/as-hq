@@ -39,12 +39,32 @@ type Props = {
   onKeyUp: Callback<SyntheticKeyboardEvent>;
   onFocus: Callback<SyntheticFocusEvent>;
   onMouseDown: Callback;
-  onMouseEnter: CallBack;
+  onMouseEnter: Callback;
 };
 
-export default class ASCodeField
-  extends React.Component<Props, Props, {}>
-{
+export default class ASCodeField extends React.Component {
+  static defaultProps: Props = {
+    name: shortid.generate(),
+    language : 'Python',
+
+    theme: 'monokai',
+    fontSize: 14,
+    showGutter: true,
+    readOnly: false,
+    highlightActiveLine: true,
+    showPrintMargin: true,
+    maxLines: null,
+    minLines: 1,
+
+    onKeyDown(evt) { },
+    onKeyUp(evt) { },
+    onFocus() { },
+    onMouseDown() { },
+    onMouseEnter() { },
+  }; 
+  props: Props;
+  state: {};
+
   editor: AERawClass;
 
   componentDidMount() {
@@ -52,12 +72,10 @@ export default class ASCodeField
     this.editor.$blockScrolling = Infinity;
     this._onPropsSet(this.props);
     this.editor.on('alphasheets-keydown', (e) => this.props.onKeyDown(e));
+    // $FlowFixMe ::ALEX::
     this.editor.container.addEventListener('mousedown', () => this.props.onMouseDown());
+    // $FlowFixMe ::ALEX::
     this.editor.container.addEventListener('mouseenter', () => this.props.onMouseEnter());
-  }
-
-  componentWillUnmount() {
-    Util.React.removeComponentListeners(this);
   }
 
   componentWillReceiveProps(nextProps: Props) {
@@ -79,8 +97,7 @@ export default class ASCodeField
       <div
         id={this.props.name}
         style={divStyle}
-        onKeyUp={e => this.props.onKeyUp(e)}
-      />
+        onKeyUp={e => this.props.onKeyUp(e)} />
     );
   }
 
@@ -102,22 +119,4 @@ export default class ASCodeField
   }
 }
 
-ASCodeField.defaultProps = {
-  name: shortid.generate(),
-  language : 'python',
-
-  theme: 'monokai',
-  fontSize: 14,
-  showGutter: true,
-  readOnly: false,
-  highlightActiveLine: true,
-  showPrintMargin: true,
-  maxLines: null,
-  minLines: 1,
-
-  onKeyDown(evt) { },
-  onKeyUp(evt) { },
-  onFocus() { },
-  onMouseDown() { },
-  onMouseEnter() { },
-};
+  

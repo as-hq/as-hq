@@ -1,5 +1,7 @@
 /* @flow */
 
+import React from 'react';
+
 import type ASIndex from '../classes/ASIndex';
 
 import type {
@@ -8,7 +10,7 @@ import type {
 
 export type ASOverlaySpec = {
   id: string;
-  renderElem: (style: Style) => ReactElement;
+  renderElem: (style: Style) => React.Element;
   imageWidth: number;
   imageHeight: number;
   dragOffsetLeft: number;

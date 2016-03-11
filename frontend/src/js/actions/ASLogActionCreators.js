@@ -1,6 +1,9 @@
 // @flow
 
-import type ASAction from '../types/ASAction';
+import type {
+	ASAction
+} from '../types/Actions';
+
 import ws from '../AS/PersistentWebSocket';
 import Constants from '../Constants';
 import shortid from 'shortid';

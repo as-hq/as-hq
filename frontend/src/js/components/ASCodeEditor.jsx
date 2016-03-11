@@ -4,6 +4,10 @@ import type {
   EditorSelection
 } from '../types/Editor';
 
+import type {
+  Callback
+} from '../types/Base';
+
 import type { StoreToken } from 'flux';
 
 import React from 'react';
@@ -18,7 +22,11 @@ import ExpressionActions from '../actions/ASExpressionActionCreators';
 import FocusActions from '../actions/ASFocusActionCreators';
 import {actions as Shortcuts} from '../AS/Shortcuts';
 
-class ASCodeEditor extends React.Component<{}, {}, {}> {
+class ASCodeEditor extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
+
   _expressionListener: StoreToken;
   _focusListener: StoreToken;
   _editor: any;

@@ -16,8 +16,15 @@ type DropdownMenuProps = {
   toolbarHeight: number;
 };
 
-export default class DropdownMenu
-  extends React.Component<DropdownMenuDefaultProps, DropdownMenuProps, {}> {
+export default class DropdownMenu extends React.Component {
+  static defaultProps: DropdownMenuDefaultProps = {
+    toolbarWidth: 100,
+    toolbarHeight: 36
+  };
+
+  props: DropdownMenuProps;
+  state: {};
+
 
   // TODO(joel) - don't recompute this every render. Move styles out of
   // component.
@@ -54,8 +61,3 @@ export default class DropdownMenu
     );
   }
 }
-
-DropdownMenu.defaultProps = {
-  toolbarWidth: 100,
-  toolbarHeight: 36,
-};

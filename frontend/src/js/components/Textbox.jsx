@@ -6,7 +6,9 @@ import type {
 } from '../types/Editor';
 
 import type { PXRectangle } from '../types/Render';
+import type { Callback } from '../types/Base';
 import type { StoreToken } from 'flux';
+import type ASIndex from '../classes/ASIndex';
 
 import React from 'react';
 
@@ -28,7 +30,11 @@ type Props = {
   getPixelCoordinates: (idx: ASIndex) => PXRectangle;
 };
 
-class Textbox extends React.Component<{}, Props, {}> {
+class Textbox extends React.Component {
+  static defaultProps = {};
+  props: Props;
+  state: {};
+
   _storeListener: StoreToken;
   _editor: any;
 

@@ -18,12 +18,13 @@ const StringUtils = {
 
   // returns length of a line in characters.
   getLineLength(text: string): number {
-    let length = 0;
-    for (var c in text) {
-      if (c === '\t') length += 4;
-      else length += 1;
-    }
-    return length;
+    return text.split('').map((char) => {
+      if (char === '\t') {
+        return 4;
+      } else {
+        return 1;
+      }
+    }).reduce((acc, cur) => acc + cur);
   },
 
   getSelectionLead({range, backwards}: EditorSelection): AEPoint {

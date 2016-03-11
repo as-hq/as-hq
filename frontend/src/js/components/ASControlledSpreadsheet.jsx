@@ -4,6 +4,8 @@
 import React from 'react';
 
 import ASSelection from '../classes/ASSelection';
+import ASPoint from '../classes/ASPoint';
+
 import Focusable from './transforms/Focusable.jsx';
 import HOPurify from './transforms/HOPurify.jsx';
 import ASSpreadsheet from './ASSpreadsheet.jsx';

@@ -17,7 +17,11 @@ import ASMenu from './ASMenu.jsx';
 
 import _Styles from '../../styles/menu-bar/ASMenuBar';
 
-export default class ASMenuBar extends React.Component<{}, ASMenuBarProps, ASMenuBarState> {
+export default class ASMenuBar extends React.Component {
+  static defaultProps = {}; 
+  props: ASMenuBarProps;
+  state: ASMenuBarState;
+
   constructor(props: ASMenuBarProps) {
     super(props);
 

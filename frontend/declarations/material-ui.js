@@ -1,5 +1,5 @@
 declare module 'material-ui' {
-  declare class Snackbar extends ReactComponent {
+  declare class Snackbar extends React$Component {
     show(): void;
     dismiss(): void;
   }
@@ -26,7 +26,7 @@ declare module 'material-ui' {
     floatingLabelText?: string;
     floatingLabelStyle?: {[key: string]: any};
     fullWidth?: boolean;
-    hintText?: string; //| ReactElement<any>;
+    hintText?: string; //| React$Element<any>;
     id?: string;
     inputStyle?: {[key: string]: any};
     multiLine?: boolean;
@@ -58,7 +58,7 @@ declare module 'material-ui' {
     text?: string;
     data?: string;
     payload?: string;
-    icon?: ReactElement;
+    icon?: React$Element;
     attribute?: string;
     number?: string;
     toggle?: boolean;
@@ -97,7 +97,7 @@ declare module 'material-ui' {
   }
 
   declare class DialogProps extends ReactProps<any> {
-    actions?: Array<DialogAction | ReactElement>;
+    actions?: Array<DialogAction | React$Element>;
     actionFocus?: string;
     autoDetectWindowHeight?: boolean;
     autoScrollBodyContent?: boolean;
@@ -143,25 +143,32 @@ declare module 'material-ui' {
     onRequestClose: () => void;
   }
 
-  declare class FontIcon extends ReactComponent<FontIconProps, FontIconProps, {}> {
+  declare class FontIcon extends React$Component {
+    props: FontIconProps;
   }
 
-  declare class Paper extends ReactComponent<PaperProps, PaperProps, {}> {
+  declare class Paper extends React$Component {
+    props: PaperProps;
   }
 
-  declare class TextField extends ReactComponent<TextFieldProps, TextFieldProps, {}> {
+  declare class TextField extends React$Component {
+    props: TextFieldProps;
   }
 
-  declare class DropDownMenu extends ReactComponent<DropDownMenuProps, DropDownMenuProps, {}> {
+  declare class DropDownMenu extends React$Component {
+    props: DropDownMenuProps;
   }
 
-  declare class Dialog extends ReactComponent<DialogProps, DialogProps, {}> {
+  declare class Dialog extends React$Component {
+    props: DialogProps;
   }
 
-  declare class FlatButton extends ReactComponent<FlatButtonProps, FlatButtonProps, {}> {
+  declare class FlatButton extends React$Component {
+    props: FlatButtonProps;
   }
 
-  declare class Popover extends ReactComponent<PopoverProps, PopoverProps, {}> {
+  declare class Popover extends React$Component {
+    props: PopoverProps;
   }
 
   declare var Styles: {
