@@ -10,12 +10,14 @@
 # - so you end up with a parent/build and parent/CODEBASE_DIR
 
 USE_SUDO=false
+PUSH_REMOTE=false
 
 while [[ $# -gt 0 ]]; do
   opt="$1"
   shift;
   case "$opt" in
-    "-p"|"--push"       ) BRANCH="$1"; shift;;
+    "-b"|"--branch"     ) BRANCH="$1"; shift;;
+    "-p"|"--push"       ) PUSH_REMOTE=true; shift;;
     "-s"|"--sudo"       ) USE_SUDO=true; shift;;
     *                   ) echo "ERROR: Invalid option: \""$opt"\"" >&2
                           exit 1;;
@@ -61,6 +63,9 @@ cd ..
 cp -r frontend/dist/* build/frontend/
 echo "frontend build finished."
 
+# frontend environment
+cp "frontend/src/js/Environment_$BRANCH.js" build/frontend/Environment.js
+
 # Haskell executable (use sudo if applicable, copy the executable to the build/server folder)
 cd backend/server
 if $USE_SUDO; then
@@ -70,6 +75,7 @@ else
 fi
 cd ../..
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server
+# backend environments are all the same, because they run on docker
 cp backend/Environment_docker.json build/Environment.json
 echo "backend build finished."
 
@@ -118,7 +124,7 @@ rm -rf build
 cd ..
 
 ## push to remote
-if [ -n "$BRANCH" ]; then
+if $PUSH_REMOTE; then
   echo "pushing to remote branch: $BRANCH"
   NOW=$(date +"%c")
   cd build
