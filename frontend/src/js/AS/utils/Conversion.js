@@ -27,6 +27,10 @@ import type {
   ServerAction
 } from '../../types/Messages';
 
+import type {
+  UpdateTemplate
+} from '../../types/Updates';
+
 import Location from './Location';
 
 import ASIndex from '../../classes/ASIndex';
@@ -136,6 +140,10 @@ let CU = {
         return [];
       }
     }
+  },
+
+  updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
+    return update.newVals.length == 0 && update.oldKeys.length == 0;
   },
 
   /**************************************************************************************************************************/

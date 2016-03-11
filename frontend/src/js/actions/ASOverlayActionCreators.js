@@ -29,6 +29,6 @@ export default {
   	 _type: 'OVERLAY_DELETED',
   	  overlay
   	});
-  }
+  },
 
 }

@@ -34,17 +34,30 @@ const ASBarStore = Object.assign({}, BaseStore, {
   /* This function describes the actions of the ASBarStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
+
+      case 'SHEET_UPDATED':
+        const {update: {barUpdates}} = action;
+
+        if (! Util.Conversion.updateIsEmpty(barUpdates)) {
+          // #needsrefactor some code repetition with GOT_UPDATED_BARS.
+          const {oldKeys: oldBarLocs, newVals: newBars} = barUpdates.oldKeys;
+
+          _data.lastUpdatedBars = [];
+          ASBarStore._removeBarsAt(oldBarLocs);
+          ASBarStore._updateBars(newBars);
+          ASBarStore.emitChange();
+        }
+        break;
+
       case 'GOT_UPDATED_BARS':
+        const {oldBarLocs, newBars} = action;
+
         _data.lastUpdatedBars = [];
-
-        let oldBarLocs = action.oldBarLocs;
         ASBarStore._removeBarsAt(oldBarLocs);
-
-        let newBars = action.newBars;
         ASBarStore._updateBars(newBars);
-
         ASBarStore.emitChange();
         break;
+
       case 'RESET':
         _data.bars = new ObjectDict();
         _data.lastUpdatedBars = [];

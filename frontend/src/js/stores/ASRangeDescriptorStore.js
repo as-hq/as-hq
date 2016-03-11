@@ -33,11 +33,14 @@ const ASRangeDescriptorStore = Object.assign({}, BaseStore, {
       case 'RESET':
         _data.rangeDescriptors = new ObjectDict();
         break;
-        
-      case 'GOT_UPDATED_RANGE_DESCRIPTORS':
-        ASRangeDescriptorStore._removeRangeDescriptorsAt(action.oldRangeKeys);
-        ASRangeDescriptorStore._updateRangeDescriptors(action.newRangeDescriptors);
-        ASRangeDescriptorStore.emitChange();
+
+      case 'SHEET_UPDATED':
+        const {update: {descriptorUpdates}} = action;
+        if (! U.Conversion.updateIsEmpty(descriptorUpdates)) {
+          ASRangeDescriptorStore._removeRangeDescriptorsAt(descriptorUpdates.oldKeys);
+          ASRangeDescriptorStore._updateRangeDescriptors(descriptorUpdates.newVals);
+          ASRangeDescriptorStore.emitChange();
+        }
         break;
     }
   }),

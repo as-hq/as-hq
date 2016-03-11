@@ -98,6 +98,7 @@ class ExpressionStore extends ReduceStore<State> {
         return state.set('selection', action.selection);
       }
 
+      case 'SHEET_UPDATED':
       case 'GOT_UPDATED_CELLS': {
         this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
 

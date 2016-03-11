@@ -112,6 +112,18 @@ class ASCellStore extends ReduceStore<CellStoreData> {
 
   reduce(state: CellStoreData, action: ASAction): CellStoreData {
     switch (action._type) {
+
+      case 'SHEET_UPDATED': {
+        const {update: {cellUpdates}} = action;
+
+        if (! U.Conversion.updateIsEmpty(cellUpdates)) {
+          const newCells =  ASCell.makeCells(cellUpdates.newVals);
+          const oldLocs = U.Location.makeLocations(cellUpdates.oldKeys);
+          return updateCells(state, newCells, oldLocs);
+        }
+        return state;
+      }
+
       case 'GOT_UPDATED_CELLS': {
         // Wait for range descriptors to be updated.
         Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
@@ -212,6 +224,13 @@ class ASCellStore extends ReduceStore<CellStoreData> {
       ? data.getIn(['allCells', loc.sheetId, loc.col, loc.row])
       : null;
   }
+
+  getAllCells(sheetId: string): Array<ASCell> {
+    const sheet = this.getState().allCells.get(sheetId);
+    const grid = sheet.toArray().map(r => r.toArray());
+    return [].concat(...grid);
+  }
+
 }
 
 function unsetErrors(data: CellStoreData, cell: ASCell) {

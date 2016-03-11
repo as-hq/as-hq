@@ -6,7 +6,6 @@ import type {
   SheetUpdate,
   CondFormatRuleUpdate,
   Update,
-  UpdateTemplate
 } from '../types/Updates';
 
 import type {
@@ -20,15 +19,11 @@ import SheetStateStore from '../stores/ASSheetStateStore';
 
 export default {
   updateSheet(update: SheetUpdate) {
-    setSheetData(update);
-  },
-
-  resetData(update: SheetUpdate) {
     Dispatcher.dispatch({
-      _type: 'CLEARED_SHEET',
-      sheetId: SheetStateStore.getCurrentSheetId()
+      _type: 'SHEET_UPDATED',
+      sheetId: SheetStateStore.getCurrentSheetId(),
+      update
     });
-    setSheetData(update);
   },
 
   clearSheet(sheetId: string) {
@@ -52,48 +47,4 @@ export default {
     });
   },
 
-}
-
-// *****************************************************************
-// helpers
-
-function updateIsEmpty(update: UpdateTemplate) { // same problems as makeServerMessage
-  return update.newVals.length == 0 && update.oldKeys.length == 0;
-}
-
-function setSheetData(update: SheetUpdate) {
-  if (!updateIsEmpty(update.descriptorUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RANGE_DESCRIPTORS',
-      newRangeDescriptors: update.descriptorUpdates.newVals,
-      oldRangeKeys: update.descriptorUpdates.oldKeys
-    });
-  }
-
-  if (!updateIsEmpty(update.cellUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_CELLS',
-      newCells: ASCell.makeCells(update.cellUpdates.newVals),
-      oldLocs: U.Location.makeLocations(update.cellUpdates.oldKeys)
-    });
-  }
-
-  if (!updateIsEmpty(update.barUpdates)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_BARS',
-      newBars: update.barUpdates.newVals,
-      oldBarLocs: update.barUpdates.oldKeys
-    });
-  }
-
-  if (!updateIsEmpty(update.condFormatRuleUpdate)) {
-    Dispatcher.dispatch({
-      _type: 'GOT_UPDATED_RULES',
-      newRules:
-        update.condFormatRuleUpdate.newVals.map(
-          (r) => new ASCondFormatRule(r)
-        ),
-      oldRuleIds: update.condFormatRuleUpdate.oldKeys,
-    });
-  }
 }

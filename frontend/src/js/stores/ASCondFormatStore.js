@@ -22,11 +22,27 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
   /* This function describes the actions of the ASReplStore upon recieving a message from Dispatcher */
   dispatcherIndex: Dispatcher.register(function (action) {
     switch (action._type) {
+
+      case 'SHEET_UPDATED':
+        const {update: {condFormatRuleUpdate}} = action;
+
+        if (! Util.Conversion.updateIsEmpty(condFormatRuleUpdate)) {
+          const oldRuleIds = condFormatRuleUpdate.oldKeys;
+          const newRules = condFormatRuleUpdate.newVals.map(
+            (r) => new ASCondFormatRule(r)
+          );
+          ASCondFormatStore._deleteRules(oldRuleIds);
+          ASCondFormatStore._updateRules(newRules);
+          ASCondFormatStore.emitChange();
+        }
+        break;
+
       case 'GOT_UPDATED_RULES':
         ASCondFormatStore._deleteRules(action.oldRuleIds);
         ASCondFormatStore._updateRules(action.newRules);
         ASCondFormatStore.emitChange();
         break;
+
       case 'RESET':
         _data.rules = [];
         break;

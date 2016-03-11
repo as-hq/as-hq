@@ -236,19 +236,12 @@ pws.whenReady(() => {
     fulfillCallbacks(msg);
 
     switch (action.tag) {
-      // case 'New':
-      //   if (action.payload.tag === "PayloadWorkbookSheets") {
-      //     Dispatcher.dispatch({
-      //       _type: 'GOT_NEW_WORKBOOKS',
-      //       workbooks: action.payload.contents
-      //     });
-      //   }
-      //   break;
       case 'NoAction':
         break;
       case 'SetSheetData':
         SheetActions.changeSheet(action.updateSheetId);
-        SheetActions.resetData(action.update);
+        SheetActions.clearSheet(action.updateSheetId);
+        SheetActions.updateSheet(action.update);
         HeaderActions.resetData(action.headers);
         break;
       case 'UpdateSheet':
