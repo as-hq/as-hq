@@ -86,7 +86,11 @@ main = alphaMain $ do
   -- let conn = state^.dbConn
   --     graphAddress = state^.appSettings.graphDbAddress
   -- commit <- DT.undo graphAddress conn (CommitSource "BENCH_ID" "BENCH_ID")
-  let cells1 = testCellsWithExpression (\i -> Expression "=1+1" Excel) 1 [1]
-      cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
-  x <- eval (cells1++cells2) emptyCtx
+  --let cells1 = testCellsWithExpression (\i -> Expression "=1+1" Excel) 1 [1]
+  --    cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
+  --x <- eval (cells1++cells2) emptyCtx
+  let cells1 = testCellsWithExpression (\i -> Expression "111111111111111111111+111111111111111111111" Python) 1 [1..10000]
+  x <- eval cells1 emptyCtx
+
+
   evaluate $ rnf x
