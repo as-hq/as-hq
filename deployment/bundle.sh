@@ -5,6 +5,10 @@
 # It makes the Haskell, C++, and Python executables for backend servers
 # It pushes to the alphasheets-builds repo if -p is passed (-s for using sudo for stack)
 
+# Directory structure:
+# - this script creates a temporary build folder in the root directory, then copies it to the parent.
+# - so you end up with a parent/build and parent/CODEBASE_DIR
+
 USE_SUDO=false
 
 while [[ $# -gt 0 ]]; do
@@ -32,7 +36,7 @@ fi
 
 ## prepare destination, match the current directory structure of codebase
 echo "preparing directories..."
-rm -rf build
+rm -rf build ../build
 mkdir build
 cd build
 git init
@@ -104,13 +108,6 @@ rm -rf backend/server/static/file-input-handler.spec
 ###### deployment materials
 # copy deployment materials
 cp -r deployment build/
-# build dashboard
-cd build/deployment/dashboard
-npm run dist
-cd ..
-cp -r dashboard/dist ./
-rm -rf dashboard
-mv dist dashboard
 # build router
 pyinstaller router.py
 rm router.spec
@@ -132,4 +129,5 @@ fi
 
 # Remove the created builds folder from the root directory
 cd ..
+cp -r build ../
 rm -rf build
