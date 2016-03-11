@@ -17,6 +17,7 @@ import MoreFormatDropdown from './MoreFormatDropdown.jsx';
 import FontPicker from './FontPicker.jsx';
 import FontSizePicker from './FontSizePicker.jsx';
 import LanguagePicker from './LanguagePicker.jsx';
+import Separator from './Separator.jsx';
 import ColorPicker from './ColorPicker.jsx';
 import HAlignPicker from './HAlignPicker.jsx';
 import VAlignPicker from './VAlignPicker.jsx';
@@ -43,12 +44,6 @@ function isActiveProp(tag: string, cell: ?ASCellObject) {
 
   return false;
 }
-
-
-function Separator() {
-  return <div style={styles.separatorStyle} />;
-}
-
 
 export default class ASToolbar
   extends React.Component<DefaultProps, Props, {}> {
@@ -77,8 +72,7 @@ export default class ASToolbar
           display: 'inline-block',
           marginLeft: 60,
           position: 'relative',
-        }}
-      />
+        }} />
     );
     const activeButton = ToolbarStore.getActiveMenuItem();
     const cell = CellStore.getActiveCell();
@@ -86,7 +80,7 @@ export default class ASToolbar
     // Currently not supporting horizontal or vertical alignment (Ritesh 3/4)
     return (
       <div
-        style={styles.toolbarStyle}
+        style={style}
         className="toolbar"
       >
 
@@ -101,23 +95,19 @@ export default class ASToolbar
         <ToolbarButton
           iconName="print"
           tooltip="Print (Ctrl+P)"
-          onClick={() => ToolbarActionCreators.print()}
-        />
+          onClick={() => ToolbarActionCreators.print()} />
         <ToolbarButton
           iconName="undo"
           tooltip="Undo (Ctrl+Z)"
-          onClick={() => {ToolbarActionCreators.undo();}}
-        />
+          onClick={() => {ToolbarActionCreators.undo();}} />
         <ToolbarButton
           iconName="redo"
           tooltip="Redo (Ctrl+Y)"
-          onClick={() => {ToolbarActionCreators.redo();}}
-        />
+          onClick={() => {ToolbarActionCreators.redo();}} />
         <ToolbarButton
           iconName="format_paint"
           tooltip="Paint format"
-          onClick={() => {ToolbarActionCreators.paintFormat();}}
-        />
+          onClick={() => {ToolbarActionCreators.paintFormat();}} />
 
         <Separator />
 
@@ -125,40 +115,35 @@ export default class ASToolbar
           propTag="Money"
           tooltip="Format as currency"
           iconName="attach_money"
-          onClick={() => ToolbarActionCreators.formatAs('Money')}
-        />
+          onClick={() => ToolbarActionCreators.formatAs('Money')} />
         <ToolbarButton
           propTag="Percentage"
           tooltip="Format as percent"
           iconName="create"
-          onClick={() => ToolbarActionCreators.formatAs('Percentage')}
-        />
+          onClick={() => ToolbarActionCreators.formatAs('Percentage')} />
         <ToolbarButton
           iconName="zoom_out"
           tooltip="Decrease decimal places"
-          onClick={() => {ToolbarActionCreators.handleDecimalChange(-1);}}
-        />
+          onClick={() => {ToolbarActionCreators.handleDecimalChange(-1);}} />
         <ToolbarButton
           iconName="zoom_in"
           tooltip="Increase decimal places"
-          onClick={() => {ToolbarActionCreators.handleDecimalChange(1);}}
-        />
-
+          onClick={() => {ToolbarActionCreators.handleDecimalChange(1);}} />
         <MoreFormatDropdown
-          visible={activeButton === 'MoreFormat'}
-        />
+          visible={activeButton === 'MoreFormat'} />
 
         <Separator />
+
         <FontPicker
           visible={activeButton === 'FontPicker'}
-          value={'Arial'}
-        />
+          value={'Arial'} />
 
         <Separator />
+
         <FontSizePicker
           visible={activeButton === 'FontSizePicker'}
-          value={'10'}
-        />
+          value={'10'} />
+
         <Separator />
 
         <ToolbarButton
@@ -167,23 +152,20 @@ export default class ASToolbar
           tooltip="Bold (Ctrl+B)"
           iconName="format_bold"
           active={isActiveProp('Bold', cell)}
-          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Bold')}
-        />
+          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Bold')} />
         <ToolbarButton
           propTag="Italic"
           tooltip="Italic (Ctrl+I)"
           iconName="format_italic"
           active={isActiveProp('Italic', cell)}
-          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Italic')}
-        />
+          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Italic')} />
         <ToolbarButton
           propTag="Strikethrough"
           tooltip="Strikethrough (Alt+Shift+5)"
           iconName="strikethrough_s"
           active={isActiveProp('Strikethrough', cell)}
           // TODO(joel) Make strikethrough cell prop!
-          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Strikethrough')}
-        />
+          onClick={() => ToolbarActionCreators.toggleBooleanCellTag('Strikethrough')} />
 
         <ColorPicker
           propTag="TextColor"
@@ -193,8 +175,7 @@ export default class ASToolbar
           value={'#212121'}
           onSelect={color => ToolbarActionCreators.setColor('TextColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('TextColor')}
-          onClose={() => ToolbarActionCreators.closeItem('TextColor')}
-        />
+          onClose={() => ToolbarActionCreators.closeItem('TextColor')} />
 
         <Separator />
 
@@ -206,8 +187,7 @@ export default class ASToolbar
           value={'#ffffff'}
           onSelect={color => ToolbarActionCreators.setColor('FillColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('FillColor')}
-          onClose={() => ToolbarActionCreators.closeItem('FillColor')}
-        />
+          onClose={() => ToolbarActionCreators.closeItem('FillColor')} />
         <ColorPicker
           propTag="BorderColor"
           iconName="border_color"
@@ -216,31 +196,26 @@ export default class ASToolbar
           value={'#0062b1'}
           onSelect={color => ToolbarActionCreators.setColor('BorderColor', '#' + color.hex)}
           onOpen={() => ToolbarActionCreators.openItem('BorderColor')}
-          onClose={() => ToolbarActionCreators.closeItem('BorderColor')}
-        />
+          onClose={() => ToolbarActionCreators.closeItem('BorderColor')} />
 
         <Separator />
 
         <ToolbarButton
           iconName="link"
           tooltip="Insert link (Ctrl+K)"
-          onClick={() => {}}
-        />
+          onClick={() => {}} />
         <ToolbarButton
           iconName="comment"
           tooltip="Insert comment (Ctrl+Alt+M)"
-          onClick={() => {}}
-        />
+          onClick={() => {}} />
         <ToolbarButton
           iconName="poll"
           tooltip="Insert chart..."
-          onClick={() => {}}
-        />
+          onClick={() => {}} />
         <ToolbarButton
           iconName="functions"
           tooltip="Functions"
-          onClick={(e, state) => {window.open('http://alphasheets.com');}}
-        />
+          onClick={(e, state) => {window.open('http://alphasheets.com');}} />
 
       </div>
     );
@@ -257,25 +232,11 @@ ASToolbar.propTypes = {
 };
 
 
-const styles = {
   // Because we're using inline-block, the height should all be the same for the elements on the toolbar, otherwise things
   // screw up because CSS. This is a reasonable restriction anyway, so I'm not debugging it further (Ritesh 12/17)
-  toolbarStyle: {
-    backgroundColor: '#333333',
-    width: '100%',
-    position: 'relative',
-    height: 50, // TODO(joel) this.props.toolbarHeight // height of toolbar
-  },
-  // Used to create a separating element between parts of toolbar
-  // There is a ToolbarSeparator in material-ui but it didn't quite fit the bill; a simple div we control is better
-  separatorStyle: {
-    display: 'inline-block',
-    height: 50, // TODO(joel) this.props.toolbarHeight,
-    marginLeft: 10, // equal separation distance on both sides
-    marginRight: 10,
-    backgroundColor: '#202020',
-    boxShadow: '0px 0px 1px 0px rgba(255, 255, 255, 0.35)',
-    verticalAlign: 'top', // we want the separator to span the height of the whole pane
-    width: 2,
-  },
+const style = {
+  backgroundColor: '#333333',
+  width: '100%',
+  position: 'relative',
+  height: 50 // TODO(joel) this.props.toolbarHeight // height of toolbar
 };

@@ -1,6 +1,7 @@
 /* @flow */
 
 import React from 'react';
+import shallowCompare from 'react-addons-shallow-compare';
 
 import ToolbarTextField from './ToolbarTextField.jsx';
 import GenerateToolbarMenu from './GenerateToolbarMenu.jsx';
@@ -44,29 +45,34 @@ const menuProps: Array<MenuProps> = languages.map(({name, shortcut}) => ({
 
 const ButtonWithMenu = GenerateToolbarMenu(ToolbarTextField);
 
-export default function LanguagePicker(
-  props: LanguagePickerProps
-): React.Element {
-  const {language, visible} = props;
-  const toolbarControlProps = {
-    displayValue: language,
-    tooltip: 'Languages',
-    showTooltip: true,
-    width: 85,
-  };
+export default class LanguagePicker
+  extends React.Component<{}, LanguagePickerProps, {}> {
 
-  return (
-    <ButtonWithMenu
-      menuShouldCheckSelections={false}
-      toolbarControlProps={toolbarControlProps}
-      menuProps={menuProps}
-      menuWidth={165}
-      toolbarControlWidth={85}
-      visible={visible}
-      value={language}
-      onSelect={lang => ExpressionActions.setLanguage(lang)}
-      onOpen={() => ToolbarActionCreators.openItem('LanguagePicker')}
-      onClose={() => ToolbarActionCreators.closeItem('LanguagePicker')}
-    />
-  );
+  shouldComponentUpdate(nextProps: LanguagePickerProps, nextState: {}): boolean { 
+    return shallowCompare(this, nextProps, nextState);
+  }
+
+  render(): React.Element {
+    const {language, visible} = this.props;
+    const toolbarControlProps = {
+      displayValue: language,
+      tooltip: 'Languages',
+      showTooltip: true,
+      width: 85,
+    };
+
+    return (
+      <ButtonWithMenu
+        menuShouldCheckSelections={false}
+        toolbarControlProps={toolbarControlProps}
+        menuProps={menuProps}
+        menuWidth={165}
+        toolbarControlWidth={85}
+        visible={visible}
+        value={language}
+        onSelect={lang => ExpressionActions.setLanguage(lang)}
+        onOpen={() => ToolbarActionCreators.openItem('LanguagePicker')}
+        onClose={() => ToolbarActionCreators.closeItem('LanguagePicker')} />
+    );
+  }
 }
