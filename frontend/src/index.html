@@ -91,6 +91,28 @@
   </script>
 </head>
 
+<!--Start of HappyFox Live Chat Script-->
+<script>
+ window.HFCHAT_CONFIG = {
+     EMBED_TOKEN: "963a4590-e71c-11e5-a1ca-2f1c4bba762c",
+     ACCESS_TOKEN: "ca11d2406c134a41b457420794ef2965",
+     HOST_URL: "https://happyfoxchat.com",
+     ASSETS_URL: "https://d1l7z5ofrj6ab8.cloudfront.net/visitor"
+ };
+
+(function() {
+  var scriptTag = document.createElement('script');
+  scriptTag.type = 'text/javascript';
+  scriptTag.async = true;
+  scriptTag.src = 'redist/happyfoxchat.min.js';
+
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(scriptTag, s);
+})();
+</script>
+<!--End of HappyFox Live Chat Script-->
+
+
 <body>
 
   <div id="main" class="full">
