@@ -149,10 +149,10 @@ let refreshDialogShown: boolean = false;
 
 /**************************************************************************************************************************/
 /*
-  Initialize remote URLs from router.
+  Initialize remote URL.
 */
 
-if (Constants.isRemote) {
+if (Constants.isRemote && !Constants.noRouter) {
   const xhr = new XMLHttpRequest();
   xhr.onload = () => {
     if (xhr.status === 200) {
