@@ -24,7 +24,7 @@ const StringUtils = {
       } else {
         return 1;
       }
-    }).reduce((acc, cur) => acc + cur);
+    }).reduce((acc, cur) => acc + cur, 0);
   },
 
   getSelectionLead({range, backwards}: EditorSelection): AEPoint {

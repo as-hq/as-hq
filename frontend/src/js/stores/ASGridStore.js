@@ -21,7 +21,7 @@ import SheetStateStore from './ASSheetStateStore';
 import ExpressionStore from './ASExpressionStore';
 
 // #flowlens
-type State = any; 
+type State = any;
 const StateRecord = Immutable.Record({
   activeSelection: null,
   lastActiveSelection: null,
@@ -55,7 +55,7 @@ class GridStore extends ReduceStore<State> {
       case 'EXPRESSION_CHANGED':
       case 'REPAINT_SPREADSHEET': {
         document.dispatchEvent(
-          document.createEvent('grid-repaint') // used to be (new CustomEvent('grid-repaint'))
+          new CustomEvent('grid-repaint')
         );
         return state;
       }

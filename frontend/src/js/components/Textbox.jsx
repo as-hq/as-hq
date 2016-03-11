@@ -140,7 +140,7 @@ class Textbox extends React.Component {
 }
 
 const name = 'textbox';
-const fontWidth = 8;
+const fontWidth = 9.4;
 
 export default Focusable(Textbox, {
   name,

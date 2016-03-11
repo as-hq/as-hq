@@ -22,7 +22,7 @@ const GridActions = {
 
   repaint() {
     document.dispatchEvent(
-      document.createEvent('grid-repaint')
+      new CustomEvent('grid-repaint')
     );
   },
 
