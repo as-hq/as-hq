@@ -57,6 +57,7 @@ import type {
 } from '../types/State';
 
 import shortid from 'shortid';
+import invariant from 'invariant';
 
 import {logDebug} from '../AS/Logger';
 
@@ -84,10 +85,12 @@ import LoginActions from '../actions/ASLoginActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 
-let ActionTypes = Constants.ActionTypes;
-let pws = require('./PWSInstance').pws;
+import pws from '../AS/PWSInstance';
+
 
 /**************************************************************************************************************************/
+
+const { ActionTypes } = Constants;
 
 /*
   This action creator class serves two purposes
@@ -144,210 +147,240 @@ function rejectCallbacks(msg: ClientMessage | ServerMessage) {
 
 let refreshDialogShown: boolean = false;
 
+/**************************************************************************************************************************/
+/*
+  Initialize remote URLs from router.
+*/
+
+if (Constants.isRemote) {
+  const xhr = new XMLHttpRequest();
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      const { fileinput_port, backend_port, static_port } = JSON.parse(xhr.responseText);
+      Constants.BACKEND_WS_PORT = backend_port;
+      Constants.BACKEND_IMPORT_PORT = fileinput_port;
+      Constants.BACKEND_STATIC_PORT = static_port;
+
+      console.log(fileinput_port, backend_port, static_port);
+
+      const url = Constants.getBackendUrl('ws', backend_port);
+      pws.begin(url);
+    } else {
+      invariant(false, 'Did not receive valid response from router!');
+    }
+  }
+  xhr.open('GET', Constants.getRouterUrl(), true);
+  xhr.send();
+} else {
+  const url = Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT);
+  pws.begin(url);
+}
 
 /**************************************************************************************************************************/
 /*
   Set PersistentWebSocket callbacks.
 */
 
-pws.ondisconnect = () => {
-  window.isLoggedIn = false;
-  ConfigActions.setConnectedState(false);
-  LoginActions.relogin();
-  // Give up on progress on disconnect.
-  // https://app.asana.com/0/47051356043702/84248459839482
-  ProgressActions.markAllReceived();
-};
-
-pws.onreconnect = () => {
-  ConfigActions.setConnectedState(true);
-  API.openSheet();
-};
-
-pws.onmessage = (event: MessageEvent) => {
-  if (event.data instanceof Blob) {
-    logDebug("Received binary data from server.");
-    let fName = SheetStateStore.getCurrentSheetId() + ".as";
-    // #anand event.data typecasts to Blob, because we already checked the instance above
-    // and flow doesn't understand that event.data is type DOMString | Blob | ...
-    let f = U.File.blobToFile(((event.data: any): Blob), fName);
-    U.File.promptSave(f);
-
-    return;
-  }
-
-  const msg: ClientMessage = JSON.parse(event.data);
-  const {clientAction: action} = msg;
-
-  ProgressActions.markReceived(msg.messageId);
-  NotificationActions.dismissNotification(msg.messageId);
-
-  if (action.tag === "ShowFailureMessage") {
-    Dispatcher.dispatch({
-      _type: 'GOT_FAILURE',
-      errorMsg: action.contents
-    });
-
-    // Clear all progress indicators if we received an Error message.
-    // We currently don't have ASExecErrors tied to cells, so there's
-    // currently no way to know what to clear.
-    // https://app.asana.com/0/47051356043702/84248459839477
+pws.whenReady(() => {
+  pws.ondisconnect = () => {
+    window.isLoggedIn = false;
+    ConfigActions.setConnectedState(false);
+    LoginActions.relogin();
+    // Give up on progress on disconnect.
+    // https://app.asana.com/0/47051356043702/84248459839482
     ProgressActions.markAllReceived();
+  };
 
-    logDebug('Fulfilling due to server failure');
-    fulfillCallbacks(msg);
+  pws.onreconnect = () => {
+    ConfigActions.setConnectedState(true);
+    API.openSheet();
+  };
 
-    return;
-  }
+  pws.onmessage = (event: MessageEvent) => {
+    if (event.data instanceof Blob) {
+      logDebug("Received binary data from server.");
+      let fName = SheetStateStore.getCurrentSheetId() + ".as";
+      // #anand event.data typecasts to Blob, because we already checked the instance above
+      // and flow doesn't understand that event.data is type DOMString | Blob | ...
+      let f = U.File.blobToFile(((event.data: any): Blob), fName);
+      U.File.promptSave(f);
 
-  logDebug('Fulfilled server message normally');
-  fulfillCallbacks(msg);
+      return;
+    }
 
-  switch (action.tag) {
-    // case 'New':
-    //   if (action.payload.tag === "PayloadWorkbookSheets") {
-    //     Dispatcher.dispatch({
-    //       _type: 'GOT_NEW_WORKBOOKS',
-    //       workbooks: action.payload.contents
-    //     });
-    //   }
-    //   break;
-    case 'NoAction':
-      break;
-    case 'SetSheetData':
-      SheetActions.changeSheet(action.updateSheetId);
-      SheetActions.resetData(action.update);
-      HeaderActions.resetData(action.headers);
-      break;
-    case 'UpdateSheet':
-      SheetActions.updateSheet(action.contents);
-      break;
-    case 'ClearSheet':
-      SheetActions.clearSheet(action.contents);
-      break;
-    case 'SetMySheets':
-      SheetActions.setMySheets(action.contents);
-      break;
-    case 'AskDecouple':
-      // #needsrefactor should use notification; currently sticking with alert box because
-      // it automatically takes the focus, which is better UX. (Can be implemented with notifications
-      // but not super-high priority at the moment.)
-      const shouldDecouple = API.isTesting || window.confirm("You're about to decouple cells. Are you sure?");
-      if (shouldDecouple) {
-        API.decouple();
-      }
-      // Disabled because dialog is actually better UX right now, and it's faster to do that than
-      // deal with focus.
-      // NotificationActions.addNotification({
-      //   title: "You're about to decouple cells.",
-      //   message: 'Are you sure?',
-      //   level: 'warning',
-      //   position: 'tc',
-      //   action: {
-      //     label: 'OK',
-      //     callback: () => API.decouple()
-      //   }
-      // });
+    const msg: ClientMessage = JSON.parse(event.data);
+    const {clientAction: action} = msg;
 
-      // Clear all progress indicators if we received a Decouple message.
-      // The messageId sent for
-      // evaluation and the id after received after decoupling are not the same,
-      // and cannot be reconciled. The current workaround is to clear all progress
-      // upon receiving a Decouple message.
+    ProgressActions.markReceived(msg.messageId);
+    NotificationActions.dismissNotification(msg.messageId);
+
+    if (action.tag === "ShowFailureMessage") {
+      Dispatcher.dispatch({
+        _type: 'GOT_FAILURE',
+        errorMsg: action.contents
+      });
+
+      // Clear all progress indicators if we received an Error message.
+      // We currently don't have ASExecErrors tied to cells, so there's
+      // currently no way to know what to clear.
       // https://app.asana.com/0/47051356043702/84248459839477
       ProgressActions.markAllReceived();
-      break;
-    case 'AskTimeout':
-      const {serverActionType, timeoutMessageId} = action;
-      if (Constants.UntimedActions.includes(serverActionType)) {
-        // We don't track the progress of these actions.
-        break;
-      }
 
-      // reconcile the timing out messageId with its locations, using ProgressStore
-      const metadata = ProgressStore.get(timeoutMessageId);
-      if (!! metadata) {
-        const locStr = metadata
-                        .locations
-                        .map((loc) => loc.toExcel().toString())
-                        .join(', ')
+      logDebug('Fulfilling due to server failure');
+      fulfillCallbacks(msg);
+
+      return;
+    }
+
+    logDebug('Fulfilled server message normally');
+    fulfillCallbacks(msg);
+
+    switch (action.tag) {
+      // case 'New':
+      //   if (action.payload.tag === "PayloadWorkbookSheets") {
+      //     Dispatcher.dispatch({
+      //       _type: 'GOT_NEW_WORKBOOKS',
+      //       workbooks: action.payload.contents
+      //     });
+      //   }
+      //   break;
+      case 'NoAction':
+        break;
+      case 'SetSheetData':
+        SheetActions.changeSheet(action.updateSheetId);
+        SheetActions.resetData(action.update);
+        HeaderActions.resetData(action.headers);
+        break;
+      case 'UpdateSheet':
+        SheetActions.updateSheet(action.contents);
+        break;
+      case 'ClearSheet':
+        SheetActions.clearSheet(action.contents);
+        break;
+      case 'SetMySheets':
+        SheetActions.setMySheets(action.contents);
+        break;
+      case 'AskDecouple':
+        // #needsrefactor should use notification; currently sticking with alert box because
+        // it automatically takes the focus, which is better UX. (Can be implemented with notifications
+        // but not super-high priority at the moment.)
+        const shouldDecouple = API.isTesting || window.confirm("You're about to decouple cells. Are you sure?");
+        if (shouldDecouple) {
+          API.decouple();
+        }
+        // Disabled because dialog is actually better UX right now, and it's faster to do that than
+        // deal with focus.
+        // NotificationActions.addNotification({
+        //   title: "You're about to decouple cells.",
+        //   message: 'Are you sure?',
+        //   level: 'warning',
+        //   position: 'tc',
+        //   action: {
+        //     label: 'OK',
+        //     callback: () => API.decouple()
+        //   }
+        // });
+
+        // Clear all progress indicators if we received a Decouple message.
+        // The messageId sent for
+        // evaluation and the id after received after decoupling are not the same,
+        // and cannot be reconciled. The current workaround is to clear all progress
+        // upon receiving a Decouple message.
+        // https://app.asana.com/0/47051356043702/84248459839477
+        ProgressActions.markAllReceived();
+        break;
+      case 'AskTimeout':
+        const {serverActionType, timeoutMessageId} = action;
+        if (Constants.UntimedActions.includes(serverActionType)) {
+          // We don't track the progress of these actions.
+          break;
+        }
+
+        // reconcile the timing out messageId with its locations, using ProgressStore
+        const metadata = ProgressStore.get(timeoutMessageId);
+        if (!! metadata) {
+          const locStr = metadata
+                          .locations
+                          .map((loc) => loc.toExcel().toString())
+                          .join(', ')
+          NotificationActions.addNotification({
+            uid: timeoutMessageId,
+            title: 'Cancel operation',
+            message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
+            level: 'warning',
+            action: {
+              label: 'OK',
+              callback: () => API.timeout(timeoutMessageId)
+            }
+          });
+        }
+        break;
+      case 'AskOpenSheet':
         NotificationActions.addNotification({
-          uid: timeoutMessageId,
-          title: 'Cancel operation',
-          message: `The operation ${serverActionType} at ${locStr} is still running. Cancel?`,
-          level: 'warning',
+          title: 'Open sheet?',
+          position: 'tc',
+          message: 'Would you like to open the sheet just created or imported?',
+          level: 'info',
           action: {
             label: 'OK',
-            callback: () => API.timeout(timeoutMessageId)
+            callback: () => {
+              SheetActions.changeSheet(action.contents);
+              API.openSheet(action.contents);
+            }
           }
         });
-      }
-      break;
-    case 'AskOpenSheet':
-      NotificationActions.addNotification({
-        title: 'Open sheet?',
-        position: 'tc',
-        message: 'Would you like to open the sheet just created or imported?',
-        level: 'info',
-        action: {
-          label: 'OK',
-          callback: () => {
-            SheetActions.changeSheet(action.contents);
-            API.openSheet(action.contents);
-          }
-        }
-      });
-      break;
-    case 'MakeSelection':
-      Dispatcher.dispatch({
-        _type: 'GOT_SELECTION',
-        newSelection: new ASSelection(action.contents)
-      });
-      break;
-    case 'ShowHeaderResult':
-      const {headerValue, headerDisplay} = action.contents;
-      HeaderActions.setOutput(headerValue, headerDisplay);
-      break;
-    case 'Find':
-      // TODO
-    /*
-      let toClientLoc = function(x) {
-        return {row:x.index[1],col:x.index[0]};
-      };
-      let clientLocs = action.payload.contents.map(toClientLoc);
-      logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
-      Dispatcher.dispatch({
-        _type: 'GOT_FIND',
-        findLocs:clientLocs
-      }); */
-      break;
-    case 'AuthSuccess':
-      const {authUserId, defaultSheetId} = action;
-      LoginActions.onLoginSuccess(authUserId, defaultSheetId);
-      break;
-    case 'AuthFailure':
-      const {failureReason} = action;
-      Dispatcher.dispatch({
-        _type: 'LOGIN_FAILURE',
-        failureReason
-      });
-      break;
-    case 'SessionLog':
-      Dispatcher.dispatch({
-        _type: 'GOT_SESSION_LOG',
-        sessionLog: action.sessionLog
-      });
-      break;
-    case 'AllSessions':
-      Dispatcher.dispatch({
-        _type: 'GOT_ALL_SESSIONS',
-        sessions: action.allSessions
-      });
-      break;
-    default:
-      break;
-  }
-};
+        break;
+      case 'MakeSelection':
+        Dispatcher.dispatch({
+          _type: 'GOT_SELECTION',
+          newSelection: new ASSelection(action.contents)
+        });
+        break;
+      case 'ShowHeaderResult':
+        const {headerValue, headerDisplay} = action.contents;
+        HeaderActions.setOutput(headerValue, headerDisplay);
+        break;
+      case 'Find':
+        // TODO
+      /*
+        let toClientLoc = function(x) {
+          return {row:x.index[1],col:x.index[0]};
+        };
+        let clientLocs = action.payload.contents.map(toClientLoc);
+        logDebug("GOT BACK FIND RESPONSE: " + JSON.stringify(clientLocs));
+        Dispatcher.dispatch({
+          _type: 'GOT_FIND',
+          findLocs:clientLocs
+        }); */
+        break;
+      case 'AuthSuccess':
+        const {authUserId, defaultSheetId} = action;
+        LoginActions.onLoginSuccess(authUserId, defaultSheetId);
+        break;
+      case 'AuthFailure':
+        const {failureReason} = action;
+        Dispatcher.dispatch({
+          _type: 'LOGIN_FAILURE',
+          failureReason
+        });
+        break;
+      case 'SessionLog':
+        Dispatcher.dispatch({
+          _type: 'GOT_SESSION_LOG',
+          sessionLog: action.sessionLog
+        });
+        break;
+      case 'AllSessions':
+        Dispatcher.dispatch({
+          _type: 'GOT_ALL_SESSIONS',
+          sessions: action.allSessions
+        });
+        break;
+      default:
+        break;
+    }
+  };
+});
 
 // *********************************************************************************************************************/
 /* API */
@@ -886,7 +919,7 @@ const API = {
   removeCondFormattingRule(ruleId: string) {
     let msg = {
       tag: "UpdateCondFormatRules",
-      newRules: [], 
+      newRules: [],
       oldRuleIds: [ruleId]
     };
     API.sendMessageWithAction(msg);

@@ -20,6 +20,8 @@ import NotificationActions from '../actions/ASNotificationActionCreators';
 import LoginStore from '../stores/ASLoginStore';
 import ConfigStore from '../stores/ASConfigurationStore';
 
+import pws from '../AS/PWSInstance';
+
 type Props = RoutedComponentProps;
 
 class Login extends React.Component<{}, Props, {}> {
@@ -30,22 +32,16 @@ class Login extends React.Component<{}, Props, {}> {
     this.state = {
       isLoggingIn: false
     };
-    if (Constants.isRemote) {
-      request.get(Constants.getRouterUrl()).end(function(err, res){
-        const {backend_port, static_port, fileinput_port} = JSON.parse(res.header['instance']);
-        Constants.BACKEND_WS_PORT = backend_port;
-        Constants.BACKEND_STATIC_PORT = static_port;
-        Constants.BACKEND_IMPORT_PORT = fileinput_port;
-      });
-    }
   }
 
   componentDidMount() {
+
     // $FlowFixMe gapi is in scope due to a top-level script import in Index.html
     gapi.signin2.render('google-signin-button', {
       onsuccess: (user) => this._onLoginSubmit(user),
       ...properties.googleSignin
     });
+    
     this._storeToken = LoginStore.addListener(() => this._onLoginStateChange());
 
     // Warn user if login appears to take more than 5 seconds.
@@ -83,9 +79,13 @@ class Login extends React.Component<{}, Props, {}> {
   }
 
   _onLoginSubmit(user: any) {
-    const idToken = user.getAuthResponse().id_token;
+    console.log("on login submit");
     this.setState({isLoggingIn: true});
-    LoginActions.login(idToken);
+
+    pws.whenReady(() => {
+      const idToken = user.getAuthResponse().id_token;
+      LoginActions.login(idToken);
+    });
   }
 
   _onLoginStateChange() {

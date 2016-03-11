@@ -16,28 +16,28 @@ function keyMirror<T>(obj: T): T {
   return (ret: T);
 }
 
-const REMOTE_HOSTS = ['107.170.248.242'];
 
-var Constants = Object.assign({
+const Constants = Object.assign({
 
-  REMOTE_HOST: REMOTE_HOSTS[0],
   REMOTE_ROUTER_PORT: 10000,
 
   getRouterUrl(): string {
-    return 'http://' + Constants.REMOTE_HOST + ':' + REMOTE_ROUTER_PORT;
+    return 'http://' + Constants.getRemoteHost() + ':' + Constants.REMOTE_ROUTER_PORT;
   },
- 
+
   // network parameters
   getBackendUrl(protocol: string, port: string): string {
     // note: "procotol" is "ws", "http", etc.
-    return protocol + '://' + (Constants.isRemote ? Constants.BACKEND_REMOTE_HOST : 'localhost') + ':' + port;
+    return protocol + '://' + Constants.getRemoteHost() + ':' + port;
   },
 
-  BACKEND_REMOTE_HOST: '159.203.127.80',
+  getRemoteHost(): string {
+    return Constants.isRemote ? Constants.REMOTE_HOST : 'localhost';
+  },
+
   BACKEND_WS_PORT: '5000',
   BACKEND_STATIC_PORT: '8000',
   BACKEND_IMPORT_PORT: '9000',
-  FRONTEND_PORT: '8080', // maybe rename
 
   // auth parameters
   google_client_id: '347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com',

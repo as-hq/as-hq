@@ -42,16 +42,22 @@ class PersistentWebSocket {
   _heartbeat: IntervalId;
   _messagePump: IntervalId;
   _isDisconnected: boolean;
+  _isAttemptingReconnect: boolean;
 
-  constructor(url: string) {
-    this._url = url;
+  _ready: boolean;
+  _readyCallbacks: Array<Callback>;
+
+  constructor() {
     this._callbackQueue = [];
-    this._client = new ws(url);
     this._timeoutCounter = 0;
     this._isDisconnected = false;
+
     // used as a lock (MVar) to ensure that the various loops
     // don't interfere with each others' attempts to reestablish connection.
     this._isAttemptingReconnect = false;
+
+    this._readyCallbacks = [];
+    this._ready = false;
 
     // define internal callbacks that are always executed for proper operation
     this._onMessageInternal = (evt) => {
@@ -71,30 +77,9 @@ class PersistentWebSocket {
       console.warn('WS reconnected after failure.');
     }
 
-    // These setters are optional, but there is some internal logic
-    // that hook into them anyway. Thus, we set that internal logic
-    // as the default callbacks. They're not part of the PWS constructor
-    // so that PWS can mirror the API of WS.
-    this._client.onopen = this._onOpenInternal;
-    this._client.onmessage = this._onMessageInternal;
+
     this._ondisconnect = this._ondisconnectInternal;
     this._onreconnect = this._onreconnectInternal;
-
-    // initialize main loops
-    // (1) hearbeat
-    this._heartbeat = setInterval(() => {
-      this._checkHeartbeat();
-    }, CHECK_ALIVE_INTERVAL)
-
-    // (2) message pump
-    this._messagePump = setInterval(() => {
-      this._tryFlushingQueue();
-    }, TRY_FLUSH_QUEUE_INTERVAL);
-
-    // (3) internet connection detector
-    this._connectionWatch = setInterval(() => {
-      this._checkConnection();
-    }, CHECK_CONNECTION_INTERVAL);
   }
 
   static install(w) {
@@ -137,7 +122,48 @@ class PersistentWebSocket {
     }
   }
 
+
   /******************************* Public API *********************************/
+
+  begin(url: string) {
+    this._url = url;
+    this._client = new ws(url);
+
+    // These setters are optional, but there is some internal logic
+    // that hook into them anyway. Thus, we set that internal logic
+    // as the default callbacks. They're not part of the PWS constructor
+    // so that PWS can mirror the API of WS.
+    this._client.onopen = this._onOpenInternal;
+    this._client.onmessage = this._onMessageInternal;
+
+    this._ready = true;
+    this._readyCallbacks.forEach(cb => cb());
+
+    // start main loops
+
+    // (1) hearbeat
+    this._heartbeat = setInterval(() => {
+      this._checkHeartbeat();
+    }, CHECK_ALIVE_INTERVAL)
+
+    // (2) message pump
+    this._messagePump = setInterval(() => {
+      this._tryFlushingQueue();
+    }, TRY_FLUSH_QUEUE_INTERVAL);
+
+    // (3) internet connection detector
+    this._connectionWatch = setInterval(() => {
+      this._checkConnection();
+    }, CHECK_CONNECTION_INTERVAL);
+  }
+
+  whenReady(cb: Callback) {
+    if (this._ready) {
+      cb();
+    } else {
+      this._readyCallbacks.push(cb);
+    }
+  }
 
   waitForConnection(cb: Callback<WebSocket>) {
     this._callbackQueue.push(cb);
