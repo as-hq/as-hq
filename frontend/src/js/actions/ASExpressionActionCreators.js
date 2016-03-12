@@ -6,7 +6,10 @@ import type {EditorSelection} from '../types/Editor';
 import Dispatcher from '../Dispatcher';
 import ExpressionStore from '../stores/ASExpressionStore';
 import FocusStore from '../stores/ASFocusStore';
-import APIActions from '../actions/APIActionCreators';
+import GridStore from '../stores/ASGridStore';
+import APIActions from '../actions/APIActionCreators'; 
+import API from '../actions/ASApiActionCreators'; 
+// API and APIActions...? pretty terrible... (Alex 3/11/2016)
 
 import GridActions from '../actions/ASGridActionCreators';
 
@@ -27,7 +30,7 @@ const ExpressionActions = {
     });
 
     if (!ExpressionStore.isEditing() && ExpressionStore.getExpression() != "") {
-      APIActions.evaluate({dX: 0, dY: 0});
+      API.setLanguagesInRange(language, GridStore.getActiveSelection().range);
     }
   },
 

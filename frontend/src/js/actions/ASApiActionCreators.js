@@ -513,8 +513,7 @@ const API = {
   },
 
   setLanguagesInRange(language: ASLanguage, range: ASRange) {
-    let sid = SheetStateStore.getCurrentSheetId(),
-        action = {
+    let action = {
           tag: "SetLanguagesInRange",
           contents: [language, range.obj()],
         };

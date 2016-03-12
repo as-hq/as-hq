@@ -107,15 +107,9 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'SHEET_UPDATED':
-      case 'GOT_UPDATED_CELLS': {
-        this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
-
-        const {origin} = GridStore.getActiveSelection();
-        return displayActiveExpression(state, origin);
-      }
-
+      case 'GOT_UPDATED_CELLS': 
       case 'API_EVALUATE': {
-        this.getDispatcher().waitFor([GridStore.getDispatchToken()]);
+        this.getDispatcher().waitFor([CellStore.getDispatchToken(), GridStore.getDispatchToken()]);
 
         const {origin} = GridStore.getActiveSelection();
         return displayActiveExpression(state, origin);
