@@ -6,20 +6,8 @@ import AS.Types.Cell
 
 import qualified Data.List as L
 
-
-
 -----------------------------------------------------------------------------------------------------------------------
--- functions
-
-readBool :: String -> Bool
-readBool str = case ($head str) of
-  't' -> True
-  'T' -> True
-  'f' -> False
-  'F' -> False
-
------------------------------------------------------------------------------------------------------------------------
--- definitions
+-- Definitions
 
 listStops :: ASLanguage -> (String, String)
 listStops lang = case lang of 

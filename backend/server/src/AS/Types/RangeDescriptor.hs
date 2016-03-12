@@ -2,16 +2,15 @@
 
 module AS.Types.RangeDescriptor where 
 
-import AS.ASJSON
+import GHC.Generics
+import Data.SafeCopy
+import qualified Data.Map as M
 
+import AS.ASJSON
 import AS.Types.Locations
 import AS.Types.Updates
 import AS.Types.Values
 
-import GHC.Generics
-import Data.SafeCopy
-
-import qualified Data.Map as M
 
 -- turning a spreadsheet range into dataframe etc...
 -- only needed during at syntax and list decoupling

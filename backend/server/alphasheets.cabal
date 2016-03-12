@@ -148,6 +148,9 @@ library
                      , parallel-io
                      , cryptohash
                      , http-conduit
+                     , attoparsec
+                     , word8
+                     , attoparsec-expr
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

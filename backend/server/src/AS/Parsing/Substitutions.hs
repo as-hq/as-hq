@@ -1,117 +1,66 @@
-module AS.Parsing.Substitutions (
-    replaceRefs
-  , replaceRefsIO
-  , getExcelReferences
-  , getDependencies
-  , shiftExpression
-  , shiftCell
-  ) where
+{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+
+module AS.Parsing.Substitutions where
+
+import Control.Applicative
+import Control.Lens
+import Data.Attoparsec.ByteString
+import Data.ByteString (ByteString)
+import Data.Word8 as W
+import System.IO.Unsafe (unsafePerformIO)
+import qualified Data.Attoparsec.ByteString.Char8 as AC
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Unsafe as BU
 
 import Prelude()
-import AS.Prelude
-
-import Text.ParserCombinators.Parsec
-import Control.Applicative hiding ((<|>), many)
-import Control.Lens hiding (noneOf)
-import AS.Parsing.Excel
-import AS.Types.Excel
+import AS.Prelude hiding (takeWhile)
 import AS.Types.Cell
+import AS.Types.Excel
 import AS.Types.Locations
 import AS.Types.Sheets
 import AS.Types.Shift
-import AS.Kernels.Excel.Compiler (formula)
-
+import AS.Parsing.Excel
 import AS.Util
+
+import AS.Kernels.Excel.Compiler (formula)
+import qualified AS.Parsing.Common as PC
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- General parsing functions
 
--- | Finds the next parser match that ISN'T in a quoted string, and return 
--- (everything before the match, the match). Assumes you're not starting in the middle of a quote
-parseNextUnquoted :: Parser t -> Parser (String, t)
-parseNextUnquoted a = do
-  r1 <- manyTill (quotedStringEscaped <|> charToStrParser anyChar) (lookAhead $ try a) -- need the try, otherwise it won't work
-  r2 <- a -- result of parser a
-  return (concat r1, r2)
+-- | Parses a ByteString until the first ExRef match that isn't within quotes. All of the previous
+-- bytes are kept the same, and we use the given function to replace the first ExRef with another 
+-- ByteString. We return the initial bytes + replaced ExRef bytes. 
+-- Assumes that you're not starting in the middle of a quote. 
+parseNext :: (ExRef -> ByteString) -> Parser ByteString
+parseNext f = do 
+  bStrs <- manyTill (PC.quotedStringEscaped <|> takeWhile (const True)) refMatch
+  ref <- refMatch
+  return $! B.append (B.concat bStrs) (f ref)
 
-charToStrParser :: Parser Char -> Parser String
-charToStrParser = (fmap (\c -> [c]))
+getFirstExcelRef :: Parser ExRef
+getFirstExcelRef = do 
+  manyTill (PC.quotedStringEscaped <|> takeWhile (const True)) refMatch
+  refMatch
 
--- | Like quotedString in Util.hs. Matches a quoted string, and returns it exactly. 
--- #needsrefactor this can almost definitely be implemented more cleanly. If you see this
--- and figure out how, please change this and post to #codefeedback. 
-quotedStringEscaped :: Parser String
-quotedStringEscaped = (quoteString <|> apostropheString)
-  where
-    quoteString = do 
-      char '"'
-      body <- many $ escaped <|> (charToStrParser (noneOf ['"']))
-      char '"'
-      return ("\"" ++ (concat body) ++ "\"")
-    apostropheString = do 
-      char '\''
-      body <- many $ escaped <|> (charToStrParser (noneOf ['\'']))
-      char '\''
-      return ("'" ++ (concat body) ++ "'")
-    escaped = do 
-      char '\\' 
-      escChar <- choice (zipWith escapedChar codes replacements)
-      return ['\\', escChar]
-    escapedChar code replacement = char code >> return replacement
-    codes            = ['b',  'n',  'f',  'r',  't',  '\\', '\"', '/']
-    replacements     = ['\b', '\n', '\f', '\r', '\t', '\\', '\"', '/']
-
--- | Alternatingly gives back matches in string and the surrounding parts of the matches. 
--- e.g., parse (parseMatchesWithContext (P.string "12")) "" "1212ab12" gives
--- Right (["","","ab",""],["12","12","12"])
-parseUnquotedMatchesWithContext :: Parser t -> Parser ([String],[t])
-parseUnquotedMatchesWithContext a = do
-  matchesWithContext <- many $ try $ parseNextUnquoted a
-  rest <- many anyChar
-  let inter = (map fst matchesWithContext) ++ [rest]
-      matches = (map snd matchesWithContext)
-  return (inter,matches)
-
-getUnquotedMatchesWithContext :: ASExpression -> Parser t -> ([String],[t])
-getUnquotedMatchesWithContext xp p = 
-  if (isExcelLiteral)
-    then ([expr], [])
-    else ($fromRight . (parse (parseUnquotedMatchesWithContext p) "") $ expr)
-  where
-    lang = xp^.language 
-    expr = xp^.expression
-    isExcelLiteral = (lang == Excel) && parsedCorrectly
-    parsedCorrectly = case (parse formula "" expr) of 
-      Right _ -> False 
-      Left  _ -> True
-
--- | Reconstructs a string from context (see description in parseUnquotedMatchesWithContext)
-blend :: [String] -> [String] -> String
-blend [] [] = ""
-blend x [] = concat x
-blend [] y = concat y
-blend (x:xs) (y:ys) = x ++ y ++ (blend xs ys)
+-- | Replaces all ExRefs in a ByteString that aren't in quotes/apostrophes. 
+excelParser :: (ExRef -> ByteString) -> ByteString -> ByteString
+excelParser f b = $fromRight $ eitherResult $ parse (B.concat <$> many (parseNext f)) b
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp = xp & expression .~ expression'
-  where 
-    (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
-    exRefs'         = map f exRefs 
-    expression'     = blend inter exRefs'
+replaceRefs f xp = xp & expression %~ modifyExpression
+  where modifyExpression str = C.unpack $ excelParser (C.pack . f) (C.pack str) 
 
 replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
-replaceRefsIO f xp = do 
-  let (inter, exRefs) = getUnquotedMatchesWithContext xp refMatch
-  exRefs' <- mapM f exRefs 
-  let expression' = blend inter exRefs'
-  return $ xp & expression .~ expression'
+replaceRefsIO f = return . replaceRefs (unsafePerformIO . f) 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
 -- | Returns the list of excel references in an ASExpression. 
 getExcelReferences :: ASExpression -> [ExRef]
-getExcelReferences xp = snd $ getUnquotedMatchesWithContext xp refMatch
+getExcelReferences (Expression xp lang) = $fromRight $ eitherResult $ parse (many getFirstExcelRef) (C.pack xp)
 
 -- | Returns the list of dependencies in ASExpression. 
 -- #needsrefactor NOT ALL ASReferences ARE VALID REFERENCES FOR THE GRAPH!
@@ -123,13 +72,11 @@ getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getEx
         SampleExpr _ idx -> IndexRef idx
       _ -> r
 
-
 ----------------------------------------------------------------------------------------------------------------------------------
 -- Copy/paste and Cut/paste
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
 -- the offset. (The location changes, and the non-absolute references in the expression changes.)
-
 shiftExpression :: Offset -> ASExpression -> ASExpression
 shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 

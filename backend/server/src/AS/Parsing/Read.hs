@@ -1,111 +1,68 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module AS.Parsing.Read where
 
-import Prelude()
-import AS.Prelude
-
-import Data.List (elemIndex)
-import Data.Maybe
-import Data.Char as C
-import qualified Data.Text as T
-import qualified Data.Text.Lazy (replace)
-import qualified Data.List as L
+import Control.Applicative
+import Data.Attoparsec.ByteString
+import Data.ByteString (ByteString)
+import Data.Word8 as W
+import Safe (readMay)
+import qualified Data.Attoparsec.ByteString.Char8 as AC
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Unsafe as BU
 import qualified Data.Map as M
-import Text.Read (readMaybe)
 
-import AS.Util
-
-import Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec.Token as P
-import qualified Text.Parsec.Token as O
-import qualified Text.Parsec.Language as Lang (haskellDef)
-import Control.Applicative hiding ((<|>), many)
-
+import Prelude()
+import AS.Prelude hiding (takeWhile)
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Eval
+import AS.Util
 
-import Safe (readMay)
-
-import AS.Parsing.Common as C
+import AS.Parsing.Common as PC
 import qualified AS.LanguageDefs as LD
 
 -----------------------------------------------------------------------------------------------------------------------
--- top-level parsers
-
-parseValue :: ASLanguage -> String -> Either ASExecError CompositeValue
-parseValue lang = readOutput . (parse (value lang) "")
-  where
-    readOutput (Right v)  = Right v
-    readOutput (Left e)   = Left ParseError
-
-parseFormatValue :: String -> Maybe [CellProp]
-parseFormatValue = readMay
-
-value :: ASLanguage -> Parser CompositeValue
-value lang = 
-      CellValue <$> try (asValue lang)
-  <|> try (parseComposite lang)
-
-asValue :: ASLanguage -> Parser ASValue
-asValue lang =
-      try (ValueD <$> float)
-  <|> try (ValueI <$> integer)
-  <|> try (ValueB <$> C.bool)
-  <|> try (ValueS <$> quotedString)
-  <|> try (nullValue lang)
-  <|> try (nanValue lang)
-  <|> try (infValue lang)
-  <|> try (cellJsonValue lang)
-
------------------------------------------------------------------------------------------------------------------------
--- primitive parsers
-
-integer :: Parser Integer
-integer = P.integer lexer
-
-float :: Parser Double
-float = float'
-
-nullValue :: ASLanguage -> Parser ASValue
-nullValue lang = case lang of 
-  Python -> string (LD.inNull Python) >> return NoValue
-  _      -> fail $ "No nullValue in " ++ (show lang)
-
-nanValue :: ASLanguage -> Parser ASValue
-nanValue lang = case lang of 
-  Python -> string (LD.inNan Python) >> return ValueNaN
-  _      -> fail $ "No NaN value in " ++ (show lang)
-
-infValue :: ASLanguage -> Parser ASValue
-infValue lang = case lang of 
-  Python -> string (LD.inInf Python) >> return ValueInf
-  _      -> fail $ "No Inf value in " ++ (show lang)
-
-lexer = P.makeTokenParser Lang.haskellDef
-
-cellJsonValue :: ASLanguage -> Parser ASValue
-cellJsonValue lang = f =<< (try $ json lang)
-  where 
-    f js = maybe complain return $ extractCellValue js
-
------------------------------------------------------------------------------------------------------------------------
--- composite parsers
-
--- for looking up arbitrary fields
-(.>) :: JSON -> JSONKey -> Maybe JSONField
-(.>) = flip M.lookup
-
--- for looking up strings
-(.$>) :: JSON -> JSONKey -> Maybe String
-(.$>) js key = (\(JSONLeaf (SimpleValue (ValueS s))) -> s) <$> M.lookup key js
+-- Primitive parsers
 
 complain = fail "could not parse complex/object/json value"
 
+nullValue :: ASLanguage -> Parser ASValue
+nullValue lang = case lang of 
+  Python -> PC.string' (LD.inNull Python) >> return NoValue
+  _      -> fail $ "No nullValue in " ++ show lang
+
+nanValue :: ASLanguage -> Parser ASValue
+nanValue lang = case lang of 
+  Python -> PC.string' (LD.inNan Python) >> return ValueNaN
+  _      -> fail $ "No NaN value in " ++ show lang
+
+infValue :: ASLanguage -> Parser ASValue
+infValue lang = case lang of 
+  Python -> PC.string' (LD.inInf Python) >> return ValueInf
+  _      -> fail $ "No Inf value in " ++ show lang
+
+cellJsonValue :: ASLanguage -> Parser ASValue
+cellJsonValue lang = f =<< json lang
+  where f js = maybe complain return $ extractCellValue js
+
+-----------------------------------------------------------------------------------------------------------------------
+-- Composite parsers
+
+-- | Parser for looking up arbitrary fields
+(.>) :: JSON -> JSONKey -> Maybe JSONField
+(.>) = flip M.lookup
+
+-- | Parser for looking up strings
+(.$>) :: JSON -> JSONKey -> Maybe String
+(.$>) js key = (\(JSONLeaf (SimpleValue (ValueS s))) -> s) <$> M.lookup key js
+
 parseComposite :: ASLanguage -> Parser CompositeValue
 parseComposite lang = 
-      f =<< try (json lang) 
+      f =<< json lang
   <|> complain
-  where f js = case (js .$> "tag") of 
+  where f js = case js .$> "tag" of 
             Just tag -> maybe complain return $ extractCompositeValue tag js
             Nothing -> fail "expecting field \"tag\" in complex value"
 
@@ -115,7 +72,7 @@ extractCompositeValue tag js = case tag of
   "Expanding" -> Expanding <$> extractExpanding js
 
 extractCellValue :: JSON -> Maybe ASValue
-extractCellValue js = case (js .$> "cellValueType") of 
+extractCellValue js = case js .$> "cellValueType" of 
   Just "Image"      -> extractImage js 
   Just "Error"      -> extractError js
   Just "Serialized" -> extractSerialized js
@@ -124,7 +81,7 @@ extractCellValue js = case (js .$> "cellValueType") of
 extractExpanding :: JSON -> Maybe ExpandingValue
 extractExpanding js = 
   let readEType e = $read e :: ExpandingType
-  in case (readEType <$> js .$> "expandingType") of 
+  in case readEType <$> js .$> "expandingType" of 
     Just List -> VList <$> extractCollection js "listVals"
     Just NPArray -> VNPArray <$> extractCollection js "arrayVals"
     Just NPMatrix -> (\(M mat) -> VNPMatrix mat) <$> extractCollection js "matrixVals"
@@ -149,71 +106,86 @@ extractError :: JSON -> Maybe ASValue
 extractError js = ValueError <$> (js .$> "errorMsg") <*> (js .$> "errorType") 
 
 extractCollection :: JSON -> JSONKey -> Maybe Collection
-extractCollection js key = case (js .> key) of 
+extractCollection js key = case js .> key of 
   Just (JSONLeaf (ListValue collection)) -> Just collection
   _ -> Nothing 
 
 extractNestedListItems :: JSON -> JSONKey -> Maybe [JSON]
-extractNestedListItems js key = case (js .> key) of 
+extractNestedListItems js key = case js .> key of 
   Just (JSONLeaf (NestedListValue jsList)) -> Just jsList
   _ -> Nothing 
+
 -----------------------------------------------------------------------------------------------------------------------
--- low-level parsers
+-- Low-level parsers
 
 json :: ASLanguage -> Parser JSON
-json lang = extractMap
+json lang = M.fromList <$> (braces $ sepBy pair delimiter)
   where
-    braces      = between (char '{') (char '}')
-    leaf        = JSONLeaf <$> jsonValue lang
-    tree        = JSONTree <$> json lang
-    delimiter   = spaces >> (char ',') >> spaces
-    pair        = do
+    delimiter  = PC.betweenSpaces $ string ","
+    leaf       = JSONLeaf <$> jsonValue lang
+    tree       = JSONTree <$> json lang
+    braces     = PC.between' "{" "}" 
+    pair      = do
       spaces
-      key  <- quotedString
-      spaces >> char ':' >> spaces
-      field <- try tree <|> try leaf
+      key <- PC.unescapedString
+      betweenSpaces $ string ":"
+      field <- tree <|> leaf
       spaces
-      return (key, field)
-    extractMap  = M.fromList <$> (braces $ sepBy pair delimiter)
+      return (C.unpack key, field)
 
 jsonValue :: ASLanguage -> Parser JSONValue
 jsonValue lang = 
       ListValue <$> list lang
   <|> SimpleValue <$> asValue lang
-  -- | NestedList is called upon when the JSON value being parsed is a list of
-  -- JSONs. Timchu, 2/15/16.
+  -- | NestedList is called upon when the JSON value being parsed is a list of JSON
   -- Example:
   -- > parse (jsonValue Python) "" "[{'tag': 1}]}" 
   -- >  = Right (NestedListValue [fromList [("tag",JSONLeaf (SimpleValue (ValueI 1)))]])
-  --
   <|> NestedListValue <$> nestedList lang
 
 parseList :: ASLanguage -> Parser a -> Parser [a]
 parseList lang p = brackets $ sepBy p delimiter
   where
     (start, end) = LD.listStops lang
-    brackets     = between (string start) (string end)
-    delimiter    = spaces >> (char $ LD.listDelimiter lang) >> spaces
+    brackets x   = PC.string' start *> x <* PC.string' end
+    delimiter    = betweenSpaces $ PC.string' [LD.listDelimiter lang]
 
 nestedList :: ASLanguage -> Parser [JSON]
-nestedList lang =
-    parseList lang $ json lang
+nestedList lang = parseList lang $ json lang
 
--- this parser will only allow 1 and 2D lists
+-- | Parser for lists, which only allows 1D and 2D lists
 list :: ASLanguage -> Parser Collection
 list lang = 
-      A <$> try (array $ asValue lang)
-  <|> M <$> try (array $ array $ asValue lang)
-  where
-    array = parseList lang
+      (A <$> (array value))
+  <|> (M <$> (array $ array value))
+  where array = parseList lang
+        value = asValue lang
 
- --DEPRECATED
- -- #needsrefactor should create general error parser later, which parses ocamlError as a special case. (Alex 10/10)
---ocamlError :: Parser ASValue
---ocamlError = do
---  string "File "
---  file  <- manyTill anyChar (try (string ", line "))
---  pos   <- manyTill anyChar (try (string ", characters"))
---  manyTill anyChar (try (string "Error: "))
---  err   <- manyTill anyChar (try eof)
---  return $ ValueError err "StdErr" file ((read pos :: Int) - 4)
+-----------------------------------------------------------------------------------------------------------------------
+-- Top level parsers
+
+parseValue :: ASLanguage -> ByteString -> Either ASExecError CompositeValue
+parseValue lang = readOutput . parse (value lang)
+  where
+    readOutput (Fail _ _ _) = Left ParseError
+    readOutput (Partial _) = Left ParseError
+    readOutput (Done _ r)   = Right r
+
+parseFormatValue :: String -> Maybe [CellProp]
+parseFormatValue = readMay
+
+value :: ASLanguage -> Parser CompositeValue
+value lang = 
+      CellValue <$> asValue lang
+  <|> parseComposite lang
+
+asValue :: ASLanguage -> Parser ASValue
+asValue lang =
+      ValueD <$> PC.float
+  <|> ValueI <$> PC.integer
+  <|> ValueB <$> PC.bool
+  <|> ValueS . C.unpack <$> PC.unescapedString
+  <|> nullValue lang
+  <|> nanValue lang
+  <|> infValue lang
+  <|> cellJsonValue lang

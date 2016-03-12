@@ -479,26 +479,9 @@ intToColStr x
 colToColStr :: Col -> String
 colToColStr  = intToColStr . view int
 
--- | Col 27 -> "AA",  Col 218332954 ->"RITESH"
-colStrToCol :: String -> Col
-colStrToCol = Col . colStrToInt
-  where 
-    colStrToInt "" = 0
-    colStrToInt (c:cs) = 26^(length(cs)) * coef + colStrToInt cs
-      where
-        coef = $fromJust (elemIndex (C.toUpper c) ['A'..'Z']) + 1
-
 -- | Row 27 -> "27"
 rowToRowStr :: Row -> String
-rowToRowStr  = intToRowStr . view int
-  where
-    intToRowStr i = show i
-
--- | "27" -> Row 27
-rowStrToRow :: String -> Row
-rowStrToRow = Row . rowStrToInt
-  where
-    rowStrToInt r = $read r :: Int
+rowToRowStr  = show . view int
 
 -- used in DB Ranges
 indexToExcel :: ASIndex -> String

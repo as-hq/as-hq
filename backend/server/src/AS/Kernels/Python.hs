@@ -13,6 +13,7 @@ import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Database.Redis (Connection)
+import qualified Data.List.Utils as LU
 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
@@ -84,7 +85,7 @@ testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $
 formatSqlCode :: EvalCode -> IO EvalCode
 formatSqlCode code = do
   template <- readFile $ eval_dir ++ "sql/template.py"
-  return $ replaceSubstrings template [("#CODE#", code)]
+  return $ LU.replace "#CODE#" code template
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Helpers
@@ -155,7 +156,7 @@ evaluateWithScope scope mid sid code = do
       Just e -> return $ EvalResult (CellValue $ ValueError e "") disp
       Nothing -> return $ EvalResult (CellValue NoValue) disp
     Just v -> do
-      cval <- hoistEither $ R.parseValue Python v
+      cval <- hoistEither $ R.parseValue Python (BC.pack v)
       return $ EvalResult cval disp
 
 sendMessage :: KernelMessage -> EitherTExec KernelResponse

@@ -1,13 +1,18 @@
-module AS.InferenceUtils where
+{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
 
-import AS.Prelude
-import Prelude()
+module AS.InferenceUtils where
 
 import qualified Data.List.Split as LS
 import qualified Data.List as L
 import Data.Maybe hiding (fromJust)
 import Data.Char
+import Control.Lens hiding (index)
+import Database.Redis (Connection)
+import Data.Attoparsec.ByteString
+import Data.ByteString (ByteString)
 
+import AS.Prelude
+import Prelude()
 import AS.Types.Excel
 import AS.Types.Formats
 import AS.Types.Cell
@@ -20,15 +25,6 @@ import AS.Parsing.Substitutions as S
 import AS.Util
 import AS.Kernels.Excel.Compiler hiding (pos)
 import AS.Kernels.Excel.Util
-
-import Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec.Token as P
-import Text.ParserCombinators.Parsec.Language
-import Text.ParserCombinators.Parsec.Expr
-
-import Control.Lens hiding (index)
-
-import Database.Redis (Connection)
 
 type Position = Coord
 type PatternGroup = [ASCell]
@@ -125,7 +121,7 @@ isFormulaCell cell = not valExpEqual
         Nothing  -> False
         Just val -> val^.orig == cell^.cellValue
         where
-          formula = parse literal "" xp
+          formula = $fromRight $ eitherResult $ parse literal xp
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
