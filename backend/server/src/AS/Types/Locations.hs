@@ -351,6 +351,7 @@ rangeContainsRef r ref = case ref of
   IndexRef i  -> rangeContainsIndex r i
   PointerRef p -> rangeContainsIndex r (pointerIndex p)
   RangeRef r' -> rangeContainsRange r r'
+  TemplateRef (SampleExpr _ i) -> rangeContainsIndex r i
   OutOfBounds -> False
 
 -- Gets the indices in a finite two dimensional range.

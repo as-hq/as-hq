@@ -277,6 +277,18 @@ describe('backend', () => {
           ]);
         });
 
+        it ('should update when shifted via cut/paste', (done) => {
+          _do([
+            python('A1', '1'),
+            python('B1', '!{3, A1}'),
+            cut('A1', 'C1'),
+            shouldBe('B1', valueI(1)),
+            cut('B1:B3', 'D1:D3'),
+            shouldBe('D1', valueI(1)),
+            exec(done)
+          ]);
+        });
+
 
         it ('should cause circ dep if user is stupid', (done) => {
           _do([
