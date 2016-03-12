@@ -11,6 +11,7 @@ import GridStore from '../stores/ASGridStore';
 import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ExpressionStore from '../stores/ASExpressionStore';
+import ModalStore from '../stores/ASModalStore';
 
 import U from '../AS/Util';
 import Render from '../AS/Renderers';
@@ -34,24 +35,28 @@ const ClipboardActions = {
   }, */
 
   copy(e: SyntheticClipboardEvent) {
-    switch(FocusStore.getFocus()) {
-      case 'grid':
-        handleCopyTypeEventForGrid(e, false);
-        break;
+    if (! ModalStore.isAnyOpen()) {
+      switch(FocusStore.getFocus()) {
+        case 'grid':
+          handleCopyTypeEventForGrid(e, false);
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
   },
 
   cut(e: SyntheticClipboardEvent) {
-    switch(FocusStore.getFocus()) {
-      case 'grid':
-        handleCopyTypeEventForGrid(e, true);
-        break;
+    if (! ModalStore.isAnyOpen()) {
+      switch(FocusStore.getFocus()) {
+        case 'grid':
+          handleCopyTypeEventForGrid(e, true);
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
   },
 

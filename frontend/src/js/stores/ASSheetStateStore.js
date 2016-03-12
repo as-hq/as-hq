@@ -31,12 +31,14 @@ import Render from '../AS/Renderers';
 import ReplStore from  './ASReplStore';
 import API from '../actions/ASApiActionCreators';
 import CellStore from './ASCellStore';
+import LoginStore from './ASLoginStore';
 
 type SheetStateStoreData = {
   decoupleAttempt: boolean;
   xscroll: number;
   yscroll: number;
   mySheets: Array<ASSheet>;
+  sharedSheets: Array<ASSheet>;
   currentSheetId: ?string;
   clipboard: {
     area: ?ASSelection;
@@ -51,6 +53,7 @@ let _data: SheetStateStoreData = {
   xscroll: 0,
   yscroll: 0,
   mySheets: [],
+  sharedSheets: [],
   currentSheetId: null,
   clipboard: {
     area: null,
@@ -77,7 +80,8 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         break;
 
       case 'GOT_MY_SHEETS':
-        _data.mySheets = action.sheets;
+        _data.mySheets = action.mySheets;
+        _data.sharedSheets = action.sharedSheets;
         ASSheetStateStore.emit('GOT_MY_SHEETS');
         break;
 
@@ -132,15 +136,36 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     return _data.mySheets;
   },
 
-  getCurrentSheetName(): string {
-    const sheet = _data.mySheets.find(sheet =>
-      sheet.sheetId === _data.currentSheetId
+  getSharedSheets(): Array<ASSheet> {
+    return _data.sharedSheets;
+  },
+
+  getCurrentSheetTitle(): string {
+    const sheet = _data.mySheets
+      .concat(_data.sharedSheets)
+      .find(sheet =>
+        sheet.sheetId === _data.currentSheetId
     );
-    if (!! sheet) {
-      return sheet.sheetName;
-    } else {
+
+    // sheet is not available when app is first mounting.
+    if (sheet === undefined) {
       return '';
     }
+
+    let qualifier = '';
+    if (sheet.sheetOwner !== LoginStore.getUserId()) {
+      qualifier = ` (owned by ${sheet.sheetOwner})`;
+    }
+    return sheet.sheetName + qualifier;
+  },
+
+  getSheetLink(): string {
+    return (
+      'http://' +
+      (Constants.REMOTE_HOST || 'localhost:8080') +
+      '/#/sheets/' +
+      _data.currentSheetId
+    );
   },
 
   /**************************************************************************************************************************/

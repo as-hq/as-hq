@@ -6,6 +6,8 @@ import type {
   ASAction
 } from '../types/Actions';
 
+import type { Callback } from '../types/Base';
+
 import Immutable from 'immutable';
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
@@ -21,7 +23,8 @@ type LoginState = Immutable.Record$Class;
 const LoginRecord = Immutable.Record({
   userId: null,
   loggedIn: false,
-  token: null
+  token: null,
+  callbacks: []
 });
 
 class LoginStore extends ReduceStore<LoginState> {
@@ -34,7 +37,7 @@ class LoginStore extends ReduceStore<LoginState> {
     switch (action._type) {
       case 'LOGIN_ATTEMPT': {
         const {token} = action;
-        return new LoginRecord({token});
+        return state.set('token', token);
       }
 
       case 'LOGIN_SUCCESS': {
@@ -52,6 +55,11 @@ class LoginStore extends ReduceStore<LoginState> {
           this.__emitChange();
           break;
         }
+      }
+
+      case 'LOGIN_CALLBACK_REGISTERED': {
+        const {cb} = action;
+        return state.update('callbacks', cbs => cbs.concat([cb]));
       }
 
       default: {
@@ -79,6 +87,10 @@ class LoginStore extends ReduceStore<LoginState> {
   userIsDev(): boolean {
     const userId = this.getUserId();
     return _.includes(devs, userId);
+  }
+
+  getCallbacks(): Array<Callback> {
+    return this.getState().callbacks;
   }
 }
 

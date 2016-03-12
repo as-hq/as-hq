@@ -24,22 +24,30 @@ import AS.DB.Users
 import AS.Users
 import AS.Config.Settings (headerLangs)
 
+import Control.Monad
+
 
 handleGetSheets :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleGetSheets mid uc state = do
   let conn = state^.dbConn
   user <- $fromJust <$> lookupUser conn (uc^.userId)
-  let sids = Set.toList $ user^.sheetIds
-  sheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn sids
-  sendToOriginal uc $ ClientMessage mid $ SetMySheets sheets 
+  let mySids = Set.toList $ user^.sheetIds
+  let sharedSids = Set.toList $ user^.sharedSheetIds
+  mySheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn mySids
+  sharedSheets <- catMaybes <$> multiGet SheetKey dbValToSheet conn sharedSids
+  sendToOriginal uc $ ClientMessage mid $ SetMySheets mySheets sharedSheets
 
-handleNewSheet :: MessageId -> ASUserClient -> ServerState -> SheetName -> IO ()
+handleNewSheet :: MessageId -> ASUserClient -> State -> SheetName -> IO ()
 handleNewSheet mid uc state name = do
-  let conn = state^.dbConn
-  sid <- sheetId <$> createSheet conn name
-  associateSheetWithUser conn (uc^.userId) sid
-  handleGetSheets mid uc state -- update user's sheets
-  sendToOriginal uc $ ClientMessage mid $ AskOpenSheet sid
+  curState <- readState state
+  let conn = curState^.dbConn
+  sid <- sheetId <$> createSheet conn (uc^.userId) name
+  -- place sheet under user ownership
+  modifyUser conn (uc^.userId) (& sheetIds %~ (Set.insert sid))
+  -- update user's list of sheets
+  handleGetSheets mid uc curState 
+  -- automatically open the new sheet
+  handleOpenSheet mid uc state sid
 
 handleOpenSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpenSheet mid uc state sid = do 
@@ -63,3 +71,20 @@ handleOpenSheet mid uc state sid = do
   mapM_ (runEitherT . evaluateHeader) headers
   let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
   sendToOriginal uc $ ClientMessage mid $ SetSheetData sid sheetUpdate headers
+
+-- This handler is called whenever a sheet is accessed by a user it is "shared" to.
+-- It describes the "acquisition" of a shared sheet. Invoked e.g. when I visit 
+-- a link to another user's sheet.
+handleAcquireSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
+handleAcquireSheet mid uc state sid = do
+  curState <- readState state
+  let conn = curState^.dbConn
+      uid = uc^.userId
+  user <- $fromJust <$> lookupUser conn uid
+  unless (Set.member sid (user^.sheetIds)) $ do
+    -- designate sheet as shared to user
+    modifyUser conn uid (& sharedSheetIds %~ (Set.insert sid))
+    -- update user's list of sheets
+    handleGetSheets mid uc curState
+    -- automatically open the acquired sheet
+    handleOpenSheet mid uc state sid

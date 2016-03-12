@@ -51,42 +51,6 @@ let CU = {
     };
   },
 
-  makeWorkbookSheet(): ASBackendWorkbookSheet {
-    return {
-      tag: 'WorkbookSheet',
-      wsName: "",
-      wsSheets: [{
-        tag: 'Sheet',
-        sheetId: "",
-        sheetName: "",
-        sheetPermissions:{
-          tag: "Blacklist",
-          contents: []
-        }
-      }]
-    };
-  },
-
-  makeWorkbook(): ASWorkbook {
-    return {
-      tag: 'Workbook',
-      workbookName: "",
-      workbookSheets: []
-    };
-  },
-
-  makeSheet(sheetName: string): ASSheet {
-    return {
-      tag: 'Sheet',
-      sheetId: "",
-      sheetName: sheetName,
-      sheetPermissions: {
-        tag: 'Blacklist',
-        contents: []
-      }
-    };
-  },
-
   getLocationsFromServerAction(action: ServerAction): Array<ASLocation> {
     switch(action.tag) {
       case 'EvalInstruction': {

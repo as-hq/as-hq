@@ -78,9 +78,10 @@ instance Client ASUserClient where
       GetSessionLogs _ -> return ()
       otherwise -> handleLogMessage user curState $ A.encode message
     case (serverAction message) of
-      -- New                -> handleNew user state payload
-      OpenSheet sid                    -> handleOpenSheet mid user state sid
-      NewSheet sheetName               -> handleNewSheet mid user curState sheetName
+      -- the following 3 actions take the mutable state rather than ServerState because it updates the user's window
+      OpenSheet sid               -> handleOpenSheet mid user state sid
+      NewSheet sheetName          -> handleNewSheet mid user state sheetName
+      AcquireSheet sid            -> handleAcquireSheet mid user state sid
       GetMySheets                 -> handleGetSheets mid user curState
       -- Close                 -> handleClose user curState payload
       UpdateWindow win            -> handleUpdateWindow mid user curState win

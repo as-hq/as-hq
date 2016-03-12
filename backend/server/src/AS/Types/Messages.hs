@@ -60,7 +60,7 @@ data ClientAction =
   | AskTimeout { timeoutMessageId :: MessageId, serverActionType :: String }
   | AskOpenSheet ASSheetId
   | SetSheetData { updateSheetId :: ASSheetId, update :: SheetUpdate, headers :: [EvalHeader] } -- list of expressions in header
-  | SetMySheets [ASSheet]
+  | SetMySheets { mySheets :: [ASSheet], sharedSheets :: [ASSheet] }
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
@@ -79,6 +79,8 @@ data ServerAction =
     InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
   | OpenSheet ASSheetId
   | NewSheet SheetName
+  -- currently used for sharing sheets.
+  | AcquireSheet ASSheetId 
   | GetMySheets
   | UpdateWindow ASWindow
   -- | Import 

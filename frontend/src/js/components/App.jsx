@@ -25,6 +25,7 @@ import ASBottomBarController from './ASBottomBarController.jsx';
 
 import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASChartDialog from './chart/ASChartDialog.jsx';
+import ASShareDialog from './ASShareDialog.jsx';
 
 import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
@@ -50,6 +51,7 @@ import ModalStore from '../stores/ASModalStore';
 import ConfigStore from '../stores/ASConfigurationStore';
 import HeaderOutputStore from '../stores/ASHeaderOutputStore';
 import LogStore from '../stores/ASLogStore';
+import LoginStore from '../stores/ASLoginStore';
 
 // $FlowFixMe: missing annotations
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
@@ -67,7 +69,7 @@ Shortcuts.installAll();
 type Props = RoutedComponentProps;
 
 class App extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: Props;
   state: {};
 
@@ -106,6 +108,9 @@ class App extends React.Component {
     window.addEventListener('cut', this._cutHandler);
     window.addEventListener('paste', this._pasteHandler);
     window.addEventListener('mousewheel', this._scrollHandler);
+
+    // execute login callbacks upon mount.
+    LoginStore.getCallbacks().forEach(cb => cb());
   }
 
   componentWillUnmount() {
@@ -153,6 +158,10 @@ class App extends React.Component {
           open={ModalStore.getCondFormattingOpen()}
           onRequestClose={() => DialogActions.closeCondFormattingDialog()} />
 
+        <ASShareDialog
+          open={ModalStore.getShareOpen()}
+          onRequestClose={() => DialogActions.closeShareDialog()} />
+
         <ASTopBar toggleEvalHeader={() => ConfigActions.toggleHeader()} />
 
         <Toolbar />
@@ -173,17 +182,17 @@ class App extends React.Component {
 
     // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet
     // is the whole page
-    // ::ALEX:: 
+    // ::ALEX::
     // return (
     //   <div style={{width: '100%', height: '100%'}} >
     //     {main}
-    //     {logOpen ? <LogViewer /> : null} 
+    //     {logOpen ? <LogViewer /> : null}
     //   </div>
     // );
     return (
       <div style={{width: '100%', height: '100%'}} >
         {main}
-        {logOpen ? null : null} 
+        {logOpen ? null : null}
       </div>
     );
   }

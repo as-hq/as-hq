@@ -200,10 +200,10 @@ getAllSheets conn = do
   catMaybes <$> multiGet id dbValToSheet conn keys
 
 -- creates a sheet with unique id
-createSheet :: Connection -> String -> IO ASSheet
-createSheet conn name = do
+createSheet :: Connection -> ASUserId -> String -> IO ASSheet
+createSheet conn uid name = do
     sid <- T.pack <$> getUniqueId
-    let sheet = Sheet sid name
+    let sheet = Sheet sid name uid
     setSheet conn sheet
     return sheet
 

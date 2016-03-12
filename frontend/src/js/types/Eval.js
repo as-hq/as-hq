@@ -348,6 +348,7 @@ export type ASSheet = {
   tag: 'Sheet';
   sheetId: string;
   sheetName: string;
+  sheetOwner: string;
 };
 
 export type ASWorkbook = {

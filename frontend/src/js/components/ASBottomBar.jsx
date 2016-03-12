@@ -13,27 +13,27 @@ import {bottomBar as bottomBarZIndex} from '../styles/zIndex';
 import _ from 'lodash';
 
 type Props = {
-  errorIconStyle: any; 
-  outputIconStyle: any; 
-  sheetName: string; 
+  errorIconStyle: any;
+  outputIconStyle: any;
+  sheetName: string;
 };
 
-export default class ASErrorPane extends React.Component<{}, Props, {}>
+export default class ASBottomBar extends React.Component<{}, Props, {}>
 {
   constructor(props: Props) {
     super(props);
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: {}): boolean { 
+  shouldComponentUpdate(nextProps: Props, nextState: {}): boolean {
     // have to check this manually because we can't compare functions (which get passed as props)
     return !(_.isEqual(nextProps.errorIconStyle, this.props.errorIconStyle) &&
-             _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle) && 
-             nextProps.sheetName === this.props.sheetName); 
+             _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle) &&
+             nextProps.sheetName === this.props.sheetName);
   }
 
   render(): React.Element {
-    const {errorIconStyle, outputIconStyle, sheetName, 
-           onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props; 
+    const {errorIconStyle, outputIconStyle, sheetName,
+           onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props;
     return (
       <Paper style={styles.root}>
         <IconButton
@@ -68,7 +68,7 @@ export default class ASErrorPane extends React.Component<{}, Props, {}>
           input
         </IconButton>
 
-        <span style={styles.sheetName}>
+        <span style={styles.sheetName(sheetName)}>
           { sheetName }
         </span>
 
@@ -100,12 +100,12 @@ const styles = {
     zIndex: 1000 // to be visible on top of spreadsheet when closed
   },
 
-  sheetName: {
+  sheetName: (name) => { return {
     position: 'absolute',
-    right: '50%', 
+    right: `calc(50% - ${name.length * 4}px)`,
     top: 3,
     width: 'auto',
     color: 'white',
     fontWeight: 'bold',
-  }
+  }}
 };

@@ -25,5 +25,17 @@ export default {
     Dispatcher.dispatch({
       _type: 'CLOSE_CHARTING_DIALOG',
     });
-  }
+  },
+
+  openShareDialog() {
+    Dispatcher.dispatch({
+      _type: 'OPEN_SHARE_DIALOG'
+    });
+  },
+
+  closeShareDialog() {
+    Dispatcher.dispatch({
+      _type: 'CLOSE_SHARE_DIALOG'
+    });
+  },
 }

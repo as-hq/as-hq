@@ -614,7 +614,8 @@ export type ClearSheet = {
 
 export type SetMySheets = {
   tag: "SetMySheets";
-  contents: Array<ASSheet>;
+  mySheets: Array<ASSheet>;
+  sharedSheets: Array<ASSheet>;
 }
 
 export type AskOpenSheet = {

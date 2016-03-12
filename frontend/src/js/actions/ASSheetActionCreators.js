@@ -40,10 +40,11 @@ export default {
     });
   },
 
-  setMySheets(sheets: Array<ASSheet>) {
+  setMySheets(mySheets: Array<ASSheet>, sharedSheets: Array<ASSheet>) {
     Dispatcher.dispatch({
       _type: 'GOT_MY_SHEETS',
-      sheets
+      mySheets,
+      sharedSheets
     });
   },
 

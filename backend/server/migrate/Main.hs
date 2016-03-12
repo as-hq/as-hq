@@ -35,22 +35,23 @@ main = alphaMain $ do
   -- Sheets weren't stored correctly in AllSheetsType or as key-value pairs before. 
   -- We remedy that for the first migration (this is preparation work for the migration)
   when isFirstMigration $ 
-    runRedis conn $ do 
-      --  On the first migration, delete some keys that don't parse that we don't care about (bad keys)
-      del ["foo", 
-           "AllWorkbooksType~", 
-           "WorkbookType~Workbook1", 
-           "CFRuleType~ericmillerNk8B5xD2l",
-           "TempCommitType~salvatier?TEST_USER_ID",
-           "PushCommitType~salvatier?TEST_USER_ID"]
-      Right bs <- keys "SheetRangesType~*"
-      let sheetNames = mapMaybe (stripPrefix "SheetRangesType~" . BC.unpack) bs
-      let sheetKeys = map (\name -> "SheetType~" ++ name)  sheetNames
-      let sheets = map (\i -> Sheet (T.pack i) i) sheetNames
-      let sheetVals = map (\s -> init (show s) ++ ", sheetPermissions = Blacklist []}") sheets
-      sadd (BC.pack "AllSheetsType~") $ map BC.pack sheetKeys
-      mset $ zip (map BC.pack sheetKeys) (map BC.pack sheetVals)
-      return ()
+    $undefined -- (the sheet type has changed, and we no longer do first migration, so not maintainting -- anand 3/11)
+    --runRedis conn $ do 
+    --  --  On the first migration, delete some keys that don't parse that we don't care about (bad keys)
+    --  del ["foo", 
+    --       "AllWorkbooksType~", 
+    --       "WorkbookType~Workbook1", 
+    --       "CFRuleType~ericmillerNk8B5xD2l",
+    --       "TempCommitType~salvatier?TEST_USER_ID",
+    --       "PushCommitType~salvatier?TEST_USER_ID"]
+    --  Right bs <- keys "SheetRangesType~*"
+    --  let sheetNames = mapMaybe (stripPrefix "SheetRangesType~" . BC.unpack) bs
+    --  let sheetKeys = map (\name -> "SheetType~" ++ name)  sheetNames
+    --  let sheets = map (\i -> Sheet (T.pack i) i) sheetNames
+    --  let sheetVals = map (\s -> init (show s) ++ ", sheetPermissions = Blacklist []}") sheets
+    --  sadd (BC.pack "AllSheetsType~") $ map BC.pack sheetKeys
+    --  mset $ zip (map BC.pack sheetKeys) (map BC.pack sheetVals)
+    --  return ()
   migrateDBE conn 
 
 migrateDBE :: Connection -> IO ()
@@ -84,7 +85,7 @@ migrateDB conn = do
       when (isFirstMigration && not (null sheets)) $ do
         let uid = T.pack "alphasheetsdemo@gmail.com"
         let sids = map sheetId sheets 
-        let user = User (Set.fromList sids) uid ($head sids)
+        let user = User (Set.fromList sids) Set.empty uid ($head sids)
         print user
         setV conn (UserKey uid) (UserValue user)
 

@@ -12,9 +12,12 @@ import { Router, Route, IndexRoute } from 'react-router';
 import App from './components/App.jsx';
 import Login from './components/Login.jsx';
 import NotificationController from './components/NotificationController.jsx';
+import ModalStore from './stores/ASModalStore';
 import LoginStore from './stores/ASLoginStore';
+import LoginActions from './actions/ASLoginActionCreators';
 import FocusActions from './actions/ASFocusActionCreators';
 import GridActions from './actions/ASGridActionCreators';
+import API from './actions/ASApiActionCreators';
 
 // XXX(joel) - only include in dev
 window.Perf = require('react-addons-perf');
@@ -52,6 +55,13 @@ const main = (
       <IndexRoute component={Login} />
       <Route path="login" component={Login} />
       <Route path="app" component={App} onEnter={requireAuth} />
+      <Route path="sheets/:referredSheetId" component={App} onEnter={(ns, rep) => {
+        LoginActions.registerCallback(() => {
+          const {referredSheetId} = ns.params;
+          API.acquireSheet(referredSheetId);
+        });
+        requireAuth(ns, rep);
+      }} />
     </Route>
   </Router>
 );
@@ -67,9 +77,8 @@ When typing and evaluating rapidly in the grid, occasionally both the grid and
 the editor lose focus. When this happens, restore focus.
  */
 // $FlowFixMe ::ALEX::
-document.addEventListener('keydown', (e: SyntheticKeyboardEvent) => {
-  // $FlowFixMe ::ALEX::
-  if (e.srcElement.tagName === 'BODY') {
+document.addEventListener('keydown', (e) => {
+  if (e.srcElement.tagName === 'BODY' && ! ModalStore.isAnyOpen()) {
     FocusActions.focus('grid');
     GridActions.executeKey(e);
   }

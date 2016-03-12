@@ -20,6 +20,8 @@ import type {
   Offset
 } from './Eval';
 
+import type {Callback} from './Base';
+
 import type {
   ASOverlaySpec
 } from './Overlay';
@@ -288,6 +290,11 @@ export type LoginSuccessAction = {
   sheetId: string;
 };
 
+export type LoginCallbackRegisteredAction = {
+  _type: 'LOGIN_CALLBACK_REGISTERED';
+  cb: Callback;
+};
+
 export type WorkbookAction =
   GotUpdatedWorkbooksAction
   | GotNewWorkbooksAction
@@ -426,6 +433,7 @@ export type ASAction =
   | SetVAlign
   | LoginAttemptAction
   | LoginSuccessAction
+  | LoginCallbackRegisteredAction
   | APIEvaluateAction
   | StartEditingAction
   | StopEditingAction

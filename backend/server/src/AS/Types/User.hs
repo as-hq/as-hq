@@ -33,7 +33,8 @@ data ASPermissions =
   | Whitelist [ASUserEntity]
   deriving (Show, Read, Eq, Generic)
 
-data ASUser = User {_sheetIds :: Set ASSheetId, _userId :: ASUserId, _lastOpenSheet :: ASSheetId}
+data ASUser = 
+  User {_sheetIds :: Set ASSheetId, _sharedSheetIds :: Set ASSheetId, _userId :: ASUserId, _lastOpenSheet :: ASSheetId}
   deriving (Show, Read, Eq, Generic)
 
 makeLenses ''ASUser

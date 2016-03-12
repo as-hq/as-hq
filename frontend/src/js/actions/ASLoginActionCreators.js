@@ -1,5 +1,7 @@
 /* @flow */
 
+import type {Callback} from '../types/Base';
+
 import API from './ASApiActionCreators';
 import { API_test } from './ASApiActionCreators';
 import Dispatcher from '../Dispatcher';
@@ -29,5 +31,12 @@ export default {
       userId,
       sheetId
     });
-  }
+  },
+
+  registerCallback(cb: Callback) {
+    Dispatcher.dispatch({
+      _type: 'LOGIN_CALLBACK_REGISTERED',
+      cb
+    });
+  },
 }

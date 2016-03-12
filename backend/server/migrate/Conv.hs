@@ -187,16 +187,17 @@ type ToDBValue = ByteString -> Maybe DBValue
 
 -- The DB stores show of ASSheet0, but the ASSheet type no longer has sheetPermissions. 
 toSheetValue :: ToDBValue
-toSheetValue b = do 
-  let str = BC.unpack b
-  let (first:_) = splitOn ", sheetPermissions" str
-  let newSheetStr = first ++ "}"
-  let fixSheetName (Sheet id name) = (Sheet id (T.unpack id))
-  -- Make sure that the sheet names and ids are the same
-  let mDBValue = (SheetValue . fixSheetName) <$> readMaybe newSheetStr
-  case mDBValue of
-    Nothing -> mDBValue
-    Just v -> trace (show v) mDBValue
+toSheetValue b = $undefined -- not needed beyond first migration, and the sheet type has changed. (anand 3/11)
+  --do 
+  --let str = BC.unpack b
+  --let (first:_) = splitOn ", sheetPermissions" str
+  --let newSheetStr = first ++ "}"
+  --let fixSheetName (Sheet id name) = (Sheet id (T.unpack id))
+  ---- Make sure that the sheet names and ids are the same
+  --let mDBValue = (SheetValue . fixSheetName) <$> readMaybe newSheetStr
+  --case mDBValue of
+  --  Nothing -> mDBValue
+  --  Just v -> trace (show v) mDBValue
 
 toCommitValue :: ToDBValue
 toCommitValue b = CommitValue <$> S.maybeDecode b

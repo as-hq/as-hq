@@ -92,7 +92,7 @@ export default class ASTopBar extends React.Component {
         )];
 
     // If the user is a dev, then display an option to open the log viewer
-    const maybeLogButton = LogStore.userIsDev() 
+    const maybeLogButton = LogStore.userIsDev()
       ? [(
          simple({
             title: 'Log Viewer',
@@ -135,6 +135,19 @@ export default class ASTopBar extends React.Component {
               title: 'Open',
               menuItems:
                 SheetStateStore.getMySheets().map(sheet =>
+                  simple({
+                    title: sheet.sheetName,
+                    callback() {
+                      API.openSheet(sheet.sheetId);
+                    }
+                  })
+                )
+            }),
+
+            nested({
+              title: 'Shared with me',
+              menuItems:
+                SheetStateStore.getSharedSheets().map(sheet =>
                   simple({
                     title: sheet.sheetName,
                     callback() {
@@ -219,6 +232,15 @@ export default class ASTopBar extends React.Component {
             })
           ]},
 
+          {title: 'Share', menuItems: [
+            simple({
+              title: 'Via link...',
+              callback() {
+                DialogActions.openShareDialog();
+              }
+            }),
+          ]},
+
           {title: 'Help', menuItems: [
             simple({
               title: 'Submit bug report',
@@ -230,7 +252,7 @@ export default class ASTopBar extends React.Component {
 
             ...testAlphaSheets,
             ...maybeLogButton
-          ]}
+          ]},
         ]} />
       </span>
     );

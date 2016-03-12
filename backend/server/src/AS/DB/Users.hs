@@ -71,10 +71,6 @@ createUserClient dbConn wsConn uid = do
 lookupUser :: Connection -> ASUserId -> IO (Maybe ASUser)
 lookupUser conn uid = getV conn (UserKey uid) dbValToUser
 
-associateSheetWithUser :: Connection -> ASUserId -> ASSheetId -> IO ()
-associateSheetWithUser conn uid sid = modifyUser conn uid f
-  where f u = u & sheetIds %~ (Set.insert sid)
-
 modifyUser :: Connection -> ASUserId -> (ASUser -> ASUser) -> IO ()
 modifyUser conn uid f = do
   user <- lookupUser conn uid
@@ -84,8 +80,8 @@ modifyUser conn uid f = do
 
 createUser :: Connection -> ASUserId -> IO ASUser
 createUser conn uid = do
-  sid <- sheetId <$> createSheet conn new_sheet_name
-  let user  = User (Set.fromList [sid]) uid sid
+  sid <- sheetId <$> createSheet conn uid new_sheet_name
+  let user  = User (Set.singleton sid) Set.empty uid sid
   setUser conn user 
   return user
 

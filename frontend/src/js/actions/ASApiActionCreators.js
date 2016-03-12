@@ -251,7 +251,8 @@ pws.whenReady(() => {
         SheetActions.clearSheet(action.contents);
         break;
       case 'SetMySheets':
-        SheetActions.setMySheets(action.contents);
+        const {mySheets, sharedSheets} = action;
+        SheetActions.setMySheets(mySheets, sharedSheets);
         break;
       case 'AskDecouple':
         // #needsrefactor should use notification; currently sticking with alert box because
@@ -873,6 +874,17 @@ const API = {
           tag: "ClearSheetServer",
           contents: sid
         };
+    API.sendMessageWithAction(msg);
+  },
+
+  // When a user receives a link to a sheet, she "acquires" that
+  // sheet into her list of sheets. "Acquired" sheets are distinguished
+  // from sheets she created.
+  acquireSheet(sheetId: string) {
+    const msg = {
+      tag: "AcquireSheet",
+      contents: sheetId
+    };
     API.sendMessageWithAction(msg);
   },
 
