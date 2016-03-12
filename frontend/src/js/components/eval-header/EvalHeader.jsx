@@ -45,7 +45,7 @@ type LanguageItem = {
 }
 
 class EvalHeader extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: EvalHeaderProps;
   state: {};
 
@@ -118,16 +118,20 @@ class EvalHeader extends React.Component {
 
 const buttonText = 'Evaluate';
 
+// #needsrefactor the correct way to do this is flex; this overconstrains the toolbar height. 
+const toolbarHeight = '56px';
+
 const styles = {
   root: {
     height: '100%',
     marginLeft: '6px'
   },
   codeField: {
-    height: '100%'
+    height: `calc(100% - ${toolbarHeight})`
   },
   toolbar: {
-    backgroundColor: Styles.Colors.grey900
+    backgroundColor: Styles.Colors.grey900,
+    height: toolbarHeight
   },
   dropdownUnderline: {
     display: 'none'
