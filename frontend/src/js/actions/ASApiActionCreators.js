@@ -330,9 +330,19 @@ pws.whenReady(() => {
           newSelection: new ASSelection(action.contents)
         });
         break;
-      case 'ShowHeaderResult':
-        const {headerValue, headerDisplay} = action.contents;
-        HeaderActions.setOutput(headerValue, headerDisplay);
+      case 'HandleEvaluatedHeader':
+        const {headerValue, headerDisplay} = action.headerResult;
+        const {evalHeaderLang, evalHeaderExpr, evalHeaderSheetId} = action.headerContents;
+        const {headerEvaluator} = action; 
+
+        HeaderActions.update(evalHeaderExpr, evalHeaderLang);
+        // Don't display the output if you're not the one who updated the header; only update
+        // the contents of the header. 
+        // Ideally we'd be comparing the current session against the session of the user 
+        // who sent the update; for now we're just comparing the usernames. 
+        if (headerEvaluator === LoginStore.getUserId()) {
+          HeaderActions.setOutput(headerValue, headerDisplay);
+        } 
         break;
       case 'Find':
         // TODO

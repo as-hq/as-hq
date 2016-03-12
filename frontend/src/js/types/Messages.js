@@ -418,8 +418,8 @@ export type Evaluate = {
 export type EvalHeader = {
   tag: "EvalHeader";
   evalHeaderSheetId: string;
-  evalHeaderLang: ASLanguage;
-  evalHeaderExpr: ASExpression;
+  evalHeaderLang: ASLanguage; 
+  evalHeaderExpr: string; 
 };
 
 export type EvaluateHeader = {
@@ -572,7 +572,7 @@ export type ClientAction =
   | AskOpenSheet
   | MakeSelection
   | LoadImportedCells
-  | ShowHeaderResult;
+  | HandleEvaluatedHeader;
 
 export type NoAction = {
   tag: "NoAction";
@@ -633,7 +633,9 @@ export type LoadImportedCells = {
   contents: Array<ASCellObject>;
 }
 
-export type ShowHeaderResult = {
-  tag: "ShowHeaderResult";
-  contents: HeaderResult;
+export type HandleEvaluatedHeader = {
+  tag: "HandleEvaluatedHeader";
+  headerContents: EvalHeader;
+  headerResult: HeaderResult; 
+  headerEvaluator: string; 
 }

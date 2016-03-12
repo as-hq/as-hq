@@ -1,9 +1,8 @@
 module AS.Handlers.Eval where
 
 import AS.Types.Cell
-import AS.Types.Network
 import AS.Types.Messages
-import AS.Types.User
+import AS.Types.User hiding (userId)
 import AS.Types.Commits
 import AS.Types.Eval
 import AS.Types.EvalHeader
@@ -51,13 +50,13 @@ handleEvalHeader :: MessageId -> ASUserClient -> ServerState -> EvalHeader -> IO
 handleEvalHeader mid uc state evalHeader = do
   setEvalHeader (state^.dbConn) evalHeader
   result <- runEitherT $ evaluateHeader evalHeader
-  sendToOriginal uc $ case result of 
+  broadcastTo state [evalHeader^.evalHeaderSheetId] $ case result of 
         Left e -> failureMessage mid $ generateErrorMessage e
         Right (EvalResult value display) -> 
           let lang = evalHeader^.evalHeaderLang
               valueStr = showValue lang value
               headerResult = HeaderResult valueStr display
-          in ClientMessage mid (ShowHeaderResult headerResult) 
+          in ClientMessage mid (HandleEvaluatedHeader evalHeader headerResult (uc^.userId)) 
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB

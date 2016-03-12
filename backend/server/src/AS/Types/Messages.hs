@@ -65,7 +65,7 @@ data ClientAction =
   | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
   | MakeSelection Selection
-  | ShowHeaderResult HeaderResult
+  | HandleEvaluatedHeader { headerContents :: EvalHeader, headerResult :: HeaderResult, headerEvaluator :: ASUserId }
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
   | PassCellsToTest [ASCell]
