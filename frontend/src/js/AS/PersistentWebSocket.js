@@ -43,7 +43,7 @@ class PersistentWebSocket {
   _messagePump: IntervalId;
   _connectionWatch: IntervalId;
   _isDisconnected: boolean;
-  _isAttemptingReconnect: boolean; 
+  _isAttemptingReconnect: boolean;
 
   _ready: boolean;
   _readyCallbacks: Array<Callback>;
@@ -52,16 +52,6 @@ class PersistentWebSocket {
     this._callbackQueue = [];
     this._timeoutCounter = 0;
     this._isDisconnected = false;
-    // used as a lock (MVar) to ensure that the various loops
-    // don't interfere with each others' attempts to reestablish connection.
-    this._isAttemptingReconnect = false;
-
-    // used as a lock (MVar) to ensure that the various loops
-    // don't interfere with each others' attempts to reestablish connection.
-    this._isAttemptingReconnect = false;
-
-    this._readyCallbacks = [];
-    this._ready = false;
 
     // used as a lock (MVar) to ensure that the various loops
     // don't interfere with each others' attempts to reestablish connection.
