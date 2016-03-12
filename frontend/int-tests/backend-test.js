@@ -1165,7 +1165,7 @@ describe('backend', () => {
         });
       });
 
-      fdescribe('r', () => {
+      describe('r', () => {
         it ('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
