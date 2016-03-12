@@ -41,3 +41,5 @@ server/src/AS/Config/Environment.hs
 # Profiling files
 alphasheets-profiling-exe.hp
 alphasheets-profiling-exe.prof
+
+**/*.hp
