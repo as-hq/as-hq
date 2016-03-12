@@ -1153,7 +1153,7 @@ describe('backend', () => {
         });
       });
 
-      describe('r', () => {
+      fdescribe('r', () => {
         it ('should evaluate at all', (done) => {
           _do([
             r('A1', '1 + 1'),
@@ -1189,7 +1189,7 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should evaluate a symbol correctly', (done) => {
+        xit ('should evaluate a symbol correctly', (done) => {
           _do([
             r('A1', 'as.symbol(123)'),
             shouldBe('A1', valueS('123')),

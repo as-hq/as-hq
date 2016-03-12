@@ -105,8 +105,8 @@ showCollection lang coll = case coll of
   M mat -> case lang of 
     R -> "matrix(" ++ elems ++ ", nrow=" ++ height ++ ", ncol=" ++ width ++ ")"
       where 
-        width = show $ length mat
-        height = show . length $ $head mat
+        height = show $ length mat
+        width = show . length $ $head mat
         elems = list R $ map (showPrimitive R) (concat $ L.transpose mat) 
     _ -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
 
