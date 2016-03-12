@@ -8,6 +8,7 @@ import AS.Types.Errors
 import AS.Types.Excel
 import AS.Types.Formats
 import AS.Parsing.Excel (refMatch)
+import AS.Config.Constants
 import qualified AS.Parsing.Common as C
 
 import Text.ParserCombinators.Parsec
@@ -16,8 +17,9 @@ import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import Control.Applicative hiding ((<|>), many)
 
-import Data.List (elemIndices)
 import Data.Char (toUpper,toLower)
+import Data.List (elemIndices)
+import Data.Maybe (fromMaybe)
 import Data.Time.Calendar
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -304,8 +306,7 @@ date = do
   month <- natural
   char '/'
   day <- natural
-  char '/'
-  year <- natural
+  year <- fromMaybe current_year <$> optionMaybe (char '/' >> natural)
   if (month > 12 || day > 31)
     then fail "Invalid date"
     else return $ Formatted (dateToDecimal month day year) (Just (Format Date Nothing))

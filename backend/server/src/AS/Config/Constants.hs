@@ -39,6 +39,14 @@ auth_message_id = "auth_message_id"
 new_sheet_name :: String
 new_sheet_name = "Sheet1"
 
+-- Currently used only in the date parser. Eric Miller expected 3/5 to autoexpand to 3/5/2016, so 
+-- implementing this should make him pretty happy. Unfortunately, programatically getting
+-- the current year means you have to parse in the IO monad, which seems like opening a can of worms, and
+-- is totally not worth the trouble. PLUS, EVEN IF THIS CODE DOESN'T GET BULLDOZED WITHIN 8 MONTHS AND 19
+-- DAYS, THIS IS A VERY OBVIOUS AND TRIVIAL BUG TO FIX. #AlexSolution (yes yes Michael blah blah blah)
+current_year :: Integer
+current_year = 2016
+
 pythonHeaderDefaultText :: String
 pythonHeaderDefaultText = unlines [
   "# This is the Python global code editor. ", 
