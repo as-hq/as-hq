@@ -1,8 +1,8 @@
 // @flow
-import React, { Component } from 'react';
+import React from 'react';
 import { findDOMNode } from 'react-dom';
 
-import type { ReactElement } from 'react';
+import type { Element } from 'react';
 
 function isDescendant(parent: Node, child: Node): boolean {
   let node: Node = child.parentNode;
@@ -19,7 +19,7 @@ function isDescendant(parent: Node, child: Node): boolean {
 }
 
 type ClickAwayProps = {
-  children: ReactElement;
+  children: React.Element;
   componentClickAway: () => void;
 };
 
@@ -32,7 +32,11 @@ type ClickAwayProps = {
 // <ClickAway componentClickAway={handleClickAway}>
 //   <Dialog />
 // </ClickAway>
-export default class ClickAway extends Component<{}, ClickAwayProps, {}> {
+export default class ClickAway extends React.Component {
+  static defaultProps = {};
+  props: ClickAwayProps;
+  state: {};
+
   componentDidMount() {
     document.addEventListener('onclick', this._checkClickAway);
   }
@@ -41,6 +45,7 @@ export default class ClickAway extends Component<{}, ClickAwayProps, {}> {
     document.removeEventListener('onclick', this._checkClickAway);
   }
 
+  // $FlowFixMe: low-impact, and there's some weirdness going on with flow treatment of SyntheticMouseEvent and EventHandlers
   _checkClickAway(event) {
     const el = findDOMNode(this);
     const { target } = event;

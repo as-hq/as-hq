@@ -13,7 +13,11 @@ import U from '../AS/Util';
 import API from '../actions/ASApiActionCreators';
 import Dispatcher from '../Dispatcher';
 
-export default class LogViewer extends React.Component<{}, {}, {}> {
+export default class LogViewer extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
+
 
   constructor(props) {
     super(props);

@@ -1,6 +1,7 @@
 /* @flow */
 
-import type { Offset } from '../types/Hypergrid';
+import type { Offset } from '../types/Eval';
+import type { Dimensions } from '../types/Hypergrid';
 
 import ASSelection from '../classes/ASSelection';
 import ASPoint from '../classes/ASPoint';
@@ -25,7 +26,7 @@ const GridActions = {
     );
   },
 
-  shiftSelection(offset: Offset, extend: boolean) {
+  shiftSelection(offset: Offset, extend?: boolean) {
     const selection = GridStore.getActiveSelection();
     GridActions.select(
       selection.shift(offset, extend)
@@ -55,7 +56,7 @@ const GridActions = {
     });
   },
 
-  setDimensions({width, height}) {
+  setDimensions({width, height}: Dimensions) {
     Dispatcher.dispatch({
       _type: 'GRID_DIMENSIONS_CHANGED',
       width,

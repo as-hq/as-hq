@@ -66,9 +66,14 @@ Shortcuts.installAll();
 
 type Props = RoutedComponentProps;
 
-class App extends React.Component<{}, Props, {}> {
+class App extends React.Component {
+  static defaultProps = {}; 
+  props: Props;
+  state: {};
+
   $storeLinks: Array<StoreLink>;
   _configListener: StoreToken;
+  _logListener: Callback;
   _copyHandler: Callback<SyntheticClipboardEvent>;
   _cutHandler: Callback<SyntheticClipboardEvent>;
   _pasteHandler: Callback<SyntheticClipboardEvent>;
@@ -148,11 +153,6 @@ class App extends React.Component<{}, Props, {}> {
           open={ModalStore.getCondFormattingOpen()}
           onRequestClose={() => DialogActions.closeCondFormattingDialog()} />
 
-        <ASChartDialog
-          open={ModalStore.getChartingOpen()}
-          onRequestClose={() => DialogActions.closeChartingDialog()}
-          onCreate={(chart) => OverlayActions.add(chart)} />
-
         <ASTopBar toggleEvalHeader={() => ConfigActions.toggleHeader()} />
 
         <Toolbar />
@@ -173,16 +173,23 @@ class App extends React.Component<{}, Props, {}> {
 
     // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet
     // is the whole page
+    // ::ALEX:: 
+    // return (
+    //   <div style={{width: '100%', height: '100%'}} >
+    //     {main}
+    //     {logOpen ? <LogViewer /> : null} 
+    //   </div>
+    // );
     return (
       <div style={{width: '100%', height: '100%'}} >
         {main}
-        {logOpen ? <LogViewer /> : null}
+        {logOpen ? null : null} 
       </div>
     );
   }
 
 
-  _getBottomPane(pane: BottomPane): ReactElement {
+  _getBottomPane(pane: BottomPane): React.Element {
     switch(pane) {
       case 'errors': {
         // TODO (michael/anand) this component is pretty fucked.
@@ -231,3 +238,9 @@ App.childContextTypes = {
 };
 
 export default App;
+
+
+// <ASChartDialog
+//           open={ModalStore.getChartingOpen()}
+//           onRequestClose={() => DialogActions.closeChartingDialog()}
+//           onCreate={(chart) => OverlayActions.add(chart)} />

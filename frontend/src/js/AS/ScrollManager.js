@@ -6,9 +6,14 @@ import FocusStore from '../stores/ASFocusStore';
 
 import GridActions from '../actions/ASGridActionCreators';
 
+import type { FocusedElement } from '../types/State';
+
+// ::ALEX::
+type SyntheticScrollEvent = SyntheticEvent & {wheelDeltaX: number, wheelDeltaY: number};
+
 const ScrollManager = {
 
-  handleEvent(e: SyntheticEvent) {
+  handleEvent(e: SyntheticScrollEvent) {
     const focus = FocusStore.getFocus();
     const hover = FocusStore.getHover();
 
@@ -26,7 +31,8 @@ const ScrollManager = {
     }
   },
 
-  executeScroll(e: SyntheticEvent, hover: FocusedElement) {
+  // ::ALEX:: 
+  executeScroll(e: SyntheticScrollEvent, hover: FocusedElement) {
     switch(hover) {
       case 'grid': {
         const dX =

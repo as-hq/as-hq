@@ -3,6 +3,7 @@
 import Dispatcher from '../Dispatcher';
 import API from './ASApiActionCreators';
 import ConfigActions from './ASConfigActionCreators';
+import GridActions from './ASGridActionCreators.js';
 import NotificationActions from './ASNotificationActionCreators';
 
 import FocusStore from '../stores/ASFocusStore';
@@ -15,8 +16,8 @@ import U from '../AS/Util';
 import Render from '../AS/Renderers';
 
 const ClipboardActions = {
-
-  executeKey(e: SyntheticKeyboardEvent) {
+  /*
+  executeKey(e: SyntheticClipboardEvent) {
     switch(e.which) {
       case 67:
         ClipboardActions.copy(e);
@@ -30,7 +31,7 @@ const ClipboardActions = {
       default:
         break;
     }
-  },
+  }, */
 
   copy(e: SyntheticClipboardEvent) {
     switch(FocusStore.getFocus()) {

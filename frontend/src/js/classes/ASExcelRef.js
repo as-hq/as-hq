@@ -329,7 +329,9 @@ export default class ASExcelRef {
       }
 
       case 'range': {
+        // $FlowFixMe ::ALEX::
         const first = toggleNakedIndex(this._nakedRef.first);
+        // $FlowFixMe ::ALEX::
         const second = toggleNakedIndex(this._nakedRef.second);
         const nref = {tag: 'range', first, second};
         return new ASExcelRef(nref, this._sheetId, this._workbookId);
@@ -337,6 +339,7 @@ export default class ASExcelRef {
 
       default:
         invariant('ASExcelRef tag was neither index nor range.');
+        return new ASExcelRef(this._nakedRef, this._sheetId, this._workbookId);
     }
   }
 }

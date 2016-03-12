@@ -5,8 +5,9 @@
     // or is equal to "development"
     "development": {
       "plugins": [
-        "react-transform"
+        "react-transform",
       ],
+      "optional": ["es7.classProperties"],
       "extra": {
         "react-transform": {
           "transforms": [
@@ -22,6 +23,9 @@
           ]
         }
       }
+    },
+    "production": {
+      "optional": ["es7.classProperties"],
     }
   }
 }

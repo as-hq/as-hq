@@ -9,9 +9,14 @@ import type {
   NakedIndex
 } from '../types/Eval';
 
+import type {
+  FocusedElement
+} from '../types/State';
+
 import type { EditorSelection } from '../types/Editor';
 
 import ASIndex from '../classes/ASIndex';
+import ASSelection from '../classes/ASSelection';
 
 import dispatcher from '../Dispatcher';
 import Immutable from 'immutable';
@@ -25,7 +30,9 @@ import FocusStore from '../stores/ASFocusStore';
 import Render from '../AS/Renderers';
 import U from '../AS/Util';
 
-type State = Immutable.Record$Class;
+// #flowlens
+type State = any; 
+
 const StateRecord = Immutable.Record({
   expression: '',
   selection: {
@@ -48,7 +55,8 @@ class ExpressionStore extends ReduceStore<State> {
     return new StateRecord();
   }
 
-  reduce(state: State, action: ASAction) {
+  // #flowaction
+  reduce(state: State, action: any) {
     switch(action._type) {
       case 'EXPRESSION_STORE_RESYNC': {
         this.__emitChange();
@@ -282,8 +290,7 @@ function tryTogglingRef(state: State): State {
   const { selection, expression } = state;
   const { prefix, ref, suffix } = U.Parsing.liftHoveredReference(selection, expression);
 
-  if (ref !== null) {
-
+  if (ref != null) {
     // toggle the ref, and place cursor after it.
     const newRef = ref.toggle().toString();
     const { row } = U.String.getSelectionLead(selection);

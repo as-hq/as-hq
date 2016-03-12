@@ -35,11 +35,11 @@ import React from 'react';
 
 import BaseStore from '../../stores/BaseStore';
 
-type StoreLinkedReactComponent = ReactComponent & {
+type StoreLinkedReactComponent = React.Component & {
   $storeLinks: Array<StoreLink>;
 };
 
-type ListenedReactComponent = ReactComponent & {
+type ListenedReactComponent = React.Component & {
   $listenerRemovers: Array<Callback>;
 };
 

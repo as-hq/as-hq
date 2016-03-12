@@ -22,7 +22,11 @@ type Focuser = {
 export default function Focusable(Component: ReactClass, focuser: Focuser): ReactClass {
   const { name, takeFocus, addFocusListener } = focuser;
 
-  return class FocusedComponent extends React.Component<{}, any, {}> {
+  return class FocusedComponent extends React.Component {
+    static defaultProps = {}; 
+    props: any;
+    state: {};
+
     _component: any;
     _storeToken: StoreToken;
     _silent: boolean;

@@ -1,6 +1,6 @@
 /* @flow */
 
-import type { Offset } from '../types/Hypergrid';
+import type { Offset } from '../types/Eval';
 
 import API from './ASApiActionCreators';
 import Dispatcher from '../Dispatcher';

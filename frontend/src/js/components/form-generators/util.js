@@ -5,13 +5,13 @@ import type {FChunk, FComposer} from './types';
 import React from 'react';
 
 export const defaultComposer: FComposer =
-  (vals: Array<FChunk>): ReactElement => {
+  (vals: Array<FChunk>): React.Element => {
     return <div>{
       vals.map(({element}) => element)
     }</div>;
   };
 
-export function get(vals: Array<FChunk>, key: string): ReactElement {
+export function get(vals: Array<FChunk>, key: string): React.Element {
   const matchingVals = vals.filter(({key: k}) => key === k)
 
   if (matchingVals.length > 0) {

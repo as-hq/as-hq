@@ -31,7 +31,8 @@ class FocusStore extends ReduceStore<State> {
     return new StateRecord();
   }
 
-  reduce(state: State, action: ASAction): State {
+  // #flowaction
+  reduce(state: State, action: any): State {
     switch(action._type) {
 
       case 'FOCUSED': {

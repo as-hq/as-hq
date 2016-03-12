@@ -1,8 +1,7 @@
 // @flow
+
 import Dispatcher from '../Dispatcher';
-
 import API from './ASApiActionCreators';
-
 import GridStore from '../stores/ASGridStore';
 
 import type {
@@ -84,6 +83,7 @@ export default {
 
   setColor(tag: 'TextColor' | 'FillColor' | 'BorderColor', contents: string) {
     // TODO(joel) figure out BorderColor case
+    // $FlowFixMe union types still broken...?
     const prop: ASCellProp = {tag, contents};
     const {range} = GridStore.getActiveSelection();
     API.setProp(prop, range);

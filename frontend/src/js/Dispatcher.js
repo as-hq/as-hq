@@ -99,6 +99,7 @@ class Dispatcher<TPayload> {
     } finally {
       this._stopDispatching();
     }
+    // $FlowFixMe
     LogActionCreator.log(payload);
   }
 
@@ -146,5 +147,5 @@ class Dispatcher<TPayload> {
   }
 }
 
-const dispatcher = new Dispatcher();
+const dispatcher: Dispatcher<any> = new Dispatcher();
 export default dispatcher;

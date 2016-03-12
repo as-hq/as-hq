@@ -14,7 +14,6 @@ import type {
   Callback
 } from '../types/Base';
 
-// $FlowFixMe
 import invariant from 'invariant';
 import {logDebug} from './Logger';
 

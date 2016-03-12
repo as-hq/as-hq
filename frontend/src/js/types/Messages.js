@@ -1,5 +1,7 @@
 /* @flow */
 
+import type ASRange from '../classes/ASRange';
+
 import type {
   ASExecError,
   ASExcelExecError
@@ -37,13 +39,12 @@ import type {
 } from './Eval';
 
 import type {
-  ASViewingWindow,
-  ASClientExpression
-} from './State';
-
-import type {
   ASUserId
 } from './User';
+
+import type {
+  CondFormatRule
+} from './CondFormat';
 
 export type MessageId = string;
 
@@ -192,7 +193,7 @@ export type PayloadWB = {
 
 export type PayloadW = {
   tag: 'PayloadW';
-  contents: ASViewingWindow;
+  contents: ASRange;
 };
 
 export type PayloadU = {
@@ -405,7 +406,7 @@ export type Export = {
 
 export type EvalInstruction = {
   tag: "EvalInstruction";
-  evalXp:  ASClientExpression;
+  evalXp:  ASExpression;
   evalLoc: ASIndexObject;
 };
 

@@ -5,6 +5,8 @@ import type {
   ASRangeObject
 } from '../types/Eval';
 
+import type { Offset } from '../types/Eval';
+
 import type {
   ASClientWindow
 } from '../types/Messages';

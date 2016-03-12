@@ -63,7 +63,10 @@ type Purifier = {
     component: any;
     value: any;
   }) => void;
-  removeChangeListener?: (component: React.Element, listener: Callback) => void;
+  removeChangeListener?: (val: {
+    component: React.Element;
+    listener: Callback;
+  }) => void;
   manuallySilenced?: boolean;
 };
 
@@ -83,9 +86,13 @@ type args = {
 
 export default function HOPurify({component: Component, purifiers, onReady}: args): ReactClass {
 
-  return class PurifiedComponent extends React.Component<{}, PurifiedProps, {}> {
+  return class PurifiedComponent extends React.Component {
+    static defaultProps = {};
+    props: PurifiedProps;
+    state: {};
+
     $listenerRemovers: Array<Callback>;
-    _instance: ReactElement;
+    _instance: React.Element;
     _silent: Dict<boolean>;
     // for listeners that depend on each others' behavior.
     // this is essential for Ace to function properly.
@@ -115,7 +122,7 @@ export default function HOPurify({component: Component, purifiers, onReady}: arg
       this._names = Object.keys(this._purifiers);
     }
 
-    getInstance(): ReactElement {
+    getInstance(): React.Element {
       return this._instance;
     }
 

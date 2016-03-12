@@ -11,8 +11,9 @@ import { ReduceStore } from 'flux/utils';
 import dispatcher from '../Dispatcher';
 import HeaderOutputStore from './ASHeaderOutputStore';
 
+// #flowlens
+type State = any;
 
-type State = Immutable.Record$Class;
 const StateRecord = Immutable.Record({
   isConnected: true,
   headerOpen: false,

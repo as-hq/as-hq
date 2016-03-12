@@ -18,7 +18,7 @@ export type GridSpec = {
   lastVisibleRow: number;
 };
 
-export type Offset = {
-  dX: number;
-  dY: number;
+export type Dimensions = {
+  width: number;
+  height: number;
 }

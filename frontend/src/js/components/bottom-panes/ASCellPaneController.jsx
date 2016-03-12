@@ -13,7 +13,11 @@ import GridStore from '../../stores/ASGridStore';
 
 import ASOutputPane from './ASOutputPane.jsx';
 
-class ASCellPaneController extends React.Component<{}, {}, {}> {
+class ASCellPaneController extends React.Component {
+  static defaultProps = {}; 
+  props: {};
+  state: {};
+
   _storeListener: () => void;
   _cellListener: StoreToken;
   _gridListener: StoreToken;

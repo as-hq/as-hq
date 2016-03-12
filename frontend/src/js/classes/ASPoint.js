@@ -2,7 +2,7 @@
 
 import type {
   NakedIndex,
-  Offset,
+  Offset
 } from '../types/Eval';
 
 export default class ASPoint {
@@ -12,7 +12,7 @@ export default class ASPoint {
   get x(): number { return this._x; }
   get y(): number { return this._y; }
 
-  constructor({x, y}: NakedIndex): ASPoint {
+  constructor({x, y}: {x: number, y: number}) {
     this._x = x;
     this._y = y;
   }
@@ -24,7 +24,7 @@ export default class ASPoint {
     });
   }
 
-  equals(other: ASPoint) {
+  equals(other: ASPoint): boolean {
     return (
       other.x === this._x &&
       other.y === this._y

@@ -152,7 +152,7 @@ class ASCellStore extends ReduceStore<CellStoreData> {
   getDisplayedValueAt(idx: ASIndex): string {
     const cell = this.getCell(idx);
     if (!! cell) {
-      return U.Render.showValue(cell.value);
+      return U.Render.showValue(cell.value).toString();
     } else {
       return '';
     }
@@ -163,14 +163,14 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     return this.getCell(origin);
   }
 
-  activeCellHasError(): boolean { 
+  activeCellHasError(): boolean {
     const cell = this.getActiveCell();
     return !!cell ? cell._value.tag === "ValueError" : false;
   }
 
-  activeCellHasOutput(): boolean { 
+  activeCellHasOutput(): boolean {
     const disp = this.getActiveCellDisplay();
-    return disp != null && disp !== ""; 
+    return disp != null && disp !== "";
   }
 
   getActiveCellDisplay(): ?string {

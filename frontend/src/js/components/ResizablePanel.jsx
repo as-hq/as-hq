@@ -39,9 +39,15 @@ type ResizablePanelState = {
 };
 
 // REPL stuff is getting temporarily phased out in favor of an Eval Header file. (Alex 11/12)
-export default class ResizablePanel
-  extends React.Component<ResizablePanelDefaultProps, ResizablePanelProps, ResizablePanelState>
+export default class ResizablePanel extends React.Component
 {
+  static defaultProps: ResizablePanelDefaultProps = {
+    sidebarVisible: false,
+    side: 'right'
+  };
+  props: ResizablePanelProps; 
+  state: ResizablePanelState; 
+
 
   /**********************************************************************************************************************************/
   // Props and state methods
@@ -254,7 +260,7 @@ export default class ResizablePanel
     let secondDiv = (this.props.side === 'top' || this.props.side === 'left') ? content : sidebar;
 
     return (
-      <div ref="root" style={{...styles.root, ...this.props.style}}>
+      <div ref="root" style={{...styles.root}}>
         {firstDiv}
         <div style={styles.separator} onMouseDown={this._onMouseDown.bind(this)} />
         {secondDiv}
@@ -273,8 +279,3 @@ ResizablePanel.propTypes = {
   // which side the sidebar pops open from
   side: React.PropTypes.string
 };
-
-ResizablePanel.defaultProps = {
-  sidebarVisible: false,
-  side: 'right'
-}

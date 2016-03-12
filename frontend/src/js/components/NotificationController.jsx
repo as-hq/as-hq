@@ -16,7 +16,11 @@ import NotificationSystem from 'react-notification-system';
 import NotificationStore from '../stores/ASNotificationStore';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 
-export default class NotificationController extends React.Component<{}, {}, {}> {
+class NotificationController extends React.Component {
+  static defaultProps = {};
+  props: {};
+  state: {};
+
   _notificationSystem: any;
   _addNotificationListener: Callback<Notification>;
   _dismissNotificationListener: Callback<string>;
@@ -56,3 +60,5 @@ export default class NotificationController extends React.Component<{}, {}, {}> 
     this._notificationSystem.removeNotification(uid);
   }
 }
+
+export default NotificationController;

@@ -8,6 +8,7 @@ import pure from 'recompose/pure';
 // $FlowFixMe
 import DropDownArrow from 'material-ui/lib/svg-icons/navigation/arrow-drop-down';
 
+// $FlowFixMe: react-tooltip not actually defined
 import Tooltip from 'react-tooltip';
 
 

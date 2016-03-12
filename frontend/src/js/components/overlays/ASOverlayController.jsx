@@ -32,8 +32,11 @@ type ASOverlayControllerState = {
   resizing: boolean;
 };
 
-export default class ASOverlayController
-  extends React.Component<{}, ASOverlayControllerProps, ASOverlayControllerState> {
+export default class ASOverlayController extends React.Component {
+  static defaultProps = {}; 
+  props: ASOverlayControllerProps;
+  state: ASOverlayControllerState;
+
 
   constructor(props: ASOverlayControllerProps) {
     super(props);

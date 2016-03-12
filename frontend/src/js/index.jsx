@@ -58,6 +58,7 @@ const main = (
 
 // render the app when polymer is ready
 document.addEventListener('polymer-ready', () => {
+  // $FlowFixMe #flowlens
   render(main, document.getElementById('main'));
 });
 
@@ -65,7 +66,9 @@ document.addEventListener('polymer-ready', () => {
 When typing and evaluating rapidly in the grid, occasionally both the grid and
 the editor lose focus. When this happens, restore focus.
  */
-document.addEventListener('keydown', (e) => {
+// $FlowFixMe ::ALEX::
+document.addEventListener('keydown', (e: SyntheticKeyboardEvent) => {
+  // $FlowFixMe ::ALEX::
   if (e.srcElement.tagName === 'BODY') {
     FocusActions.focus('grid');
     GridActions.executeKey(e);

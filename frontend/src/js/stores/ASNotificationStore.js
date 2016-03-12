@@ -52,6 +52,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
           level: 'error',
           autoDismiss: 2
         });
+        // $FlowFixMe #flowlens
         _notifications.push(notif.uid);
         NotificationStore.emit('ADD', notif);
         break;
@@ -76,6 +77,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
           level: 'error',
           position: 'bc'
         });
+        // $FlowFixMe #flowlens
         _notifications.push(notif.uid);
         NotificationStore.emit('ADD', notif);
         break;
@@ -94,6 +96,7 @@ const NotificationStore = Object.assign({}, BaseStore, {
             level: 'error',
             position: 'bc'
           });
+          // $FlowFixMe #flowlens
           _notifications.push(notif.uid);
           NotificationStore.emit('ADD', notif);
         }

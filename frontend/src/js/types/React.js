@@ -10,3 +10,7 @@ export type StoreLink = {
   store: typeof BaseStore;
   listener: Callback;
 };
+
+export type StoreToken = { 
+  remove: () => void; 
+}

@@ -8,6 +8,8 @@ import React from 'react';
 import ToolbarActionCreators from '../../actions/ASToolbarActionCreators';
 import Util from '../../AS/Util';
 
+import ASCell from '../../classes/ASCell';
+
 import CellStore from '../../stores/ASCellStore';
 import ToolbarStore from '../../stores/ASToolbarStore';
 import ExpressionStore from '../../stores/ASExpressionStore';
@@ -16,6 +18,7 @@ import ToolbarButton from './ToolbarButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
 import FontPicker from './FontPicker.jsx';
 import FontSizePicker from './FontSizePicker.jsx';
+// $FlowFixMe ::ALEX::
 import LanguagePicker from './LanguagePicker.jsx';
 import Separator from './Separator.jsx';
 import ColorPicker from './ColorPicker.jsx';
@@ -31,22 +34,22 @@ type DefaultProps = {
 };
 
 
-function isActiveProp(tag: string, cell: ?ASCellObject) {
+function isActiveProp(tag: string, cell: ?ASCell) {
   if (cell == null) {
     return false;
   }
 
-  for (const prop of cell.props) {
-    if (prop.tag === tag) {
-      return true;
-    }
-  }
-
-  return false;
+  return cell.hasPropWithTag(tag);
 }
 
-export default class ASToolbar
-  extends React.Component<DefaultProps, Props, {}> {
+export default class ASToolbar extends React.Component {
+  static defaultProps: DefaultProps = {
+    toolbarHeight: 50
+  };
+
+  props: Props;
+  state: {};
+
   $storeLinks: Array<StoreLink>;
   _cellStoreListener: StoreToken;
   _expressionListener: StoreToken;
@@ -221,11 +224,6 @@ export default class ASToolbar
     );
   }
 }
-
-
-ASToolbar.defaultProps = {
-  toolbarHeight: 50,
-};
 
 ASToolbar.propTypes = {
   toolbarHeight: React.PropTypes.number,

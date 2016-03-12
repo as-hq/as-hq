@@ -13,6 +13,10 @@ import type {
 } from '../types/Base';
 
 import type {
+  Dimensions
+} from '../types/Hypergrid';
+
+import type {
   PXRectangle
 } from '../types/Render';
 
@@ -23,7 +27,6 @@ import {logDebug, logError} from '../AS/Logger';
 import {catMaybes} from '../AS/Maybe';
 
 import _ from 'lodash';
-// $FlowFixMe
 import invariant from 'invariant';
 
 import React from 'react';
@@ -82,7 +85,11 @@ type State = {
   cursorStyle: ASCursorStyle;
 };
 
-class ASSpreadsheet extends React.Component<{}, Props, State> {
+class ASSpreadsheet extends React.Component {
+  static defaultProps = {};
+  props: Props;
+  state: State;
+
   /*************************************************************************************************************************/
   // Non-rendering state
   $storeLinks: Array<StoreLink>;
@@ -186,7 +193,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   drawDraggedSelection(dragOrigin: ASIndex, selRange: ASRange, targetX: number, targetY: number) {
     const dX = targetX - dragOrigin.col;
     const dY = targetY - dragOrigin.row;
-    const range = selRange.shift({ dY: dY, dX: dX });
+    const range = selRange.shift({ dY, dX });
     Render.setDragRect(range);
   }
 
@@ -289,7 +296,7 @@ class ASSpreadsheet extends React.Component<{}, Props, State> {
   /*************************************************************************************************************************/
   // Render
 
-  render(): ReactElement {
+  render(): any { // ::ALEX::
     const {height} = this.props;
     const {cursorStyle} = this.state;
 

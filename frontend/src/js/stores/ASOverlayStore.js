@@ -4,12 +4,20 @@ import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
 
 import type {
+  ASClientError
+} from '../types/Errors';
+
+import type {
   ASOverlaySpec
 } from '../types/Overlay';
 
 import type {
   ASAction
 } from '../types/Actions';
+
+import type {
+  ASCellGrid
+} from '../types/State';
 
 import React from 'react';
 import {fromJS, Map, Record, Record$Class} from 'immutable';
@@ -38,7 +46,6 @@ class ASOverlayStore extends ReduceStore<State> {
 
   reduce(state: State, action: ASAction): State {
     switch (action._type) {
-
       case 'ADD_OVERLAY_WITHOUT_LOC': {
         const uid = U.Render.getUniqueId();
         const overlay = action.overlay;
@@ -116,38 +123,41 @@ class ASOverlayStore extends ReduceStore<State> {
 // Sees if an ASCell is an image cell, and produces the ASOverlay object if so.
 // Initialize default sizes and positions.
 function getPossibleOverlay(cell: ASCell): ?ASOverlaySpec {
-  if (!cell.isImage()) {
+  const {value} = cell;
+  if (value.tag !== 'ValueImage') {
     return null;
+  } else {
+    const {imagePath} = value;
+    const imageSrc = Constants.getBackendUrl(
+      'http',
+      Constants.BACKEND_STATIC_PORT)
+      + "/images/" + imagePath;
+
+    // Initialize prop values, then see if the cell has data that overrides them
+    let imageWidth = 300, imageHeight = 300, dragOffsetTop = 0, dragOffsetLeft = 0;
+    cell.props.forEach((prop) => {
+      if (prop.tag === 'ImageData') {
+        imageWidth = prop.imageWidth;
+        imageHeight = prop.imageHeight;
+        dragOffsetTop = prop.dragOffsetTop;
+        dragOffsetLeft = prop.dragOffsetLeft;
+      }
+    });
+
+    return {
+      id: U.Render.getUniqueId(),
+      renderElem: (style) => {
+        return (
+          <image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />
+        );
+      },
+      imageWidth,
+      imageHeight,
+      dragOffsetTop,
+      dragOffsetLeft,
+      loc: cell.location
+    };
   }
-  const imageSrc = Constants.getBackendUrl(
-    'http',
-    Constants.BACKEND_STATIC_PORT)
-    + "/images/" + cell.value.imagePath;
-
-  // Initialize prop values, then see if the cell has data that overrides them
-  let imageWidth = 300, imageHeight = 300, dragOffsetTop = 0, dragOffsetLeft = 0;
-  cell.props.forEach((prop) => {
-    if (prop.tag === 'ImageData') {
-      imageWidth = prop.imageWidth;
-      imageHeight = prop.imageHeight;
-      dragOffsetTop = prop.dragOffsetTop;
-      dragOffsetLeft = prop.dragOffsetLeft;
-    }
-  });
-
-  return {
-    id: U.Render.getUniqueId(),
-    renderElem: (style) => {
-      return (
-        <image src={imageSrc} draggable="false" style={style} alt="Error rendering image." />
-      );
-    },
-    imageWidth,
-    imageHeight,
-    dragOffsetTop,
-    dragOffsetLeft,
-    loc: cell.location
-  };
 }
 
 function delLoc(state: State, loc: ASIndex): State {
@@ -161,7 +171,13 @@ function setCellOverlay(state: State, overlay: ASOverlaySpec): State {
 }
 
 function delCellOverlay(state: State, overlay: ASOverlaySpec): State {
-  return delLoc(state, overlay.loc);
+  const {loc} = overlay;
+
+  if (loc === null || loc === undefined) {
+    throw new Error('Undefined location not allowed in cell overlay');
+  } else {
+    return delLoc(state, loc);
+  }
 }
 
 function setFloatingOverlay(state: State, overlay: ASOverlaySpec): State {

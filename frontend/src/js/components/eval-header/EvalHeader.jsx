@@ -16,6 +16,7 @@ import ASControlledCodeField from '../basic-controls/ASControlledCodeField.jsx';
 import ASDropdownMenu from '../basic-controls/ASDropdownMenu.jsx';
 // $FlowFixMe
 let NavigationClose = require('material-ui/lib/svg-icons/navigation/close');
+// $FlowFixMe: react-tooltip not actually defined
 import Tooltip from 'react-tooltip';
 
 import type {
@@ -35,7 +36,6 @@ type EvalHeaderProps = {
   open: boolean;
   languageLink: ReactLink<ASLanguage>;
   expressionLink: ReactLink<string>;
-  selectionLink: ReactLink<EditorSelection>;
   onEvaluate: () => void;
 }
 
@@ -44,7 +44,11 @@ type LanguageItem = {
   text: any;
 }
 
-class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
+class EvalHeader extends React.Component {
+  static defaultProps = {}; 
+  props: EvalHeaderProps;
+  state: {};
+
   _languages: Array<LanguageItem>;
   _editor: any;
 
@@ -65,7 +69,7 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
   }
 
   render(): React.Element {
-    const {languageLink, expressionLink, selectionLink, onEvaluate, name} = this.props;
+    const {languageLink, expressionLink, onEvaluate} = this.props;
 
     return (
       <div style={styles.root}>
@@ -98,7 +102,6 @@ class EvalHeader extends React.Component<{}, EvalHeaderProps, {}> {
         <ASControlledCodeField
           ref={elem => this._editor = elem}
           style={styles.codeField}
-          name={name}
           text={expressionLink}
           language={languageLink.value}
           onKeyDown={e => this._onKeyDown(e)}

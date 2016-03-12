@@ -3,7 +3,7 @@
 import React from 'react';
 import {Styles, FontIcon} from 'material-ui';
 
-export default function GenIcon({name}) {
+export default function GenIcon({name}: { name: string; }): React.Element {
   return (
     <FontIcon
       style={{

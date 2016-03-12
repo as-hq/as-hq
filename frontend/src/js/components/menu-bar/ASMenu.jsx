@@ -1,7 +1,8 @@
 /* @flow */
 
 import type {
-  Callback
+  Callback,
+  Dict
 } from '../../types/Base';
 
 import type {
@@ -9,7 +10,8 @@ import type {
   MenuItemSpec,
   FileItemSpec,
   ASMenuProps,
-  ASMenuState
+  ASMenuState,
+  FileInput
 } from './types';
 
 import React from 'react';
@@ -34,7 +36,12 @@ const CONST_PROPS = {
   menuProps: { desktop: true }
 };
 
-export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState> {
+export default class ASMenu extends React.Component {
+  static defaultProps = {}; 
+  props: ASMenuProps;
+  state: ASMenuState;
+
+  _fileInputs: Dict<FileInput>;
 
   constructor(props: ASMenuProps) {
     super(props);
@@ -89,7 +96,7 @@ export default class ASMenu extends React.Component<{}, ASMenuProps, ASMenuState
     switch (menuItem.tag) {
       case 'NestedMenuSpec':
         const items = menuItem.menuItems.map(item => this._getMenuItem(item));
-        
+
         // menu's nested items have right arrow icons
         return (
           <MenuItem

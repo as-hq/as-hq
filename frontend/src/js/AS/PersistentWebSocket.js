@@ -41,6 +41,7 @@ class PersistentWebSocket {
   _timeoutCounter: number;
   _heartbeat: IntervalId;
   _messagePump: IntervalId;
+  _connectionWatch: IntervalId;
   _isDisconnected: boolean;
   _isAttemptingReconnect: boolean;
 

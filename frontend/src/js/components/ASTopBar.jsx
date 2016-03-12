@@ -26,7 +26,6 @@ import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx
 import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
-import ASChartDialog from './chart/ASChartDialog.jsx';
 import {topBar as topBarZIndex} from '../styles/zIndex';
 
 type ASTopBarProps = {
@@ -56,7 +55,11 @@ function file({callback, title}): FileItemSpec {
   });
 }
 
-export default class ASTopBar extends React.Component<{}, ASTopBarProps, {}> {
+export default class ASTopBar extends React.Component {
+  static defaultProps = {}; 
+  props: ASTopBarProps;
+  state: {};
+
   _sheetsListener: () => void;
 
   constructor(props: ASTopBarProps) {
