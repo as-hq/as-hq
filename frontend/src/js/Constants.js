@@ -52,6 +52,8 @@ const Constants = Object.assign({
   // event name triggered from store, listened to by views
   CHANGE_EVENT: 'change',
 
+  EVAL_RATE_LIMIT: 100,
+
   LARGE_SEARCH_BOUND: 1000, // for searching for data boundaries, eU.Conversion.
 
   scrollCacheX: 50,
