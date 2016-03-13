@@ -1,63 +1,59 @@
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
+
 module AS.Kernels.Excel.Lib where
+
+import Data.Either
+import Control.Monad.Except
+import Data.List hiding (head)
+import Data.Maybe hiding (fromJust)
+import Data.Ord (comparing)
+import Control.Exception.Base hiding (try)
+import Control.Lens hiding (Context, transform)
+import Control.Monad.Trans.Either
+import Control.Lens hiding ((.=), Context, index, transform)
+import Control.Lens.TH
+import Control.Monad.Trans.Either
+import Control.Applicative
+
+import qualified Data.Map.Lazy as ML
+import qualified Data.Map.Strict as M
+import qualified Data.Vector as V
+import qualified Data.Vector.Generic as VG
+import qualified Data.Vector.Unboxed as VU
+
+import qualified Text.Read as TR
+import Text.Regex
+import Data.Char (toLower,toUpper)
+import qualified Data.Text as T
+import qualified Data.String.Utils as SU
+
+import Data.Word8 as W hiding (toLower, toUpper)
+import Data.Attoparsec.ByteString hiding (take)
+import qualified Data.ByteString.Char8 as C
+import qualified Data.Attoparsec.ByteString.Char8 as AC hiding (take)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Unsafe as BU
+
+import System.Random (randomIO)
+import qualified Statistics.Distribution as SD
+import qualified Statistics.Distribution.Binomial as SDB
+import qualified Statistics.Distribution.Normal as SDN
+import qualified Statistics.Matrix as SM
 
 import AS.Prelude
 import Prelude()
-
 import AS.Types.Excel
 import AS.Types.Shift
 import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.Formats
-import AS.Eval.ColRangeHelpers (rangeWithCellMapToFiniteRange)
+import AS.Util
 
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
-
-import qualified Data.Map.Strict as M
-import Data.Either
-import Control.Monad.Except
-import Data.List hiding (head)
-import Data.Maybe hiding (fromJust)
-import qualified Data.Vector as V
-import qualified Data.Vector.Generic as VG
-import qualified Data.Vector.Unboxed as VU
-
-import qualified Text.Read as TR
-import System.Random (randomIO)
-
-import Text.Regex
-import Data.Char (toLower,toUpper)
-import qualified Data.Text as T
-import qualified Data.String.Utils as SU
-
-import Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec.Token as P
-import Text.ParserCombinators.Parsec.Language
-import Text.ParserCombinators.Parsec.Expr
-
-import qualified Statistics.Distribution as SD
-import qualified Statistics.Distribution.Binomial as SDB
-import qualified Statistics.Distribution.Normal as SDN
-import Data.Ord (comparing)
-
-import qualified Data.Map.Lazy as ML
-
 import AS.Parsing.Excel (refMatch)
-import Control.Exception.Base hiding (try)
-import Control.Lens hiding (Context, transform)
-
-import Control.Monad.Trans.Either
-
-import AS.Util
-
-import qualified Statistics.Matrix as SM
-
-import Control.Lens hiding ((.=), Context, index, transform)
-import Control.Lens.TH
-
-import Control.Monad.Trans.Either
-import Control.Applicative ((<*))
+import AS.Eval.ColRangeHelpers (rangeWithCellMapToFiniteRange)
 
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Int, Int)} deriving (Show)
 
@@ -724,11 +720,11 @@ collapseBool f c e = do
 -- | Helper; Given a value (eg string like "(*)"), produces a lambda for equality to an EValue
 matchLambda :: EValue -> EValue -> Bool
 matchLambda (EValueS "") EBlank = True
-matchLambda (EValueS s) v = case (outerComparator s) of
+matchLambda (EValueS s) v = case outerComparator s of
   Nothing -> case v of
     EValueS s' -> criteria s s'
     otherwise  -> False
-  Just (f,cs) -> case (valParser cs) of
+  Just (f,cs) -> case valParser cs of
     EValueS regex -> case v of 
       EValueS s' -> criteria regex s'
       otherwise  -> False
@@ -736,10 +732,10 @@ matchLambda (EValueS s) v = case (outerComparator s) of
 matchLambda v1 v2 = v1 == v2
 
 valParser :: String -> EValue
-valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ parse excelValue "" s
+valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ eitherResult $ parse excelValue (C.pack s)
 
 -- | Extracts a possible outer comparator and remaining string ; ">34" -> (>,"34")
-outerComparator :: String -> Maybe ((EValue -> EValue -> Bool),String)
+outerComparator :: String -> Maybe (EValue -> EValue -> Bool, String)
 outerComparator "" = Nothing
 outerComparator ('>':('=':cs)) = Just ((>=),cs)
 outerComparator ('>':cs) = Just ((>),cs)
@@ -751,25 +747,21 @@ outerComparator _ = Nothing
 
 -- | Given an Excel regex and a test input string, see if they match
 criteria :: String -> String -> Bool
-criteria regex match = case (parse (stringMatch regex) "" (map toLower match)) of
+criteria regex match = case eitherResult $ parse (stringMatch (C.pack regex)) (C.pack (map toLower match)) of
   Left _ -> False
   Right _ -> True
 
 -- | If this parser suceeds, then the input string matches the argument string
 -- | Ignore case when matching strings
-stringMatch :: String -> Parser ()
-stringMatch "" = eof
-stringMatch (c:cs) = case c of
-  '~' -> do
-    let (c':cs') = cs
-    char (toLower c')
-    stringMatch cs'
-  -- Keep matching characters until next parser works, but don't consume the recursive input (lookAhead)
-  -- Try is needed because the stringMatch and anyChar parsers overlap
-  '*' -> manyTill anyChar (try (lookAhead (stringMatch cs))) >> (stringMatch cs)
-  '?' -> anyChar >> (stringMatch cs)
-  otherwise -> (char (toLower otherwise)) >> (stringMatch cs)
-
+stringMatch :: ByteString -> Parser ()
+stringMatch "" = takeByteString *> return ()
+stringMatch bs = case BU.unsafeHead bs of
+  126 -> do -- tilde
+    word8 $ BU.unsafeHead tail 
+    stringMatch tail
+  42 -> manyTill anyWord8 (stringMatch tail) >> (stringMatch tail) -- askterisk
+  otherwise -> word8 otherwise >> stringMatch tail
+  where tail = BU.unsafeTail bs
 
 --------------------------------------------------------------------------------------------------------------
 -- | Excel information functions
@@ -946,24 +938,22 @@ eIndirect c e = do
     Just loc -> return $ EntityRef (ERef loc)
 
 justExcelMatch :: Parser ExRef
-justExcelMatch = refMatch <* eof
+justExcelMatch = refMatch <* endOfInput
 
 r1c1 :: ASSheetId -> Parser ASReference
 r1c1 sid = do 
-  char 'R' <|> char 'r'
-  row <- many1 digit
-  char 'C' <|> char 'c'
-  col <- many1 digit
-  let [colNum, rowNum] = map $read [col, row] :: [Int]
-  return $ IndexRef $ Index sid (makeCoord (Col colNum) (Row rowNum))
+  word8 _R <|> word8 _r
+  row <- AC.decimal
+  word8 _C <|> word8 _c
+  col <- AC.decimal
+  return $ IndexRef $ Index sid (makeCoord (Col col) (Row row))
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
-stringToLoc True sid str = case parse justExcelMatch "" str of 
+stringToLoc True sid str = case eitherResult $ parse justExcelMatch (C.pack str) of 
   Right exRef -> Just $ exRefToASRef sid exRef
   Left _ -> Nothing 
-
-stringToLoc False sid str = case parse (r1c1 sid) "" str of 
+stringToLoc False sid str = case eitherResult $ parse (r1c1 sid) (C.pack str) of 
   Right asRef -> Just asRef
   Left _ -> Nothing
 

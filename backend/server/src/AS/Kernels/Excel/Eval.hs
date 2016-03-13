@@ -1,27 +1,22 @@
 module AS.Kernels.Excel.Eval where
 
+import Data.List (transpose)
+import Control.Lens hiding (Context)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+import Database.Redis (Connection)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Map as M
+import qualified Data.Vector as V
 
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Excel
 import AS.Types.Formats
 
-
-import Data.List (transpose)
-
 import AS.Kernels.Excel.Compiler as C
 import AS.Kernels.Excel.Lib as L
 import AS.Kernels.Excel.Util as U
-
-import qualified Data.Map as M
-import qualified Data.Vector as V
-
-import Control.Lens hiding (Context)
--- EitherT
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-
-import Database.Redis (Connection)
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
@@ -49,7 +44,7 @@ entityToComposite _ (EntityMatrix m) = case (transpose list2D) of
 -- | In the Excel Error monad; parse the formula and then evaluate either as an array formula or not
 evalExcel :: String -> Context -> EitherT EError IO EEntity
 evalExcel s context = do
-  f <- hoistEither $ C.parseFormula s
+  f <- hoistEither $ C.parseFormula $ BC.pack s
   case f of
     ArrayFormula formula -> L.evalArrayFormula context formula
     SimpleFormula formula -> L.evalFormula context formula

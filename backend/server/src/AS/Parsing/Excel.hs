@@ -148,6 +148,7 @@ rangeMatch = finiteRangeMatch <|> colRangeMatch
 -- Sheet and workbook parsers
 
 -- | Parser matching a valid sheet name. It also consumes the !. 
+-- Applying this parser on "hello!" would return "hello".
 nameMatch :: Parser ByteString
 nameMatch = takeWhile1 (not . badWord8) <* exc
   where

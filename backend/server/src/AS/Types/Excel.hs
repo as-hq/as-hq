@@ -45,7 +45,7 @@ data RefType = ABS | REL deriving (Eq, Show, Ord, Data, Typeable)
 
 -- Type constructor of one parameter used to build ExCol and ExRow when Col and
 -- Row are passed  in respectively.
-data ExItem a = ExItem { _refType :: RefType, _ind :: a } deriving (Eq, Functor, Data, Typeable)
+data ExItem a = ExItem { _refType :: RefType, _ind :: a } deriving (Eq, Show, Functor, Data, Typeable)
 makeLenses ''ExItem
 
 -- Ord is necessary to orient exRanges.
@@ -74,7 +74,7 @@ extExRow :: Lens' (Infinite ExCol, Infinite ExRow) (Infinite ExRow)
 extExRow = _2
 
 data ExRange = ExRange {first :: ExIndex, second :: ExtExIndex}
-   deriving (Eq, Data, Typeable)
+   deriving (Eq, Show, Data, Typeable)
 
 data ExTemplateExpr = 
   ExSampleExpr {exSamples :: Int, exSampledIndex :: ExIndex} deriving (Eq, Data)

@@ -12,6 +12,7 @@ import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
+import Data.Attoparsec.Combinator (lookAhead)
 
 import Prelude()
 import AS.Prelude hiding (takeWhile)
@@ -35,18 +36,24 @@ import qualified AS.Parsing.Common as PC
 -- Assumes that you're not starting in the middle of a quote. 
 parseNext :: (ExRef -> ByteString) -> Parser ByteString
 parseNext f = do 
-  bStrs <- manyTill (PC.quotedStringEscaped <|> takeWhile (const True)) refMatch
-  ref <- refMatch
-  return $! B.append (B.concat bStrs) (f ref)
+  (bs, ref) <- getFirstExcelRef
+  return $! B.append bs (f ref)
 
-getFirstExcelRef :: Parser ExRef
+getFirstExcelRef :: Parser (ByteString, ExRef)
 getFirstExcelRef = do 
-  manyTill (PC.quotedStringEscaped <|> takeWhile (const True)) refMatch
-  refMatch
+  let notRefParser = PC.quotedStringEscaped <|> (B.singleton <$> anyWord8)
+  bs <- B.concat <$> manyTill' notRefParser (lookAhead refMatch)
+  ref <- refMatch
+  return (bs, ref)
 
 -- | Replaces all ExRefs in a ByteString that aren't in quotes/apostrophes. 
 excelParser :: (ExRef -> ByteString) -> ByteString -> ByteString
-excelParser f b = $fromRight $ eitherResult $ parse (B.concat <$> many (parseNext f)) b
+excelParser f = $fromRight . parseOnly parser
+  where
+    parser = do 
+      excels <- many' $ parseNext f
+      rest <- takeByteString
+      return $! B.append (B.concat excels) rest
 
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
 replaceRefs f xp = xp & expression %~ modifyExpression
@@ -58,12 +65,13 @@ replaceRefsIO f = return . replaceRefs (unsafePerformIO . f)
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
--- | Returns the list of excel references in an ASExpression. 
+-- | Returns the list of Excel references in an ASExpression. 
 getExcelReferences :: ASExpression -> [ExRef]
-getExcelReferences (Expression xp lang) = $fromRight $ eitherResult $ parse (many getFirstExcelRef) (C.pack xp)
+getExcelReferences (Expression xp lang) = (map snd . $fromRight) parseResult
+  where parseResult = parseOnly (many getFirstExcelRef) (C.pack xp)
 
 -- | Returns the list of dependencies in ASExpression. 
--- #needsrefactor NOT ALL ASReferences ARE VALID REFERENCES FOR THE GRAPH!
+-- #needsrefactor not all ASReferences are valid references for the graph.
 getDependencies :: ASSheetId -> ASExpression -> [ASReference]
 getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getExcelReferences
   where 
@@ -83,5 +91,4 @@ shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
 shiftCell offset c = ((c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) <$> mLoc
-  where
-    mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation
+  where mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation

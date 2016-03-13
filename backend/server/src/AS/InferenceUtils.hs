@@ -8,8 +8,9 @@ import Data.Maybe hiding (fromJust)
 import Data.Char
 import Control.Lens hiding (index)
 import Database.Redis (Connection)
-import Data.Attoparsec.ByteString
+import Data.Attoparsec.ByteString hiding (take, takeWhile)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as C
 
 import AS.Prelude
 import Prelude()
@@ -121,15 +122,15 @@ isFormulaCell cell = not valExpEqual
         Nothing  -> False
         Just val -> val^.orig == cell^.cellValue
         where
-          formula = $fromRight $ eitherResult $ parse literal xp
+          formula = eitherResult $ parse literal (C.pack xp)
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
-      otherwise -> parseValue lang xp == Right (CellValue $ cell^.cellValue)
+      otherwise -> parseValue lang (C.pack xp) == Right (CellValue $ cell^.cellValue)
 
 -- Given the 2D list of cells in the sel range, extract all formula cells
 extractFormulaCells :: [[ASCell]] -> [ASCell]
-extractFormulaCells cells = concatMap (filter isFormulaCell) cells
+extractFormulaCells = concatMap (filter isFormulaCell)
 
 -- Given the sel range, drag range, and 2D list of sel range cells, return all cells corresponding to formula cells
 -- (for each formula cell, do a copy-like operation to fill the drag range)
@@ -148,7 +149,7 @@ getMappedFormulaCells r1 r2 cells = catMaybes $ concatMap translateCell formulaC
 
 -- By splitting between formula cells, extract all pattern groups
 extractPatternGroups :: [[ASCell]] -> [PatternGroup]
-extractPatternGroups cells = concatMap (LS.splitWhen isFormulaCell) cells
+extractPatternGroups = concatMap (LS.splitWhen isFormulaCell)
 
 getMappedPatternGroups :: ASRange -> ASRange -> [[ASCell]] -> [ASCell]
 getMappedPatternGroups r1 r2 cells = concatMap (translatePatternGroupCells r1 r2) patternGroups

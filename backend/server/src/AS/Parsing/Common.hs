@@ -74,8 +74,8 @@ replaceEscaped x = x
 -- and last position to look for backslashes, and replace the byte right after a backslash, 
 -- while filtering out the backslashes. It may be that we could use many (someParser) instead
 -- of mapping over the resulting ByteString, but attoparsec recommends sticking to ByteString 
--- methods as 100x faster. 
-unescapeRaw :: ByteString ->  ByteString
+-- methods (100x faster).
+unescapeRaw :: ByteString -> ByteString
 unescapeRaw ps@(BI.PS x s l)
   | B.null ps = ps
   | otherwise = unsafePerformIO $ BI.createAndTrim l $ \p -> withForeignPtr x $ \f -> do 
@@ -92,7 +92,7 @@ unescapeRaw ps@(BI.PS x s l)
       | otherwise = do 
           curWord <- peek advancingPtr 
           if curWord == _backslash
-            then go (advancingPtr `plusPtr` 1) (accumPtr `plusPtr` 1) endPtr True
+            then go (advancingPtr `plusPtr` 1) accumPtr endPtr True
             else do 
               poke accumPtr curWord 
               go (advancingPtr `plusPtr` 1) (accumPtr `plusPtr` 1) endPtr False
@@ -103,8 +103,11 @@ unescapeRaw ps@(BI.PS x s l)
 -- It returns the unescaped ByteString in the middle.
 unescapeBetween :: Word8 -> Parser ByteString
 unescapeBetween w = word8 w *> (unescapeRaw <$> takeWhile (/= w)) <* word8 w
+{-# INLINE unescapeBetween #-}
 
--- | Matches an escaped string and returns the unescaped version. E.g. \"hello\" -> hello.
+-- | Matches an escaped string and returns the unescaped version. 
+-- E.g. "\"hello\"" -> "hello", "\"hello\\t\"" -> "hello\t".
+-- Will fail immediately if the first character isn't \" or \'.
 unescapedString :: Parser ByteString
 unescapedString = handleQuote <|> handleApostrophe
   where
@@ -113,6 +116,7 @@ unescapedString = handleQuote <|> handleApostrophe
 {-# INLINE unescapedString #-}
 
 -- | Parses a ByteString in between two Word8's and returns Byte + ByteString + Byte.
+-- Note that the concatenation is an O(n) operation.
 surround :: Word8 -> Parser ByteString -> Parser ByteString
 surround w p = do 
   word8 w
@@ -149,7 +153,7 @@ bool = readBool <$> (AC.stringCI "true" <|> AC.stringCI "false")
 
 readBool :: ByteString -> Bool
 readBool b = case BU.unsafeHead b of
-  _t -> True
-  _T -> True
-  _f -> False
-  _F -> False
+  116 -> True
+  84  -> True
+  102 -> False
+  70  -> False

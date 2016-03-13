@@ -27,8 +27,9 @@ import AS.Parsing.Common as C
 import AS.Types.Graph (read2)
 import AS.Types.RangeDescriptor (JSON)
 import Data.Maybe (mapMaybe)
-import Text.ParserCombinators.Parsec hiding (State)
 import qualified AS.Kernels.Python as KP
+import Data.Attoparsec.ByteString
+import qualified Data.ByteString.Char8 as BC
 -- end custom parse
 
 import AS.Reply
@@ -83,7 +84,7 @@ evaluateExcelSheet mid sid code = do
   (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell mid sid code
   let maybeCells = do
                 jsonString <- val 
-                jsonBlob <- case parse (json Python) "" jsonString of
+                jsonBlob <- case eitherResult $ parse (json Python) (BC.pack jsonString) of
                               Left _ ->  Nothing
                               Right v -> Just v
                 extractExcelCells sid jsonBlob
@@ -156,7 +157,7 @@ toList2D = V.toList . V.concat . V.toList
 -- Given a language and CSV data, produce an ASValue by trivial parsing (no eval)
 -- If parsing ever returns an expanding cell, return a ValueError. If parsing normally didn't work, return a ValueS.
 csvValue :: ASLanguage -> String -> ASValue
-csvValue lang s = case PR.parseValue lang s of
+csvValue lang s = case PR.parseValue lang (BC.pack s) of
   Left e -> ValueS s
   Right (Expanding _) -> ValueError "Couldn't parse value" "CSVParse"
   Right (CellValue v) -> v
@@ -176,23 +177,8 @@ csvValue lang s = case PR.parseValue lang s of
 stringToInd :: ASSheetId -> String -> ASIndex
 stringToInd sid s = Index sid (read2 s :: Coord)
 
--- input: ASSheetId, string of form "TRUE"
--- output: ASIndex sid (Coord 1 4)
 stringToVal :: String -> ASValue
-stringToVal s =
-  -- this should never give an error, since we have a
-  -- try (ValueS many anyChar) at the end
-  $fromRight $ parse (asValueNoQuotes Excel) "" s
-    where asValueNoQuotes lang =
-            choice [try (ValueD <$> float)
-                  , try (ValueI <$> integer)
-                  , try (ValueB <$> C.bool)
-                  , try (nullValue lang)
-                  , try (nanValue lang)
-                  , try (infValue lang)
-                  , try (cellJsonValue lang)
-                  , try (ValueS <$> many anyChar)
-                   ]
+stringToVal s = $fromRight $ eitherResult $ parse (asValue Excel) (BC.pack s)
 
 --input: string of form "=A1+4")
 stringToXp :: String -> ASExpression

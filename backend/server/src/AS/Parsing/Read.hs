@@ -165,11 +165,10 @@ list lang =
 -- Top level parsers
 
 parseValue :: ASLanguage -> ByteString -> Either ASExecError CompositeValue
-parseValue lang = readOutput . parse (value lang)
+parseValue lang = readOutput . parseOnly (value lang)
   where
-    readOutput (Fail _ _ _) = Left ParseError
-    readOutput (Partial _) = Left ParseError
-    readOutput (Done _ r)   = Right r
+    readOutput (Left _) = Left ParseError
+    readOutput (Right r) = Right r
 
 parseFormatValue :: String -> Maybe [CellProp]
 parseFormatValue = readMay
@@ -181,8 +180,8 @@ value lang =
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
-      ValueD <$> PC.float
-  <|> ValueI <$> PC.integer
+      ValueI <$> PC.integer
+  <|> ValueD <$> PC.float
   <|> ValueB <$> PC.bool
   <|> ValueS . C.unpack <$> PC.unescapedString
   <|> nullValue lang
