@@ -115,16 +115,27 @@ initializeSettings = do
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory
 
-  _ <- writeIORef appDirectory appDir
-  _ <- writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
-  _ <- writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
-  _ <- writeIORef graphAddress (appSettings^.graphDbAddress)
-  _ <- writeIORef pykernelAddress (appSettings^.pyKernelAddress)
-  _ <- writeIORef serverHost (appSettings^.backendWsAddress)
-  _ <- writeIORef serverPort (appSettings^.backendWsPort)
-  _ <- writeIORef dbHost (appSettings^.redisHost)
-  _ <- writeIORef dbPort (appSettings^.redisPort)
-  _ <- writeIORef dbPassword (appSettings^.redisPassword)
+  writeIORef appDirectory appDir
+  writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
+  writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
+  writeIORef graphAddress (appSettings^.graphDbAddress)
+  writeIORef pykernelAddress (appSettings^.pyKernelAddress)
+  writeIORef serverHost (appSettings^.backendWsAddress)
+  writeIORef serverPort (appSettings^.backendWsPort)
+  writeIORef dbHost (appSettings^.redisHost)
+  writeIORef dbPort (appSettings^.redisPort)
+  writeIORef dbPassword (appSettings^.redisPassword)
+
+  putStrLn . ("[CONFIG] appDirectory: " ++) . show =<< getSetting appDirectory
+  putStrLn . ("[CONFIG] shouldLogSlack: " ++) . show =<< getSetting shouldLogSlack
+  putStrLn . ("[CONFIG] shouldLogConsole: " ++) . show =<< getSetting shouldLogConsole
+  putStrLn . ("[CONFIG] graphAddress: " ++) . show =<< getSetting graphAddress
+  putStrLn . ("[CONFIG] pykernelAddress: " ++) . show=<< getSetting pykernelAddress
+  putStrLn . ("[CONFIG] serverHost: " ++) . show =<< getSetting serverHost
+  putStrLn . ("[CONFIG] serverPort: " ++) . show =<< getSetting serverPort
+  putStrLn . ("[CONFIG] dbHost: " ++) . show =<< getSetting dbHost
+  putStrLn . ("[CONFIG] dbPort: " ++) . show =<< getSetting dbPort
+  putStrLn . ("[CONFIG] dbPassword: " ++) . show =<< getSetting dbPassword
   return ()
 
 appDirectory :: IORef String
@@ -170,11 +181,7 @@ getRuntimeSettings = catch readEnvironment handleException
       mainDir <- getCurrentDirectory
       env <- B.readFile $ mainDir </> env_path
       case eitherDecode env of 
-        Right settings -> do 
-          putStrLn $ "using settings from Environment.json: "
-          putStrLn $ B.unpack env
-          putStrLn $ "Settings: " ++ show settings
-          return settings
+        Right settings -> return settings
         Left err -> $error $ "couldn't decode environment file, because: " ++ err
     handleException :: SomeException -> IO AppSettings
     handleException e = $error $ "decoding Environment failed with error: " ++ show e 
