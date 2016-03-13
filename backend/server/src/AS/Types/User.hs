@@ -1,5 +1,4 @@
-
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.User where
 
@@ -17,6 +16,7 @@ import Control.Lens
 import Data.SafeCopy
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
+import qualified Data.Set as Set
 
 type ASUserId = Text
 
@@ -38,7 +38,7 @@ data ASUser =
   deriving (Show, Read, Eq, Generic)
 
 makeLenses ''ASUser
-deriveSafeCopy 1 'base ''ASUser
+deriveSafeCopy 2 'extension ''ASUser
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Instances
 
@@ -69,3 +69,18 @@ hasPermissions :: ASUserId -> ASPermissions -> Bool
 hasPermissions uid (Blacklist entities) = not $ any (isInEntity uid) entities
 hasPermissions uid (Whitelist entities) = any (isInEntity uid) entities
 
+----------------------------------------------------------------------------
+-------------------------------- MIGRATIONS -------------------------------- 
+
+-- [ASUser, breaking commit: 215aecf5]
+data ASUser0 = User0 {_sheetIds0 :: Set ASSheetId, _userId0 :: ASUserId, _lastOpenSheet0 :: ASSheetId} deriving (Generic)
+makeLenses ''ASUser0
+deriveSafeCopy 1 'base ''ASUser0
+
+instance Migrate ASUser where
+  type MigrateFrom ASUser = ASUser0
+  migrate (User0 sids uid ls) = User sids Set.empty uid ls
+
+-- [TYPE_CHANGED, breaking commit: BREAKING_COMMMIT]
+-- ^^ copy this line when you start a migration, 
+--    and write the migration above this footer.

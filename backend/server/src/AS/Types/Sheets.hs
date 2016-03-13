@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.Sheets where
 
@@ -24,6 +24,7 @@ data ASSheet = Sheet {sheetId :: ASSheetId, sheetName :: SheetName, sheetOwner :
 -- ^ ASSheet has a sheetOwner type so that we don't have to enumerate the
 -- set of all users in order to find a sheet's owner. This way, users have a forward 
 -- pointer to sheets, and sheets have backward pointers to their owners.
+deriveSafeCopy 2 'extension ''ASSheet
 
 -- should probably be a list of ASSheet's rather than ASSheetId's. 
 data ASWorkbook = Workbook {workbookName :: WorkbookName, workbookSheets :: [ASSheetId]} deriving (Show, Read, Eq, Generic)
@@ -36,4 +37,18 @@ asToFromJSON ''ASWorkbook
 asToFromJSON ''WorkbookSheet
 
 instance NFData ASSheet
-deriveSafeCopy 1 'base ''ASSheet
+
+----------------------------------------------------------------------------
+-------------------------------- MIGRATIONS -------------------------------- 
+
+-- [TYPE_CHANGED, breaking commit: BREAKING_COMMMIT]
+data ASSheet0 = Sheet0 {sheetId0 :: ASSheetId, sheetName0 :: SheetName} deriving (Generic)
+deriveSafeCopy 1 'base ''ASSheet0
+
+instance Migrate ASSheet where
+  type MigrateFrom ASSheet = ASSheet0
+  migrate (Sheet0 sid sname) = Sheet sid sname "alphasheetsdemo@gmail.com"
+
+-- [TYPE_CHANGED, breaking commit: BREAKING_COMMMIT]
+-- ^^ copy this line when you start a migration, 
+--    and write the migration above this footer.

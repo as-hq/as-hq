@@ -83,7 +83,6 @@ library
                        AS.Types.Infinites
                        AS.Types.Locations
                        AS.Types.Messages
-                       AS.Types.Migrations.Locations
                        AS.Types.Mutate
                        AS.Types.Network
                        AS.Types.RangeDescriptor
