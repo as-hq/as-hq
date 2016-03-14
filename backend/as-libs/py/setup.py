@@ -9,5 +9,16 @@ setup(name='AS',
       license='',
       packages=find_packages(),
       package_data={'AS': ['data/*.txt']},
-      install_requires=['numpy','matplotlib','pandas','wget','statistics','ipython','zmq','colour','pandasql','openpyxl'],
+      install_requires=['traitlets==4.0.0', \
+                        'numpy', \
+                        'matplotlib', \
+                        'pandas', \
+                        'wget', \
+                        'statistics', \
+                        'ipython==4.0.0', \
+                        'zmq', \
+                        'colour', \
+                        'pandasql', \
+                        'openpyxl' \
+                        ],
       zip_safe=False)

@@ -1,9 +1,10 @@
+traitlets==4.0.0
 numpy
 matplotlib
 pandas
 wget
 statistics
-ipython
+ipython==4.0.0
 zmq
 colour
 pandasql
