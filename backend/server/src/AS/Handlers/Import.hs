@@ -78,10 +78,9 @@ handleExport uc state sid = do
 -- extracting Excel Cells from the jsonBlob, will give an undescriptive
 -- Left parseError. That is the extent of error handling in evaluateExcelSheet.
 -- Timchu, 2/15/16.
-evaluateExcelSheet :: ASSheetId -> EvalCode
-                   -> EitherTExec [ASCell]
-evaluateExcelSheet sid code = do
-  (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell sid code
+evaluateExcelSheet :: MessageId -> ASSheetId -> EvalCode -> EitherTExec [ASCell]
+evaluateExcelSheet mid sid code = do
+  (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell mid sid code
   let maybeCells = do
                 jsonString <- val 
                 jsonBlob <- case parse (json Python) "" jsonString of
@@ -101,7 +100,7 @@ handleExcelImport mid uc state sid fileName = do
   let code = excelImportFuncString ++ "('" ++ fileName ++ "')"
       dConn = state^.dbConn
   update <- runEitherT $ do
-              cells <- evaluateExcelSheet sid code
+              cells <- evaluateExcelSheet mid sid code
               -- clears the sheet, sends a message to the frontend.
               lift $ handleClear mid uc state sid
               lift $ DB.setCells dConn cells

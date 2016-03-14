@@ -68,7 +68,7 @@ handleOpenSheet mid uc state sid = do
   modifyUser conn (uc^.userId) (& lastOpenSheet .~ sid)
 
   -- pre-evaluate the headers
-  mapM_ (runEitherT . evaluateHeader) headers
+  mapM_ (runEitherT . evaluateHeader mid) headers
   let sheetUpdate = makeSheetUpdateWithNoOldKeys cells bars rangeDescriptors condFormatRules
   sendToOriginal uc $ ClientMessage mid $ SetSheetData sid sheetUpdate headers
 

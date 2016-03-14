@@ -9,3 +9,6 @@ class CannotEmbedListsOfDimensionGreaterThanTwo(Exception):
 
 class CannotCoerceTo1DList(Exception):
   pass
+
+class KilledException(Exception):
+  pass

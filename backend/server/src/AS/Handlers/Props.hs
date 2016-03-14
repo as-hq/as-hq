@@ -76,7 +76,7 @@ transformPropsInDatabase mid f uc state rng = do
   -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
   errOrUpdate <-
     -- This case, the cells in cells' at the end of the dispatch cycle are guaranteed to be the same as cs, except with props set.
-    DP.runDispatchCycle state cells' ProperDescendants (userCommitSource uc) (insertCellsIntoSheetUpdate cells')
+    DP.runDispatchCycle state mid cells' ProperDescendants (userCommitSource uc) (insertCellsIntoSheetUpdate cells')
   broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
 
 -- #Lenses.

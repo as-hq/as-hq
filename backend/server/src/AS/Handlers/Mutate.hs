@@ -58,7 +58,7 @@ handleMutateSheet mid uc state mutateType = do
       cfru = updateFromLists newCondFormatRules' $ map condFormatRuleId oldCondFormatRules'
   -- propagate changes
   let updateTransform update = update & barUpdates .~ bu & condFormatRuleUpdate .~ cfru
-  errOrUpdate <- runDispatchCycle state updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
+  errOrUpdate <- runDispatchCycle state mid updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])

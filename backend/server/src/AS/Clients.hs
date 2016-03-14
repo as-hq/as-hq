@@ -148,7 +148,7 @@ instance Client ASDaemonClient where
             conn = state^.dbConn
         oldProps <- mapM (getPropsAt conn) inds
         let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
-        errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (daemonCommitSource dm) id
+        errOrUpdate <- runDispatchCycle state mid cells DescendantsWithParent (daemonCommitSource dm) id
         either (const $ return ()) (broadcastSheetUpdate mid state) errOrUpdate
       -- difference between this and handleEval being that it can't take back a failure message. 
       -- yes, code replication, whatever. 

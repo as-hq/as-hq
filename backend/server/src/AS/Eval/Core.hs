@@ -30,6 +30,7 @@ import AS.Types.EvalHeader
 import AS.Types.Formats
 import AS.Types.Graph
 import AS.Types.Network
+import AS.Types.Messages (MessageId)
 
 import AS.Kernels.Python as KP
 import AS.Kernels.R as KR
@@ -50,8 +51,8 @@ import qualified AS.DB.Graph as G
 -----------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ServerState -> ASIndex -> EvalContext -> ASExpression -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
-evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
+evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
+evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
   maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
@@ -62,19 +63,20 @@ evaluateLanguage state idx@(Index sid _) ctx xp@(Expression str lang) f = catchE
         -- Excel needs current location and un-substituted expression, and needs the formatted values for
         -- loading the initial entities
       SQL -> do 
-        pythonSqlCode <- lift $ sqlToPythonCode state sid ctx xp f
-        return <$> KP.evaluateSql sid pythonSqlCode
-      otherwise -> do 
-        header <- lift $ DB.getEvalHeader conn sid lang
-        xpWithValuesSubstituted <- lift $ insertValues state sid ctx xp f
-        return <$> execEvalInLang header xpWithValuesSubstituted 
-        -- didn't short-circuit, proceed with eval as usual
+        pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp f
+        return <$> KP.evaluateSql mid sid pythonSqlCode
+      Python -> do
+        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp f
+        return <$> KP.evaluate mid sid xpWithValuesSubstituted
+      R -> do
+        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp f
+        return <$> KR.evaluate xpWithValuesSubstituted
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-evaluateHeader :: EvalHeader -> EitherTExec EvalResult
-evaluateHeader evalHeader = 
+evaluateHeader :: MessageId -> EvalHeader -> EitherTExec EvalResult
+evaluateHeader mid evalHeader = 
   case lang of 
-    Python -> KP.evaluateHeader sid str
+    Python -> KP.evaluateHeader mid sid str
     R      -> KR.evaluateHeader str
   where 
     sid  = evalHeader^.evalHeaderSheetId
@@ -94,22 +96,22 @@ evaluateHeader evalHeader =
 -- Interpolation
 
 -- #mustrefactor IO String should be EitherTExec string
-lookUpRef :: ServerState -> ASLanguage -> EvalContext -> ASReference -> DE.EvalChainFunc -> IO String
-lookUpRef state lang context ref f = showValue lang <$> DE.referenceToCompositeValue state context ref f
+lookUpRef :: ServerState -> MessageId -> ASLanguage -> EvalContext -> ASReference -> DE.EvalChainFunc -> IO String
+lookUpRef state mid lang context ref f = showValue lang <$> DE.referenceToCompositeValue state mid context ref f
 
-insertValues :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
-insertValues state sheetid ctx xp f = view expression <$> replaceRefsIO replacer xp
-  where replacer ref = lookUpRef state (xp^.language) ctx (exRefToASRef sheetid ref) f
+insertValues :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
+insertValues state mid sheetid ctx xp f = view expression <$> replaceRefsIO replacer xp
+  where replacer ref = lookUpRef state mid (xp^.language) ctx (exRefToASRef sheetid ref) f
 
 -- | We evaluate SQL expressions by converting them to Python code, and substituting it into a template
 -- file that imports pysql and defines helper functions for SQL.  
 -- Note: this can probably be significantly optimized. 
 -- TODO clean up SQL mess
-sqlToPythonCode :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
-sqlToPythonCode state sheetid ctx xp f = do 
+sqlToPythonCode :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
+sqlToPythonCode state mid sheetid ctx xp f = do 
   let exRefs = getExcelReferences xp
       matchedRefs = map (exRefToASRef sheetid) exRefs -- ASReferences found inside xp
-  context <- mapM (\ref -> lookUpRef state SQL ctx ref f) matchedRefs
+  context <- mapM (\ref -> lookUpRef state mid SQL ctx ref f) matchedRefs
   let st = ["dataset"++(show i) | i<-[0..((L.length matchedRefs)-1)]]
       newExp = view expression $ replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
       contextStmt = "setGlobals(" ++ show context ++ ")\n"
@@ -172,15 +174,3 @@ handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexTo
 handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
 handleErrorInLang Excel _  = Nothing
 handleErrorInLang _ err = Just err
-
--- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
-execEvalInLang :: EvalHeader -> EvalCode -> EitherTExec EvalResult
-execEvalInLang evalHeader = 
-  case lang of
-    Python  -> KP.evaluate sid
-    R       -> KR.evaluate headerCode
-    -- OCaml   -> KO.evaluate headerCode
-  where 
-    sid         = evalHeader^.evalHeaderSheetId
-    lang        = evalHeader^.evalHeaderLang
-    headerCode  = evalHeader^.evalHeaderExpr

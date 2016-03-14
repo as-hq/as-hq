@@ -38,7 +38,7 @@ handleDelete mid uc state rng = do
   let conn = state^.dbConn
       inds = finiteRangeToIndices rng
   blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
-  errOrUpdate <- runDispatchCycle state blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
+  errOrUpdate <- runDispatchCycle state mid blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 

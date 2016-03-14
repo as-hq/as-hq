@@ -131,7 +131,7 @@ handleDrag :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> 
 handleDrag mid uc state selRng dragRng = do
   nCells <- IU.getCellsRect (state^.dbConn) selRng dragRng
   let newCells = (IU.getMappedFormulaCells selRng dragRng nCells) ++ (IU.getMappedPatternGroups selRng dragRng nCells)
-  errOrUpdate <- DP.runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  errOrUpdate <- DP.runDispatchCycle state mid newCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 handleRepeat :: MessageId -> ASUserClient -> ServerState -> Selection -> IO ()
@@ -164,7 +164,7 @@ handleUpdateCondFormatRules mid uc state updatedRules deleteRuleIds = do
   let allRulesUpdated = applyUpdate u oldRules
       updatedLocs = concatMap finiteRangeToIndices $ concatMap cellLocs $ union updatedRules rulesToDelete
   cells <- DB.getPossiblyBlankCells conn updatedLocs
-  errOrCells <- runEitherT $ conditionallyFormatCells state sid cells allRulesUpdated emptyContext DP.evalChain
+  errOrCells <- runEitherT $ conditionallyFormatCells state mid sid cells allRulesUpdated emptyContext DP.evalChain
   time <- getASTime
   let errOrCommit = fmap (\cs -> Commit (Diff cs cells) emptyDiff emptyDiff (Diff updatedRules rulesToDelete) time) errOrCells
   either (const $ return ()) (DT.updateDBWithCommit conn src) errOrCommit

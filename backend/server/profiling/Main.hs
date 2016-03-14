@@ -61,7 +61,7 @@ emptyCtx = emptyContext
 eval :: [ASCell] -> EvalContext -> IO (Either ASExecError SheetUpdate)
 eval cells ctx = do
   ss <- liftIO testSS
-  runDispatchCycle ss cells DescendantsWithParent (CommitSource "BENCH_ID" "BENCH_ID") id
+  runDispatchCycle ss "BENCH_ID" cells DescendantsWithParent (CommitSource "BENCH_ID" "BENCH_ID") id
 
 mockMessageId :: T.Text 
 mockMessageId = T.pack ""

@@ -33,8 +33,14 @@ timeout_message_id = "TIMEOUT_MESSAGE_ID"
 initial_open_message_id :: Text
 initial_open_message_id = "INITIAL_OPEN_MESSAGE_ID"
 
+initialize_message_id :: Text
+initialize_message_id = "INITIALIZE_MESSAGE_ID"
+
 auth_message_id :: Text
 auth_message_id = "auth_message_id"
+
+test_message_id :: Text
+test_message_id = "TEST_ID"
 
 new_sheet_name :: String
 new_sheet_name = "Sheet1"

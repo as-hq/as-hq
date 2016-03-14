@@ -49,9 +49,9 @@ import AS.Kernels.Internal
 -- Exposed functions
 
 -- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
-evaluate :: String -> EvalCode -> EitherTExec EvalResult
-evaluate _ ""  = return emptyResult
-evaluate _ str = do
+evaluate :: EvalCode -> EitherTExec EvalResult
+evaluate ""  = return emptyResult
+evaluate str = do
   v <- liftIO $ execOnString str (execR False)
   return $ EvalResult v Nothing
 

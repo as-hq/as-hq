@@ -21,10 +21,12 @@ import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Types.CondFormat
 import AS.Types.Network
+import AS.Types.Messages (MessageId)
 
 import AS.Kernels.Internal
 import AS.Logging
 import AS.Config.Settings
+import AS.Config.Constants
 import qualified AS.Parsing.Read as R
 import AS.Parsing.Show
 import AS.Parsing.Common
@@ -39,12 +41,12 @@ initialize conn = do
   -- run all the headers in db to initialize the sheet namespaces
   sids <- map sheetId <$> getAllSheets conn
   headers <- mapM (\sid -> getEvalHeader conn sid Python) sids
-  mapM_ (\h -> runEitherT $ evaluateHeader (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
+  mapM_ (\h -> runEitherT $ evaluateHeader initialize_message_id (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
 
-evaluate :: ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell
 
-evaluateHeader :: ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 -- #needsrefactor Should not hard core errors
@@ -64,17 +66,20 @@ evaluateLambdaFormat sid lambdaExpr val = do
       Just err -> FormatError err
       Nothing  -> FormatError "Formatting returned neither value nor error."
 
+haltMessage :: MessageId -> IO ()
+haltMessage = sendMessage_ . HaltMessageRequest
+
 clear :: ASSheetId -> IO ()
 clear = sendMessage_ . ClearRequest
 
-evaluateSql :: ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateSql sid code = evaluateWithScope Cell sid =<< (liftIO $ formatSqlCode code)
+evaluateSql :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateSql mid sid code = evaluateWithScope Cell mid sid =<< (liftIO $ formatSqlCode code)
 
 testCell :: ASSheetId -> EvalCode -> IO ()
-testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid code)
+testCell sid code = printObj "Test evaluate python cell: " =<< (runEitherT $ evaluate sid test_message_id code)
 
 testHeader :: ASSheetId -> EvalCode -> IO ()
-testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid code)
+testHeader sid code = printObj "Test evaluate python header: " =<< (runEitherT $ evaluateHeader sid test_message_id code)
 
 formatSqlCode :: EvalCode -> IO EvalCode
 formatSqlCode code = do
@@ -86,11 +91,12 @@ formatSqlCode code = do
 
 data EvalScope = Header | Cell deriving (Generic)
 data KernelMessage = 
-    EvaluateRequest { scope :: EvalScope, envSheetId :: ASSheetId, code :: String } 
+    EvaluateRequest { scope :: EvalScope, evalMessageId :: MessageId, envSheetId :: ASSheetId, code :: String } 
   | EvaluateFormatRequest { envSheetId :: ASSheetId, code :: String }
   | GetStatusRequest ASSheetId
   | AutocompleteRequest { envSheetId' :: ASSheetId, completeString :: String }
   | ClearRequest ASSheetId
+  | HaltMessageRequest MessageId
   deriving (Generic)
 
 data KernelResponse = 
@@ -98,18 +104,19 @@ data KernelResponse =
   | EvaluateFormatReply { formatValue :: Maybe String, formatError :: Maybe String }
   | GetStatusReply -- TODO
   | AutocompleteReply -- TODO
-  | ClearReply Bool
-  | ErrorReply String
+  | GenericSuccessReply
+  | GenericErrorReply String
   deriving (Generic)
 
 instance ToJSON EvalScope
 
 instance ToJSON KernelMessage where
   toJSON msg = case msg of 
-    EvaluateRequest scope sid code -> object  [ "type" .= ("evaluate" :: String)
-                                              , "scope" .= scope
-                                              , "sheet_id" .= sid
-                                              , "code" .= code]
+    EvaluateRequest scope mid sid code -> object  [ "type" .= ("evaluate" :: String)
+                                                  , "scope" .= scope
+                                                  , "message_id" .= mid
+                                                  , "sheet_id" .= sid
+                                                  , "code" .= code]
 
     EvaluateFormatRequest sid code -> object  [ "type" .= ("evaluate_format" :: String)
                                               , "sheet_id" .= sid
@@ -125,6 +132,9 @@ instance ToJSON KernelMessage where
     ClearRequest sid -> object [ "type" .= ("clear" :: String)
                                , "sheet_id" .= sid]
 
+    HaltMessageRequest mid -> object [ "type" .= ("halt_message" :: String)
+                                     , "message_id" .= mid]
+
 instance FromJSON KernelResponse where
   parseJSON (Object v) = do
     val <- v .: "type" :: (Parser String)
@@ -133,13 +143,13 @@ instance FromJSON KernelResponse where
       "evaluate_format" -> EvaluateFormatReply <$> v .:? "value" <*> v .:? "error"
       "get_status" -> return GetStatusReply -- TODO
       "autocomplete" -> return AutocompleteReply -- TODO
-      "clear" -> ClearReply <$> v .: "success"
-      "error" -> ErrorReply <$> v .: "error"
+      "generic_success" -> return GenericSuccessReply
+      "generic_error" -> GenericErrorReply <$> v .: "error"
 
-evaluateWithScope :: EvalScope -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateWithScope _ _ "" = return emptyResult
-evaluateWithScope scope sid code = do
-  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope sid code
+evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateWithScope _ _ _ "" = return emptyResult
+evaluateWithScope scope mid sid code = do
+  (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope mid sid code
   case v of 
     Nothing -> case err of 
       Just e -> return $ EvalResult (CellValue $ ValueError e "") disp
@@ -158,7 +168,7 @@ sendMessage msg = do
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"
     -- i.e. an API error, network error, or other non-evaluation-related error
-    Right (ErrorReply e) -> left $ KernelError e 
+    Right (GenericErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
 sendMessage_ :: KernelMessage -> IO ()

@@ -9,6 +9,7 @@ import AS.Types.Eval as E
 import AS.Types.DB
 import AS.Types.Graph
 import AS.Types.Network
+import AS.Types.Messages (MessageId)
 import AS.Util
 
 import AS.DB.Graph as G
@@ -30,6 +31,8 @@ import Control.Lens hiding (set)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
+type EvalChainFunc = ServerState -> MessageId -> [ASCell] -> EvalContext -> EitherTExec EvalContext
+
 ----------------------------------------------------------------------------------------------------------------------
 -- Cell lookups
 
@@ -43,14 +46,12 @@ getCellsWithContext conn ctx locs = map replaceWithContext <$> zip locs <$> DB.g
 ----------------------------------------------------------------------------------------------------------------------
 -- Reference conversions/lookups
 
-type EvalChainFunc = ServerState -> [ASCell] -> EvalContext -> EitherTExec EvalContext
-
 -- used by lookUpRef
 --  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
 --  #mustrefactor why isn't this left IndexOfPointerNonExistant
-referenceToCompositeValue :: ServerState -> EvalContext -> ASReference -> EvalChainFunc -> IO CompositeValue
-referenceToCompositeValue _ ctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ ctx^.virtualCellsMap
-referenceToCompositeValue state ctx (PointerRef p) _ = do 
+referenceToCompositeValue :: ServerState -> MessageId -> EvalContext -> ASReference -> EvalChainFunc -> IO CompositeValue
+referenceToCompositeValue _ _ ctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ ctx^.virtualCellsMap
+referenceToCompositeValue state _ ctx (PointerRef p) _ = do 
   let idx = pointerIndex p
       mp = ctx^.virtualCellsMap
       cell = $valAt idx mp
@@ -67,7 +68,7 @@ referenceToCompositeValue state ctx (PointerRef p) _ = do
           printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 -- #NeedsRefactor: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
-referenceToCompositeValue _ ctx (RangeRef r) _
+referenceToCompositeValue _ _ ctx (RangeRef r) _
   | isFiniteRange r = do
     let finiteRangeIndToVal ind = view cellValue $ $valAt ind $ ctx^.virtualCellsMap
         rangeVals = map (map finiteRangeIndToVal) indices
@@ -83,7 +84,7 @@ referenceToCompositeValue _ ctx (RangeRef r) _
         colRangeVals = map (map colRangeIndToVal) indices
     return $ Expanding . VList . M $ colRangeVals
       where indices = rangeWithContextToIndicesRowMajor2D ctx r
-referenceToCompositeValue state ctx (TemplateRef (SampleExpr n idx)) f = $fromRight <$> (runEitherT $ do 
+referenceToCompositeValue state mid ctx (TemplateRef (SampleExpr n idx)) f = $fromRight <$> (runEitherT $ do 
       -- Get all ancestors
       let conn = state^.dbConn
       ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
@@ -91,7 +92,7 @@ referenceToCompositeValue state ctx (TemplateRef (SampleExpr n idx)) f = $fromRi
       ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds
       let ctxWithAncs = addCellsToContext ancCells ctx
       -- After adding ancestors to context, evaluate n times
-      samples <- replicateM n $ evaluateNode state ctxWithAncs idx ancCells f
+      samples <- replicateM n $ evaluateNode state mid ctxWithAncs idx ancCells f
       return $ Expanding $ VList $ A samples)
 
 -- Only used in conditional formatting.
@@ -140,7 +141,7 @@ refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do
 
 -- Evaluate a node by running an evaluation function and extracting the answer from the context at the end. 
 -- Assumes all ancestors are already in the context.
-evaluateNode :: ServerState -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
-evaluateNode state ctx idx ancestors f = do
-  ctx' <- f state ancestors ctx
+evaluateNode :: ServerState -> MessageId -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
+evaluateNode state mid ctx idx ancestors f = do
+  ctx' <- f state mid ancestors ctx
   return $ view cellValue . $valAt idx $ ctx'^.virtualCellsMap

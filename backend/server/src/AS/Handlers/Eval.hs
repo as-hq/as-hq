@@ -10,6 +10,7 @@ import AS.Types.Network
 
 import AS.Dispatch.Core
 import AS.Eval.Core (evaluateHeader)
+import qualified AS.Kernels.Python as Python
 
 import AS.DB.API
 import AS.DB.Transaction
@@ -36,7 +37,7 @@ handleEval mid uc state evalInstructions  = do
       conn = state^.dbConn
   oldProps <- mapM (getPropsAt conn) inds
   let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
-  errOrUpdate <- runDispatchCycle state cells DescendantsWithParent (userCommitSource uc) id
+  errOrUpdate <- runDispatchCycle state mid cells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- not maintaining right now (Alex 12/28)
@@ -49,7 +50,7 @@ handleEval mid uc state evalInstructions  = do
 handleEvalHeader :: MessageId -> ASUserClient -> ServerState -> EvalHeader -> IO ()
 handleEvalHeader mid uc state evalHeader = do
   setEvalHeader (state^.dbConn) evalHeader
-  result <- runEitherT $ evaluateHeader evalHeader
+  result <- runEitherT $ evaluateHeader mid evalHeader
   broadcastTo state [evalHeader^.evalHeaderSheetId] $ case result of 
         Left e -> failureMessage mid $ generateErrorMessage e
         Right (EvalResult value display) -> 
@@ -77,7 +78,7 @@ handleSetLanguagesInRange mid uc state lang rng = do
       conn = state^.dbConn
   cells <- catMaybes <$> getCells conn inds -- disregard cells that are empty
   let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells
-  errOrUpdate <- runDispatchCycle state cellsWithLangsChanged DescendantsWithParent (userCommitSource uc) id
+  errOrUpdate <- runDispatchCycle state mid cellsWithLangsChanged DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- | The user has pressed the "kill" button for an overlong operation;
@@ -88,4 +89,5 @@ handleTimeout mid state =
     putStrLn $ "Killing message ID: " ++ (T.unpack mid)
     maybe (return ()) killThread $
       M.lookup mid (view threads curState)
+    Python.haltMessage mid
     return $ curState & threads %~ (M.delete mid)

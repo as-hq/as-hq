@@ -89,8 +89,8 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
 -- #lenses
-runDispatchCycle :: ServerState -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
-runDispatchCycle state cs descSetting src updateTransform = do
+runDispatchCycle :: ServerState -> MessageId -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
+runDispatchCycle state mid cs descSetting src updateTransform = do
   roots <- EM.evalMiddleware cs
   time <- getASTime 
   let conn = state^.dbConn
@@ -102,11 +102,11 @@ runDispatchCycle state cs descSetting src updateTransform = do
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
-    ctxAfterDispatch <- dispatch state roots initialContext descSetting
+    ctxAfterDispatch <- dispatch state mid roots initialContext descSetting
     printWithTimeT "finished dispatch"
     let transformedCtx = ctxAfterDispatch & updateAfterEval %~ updateTransform -- #lenses
 
-    finalCells <- EE.evalEndware state src transformedCtx evalChain
+    finalCells <- EE.evalEndware state mid src transformedCtx evalChain
 
     let ctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
 
@@ -125,9 +125,9 @@ runDispatchCycle state cs descSetting src updateTransform = do
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
-dispatch :: ServerState -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
-dispatch state [] context _ = printWithTimeT "empty dispatch" >> return context
-dispatch state roots oldContext descSetting = do
+dispatch :: ServerState -> MessageId -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
+dispatch state _ [] context _ = printWithTimeT "empty dispatch" >> return context
+dispatch state mid roots oldContext descSetting = do
   let conn = state^.dbConn
   printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
   printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
@@ -144,7 +144,7 @@ dispatch state roots oldContext descSetting = do
   modifiedContext <- getModifiedContext conn ancLocs oldContext
   printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
   printWithTimeT "Starting eval chain"
-  evalChainWithException state cellsToEval modifiedContext -- start with current cells, then go through descendants
+  evalChainWithException state mid cellsToEval modifiedContext -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -203,13 +203,13 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 -- EvalChain
 
 -- A wrapper around evalChain which catches errors
-evalChainWithException :: ServerState -> [ASCell] -> EvalTransform
-evalChainWithException state cells ctx = 
+evalChainWithException :: ServerState -> MessageId -> [ASCell] -> EvalTransform
+evalChainWithException state mid cells ctx = 
   let whenCaught e = do
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain state cells ctx) whenCaught
+    result <- liftIO $ catch (runEitherT $ evalChain state mid cells ctx) whenCaught
     hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
@@ -225,29 +225,29 @@ shouldEvalCell ctx c = isEvaluable c && not hasCoupledCounterpartInMap
       Nothing -> False
       Just c' -> isCoupled c' && (not $ isFatCellHead c')
 
-evalChain :: ServerState -> [ASCell] -> EvalTransform
-evalChain _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
-evalChain state (c@(Cell loc xp val ps rk disp):cs) ctx = 
+evalChain :: ServerState -> MessageId -> [ASCell] -> EvalTransform
+evalChain _ mid [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChain state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
   if shouldEvalCell ctx c
     then do 
       -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-      evalResult <- EC.evaluateLanguage state loc ctx xp evalChainWithoutPropagation
-      newContext <- contextInsert state c evalResult ctx
-      evalChain state cs newContext
-    else evalChain state cs ctx
+      evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
+      newContext <- contextInsert state mid c evalResult ctx
+      evalChain state mid cs newContext
+    else evalChain state mid cs ctx
 
 -- Evaluate a bunch of cells without calling dispatch again, just update the context
 -- Used in sampling
-evalChainWithoutPropagation :: ServerState -> [ASCell] -> EvalTransform
-evalChainWithoutPropagation _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
-evalChainWithoutPropagation state (c@(Cell loc xp val ps rk disp):cs) ctx = 
+evalChainWithoutPropagation :: ServerState -> MessageId -> [ASCell] -> EvalTransform
+evalChainWithoutPropagation _ _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChainWithoutPropagation state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
   if shouldEvalCell ctx c
     then do 
       -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
-      evalResult <- EC.evaluateLanguage state loc ctx xp evalChainWithoutPropagation
+      evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
       newContext <- contextInsertWithoutPropagation state c evalResult ctx
-      evalChainWithoutPropagation state cs newContext
-    else evalChainWithoutPropagation state cs ctx
+      evalChainWithoutPropagation state mid cs newContext
+    else evalChainWithoutPropagation state mid cs ctx
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
@@ -335,8 +335,8 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
 -- after all side effects due to insertion have been handled)
 -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
 --  #lens
-contextInsert :: ServerState -> ASCell -> Formatted EvalResult -> EvalTransform
-contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
+contextInsert :: ServerState -> MessageId -> ASCell -> Formatted EvalResult -> EvalTransform
+contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
   let conn  = state^.dbConn
       cv    = result^.resultValue
       disp  = result^.resultDisplay 
@@ -358,14 +358,14 @@ contextInsert state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
   case maybeFatCell of
     Nothing -> do 
       printWithTimeT "\nrunning decouple transform"
-      dispatch state decoupledCells ctxWithEvalCells ProperDescendants
+      dispatch state mid decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
       printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map (flip $valAt $ ctxWithEvalCells^.virtualCellsMap) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
-      dispatch state dispatchCells ctxWithEvalCells ProperDescendants
+      dispatch state mid dispatchCells ctxWithEvalCells ProperDescendants
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
       -- Only the $head of the list has an ancestor at this point.

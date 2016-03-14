@@ -32,22 +32,22 @@ handleCopy :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> 
 handleCopy mid uc state from to = do
   putStrLn $ "IN HANDLE COPY"
   toCells <- getCopyCells (state^.dbConn) from to
-  errOrUpdate <- runDispatchCycle state toCells DescendantsWithParent (userCommitSource uc) id
+  errOrUpdate <- runDispatchCycle state mid toCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 handleCut :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
 handleCut mid uc state from to = do
   newCells <- getCutCells (state^.dbConn) from to
-  errOrUpdate <- runDispatchCycle state newCells DescendantsWithParent (userCommitSource uc) id
+  errOrUpdate <- runDispatchCycle state mid newCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate
 
 -- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
 -- could restructure this in such a way that encapsulation is not broken. 
-performCopy :: ServerState -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
-performCopy state from to cs = do 
+performCopy :: ServerState -> MessageId -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
+performCopy state mid from to cs = do 
   let conn = state^.dbConn
   toCells <- getCopyCells conn from to
-  runDispatchCycle state toCells DescendantsWithParent cs id
+  runDispatchCycle state mid toCells DescendantsWithParent cs id
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers
