@@ -119,18 +119,18 @@ extractNestedListItems js key = case js .> key of
 -- Low-level parsers
 
 json :: ASLanguage -> Parser JSON
-json lang = M.fromList <$> (braces $ sepBy pair delimiter)
+json lang = M.fromList <$> (braces $ sepBy' pair delimiter)
   where
-    delimiter  = PC.betweenSpaces $ string ","
-    leaf       = JSONLeaf <$> jsonValue lang
-    tree       = JSONTree <$> json lang
-    braces     = PC.between' "{" "}" 
+    delimiter  = (PC.betweenSpaces $ string ",") <?> (fail "delim")
+    leaf       = JSONLeaf <$> ((jsonValue lang) <?> (fail "leaf"))
+    tree       = JSONTree <$> ((json lang) <?> (fail "tree"))
+    braces p   = (PC.between' "{" "}" p) <?> (fail "braces")
     pair      = do
-      spaces
+      PC.spaces
       key <- PC.unescapedString
       betweenSpaces $ string ":"
       field <- tree <|> leaf
-      spaces
+      PC.spaces
       return (C.unpack key, field)
 
 jsonValue :: ASLanguage -> Parser JSONValue
@@ -165,7 +165,7 @@ list lang =
 -- Top level parsers
 
 parseValue :: ASLanguage -> ByteString -> Either ASExecError CompositeValue
-parseValue lang = readOutput . parseOnly (value lang)
+parseValue lang b = readOutput $ parseOnly (value lang) b
   where
     readOutput (Left _) = Left ParseError
     readOutput (Right r) = Right r
@@ -180,8 +180,8 @@ value lang =
 
 asValue :: ASLanguage -> Parser ASValue
 asValue lang =
-      ValueI <$> PC.integer
-  <|> ValueD <$> PC.float
+      ValueD <$> PC.float
+  <|> ValueI <$> PC.integer
   <|> ValueB <$> PC.bool
   <|> ValueS . C.unpack <$> PC.unescapedString
   <|> nullValue lang

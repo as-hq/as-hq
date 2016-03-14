@@ -38,13 +38,28 @@ parseNext :: (ExRef -> ByteString) -> Parser ByteString
 parseNext f = do 
   (bs, ref) <- getFirstExcelRef
   return $! B.append bs (f ref)
+{-# INLINE parseNext #-}
 
+-- | Parser for extractring the first Excel reference from a string. Returns the bytes before the
+-- Excel reference as well as the reference itself. Will fail if the input has no Excel refs. 
 getFirstExcelRef :: Parser (ByteString, ExRef)
 getFirstExcelRef = do 
-  let notRefParser = PC.quotedStringEscaped <|> (B.singleton <$> anyWord8)
-  bs <- B.concat <$> manyTill' notRefParser (lookAhead refMatch)
+  bs <- B.concat <$> manyTill' notExcelParser (lookAhead refMatch)
   ref <- refMatch
   return (bs, ref)
+
+-- | This parser is applied "in between" refMatches. It tries to consume as much as possible
+-- given that the refMatch didn't succeed. Instead of only consuming the next character, and
+-- allowing getFirstExcelRef to try refMatch again, it consumes immediate letters, numbers, !, @.
+-- If it comes across a quote/apostrophe, it continues until the closing quote/apostrophe. If both
+-- of the previous fail (for example, on a space), we consume that one character. This parser is
+-- intended as an optimization to PC.quotedStringEscaped <|> (B.singleton <$> anyWord8).
+notExcelParser :: Parser ByteString
+notExcelParser = parser
+  where parser  = PC.quotedStringEscaped <|> 
+                  (takeWhile1 goodWord8) <|> 
+                  (B.singleton <$> anyWord8)
+        goodWord8 w = isLetter w || isDigit w || w == _exclam || w == _at
 
 -- | Replaces all ExRefs in a ByteString that aren't in quotes/apostrophes. 
 excelParser :: (ExRef -> ByteString) -> ByteString -> ByteString
@@ -54,21 +69,36 @@ excelParser f = $fromRight . parseOnly parser
       excels <- many' $ parseNext f
       rest <- takeByteString
       return $! B.append (B.concat excels) rest
+{-# INLINE excelParser #-}
 
+-- | Given a replacer function for Excel references, replace all Excel references in a given 
+-- expression with an application of this replacer function.
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp = xp & expression %~ modifyExpression
-  where modifyExpression str = C.unpack $ excelParser (C.pack . f) (C.pack str) 
+replaceRefs f xp 
+  | isExcelLiteral xp = xp
+  | otherwise = xp & expression %~ modifyExpression
+      where modifyExpression str = C.unpack $ excelParser (C.pack . f) (C.pack str) 
+{-# INLINE replaceRefs #-}
 
 replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
 replaceRefsIO f = return . replaceRefs (unsafePerformIO . f) 
+{-# INLINE replaceRefsIO #-}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helpers
 
+isExcelLiteral :: ASExpression -> Bool
+isExcelLiteral (Expression xp lang) = (lang == Excel) && parsedCorrectly
+  where parsedCorrectly = case parseOnly formula $ C.pack xp of
+                            Right _ -> False
+                            Left _  -> True
+
 -- | Returns the list of Excel references in an ASExpression. 
 getExcelReferences :: ASExpression -> [ExRef]
-getExcelReferences (Expression xp lang) = (map snd . $fromRight) parseResult
-  where parseResult = parseOnly (many getFirstExcelRef) (C.pack xp)
+getExcelReferences xp@(Expression str lang)
+  | isExcelLiteral xp = []
+  | otherwise = (map snd . $fromRight) parseResult
+      where parseResult = parseOnly (many getFirstExcelRef) (C.pack str)
 
 -- | Returns the list of dependencies in ASExpression. 
 -- #needsrefactor not all ASReferences are valid references for the graph.

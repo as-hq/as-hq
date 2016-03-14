@@ -81,7 +81,6 @@ main = alphaMain $ do
   -- settings <- CS.getRuntimeSettings
   -- conn <- DI.connectRedis settings
   state <- testSS
-  -- y <- eval [(U.testCell & cellExpression .~ Expression "range(5000)" Python)] emptyCtx
   
   -- let conn = state^.dbConn
   --     graphAddress = state^.appSettings.graphDbAddress
@@ -90,6 +89,7 @@ main = alphaMain $ do
   --    cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
   --x <- eval (cells1++cells2) emptyCtx
   let cells2 = testCellsWithExpression (\i -> Expression "=2" Python) 1 [1]
-  let cells1 = testCellsWithExpression (\i -> Expression "11111111111+1111111111" Python) 1 [2..10000]
+  let cells1 = testCellsWithExpression (\i -> Expression "1111111 + 1111111" Python) 1 [2..10000]
   x <- eval (cells2 ++ cells1) emptyCtx
+  -- x <- eval [(U.testCell & cellExpression .~ Expression "range(5000)" Python)] emptyCtx
   evaluate $ rnf x

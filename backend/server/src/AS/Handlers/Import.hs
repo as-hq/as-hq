@@ -84,7 +84,7 @@ evaluateExcelSheet mid sid code = do
   (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell mid sid code
   let maybeCells = do
                 jsonString <- val 
-                jsonBlob <- case eitherResult $ parse (json Python) (BC.pack jsonString) of
+                jsonBlob <- case parseOnly (json Python) (BC.pack jsonString) of
                               Left _ ->  Nothing
                               Right v -> Just v
                 extractExcelCells sid jsonBlob
@@ -178,7 +178,7 @@ stringToInd :: ASSheetId -> String -> ASIndex
 stringToInd sid s = Index sid (read2 s :: Coord)
 
 stringToVal :: String -> ASValue
-stringToVal s = $fromRight $ eitherResult $ parse (asValue Excel) (BC.pack s)
+stringToVal s = $fromRight $ parseOnly (asValue Excel) (BC.pack s)
 
 --input: string of form "=A1+4")
 stringToXp :: String -> ASExpression

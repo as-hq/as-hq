@@ -10,6 +10,7 @@ import Data.ByteString (ByteString)
 import Data.Word8 as W
 import Control.Monad
 import qualified Data.Attoparsec.ByteString.Char8 as AC
+import Data.Attoparsec.Combinator
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
@@ -22,13 +23,14 @@ import AS.Types.Excel
 import AS.Types.Formats
 import AS.Parsing.Excel (refMatch)
 import qualified AS.Parsing.Common as PC
+import AS.Util
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Top-level parsers.
 
 parseFormula :: ByteString -> ThrowsError ContextualFormula
 parseFormula s = either (\_ -> Left ExcelSyntaxError) return res
-  where res = eitherResult $ parse eitherLiteralFormula s
+  where res = parseOnly eitherLiteralFormula s
 
 eitherLiteralFormula :: Parser ContextualFormula
 eitherLiteralFormula = formula <|> (SimpleFormula <$> literal) <|> (SimpleFormula <$> emptyExpr)
@@ -36,12 +38,13 @@ eitherLiteralFormula = formula <|> (SimpleFormula <$> literal) <|> (SimpleFormul
 emptyExpr :: Parser Formula
 emptyExpr = (endOfInput <?> "not at end") >> (return $ Basic $ Var EBlank)
 
--- | Parser for a literal, which doesn't have an = at the start. 
+-- | Parser for an Excel literal. Fails if the first character is '='.
 literal :: Parser Formula
 literal = do
+  lookAhead $ notWord8 61
   rest <- takeByteString
-  let val = parse justNumOrBool rest
-  return $! case eitherResult val of
+  let val = parseOnly justNumOrBool rest
+  return $! case val of
     Left _ -> Basic . Var $ EValueS (C.unpack rest)
     Right v -> v
 
@@ -307,10 +310,7 @@ numOrBool = fmap (Basic . Var) $
   <|> (EValueB <$> PC.bool)
 
 justNumOrBool :: Parser Formula
-justNumOrBool = do 
-  v <- numOrBool
-  endOfInput
-  return v
+justNumOrBool = numOrBool <* endOfInput 
 
 blankValue :: Parser Formula
 blankValue = PC.spaces >> (return . Basic $ Var EMissing)

@@ -732,7 +732,7 @@ matchLambda (EValueS s) v = case outerComparator s of
 matchLambda v1 v2 = v1 == v2
 
 valParser :: String -> EValue
-valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ eitherResult $ parse excelValue (C.pack s)
+valParser s = either (\_ -> EValueS s) (\(Basic (Var v)) -> v) $ parseOnly excelValue (C.pack s)
 
 -- | Extracts a possible outer comparator and remaining string ; ">34" -> (>,"34")
 outerComparator :: String -> Maybe (EValue -> EValue -> Bool, String)
@@ -747,7 +747,7 @@ outerComparator _ = Nothing
 
 -- | Given an Excel regex and a test input string, see if they match
 criteria :: String -> String -> Bool
-criteria regex match = case eitherResult $ parse (stringMatch (C.pack regex)) (C.pack (map toLower match)) of
+criteria regex match = case parseOnly (stringMatch (C.pack regex)) (C.pack (map toLower match)) of
   Left _ -> False
   Right _ -> True
 
@@ -950,10 +950,10 @@ r1c1 sid = do
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
 stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
-stringToLoc True sid str = case eitherResult $ parse justExcelMatch (C.pack str) of 
+stringToLoc True sid str = case parseOnly justExcelMatch (C.pack str) of 
   Right exRef -> Just $ exRefToASRef sid exRef
   Left _ -> Nothing 
-stringToLoc False sid str = case eitherResult $ parse (r1c1 sid) (C.pack str) of 
+stringToLoc False sid str = case parseOnly (r1c1 sid) (C.pack str) of 
   Right asRef -> Just asRef
   Left _ -> Nothing
 

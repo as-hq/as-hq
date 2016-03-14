@@ -3,9 +3,11 @@
 module AS.Parsing.Excel where
 
 import Control.Applicative
+import Control.Monad
 import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
 import Data.Word8 as W
+import Data.Attoparsec.Combinator
 import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
@@ -27,7 +29,7 @@ import qualified AS.Parsing.Common as PC
 colStrToCol :: ByteString -> Col
 colStrToCol = Col . colStrToInt
 
--- Tail-recursive helper for colStrToCol.
+-- | Tail-recursive helper for colStrToCol.
 colStrToInt :: ByteString -> Int 
 colStrToInt = colStrToInt' 0 
   where
@@ -75,6 +77,11 @@ rowMatch :: Parser ExRow
 rowMatch = do
   dol  <- option "" dollar
   row <- AC.decimal
+  -- Do not follow by a letter
+  next <- peekWord8 
+  case next of
+    Nothing -> return ()
+    Just w  -> when (isLetter w) $ fail "letter after row"
   return $! ExItem (readRefType dol) $ Row row
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -136,7 +143,7 @@ templateMatch = do
   n <- AC.decimal
   PC.spaces *> string "," *> PC.spaces
   idx <- indexMatch
-  PC.spaces
+  PC.spaces *> string "}"
   return $! ExSampleExpr n idx
 
 -- | Parser matching either a finite ExRange or an Infinite ExRange.

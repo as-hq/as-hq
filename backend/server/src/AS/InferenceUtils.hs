@@ -122,7 +122,7 @@ isFormulaCell cell = not valExpEqual
         Nothing  -> False
         Just val -> val^.orig == cell^.cellValue
         where
-          formula = eitherResult $ parse literal (C.pack xp)
+          formula = parseOnly literal (C.pack xp)
           excelToASValue (Right (Basic (Var eValue))) = Just $ eValToASValue eValue
           excelToASValue _ = Nothing
           maybeVal = excelToASValue formula
