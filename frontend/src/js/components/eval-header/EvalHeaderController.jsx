@@ -8,6 +8,8 @@ import type {
   Callback
 } from '../../types/Base';
 
+import type {StoreToken} from 'flux';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import EvalHeader from './EvalHeader.jsx';
@@ -16,6 +18,7 @@ import Focusable from '../transforms/Focusable.jsx';
 import FocusActions from '../../actions/ASFocusActionCreators';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 import HeaderStore from '../../stores/ASHeaderStore';
+import ConfigStore from '../../stores/ASConfigurationStore';
 
 import NotificationActions from '../../actions/ASNotificationActionCreators';
 import API from '../../actions/ASApiActionCreators';
@@ -25,19 +28,26 @@ import API from '../../actions/ASApiActionCreators';
 type Props = { open: boolean };
 
 class EvalHeaderController extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: Props;
   state: {};
 
   _view: any;
-  _storeListener: any;
+  _storeListener: StoreToken;
+  _configListener: StoreToken;
 
   componentDidMount() {
     this._storeListener = HeaderStore.addListener(() => this.forceUpdate());
+    this._configListener = ConfigStore.addListener(() => {
+      // wait for the changed component (in this case, any of the bottom panes)
+      // to finish mounting, then recalculate self.
+      setTimeout(() => { this.__getAce().resize() }, 100);
+    });
   }
 
   componentWillUnmount() {
     this._storeListener.remove();
+    this._configListener.remove();
   }
 
   render(): React.Element {
