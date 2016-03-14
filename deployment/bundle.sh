@@ -81,7 +81,7 @@ fi
 cd ../..
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server
 # backend environments are all the same, because they run on docker
-cp backend/Environment_docker.json build/Environment.json
+cp backend/Environment_$BRANCH.json build/Environment.json
 echo "backend build finished."
 
 # C++ executable (compile, move executable over to build/graph
@@ -96,9 +96,9 @@ cd backend/pykernel
 pyinstaller server.py
 cd ../..
 cp -r backend/pykernel/dist/server/* build/pykernel/
-rm -rf backend/pykernel/dist
-rm -rf backend/pykernel/build
-rm -rf backend/pykernel/server.spec
+cd backend/pykernel
+rm -rf dist build server.spec
+cd ../..
 
 # Make a static directory inside of the build/server for images + file input handler
 cd build/server
@@ -111,21 +111,21 @@ cd backend/server/static
 pyinstaller file-input-handler.py
 cd ../../..
 cp -r backend/server/static/dist/file-input-handler/* build/server/static/
-rm -rf backend/server/static/dist
-rm -rf backend/server/static/build
-rm -rf backend/server/static/file-input-handler.spec
+cd backend/server/static
+rm -rf dist build file-input-handler.spec
 
+## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
 ###### deployment materials
-# copy deployment materials
-cp -r deployment build/
-# build router
-pyinstaller router.py
-rm router.spec
-rm router.py
-mv dist/router ./
-rm -rf dist
-rm -rf build
-cd ..
+# # copy deployment materials
+# cp -r deployment build/
+# # build router
+# pyinstaller router.py
+# rm router.spec
+# rm router.py
+# mv dist/router ./
+# rm -rf dist
+# rm -rf build
+# cd ..
 
 ## push to remote
 if $PUSH_REMOTE; then
