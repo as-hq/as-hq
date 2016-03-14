@@ -1,16 +1,16 @@
 {
   "backendWsAddress": "0.0.0.0",
   "backendWsPort": 5000,
-  "graphDbAddress_haskell": "tcp://localhost:5555",
-  "pyKernelAddress_haskell": "tcp://localhost:20000",
-  "graphDbAddress_cpp": "tcp://*:5555",
-  "pyKernelAddress_python": "tcp://*:20000",
+  "graphDbAddress_haskell": "tcp://localhost:6000",
+  "pyKernelAddress_haskell": "tcp://localhost:7000",
+  "graphDbAddress_cpp": "tcp://*:6000",
+  "pyKernelAddress_python": "tcp://*:7000",
   "redisPort": 6379,
   "redisHost": "localhost",
   "redisPassword": "40a00d6110873f61c786f28cd79cfa47302041a5",
-  "shouldWriteToConsole": false,
+  "shouldWriteToConsole": true,
   "shouldWriteToSlack": true,
   "frontendPort": 8080,
   "fileInputHandlerPort": 9000,
-  "host": "159.203.127.80"
+  "host": "master.alphasheets.com"
 }

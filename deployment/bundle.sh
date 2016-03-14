@@ -9,6 +9,11 @@
 # - this script creates a temporary build folder in the root directory, then copies it to the parent.
 # - so you end up with a parent/build and parent/CODEBASE_DIR
 
+# Requires:
+# - pyinstaller
+# - installed frontend libs
+# - environment files in their right places
+
 USE_SUDO=false
 PUSH_REMOTE=false
 
@@ -87,7 +92,6 @@ cp backend/graph-database/server build/graph/
 
 # Python executables for pykernel
 # Copy all of the needed executables for the pykernel right into the build/pykernel folder
-pip install pyinstaller
 cd backend/pykernel
 pyinstaller server.py
 cd ../..
