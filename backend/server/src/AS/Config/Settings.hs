@@ -126,6 +126,7 @@ initializeSettings = do
   writeIORef dbPort (appSettings^.redisPort)
   writeIORef dbPassword (appSettings^.redisPassword)
 
+  putStrLn . ("[DIRECTORY] root directory: " ++) . show =<< getCurrentDirectory
   putStrLn . ("[CONFIG] appDirectory: " ++) . show =<< getSetting appDirectory
   putStrLn . ("[CONFIG] shouldLogSlack: " ++) . show =<< getSetting shouldLogSlack
   putStrLn . ("[CONFIG] shouldLogConsole: " ++) . show =<< getSetting shouldLogConsole
