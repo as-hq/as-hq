@@ -29,6 +29,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [ -z "$BRANCH" ]; then
+  echo "branch required. use -b BRANCH_NAME."
+  exit 1;
+fi
+
 ## check if we are in the project directory, and navigate to the root
 CWD=${PWD##*/}
 
@@ -49,7 +54,7 @@ cd build
 git init
 git remote add origin git@github.com:ooblahman/alphasheets-builds.git
 # preserve the branch history
-git pull origin master
+git pull origin "$BRANCH"
 rm -rf *
 mkdir frontend server graph pykernel
 
@@ -114,18 +119,18 @@ cp -r backend/server/static/dist/file-input-handler/* build/server/static/
 cd backend/server/static
 rm -rf dist build file-input-handler.spec
 
-## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
-###### deployment materials
-# # copy deployment materials
-# cp -r deployment build/
-# # build router
-# pyinstaller router.py
-# rm router.spec
-# rm router.py
-# mv dist/router ./
-# rm -rf dist
-# rm -rf build
-# cd ..
+# ## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
+# ###### deployment materials
+# # # copy deployment materials
+# # cp -r deployment build/
+# # # build router
+# # pyinstaller router.py
+# # rm router.spec
+# # rm router.py
+# # mv dist/router ./
+# # rm -rf dist
+# # rm -rf build
+# # cd ..
 
 ## push to remote
 if $PUSH_REMOTE; then

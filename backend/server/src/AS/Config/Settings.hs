@@ -125,6 +125,7 @@ initializeSettings = do
   writeIORef dbHost (appSettings^.redisHost)
   writeIORef dbPort (appSettings^.redisPort)
   writeIORef dbPassword (appSettings^.redisPassword)
+  putStrLn "hI"
 
   putStrLn . ("[DIRECTORY] root directory: " ++) . show =<< getCurrentDirectory
   putStrLn . ("[CONFIG] appDirectory: " ++) . show =<< getSetting appDirectory
