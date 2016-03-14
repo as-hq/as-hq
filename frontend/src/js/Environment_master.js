@@ -1,4 +1,5 @@
 export default {
-  // required
-  REMOTE_HOST: 'master.alphasheets.com',
+	isRemote: true,
+	noRouter: true,
+	REMOTE_HOST: 'master.alphasheets.com',
 }
