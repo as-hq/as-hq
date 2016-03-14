@@ -166,19 +166,6 @@ function installAllShortcuts() {
     ExpressionActions.toggleReference();
   });
 
-  // error, header, and cell pane stuff
-  install('evalpane', 'toggle_error_pane', 'Ctrl+Alt+E', (wildcard: string) => {
-    ConfigActions.toggleBottomPane('errors');
-  });
-
-  install('evalpane', 'toggle_cell_pane', 'Ctrl+Alt+O', (wildcard: string) => {
-    ConfigActions.toggleBottomPane('cell_output');
-  });
-
-  install('evalpane', 'toggle_header_pane', 'Ctrl+Alt+H', (wildcard: string) => {
-    ConfigActions.toggleBottomPane('header_output');
-  });
-
   // grid shortcuts -------------------------------------------------------------------------------
 
   install('grid', 'start_editing', ['Enter', 'Shift+Enter'], () => {
@@ -369,6 +356,19 @@ function installAllShortcuts() {
   });
   install('toplevel', 'select_tab_left', 'Ctrl+PageUp', (wildcard) => {
     //TODO
+  });
+
+  // error, header, and cell pane stuff
+  install('toplevel', 'toggle_error_pane', 'Ctrl+Alt+E', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('errors');
+  });
+
+  install('toplevel', 'toggle_cell_pane', 'Ctrl+Alt+O', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('cell_output');
+  });
+
+  install('toplevel', 'toggle_header_pane', 'Ctrl+Alt+H', (wildcard: string) => {
+    ConfigActions.toggleBottomPane('header_output');
   });
 
   install('toplevel', 'set_language', 'Ctrl+1|2|3|4', (wildcard: string) => {
