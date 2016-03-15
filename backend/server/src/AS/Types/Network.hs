@@ -97,7 +97,7 @@ data ClientType = UserType | DaemonType
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- User client
 
-data ASUserClient = UserClient { _userId :: ASUserId, _userConn :: WS.Connection, _userWindow :: ASWindow, _userSessionId :: SessionId }
+data ASUserClient = UserClient { _userId :: ASUserId, _userConn :: WS.Connection, _userWindow :: ASWindow, _userSessionId :: SessionId } -- userSessionID uniquely identifies a user client
 makeLenses ''ASUserClient
 
 instance Eq ASUserClient where

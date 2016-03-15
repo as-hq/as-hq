@@ -53,12 +53,12 @@ authenticateUser strat = case strat of
 userIdExists :: ASUserId -> ServerState -> Bool
 userIdExists uid state = L.elem uid (map (view userId) (state^.userClients))
 
-getUserBySessionId :: SessionId -> ServerState -> Maybe ASUserClient
-getUserBySessionId seshId state = case (filter (\uc -> (uc^.userSessionId == seshId)) (state^.userClients)) of
+getUserClientBySessionId :: SessionId -> ServerState -> Maybe ASUserClient
+getUserClientBySessionId seshId state = case filter ((== seshId) . view userSessionId) (state^.userClients) of
   [] -> Nothing
   l -> Just $ $head l
 
 -- | Applies a (user -> user) function to a user in the server state
-modifyUserInState :: State -> ASUserId -> (ASUserClient -> ASUserClient) -> IO ()
-modifyUserInState state uid f = modifyState_ state $ \state ->
-  return $ state & userClients %~ map (\u -> if (u^.userId == uid) then (f u) else u)
+modifyUserClientInState :: State -> SessionId -> (ASUserClient -> ASUserClient) -> IO ()
+modifyUserClientInState state seshId f = modifyState_ state $ \state ->
+  return $ state & userClients %~ map (\u -> if (u^.userSessionId == seshId) then (f u) else u)

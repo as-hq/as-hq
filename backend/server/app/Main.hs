@@ -183,7 +183,7 @@ preprocess conn state = do
         -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
         mockUc = UserClient uid' conn win uid'
     curState <- readMVar state
-    when (isNothing $ US.getUserBySessionId uid' curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
+    when (isNothing $ US.getUserClientBySessionId uid' curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
     processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
