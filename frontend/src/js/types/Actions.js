@@ -103,12 +103,6 @@ export type GotUpdatedRangeDescriptorsAction = {
   oldRangeKeys: Array<RangeKey>;
 };
 
-export type GotUpdatedBarsAction = {
-  _type: 'GOT_UPDATED_BARS';
-  newBars: Array<Bar>;
-  oldBarLocs: Array<BarIndex>;
-};
-
 export type ClearedAction = {
   _type: 'CLEARED';
 };
@@ -398,7 +392,6 @@ export type ASAction =
   | GotSelectionAction
   | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
-  | GotUpdatedBarsAction
   | ClearedAction
   | ClearedSheetAction
   | ChangedSheetAction

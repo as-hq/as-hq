@@ -39,23 +39,13 @@ const ASBarStore = Object.assign({}, BaseStore, {
         const {update: {barUpdates}} = action;
 
         if (! Util.Conversion.updateIsEmpty(barUpdates)) {
-          // #needsrefactor some code repetition with GOT_UPDATED_BARS.
-          const {oldKeys: oldBarLocs, newVals: newBars} = barUpdates.oldKeys;
+          const {oldKeys: oldBarLocs, newVals: newBars} = barUpdates;
 
           _data.lastUpdatedBars = [];
           ASBarStore._removeBarsAt(oldBarLocs);
           ASBarStore._updateBars(newBars);
           ASBarStore.emitChange();
         }
-        break;
-
-      case 'GOT_UPDATED_BARS':
-        const {oldBarLocs, newBars} = action;
-
-        _data.lastUpdatedBars = [];
-        ASBarStore._removeBarsAt(oldBarLocs);
-        ASBarStore._updateBars(newBars);
-        ASBarStore.emitChange();
         break;
 
       case 'RESET':
