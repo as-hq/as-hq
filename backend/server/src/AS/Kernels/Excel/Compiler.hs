@@ -41,7 +41,7 @@ emptyExpr = (endOfInput <?> "not at end") >> (return $ Basic $ Var EBlank)
 -- | Parser for an Excel literal. Fails if the first character is '='.
 literal :: Parser Formula
 literal = do
-  lookAhead $ notWord8 61
+  lookAhead $ (notWord8 61)
   rest <- takeByteString
   let val = parseOnly justNumOrBool rest
   return $! case val of

@@ -33,7 +33,7 @@ spaces = takeWhile (== _space)
 
 -- | Parser that matches a given string input.
 string' :: String -> Parser ByteString
-string' s = string $ C.pack s
+string' = string . C.pack
 
 -- | Parser that applies another parser between matching two strings. Returns the value
 -- of the intermediate parser.

@@ -3,8 +3,23 @@
 
 module AS.Types.Graph where
 
-import Prelude()
-import AS.Prelude
+import Control.Applicative
+import Control.Lens hiding (index, context)
+import Data.Attoparsec.ByteString
+import Data.ByteString (ByteString)
+import qualified Data.Attoparsec.ByteString.Char8 as AC
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import Text.Read (readMaybe)
+import Debug.Trace
+
+import Data.List.Split (splitOn)
+import qualified Data.Text as T 
+import qualified Data.List as L
+import GHC.Generics
+import Data.SafeCopy
+import Control.DeepSeq
+import Control.DeepSeq.Generics (genericRnf)
 
 import AS.Types.Cell
 import AS.Types.Commits
@@ -15,23 +30,12 @@ import AS.Types.CellProps
 import AS.Types.Bar
 import AS.Types.CondFormat
 import AS.Types.User
-
-import Text.Read (readMaybe)
-import Debug.Trace
-
-import Data.List.Split (splitOn)
-import qualified Data.Text as T 
-import qualified Data.List as L
-import qualified Data.ByteString.Char8         as BC
-import qualified Data.ByteString               as B
-
-import GHC.Generics
-import Data.SafeCopy
-import Control.DeepSeq
-import Control.DeepSeq.Generics (genericRnf)
+import Prelude()
+import AS.Prelude
 
 import AS.Serialize as S (encode)
-import Control.Lens hiding (index, context)
+
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Graph queries
 
@@ -207,8 +211,17 @@ instance Read2 ASReference where
 pairToCoord :: (Int, Int) -> Coord
 pairToCoord (a, b) = makeCoord (Col a) (Row b)
 
+tupleParser :: Parser (Int, Int)
+tupleParser = do 
+  string "("
+  x <- AC.decimal 
+  string ","
+  y <- AC.decimal
+  string ")"
+  return $! (x, y)
+
 instance Read2 Coord where
-  read2 str = pairToCoord ( $read str :: (Int, Int))
+  read2 str = pairToCoord $ $fromRight $ parseOnly tupleParser (C.pack str)
 -- No read2 on Infinite a. All casing is done within reading ExtendedCoord.
 
 -- Parsers for Read2 on ExtendedCoord. These are here temporarily until

@@ -24,7 +24,7 @@ import AS.Types.Shift
 import AS.Parsing.Excel
 import AS.Util
 
-import AS.Kernels.Excel.Compiler (formula)
+import AS.Kernels.Excel.Compiler (literal)
 import qualified AS.Parsing.Common as PC
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ excelParser f = $fromRight . parseOnly parser
 -- | Given a replacer function for Excel references, replace all Excel references in a given 
 -- expression with an application of this replacer function.
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp 
+replaceRefs f xp@(Expression _ lang) 
   | isExcelLiteral xp = xp
   | otherwise = xp & expression %~ modifyExpression
       where modifyExpression str = C.unpack $ excelParser (C.pack . f) (C.pack str) 
@@ -89,9 +89,9 @@ replaceRefsIO f = return . replaceRefs (unsafePerformIO . f)
 
 isExcelLiteral :: ASExpression -> Bool
 isExcelLiteral (Expression xp lang) = (lang == Excel) && parsedCorrectly
-  where parsedCorrectly = case parseOnly formula $ C.pack xp of
-                            Right _ -> False
-                            Left _  -> True
+  where parsedCorrectly = case parseOnly literal $ C.pack xp of
+                            Right _ -> True
+                            Left _  -> False
 
 -- | Returns the list of Excel references in an ASExpression. 
 getExcelReferences :: ASExpression -> [ExRef]
