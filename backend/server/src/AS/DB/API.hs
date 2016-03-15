@@ -97,8 +97,8 @@ getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
 getCellsByKeyPattern conn pattern = do
   ks <- getKeysByPattern conn pattern
   let locs = mapMaybe readLoc ks
-      readLoc k = case S.maybeDecode k of 
-        Just l@(Index _ _) -> Just l
+      readLoc k = case (S.maybeDecode k :: Maybe DBKey) of 
+        Just (IndexKey i) -> Just i
         _ -> Nothing
   return locs
   map $fromJust <$> getCells conn locs
