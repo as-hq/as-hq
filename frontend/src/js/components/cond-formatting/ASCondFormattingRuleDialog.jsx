@@ -66,7 +66,6 @@ export default function ASCondFormattingRuleDialog(props: RuleDialogProps): Reac
       onRequestClose={onRequestClose}
     >
       <TextField valueLink={rangeValueLink} />
-      // $FlowFixMe ::ALEX::
       <RuleForm valueLink={formatterValueLink} />
     </Dialog>
   );

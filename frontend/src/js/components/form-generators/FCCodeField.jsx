@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-import ASCodeField from '../basic-controls/ASCodeField.jsx';
+import ControlledCodeField from '../basic-controls/ASControlledCodeField.jsx';
 
 export default function FCCodeField({defaultValue}: {
   defaultValue: ?string;
@@ -13,16 +13,18 @@ export default function FCCodeField({defaultValue}: {
       const mergedStyle = {
         width: '100%',
         height: '100px',
-        ...style
       };
 
       return (
-        <ASCodeField
-          style={mergedStyle}
-          language="Python"
-          text={valueLink} />
+        <div style={mergedStyle}>
+          <ControlledCodeField
+            name="cond_format_lambda_editor"
+            language="Python"
+            style={{height: '100%'}}
+            text={valueLink} />
+        </div>
       );
-    }
+    },
   });
 
   ret.defaultValue = () => (defaultValue || '');
