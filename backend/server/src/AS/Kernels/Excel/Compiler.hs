@@ -66,7 +66,9 @@ expr :: Parser Formula
 expr    =   buildExpressionParser table leaf
         <?> "expression"
 
--- | Table to build expression grammar for Excel.
+-- | Table to build expression grammar for Excel. This is using Data.Attoparsec.Expr which doesn't
+-- look completely optimized, uses lazy folds etc. It's a small part of the perf output, so I won't
+-- bother improving it now.
 table :: OperatorTable ByteString Formula
 table   = [ [binary ":" AssocLeft]
           , [prefixRepeated $ choice [pos, neg]]
@@ -243,6 +245,10 @@ arrayRowContents = do
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Parsing values.
+
+-- Note: there is room for some future optimization here. Notice that the float and integer 
+-- parsers overlap quite a bit, and so do the money/date/percent ones. They can probably be 
+-- unrolled a bit. 
 
 percentToDecimal :: Double -> Double
 percentToDecimal = (/ 100)

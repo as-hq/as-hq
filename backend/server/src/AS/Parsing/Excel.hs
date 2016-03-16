@@ -29,7 +29,7 @@ import qualified AS.Parsing.Common as PC
 colStrToCol :: ByteString -> Col
 colStrToCol = Col . colStrToInt
 
--- | Tail-recursive helper for colStrToCol.
+-- | Tail-recursive, strictly-accumulated helper for colStrToCol.
 colStrToInt :: ByteString -> Int 
 colStrToInt = colStrToInt' 0 
   where
@@ -84,9 +84,29 @@ rowMatch = do
     Just w  -> when (isLetter w) $ fail "letter after row"
   return $! ExItem (readRefType dol) $ Row row
 
-
 ----------------------------------------------------------------------------------------------------
--- Parsers for location types
+-- Partial ExRef parsers
+
+-- | Parser for  a pointer reference such as @A1. 
+pointerMatch :: Parser ExRef
+pointerMatch = do 
+  pointer
+  (sh, wb) <- sheetWorkbookMatch
+  idx <- indexMatch
+  return $! ExPointerRef idx sh wb
+
+-- | Parser matching template expressions, which includes sampling expressions. 
+-- These expressions (for now) must begin with !, and have the rest between {}. 
+templateMatch :: Parser ExRef
+templateMatch = do
+  exc *> string "{" *> PC.spaces
+  n <- AC.decimal
+  PC.betweenSpaces $ string ","
+  (sh, wb) <- sheetWorkbookMatch
+  idx <- indexMatch
+  PC.spaces *> string "}"
+  let !sample = ExSampleExpr n idx
+  return $! ExTemplateRef sample sh wb
 
 -- | Parser for an ExIndex, which matches $AB15.
 indexMatch :: Parser ExIndex
@@ -94,64 +114,6 @@ indexMatch = do
   xCol <- colMatch
   xRow <- rowMatch
   return $! makeExIndex xCol xRow
-
--- | Parser matching a finite ASRange (ASIndex:ASIndex), such as A1:B3.
-finiteRangeMatch :: Parser ExRange
-finiteRangeMatch = do
-  tl <- indexMatch
-  colon
-  br <- indexMatch
-  return $! makeFiniteExRange tl br
-
-outOfBoundsMatch :: Parser ExRef
-outOfBoundsMatch = string "#REF!" >> return ExOutOfBounds
-
--- | Parser matching A1:A (Index:Column) column ranges. 
-colRangeA1ToAMatch :: Parser ExRange
-colRangeA1ToAMatch = do
-  tl <- indexMatch
-  colon
-  r <- colMatch
-  return $! makeExColRange tl r
-
--- | Parser matching column ranges of the form A:A1 (reverse).
-colRangeAToA1Match :: Parser ExRange
-colRangeAToA1Match = do
-  r <- colMatch
-  colon
-  tl <- indexMatch
-  return $! makeExColRange tl r
-
--- | Parser matching column ranges of the form A:A (column:column). 
--- Due to the column range type, we parse A:A as A$1:A. 
-colRangeAToAMatch :: Parser ExRange
-colRangeAToAMatch = do
-  l <- colMatch
-  colon
-  r <- colMatch
-  return $! makeExColRange (l, ExItem ABS $ Row 1) r
-
--- | Parser that matches all column ranges; checks for matches to both A:A and A1:A.
--- The ordering of the or's matters here. 
-colRangeMatch :: Parser ExRange
-colRangeMatch = colRangeAToA1Match <|> colRangeA1ToAMatch <|> colRangeAToAMatch
-
--- | Parser matching template expressions, which includes sampling expressions. 
--- These expressions (for now) must begin with !, and have the rest between {}. 
-templateMatch :: Parser ExTemplateExpr
-templateMatch = do
-  exc *> string "{" *> PC.spaces
-  n <- AC.decimal
-  PC.betweenSpaces $ string ","
-  idx <- indexMatch
-  PC.spaces *> string "}"
-  return $! ExSampleExpr n idx
-
--- | Parser matching either a finite ExRange or an Infinite ExRange.
--- It is important that try finiteRangeMatch is called before try colRangeMatch.
-rangeMatch :: Parser ExRange
-rangeMatch = finiteRangeMatch <|> colRangeMatch
-
 
 ----------------------------------------------------------------------------------------------------
 -- Sheet and workbook parsers
@@ -178,37 +140,7 @@ sheetWorkbookMatch = do
         Just n2  -> return (C.unpack <$> name2, C.unpack <$> name1)
 
 ----------------------------------------------------------------------------------------------------
--- Top-level parsers
-
-data InnerReference = 
-    InnerRange ExRange
-  | InnerTemplate ExTemplateExpr
-  | InnerIndex ExIndex
-
-innerRefMatch :: Parser InnerReference
-innerRefMatch = 
-      InnerRange    <$> rangeMatch
-  <|> InnerTemplate <$> templateMatch
-  <|> InnerIndex    <$> indexMatch
-
----- | Putting it all together, a parser matching an ExRef.
---refMatch :: Parser ExRef
---refMatch = do
---  point <- optional pointer
---  (sh, wb) <- sheetWorkbookMatch
---  innerRef <- optional innerRefMatch
---  case innerRef of 
---    Just ref -> case point of 
---      Just _ -> case ref of 
---        InnerIndex idx -> return $! ExPointerRef idx sh wb
---        _ -> fail "expected index reference when using pointer syntax"
---      Nothing -> return $! case ref of 
---        InnerRange rng    -> ExRangeRef rng sh wb
---        InnerTemplate t   -> ExTemplateRef t sh wb
---        InnerIndex idx    -> ExIndexRef idx sh wb
---    Nothing ->  outOfBoundsMatch <?> "expected valid excel A1:B4 format"
-
-----------------------------------------------------------------------------------------------------
+-- Helpers
 
 -- | Helper for refMatch that checks for a byte not being a letter or dollar.
 notLetterOrDollar :: Word8 -> Bool
@@ -219,27 +151,24 @@ endOrNotDollarDigit :: Maybe Word8 -> Bool
 endOrNotDollarDigit Nothing = True 
 endOrNotDollarDigit (Just w) = not $ isDigit w || w == 36
 
+----------------------------------------------------------------------------------------------------
+-- ExRef parser
 
+-- | Putting it all together, this is the final ExRef parser. It is noticeably long and a bit
+-- harder to follow that a more simple "or" or parsers, but those come at a performance cost. A
+-- more custom "hand-rolled" byte parser, like the one below, was designed to do minimal 
+-- backtracking. In the previous implementations, you'd try to parse as four different types of 
+-- ranges (A:A1, A1:A, A:A, A1:A2) before even trying an index, at which point you'd have to 
+-- backtrack. This parser eliminates that by doing a little bit  more casework at the cost of
+-- pretty code. It reduced performance by 20% in some cases. 
 refMatch :: Parser ExRef
 refMatch = do 
   w <- peekWord8'
   case w of
-    64 -> do 
-      -- If the first byte is a pointer, we consume it and go immediately to matching a
+    64 -> pointerMatch
+      -- ^ If the first byte is a pointer, we consume it and go immediately to matching a
       -- pointer, which doesn't involve any range matching; only matching an index. 
-      anyWord8 
-      (sh, wb) <- sheetWorkbookMatch
-      idx <- indexMatch
-      return $! ExPointerRef idx sh wb
-    33 -> do 
-      -- If the first byte is a !, then go to a template match.
-      exc *> string "{" *> PC.spaces
-      n <- AC.decimal
-      PC.betweenSpaces $ string ","
-      (sh, wb) <- sheetWorkbookMatch
-      idx <- indexMatch
-      PC.spaces *> string "}"
-      return $! ExTemplateRef (ExSampleExpr n idx) sh wb
+    33 -> templateMatch -- If the first byte is a !, then go to a template match.
     _  -> if notLetterOrDollar w 
       -- If not @, !, letter, or $ as the starting byte, we cannot have an ExRef.
       then fail "bad start"
@@ -247,18 +176,14 @@ refMatch = do
         -- Try matching a sheet and workbook
         (sh, wb) <- sheetWorkbookMatch
         -- Try matching $AB-type ByteStrings, and then check for a colon
-        d1 <- option "" dollar 
-        col1 <- takeWhile1 isLetter
-        let !colIndex = ExItem (readRefType d1) $ colStrToCol col1
+        !colIndex <- colMatch
         possiblyColon1 <- peekWord8'
         case possiblyColon1 of 
           58 -> do 
             -- If we came across a colon after A, then we must be in the A:A1 or A:A column
             -- range cases. In both cases we try to look for a dollar and a column number.
             anyWord8
-            d2 <- option "" dollar 
-            col2 <- takeWhile1 isLetter
-            let !secondColIndex = ExItem (readRefType d2) $ colStrToCol col2
+            !secondColIndex <- colMatch
             afterCol <- peekWord8
             if endOrNotDollarDigit afterCol
               then do 
@@ -269,9 +194,7 @@ refMatch = do
               else do 
                 -- The only case left is the A:A1 case, so we try to proceed by looking for a 
                 -- dollar and then  a row number.
-                d3  <- option "" dollar
-                row1 <- AC.decimal
-                let !secondRowIndex = ExItem (readRefType d3) $ Row row1
+                !secondRowIndex <- rowMatch
                 let !bottomIndex = makeExIndex secondColIndex secondRowIndex
                 let !aToA1ColRange = makeExColRange bottomIndex colIndex
                 return $! ExRangeRef aToA1ColRange sh wb
@@ -279,9 +202,7 @@ refMatch = do
             -- If we do not have a column after A, then we are in the A1:A column type, the
             -- A1:A2 range type, or the A1 index type. All of them start with possibly consuming 
             -- a dollar and looking for a row number.
-            d2  <- option "" dollar
-            row1 <- AC.decimal
-            let !rowIndex = ExItem (readRefType d2) $ Row row1
+            !rowIndex <- rowMatch
             let !firstIndex = makeExIndex colIndex rowIndex
             possiblyColon2 <- peekWord8
             case possiblyColon2 of
@@ -290,9 +211,7 @@ refMatch = do
                 -- or the A1:A2 cases. Both of them start out by possibly consuming a dollar and
                 -- looking for a column string.
                 anyWord8 -- consume the colon
-                d3 <- option "" dollar 
-                col2 <- takeWhile1 isLetter
-                let !colIndexLower = ExItem (readRefType d3) $ colStrToCol col2
+                !colIndexLower <- colMatch
                 afterCol <- peekWord8
                 if endOrNotDollarDigit afterCol
                   then do 
@@ -304,9 +223,7 @@ refMatch = do
                     -- If the byte right after consuming A1:A is a letter or dollar, 
                     -- we will attempt to parse this as a finite range (A1:A2). We start
                     -- by looking for a dollar and row number.
-                    d4 <- option "" dollar
-                    row2 <- AC.decimal 
-                    let !rowIndexLower = ExItem (readRefType d4) $ Row row2
+                    !rowIndexLower <- rowMatch
                     let !secondIndex  = makeExIndex colIndexLower rowIndexLower
                     let !a1toA2Range = makeFiniteExRange firstIndex secondIndex
                     return $! ExRangeRef a1toA2Range sh wb

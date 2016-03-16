@@ -117,7 +117,7 @@ main = alphaMain $ do
   --    cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
   --x <- eval (cells1++cells2) emptyCtx
   let cells2 = testCellsWithExpression (\i -> Expression "=2" Python) 1 [1]
-  let cells1 = testCellsWithExpression (\i -> Expression "A1+$A1+$A$1" Python) 1 [2..10000]
+  let cells1 = testCellsWithExpression (\i -> Expression "1111111 + $A$1 + 1111111" Python) 1 [2..10000]
   x <- eval (cells2 ++ cells1) emptyCtx
   -- x <- eval [(U.testCell & cellExpression .~ Expression "range(10000)" Python)] emptyCtx
   evaluate $ rnf x
