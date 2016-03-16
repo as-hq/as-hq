@@ -953,6 +953,7 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
             it ('should update A1:B2 when an ancestor updates', (done) => {
               _do([
                 python('A1', '1'),
@@ -963,6 +964,7 @@ describe('backend', () => {
                 exec(done)
               ]);
             });
+
             it ('should update B1:A2 when an ancestor updates', (done) => {
               _do([
                 python('A1', '1'),
@@ -970,6 +972,17 @@ describe('backend', () => {
                 python('C1', 'B1:A2'),
                 python('A2', '3'),
                 shouldBe('C2', valueI(3)),
+                exec(done)
+              ]);
+            });
+
+            it ('preserves the types of inputs passed in', (done) => {
+              _do([
+                python('A1', '1'),
+                python('A2', '"cat"'),
+                python('B1', 'A1:A2'),
+                python('C1', 'B1+1'),
+                shouldBe('C1', valueI(2)),
                 exec(done)
               ]);
             });
@@ -1054,20 +1067,10 @@ describe('backend', () => {
             it ('can be hidden and unhidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'),
-                python('B1', 'A1:A3.hide()'),
+                python('B1', 'hide(A1:A3)'),
                 shouldBeNothing('B2'),
-                python('C1', 'B1.unhide()'),
+                python('C1', 'unhide(B1)'),
                 shouldBe('C2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
-            it ('can be operated on while hidden', (done) => {
-              _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'),
-                python('B1', 'A1:A3.hide()'),
-                python('C1', 'B1.reversed()'),
-                shouldBe('C1', valueI(7)),
                 exec(done)
               ]);
             });
@@ -1094,47 +1097,11 @@ describe('backend', () => {
               ]);
             });
 
-            it ('can be summed', (done) => {
-              _do([
-                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
-                python('C1', 'A1:B2.sum()'),
-                shouldBe('C1', valueI(26)),
-                exec(done)
-              ]);
-            });
-
-            it ('can be sorted', (done) => {
-              _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'),
-                python('C1', 'sorted(A1:A3)'),
-                shouldBe('C2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
-            it ('can be reversed', (done) => {
-              _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'),
-                python('C1', 'A1:A3.reversed()'),
-                shouldBe('C3', valueI(7)),
-                exec(done)
-              ]);
-            });
-
             it ('can be appended as a 2D list', (done) => {
               _do([
                 python('A1', '[[1,2],[3,4]]'),
                 python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
                 shouldBe('B5', valueI(6)),
-                exec(done)
-              ]);
-            });
-
-            it ('can be sorted and reversed and transposed in succession', (done) => {
-              _do([
-                python('A1', '7'), python('A2', '5'), python('A3', '6'),
-                python('B1', 'A1:A3.sorted().reversed().transpose()'),
-                shouldBe('D1', valueI(5)),
                 exec(done)
               ]);
             });

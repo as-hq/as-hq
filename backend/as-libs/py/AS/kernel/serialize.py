@@ -85,7 +85,7 @@ def serialize(val):
                        'seriesData': data})
 
   elif isinstance(val, ASIterable): 
-    if val.hidden or val.arr.ndim > 2:
+    if val.hidden or val.dimension() > 2:
       name = 'HIDDEN LIST'
       if val.name:
         name = val.name

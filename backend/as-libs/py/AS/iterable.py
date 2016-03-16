@@ -49,7 +49,7 @@ class ASIterable(object):
 
         self.name = None
         self.hidden = False
-        self.arr = np.array(arr)
+        self.arr = arr # the underlying array -- all ranges are internally represented as a 2D list. 
     
     ###########################################################################
     ### List typecasting
@@ -62,20 +62,14 @@ class ASIterable(object):
 
     def toList1D(self):
         if self._isRow():
-            return self.arr.tolist()[0]
+            return self.arr[0]
         elif self._isColumn(): 
             return [l[0] for l in self.arr]
         else: 
             raise CannotCoerceTo1DList
 
     def toList2D(self):
-        return self.arr.tolist()
-
-    def _setList(self, lst, rowCol=None): 
-        if self._isColumn():
-            self.arr = np.array([[x] for x in lst])
-            return
-        self.arr = np.array(lst)
+        return self.arr
 
     # If you're vertical, present yourself as a 1D list. Otherwise present yourself
     # as a 2D list. 
@@ -92,11 +86,11 @@ class ASIterable(object):
         temp = self._to1DListIf1D()
         ret = f(temp)
         if self._isColumn():
-            self.arr = np.array([[x] for x in temp])
+            self.arr = [[x] for x in temp]
         elif self._isRow():
-            self.arr = np.array([temp])
+            self.arr = [temp]
         else:
-            self.arr = np.array(temp)
+            self.arr = temp
         return ret
 
     def append(self, elem):
@@ -148,7 +142,7 @@ class ASIterable(object):
         return len(self._to1DListIf1D())
 
     def __eq__(self, elem):
-        dim = len(np.array(self.arr.tolist()).shape)
+        dim = self.dimension()
         if dim==1:
             return [elem==x for x in self.arr]
         else:
@@ -157,43 +151,17 @@ class ASIterable(object):
     ###########################################################################
     ### Custom functions
 
-    def toArray(self):
-        return self.arr
-
-    def len(self):
-        return len(self)
-
-    def sumWay(self, axis):
-        return np.sum(self.arr, axis)
-
-    def sum(self):
-        return np.sum(self.arr)
-
-    def reshape(self,axis1,axis2):
-        return ASIterable(self.arr.reshape((axis1, axis2)))
-
     def transpose(self):
-        return ASIterable(self.arr.transpose())
+        return ASIterable(np.array(self.arr).transpose())
 
     def reversed(self):
         temp = ASIterable(self)
         temp.reverse()
         return temp
 
-    def sorted(self, comp=None, key=None, reverse=False):
-        temp = ASIterable(self)
-        temp.sort(comp, key, reverse)
-        return temp
-
     def t(self):
         return self.transpose()
     
-    def dot(self, other):
-        if isinstance(other, ASIterable):
-            return ASIterable(np.dot(self.arr, other.arr))
-        else: 
-            return ASIterable(np.dot(self.arr, np.array(other)))
-
     def map(self, func):
         return ASIterable([func(x) for x in self])
 
@@ -201,30 +169,11 @@ class ASIterable(object):
     def toDataFrame(self):
         return pd.DataFrame(self.arr)
 
+    def dimension(self):
+        return np.array(self.arr).ndim
+
     ###########################################################################
     ### representations and conversions
-
-    @classmethod
-    def deserialize(cls, js):
-        e = cls(js["lst"])
-        if "name" in js:
-            e.hide(js["name"])
-        return e
-
-    def serialize(self):
-        if self.name is not None:
-            return str({ "name": self.name, "lst": self.toList2D()})
-        else: return str({"lst": self.toList2D()})
-
-    def hide(self, name="HIDDEN LIST"):
-        self.name = name
-        self.hidden = True
-        return self
-
-    def unhide(self):
-        self.name = None
-        self.hidden = False
-        return self
 
     def __repr__(self):
         if not self.hidden:
@@ -235,44 +184,3 @@ class ASIterable(object):
     def __str__(self):
         return self.__repr__()
 
-## other functions
-
-# def listToDataframeColumnwise(lst):
-#     Undefined = "NaN" #handling nonsquare yesod output
-#     for col in lst: 
-#         if not isinstance(col[0], basestring):
-#             raise ColumnHeaderNotPresent
-#         else:
-#             continue
-
-#     # handling nonsquare data
-#     maxVals = max([len(col) for col in lst]) - 1
-#     data = [{} for _ in range(maxVals)]
-#     for col in lst:
-#         for valIdx in range(len(col)-1):
-#             data[valIdx][col[0]] = col[valIdx + 1]
-
-#     return pd.DataFrame(data)
-
-# #assumes lst is list of rows
-# def listToDataframe(lst): 
-#     if len(np.array(lst).shape) == 1:
-#         return listToDataframe([[a] for a in lst])
-#     else :
-#         Undefined = "NaN" 
-#         #first row must contain all strings
-#         for colHeader in lst[0]:
-#             if not isinstance(colHeader, basestring):
-#                 raise ColumnHeaderNotPresent
-#             else:
-#                 continue
-
-#         maxVals = len(lst) - 1
-#         data = [{} for _ in range(maxVals)]
-#         for rowIdx in range(maxVals):
-#             row = lst[rowIdx + 1]
-#             for colIdx in range(len(lst[0])):
-#                 header = lst[0][colIdx]
-#                 data[rowIdx][header] = row[colIdx]
-
-#         return pd.DataFrame(data)
