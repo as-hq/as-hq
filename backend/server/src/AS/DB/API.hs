@@ -122,13 +122,6 @@ getPossiblyBlankCells conn locs = do
 getPropsAt :: Connection -> ASIndex -> IO ASCellProps
 getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 
--- looks up cells in the given context, then in the database, in that precedence order
--- this function is order-preserving
-getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext conn ctx locs = map replaceWithContext <$> zip locs <$> getCells conn locs
-  where
-    replaceWithContext (l, c) = maybe c Just $ M.lookup l (ctx^.virtualCellsMap)
-
 ------------------------------------------------------------------------------------------------------------------------
 -- Range descriptors and keys
 

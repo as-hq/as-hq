@@ -142,7 +142,7 @@ catchEitherT a = do
 -- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
 possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
 possiblyShortCircuit conn sheetid ctx xp = do 
-  let depRefs = getDependencies sheetid xp -- :: [ASReference]
+  let depRefs = getDependencies sheetid xp
   let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
   bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
 

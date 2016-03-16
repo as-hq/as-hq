@@ -317,6 +317,18 @@ describe('backend', () => {
           ]);
         });
 
+        it ('should sample partially empty range references', (done) => {
+          _do([
+            python('A1', '1'),
+            python('A2', '2'),
+            excel('B1', '=sum(A1:A3)'),
+            python('B8', '!{5, B1}'),
+            shouldBe('B8', valueI(3)),
+            shouldBe('B12', valueI(3)),
+            exec(done)
+          ]);
+        });
+
       });
 
       describe('= detection', () => {

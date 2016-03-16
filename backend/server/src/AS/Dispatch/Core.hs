@@ -170,12 +170,12 @@ getEvalLocs state origCells descSetting = getter locs
 -- as it is the most up-to-date info we have). 
 -- this function is order-preserving
 getCellsToEval :: Connection -> EvalContext -> [ASIndex] -> EitherTExec [ASCell]
-getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ DB.getCellsWithContext conn ctx locs)
+getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ DE.getCellsWithContext conn ctx locs)
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
       else return $ map $fromJust mcells
-        where missingLocs = map fst $ filter (\(_,mc) -> isNothing mc) $ zip locs mcells 
+        where missingLocs = map fst $ filter (isNothing . snd) $ zip locs mcells 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Maps 
@@ -322,7 +322,7 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
   let decoupledLocs = concatMap (finiteRangeKeyToIndices . descriptorKey) newlybeforeVals
-  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DB.getCellsWithContext conn ctx decoupledLocs
+  decoupledCells <- lift $ ((map DI.toDecoupled) . catMaybes) <$> DE.getCellsWithContext conn ctx decoupledLocs
   let ctx' = removeMultipleDescriptorsFromContext newlybeforeVals $ addCellsToContext decoupledCells ctx
   let ctx'' = case maybeFatCell of
                 Nothing -> ctx'

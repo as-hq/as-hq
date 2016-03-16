@@ -33,15 +33,17 @@ import Control.Monad.Trans.Either
 
 type EvalChainFunc = ServerState -> MessageId -> [ASCell] -> EvalContext -> EitherTExec EvalContext
 
-----------------------------------------------------------------------------------------------------------------------
--- Cell lookups
-
 -- looks up cells in the given context, then in the database, in that precedence order
 -- this function is order-preserving
 getCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [Maybe ASCell]
-getCellsWithContext conn ctx locs = map replaceWithContext <$> zip locs <$> DB.getCells conn locs
+getCellsWithContext conn ctx locs = map replaceWithContextCell <$> zip locs <$> DB.getCells conn locs
   where
-    replaceWithContext (l, c) = maybe c Just $ M.lookup l (ctx^.virtualCellsMap)
+    replaceWithContextCell (l, c) = maybe c Just $ M.lookup l (ctx^.virtualCellsMap)
+
+getPossiblyBlankCellsWithContext :: Connection -> EvalContext -> [ASIndex] -> IO [ASCell]
+getPossiblyBlankCellsWithContext conn ctx locs = map replaceWithContextCell <$> zip locs <$> DB.getPossiblyBlankCells conn locs
+  where
+    replaceWithContextCell (l, c) = maybe c id $ M.lookup l (ctx^.virtualCellsMap)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Reference conversions/lookups
@@ -89,7 +91,7 @@ referenceToCompositeValue state mid ctx (TemplateRef (SampleExpr n idx)) f = $fr
       let conn = state^.dbConn
       ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
       ancInds <- concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) ancRefs
-      ancCells <- lift $ catMaybes <$> DB.getCellsWithContext conn ctx ancInds
+      ancCells <- lift $ getPossiblyBlankCellsWithContext conn ctx ancInds
       let ctxWithAncs = addCellsToContext ancCells ctx
       -- After adding ancestors to context, evaluate n times
       samples <- replicateM n $ evaluateNode state mid ctxWithAncs idx ancCells f
@@ -144,4 +146,4 @@ refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do
 evaluateNode :: ServerState -> MessageId -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
 evaluateNode state mid ctx idx ancestors f = do
   ctx' <- f state mid ancestors ctx
-  return $ view cellValue . $valAt idx $ ctx'^.virtualCellsMap
+  return . view cellValue . $valAt idx $ ctx'^.virtualCellsMap
