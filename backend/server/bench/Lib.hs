@@ -148,7 +148,7 @@ setupEnvWith :: (NFData a) => a -> IO (ASEnv, a)
 setupEnvWith x = (,) <$> setupEnv <*> return x
 
 testCells :: [Int] -> [ASCell]
-testCells = map (\i -> testCell & cellLocation .~ Index "BENCH_ID" (Coord 1 i))
+testCells = map (\i -> testCell & cellLocation .~ Index "BENCH_ID" (Col 1, Row i))
 
 testMap :: [Int] -> M.Map ASIndex ASCell
 testMap = toMap . testCells

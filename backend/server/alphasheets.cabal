@@ -161,7 +161,7 @@ library
                        TemplateHaskell
                        DeriveGeneric
                        DeriveDataTypeable
-  ghc-options: -fprof-auto
+  ghc-options: -fprof-auto -fno-cse -fno-full-laziness
 
 executable alphasheets-exe
   hs-source-dirs:      app
@@ -171,6 +171,10 @@ executable alphasheets-exe
                        -with-rtsopts=-N
                        -W
                        -Werror
+                -- these optimizations prevent global variable configuration in 
+                -- Config/Settings.hs due to CSE and floating let's
+                -- http://stackoverflow.com/questions/19371636/am-i-abusing-unsafeperformio (second answer)
+                       -fno-cse -fno-full-laziness 
   build-depends:       base
                      , alphasheets
                      , aeson
@@ -260,6 +264,7 @@ benchmark alphasheets-bench
                     , lens
                     , hashtables
                     , lens
+                    , async
   default-language:   Haskell2010
 
 executable alphasheets-migrate

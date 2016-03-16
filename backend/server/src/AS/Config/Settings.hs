@@ -127,17 +127,17 @@ initializeSettings = do
   writeIORef dbPassword (appSettings^.redisPassword)
   putStrLn "hI"
 
-  putStrLn . ("[DIRECTORY] root directory: " ++) . show =<< getCurrentDirectory
-  putStrLn . ("[CONFIG] appDirectory: " ++) . show =<< getSetting appDirectory
-  putStrLn . ("[CONFIG] shouldLogSlack: " ++) . show =<< getSetting shouldLogSlack
-  putStrLn . ("[CONFIG] shouldLogConsole: " ++) . show =<< getSetting shouldLogConsole
-  putStrLn . ("[CONFIG] graphAddress: " ++) . show =<< getSetting graphAddress
-  putStrLn . ("[CONFIG] pykernelAddress: " ++) . show=<< getSetting pykernelAddress
-  putStrLn . ("[CONFIG] serverHost: " ++) . show =<< getSetting serverHost
-  putStrLn . ("[CONFIG] serverPort: " ++) . show =<< getSetting serverPort
-  putStrLn . ("[CONFIG] dbHost: " ++) . show =<< getSetting dbHost
-  putStrLn . ("[CONFIG] dbPort: " ++) . show =<< getSetting dbPort
-  putStrLn . ("[CONFIG] dbPassword: " ++) . show =<< getSetting dbPassword
+  putStrLn . ("[DIRECTORY] root directory : " ++) . show =<< getCurrentDirectory
+  putStrLn . ("[CONFIG] appDirectory : " ++) . show =<< getSetting appDirectory
+  putStrLn . ("[CONFIG] shouldLogSlack : " ++) . show =<< getSetting shouldLogSlack
+  putStrLn . ("[CONFIG] shouldLogConsole : " ++) . show =<< getSetting shouldLogConsole
+  putStrLn . ("[CONFIG] graphAddress : " ++) . show =<< getSetting graphAddress
+  putStrLn . ("[CONFIG] pykernelAddress : " ++) . show=<< getSetting pykernelAddress
+  putStrLn . ("[CONFIG] serverHost : " ++) . show =<< getSetting serverHost
+  putStrLn . ("[CONFIG] serverPort : " ++) . show =<< getSetting serverPort
+  putStrLn . ("[CONFIG] dbHost : " ++) . show =<< getSetting dbHost
+  putStrLn . ("[CONFIG] dbPort : " ++) . show =<< getSetting dbPort
+  putStrLn . ("[CONFIG] dbPassword : " ++) . show =<< getSetting dbPassword 
   return ()
 
 appDirectory :: IORef String
@@ -173,8 +173,9 @@ dbPassword = declareGlobal Nothing
 --------------------------------------------------------------------------------------
 -- private helpers
 
+{-# NOINLINE declareGlobal #-}
 declareGlobal :: a -> IORef a
-declareGlobal = unsafePerformIO . newIORef
+declareGlobal x = unsafePerformIO $ newIORef x
 
 getRuntimeSettings :: IO AppSettings
 getRuntimeSettings = catch readEnvironment handleException

@@ -35,12 +35,15 @@ import qualified Data.Map as M
 import qualified Data.HashMap as H
 import qualified Data.HashTable.IO as HI
 
+import Control.Monad
 import Control.Monad.Trans.Either
 import Control.Lens hiding (has)
 import Criterion.Main (defaultMain)
-import Control.Concurrent
+import Control.Concurrent.Async
+import Control.Concurrent.MVar
 
 import AS.Config.Settings
+import AS.Config.Constants
 
 setTestCellsInDB :: [Int] -> IO ()
 setTestCellsInDB = (DI.connectRedis >>=) . flip DB.setCells . testCells
@@ -50,12 +53,12 @@ main = alphaMain $ do
   setTestCellsInDB [1]
 
   defaultMain [
-    describe "dispatch"
+    xdescribe "dispatch"
       [ has (testCells [1..1000]) $ \ ~(myEnv, cells) ->
           it "dispatches 1000 cells" $ 
             runIO $ do 
               curState <- readMVar $ envState myEnv 
-              runDispatchCycle curState cells DescendantsWithParent (envSource myEnv) id
+              runDispatchCycle curState test_message_id cells DescendantsWithParent (envSource myEnv) id
       ]
 
     , has (testCells [1..1000]) $ \ ~(_, cells) -> 
@@ -90,7 +93,7 @@ main = alphaMain $ do
           ]
 
     , has (testCells [1..10000], testCells [10001..20000]) $ \ ~(myEnv, (cells1, cells2)) -> 
-        describe "DB"
+        xdescribe "DB"
           [ it "inserts 10000 cells with binary serialization" $ 
               runIO $ DB.setCells (envConn myEnv) cells1 
 
@@ -105,18 +108,30 @@ main = alphaMain $ do
           ]
 
     , describe "python kernel"
-      [ it "evaluates a simple expression using the new kernel" $ 
+      [ xit "evaluates a simple expression using the new kernel" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "1+1"
 
-      , it "evaluates range(10000)" $ 
+      , it "does multithreaded shit" $ 
+          runIO $ do
+            cs <- replicateM 10 $ async $ KP.testCell "INIT_SHEET_ID" "range(int(random.random()*1000))"
+            mapM wait cs
+
+      , xit "evaluates range(10000)" $ 
           runIO $ KP.testCell "INIT_SHEET_ID" "range(10000)"
       ]
 
-    , has () $ \ ~(myEnv, _) -> 
-        xdescribe "copy/paste" 
-          [ it "copies 20x20 grid" $
-              runIO $ do
-                curState <- readMVar $ envState myEnv 
-                performCopy curState (Range "BENCH_ID" ((Coord 1 1),(Coord 1 1))) (Range "BENCH_ID" ((Coord 1 1), (Coord 20 20))) (CommitSource "BENCH_ID" "")
-          ]
+    --, has () $ \ ~(myEnv, _) -> 
+    --    xdescribe "copy/paste" 
+    --      [ it "copies 20x20 grid" $
+    --          runIO $ do
+    --            curState <- readMVar $ envState myEnv 
+    --            performCopy curState 
+    --              (Range 
+    --                "BENCH_ID" 
+    --                ((Col 1, Row 1),(Col 1, Row 1))) 
+    --              (Range 
+    --                "BENCH_ID" 
+    --                ((Col 1, Row 1), (Col 20, Row 20))) 
+    --              (CommitSource "BENCH_ID" "")
+    --      ]
     ]
