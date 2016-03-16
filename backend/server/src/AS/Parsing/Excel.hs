@@ -21,7 +21,7 @@ import AS.Util
 
 import qualified AS.Parsing.Common as PC
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Conversions between various Excel-related types
 
 -- | Converts a ByteString representing an Excel column to a Col datatype. 
@@ -41,7 +41,7 @@ colStrToInt = colStrToInt' 0
         !tail = BU.unsafeTail b
         !coef = fromIntegral $ W.toUpper head - 64 -- so that A -> 1, B -> 2, etc.
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Simple Word8 parsers based on single characters, using efficient Bytestring parsers.
 
 dollar :: Parser ByteString
@@ -56,7 +56,7 @@ pointer = string "@"
 colon :: Parser ByteString
 colon = string ":"
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Parsers for individual parts of expressions
 
 -- | Takes a ByteString representing either '' or '$' and returns a RefType.
@@ -84,7 +84,8 @@ rowMatch = do
     Just w  -> when (isLetter w) $ fail "letter after row"
   return $! ExItem (readRefType dol) $ Row row
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
 -- Parsers for location types
 
 -- | Parser for an ExIndex, which matches $AB15.
@@ -151,7 +152,8 @@ templateMatch = do
 rangeMatch :: Parser ExRange
 rangeMatch = finiteRangeMatch <|> colRangeMatch
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
 -- Sheet and workbook parsers
 
 -- | Parser matching a valid sheet name. It also consumes the !. 
@@ -175,7 +177,7 @@ sheetWorkbookMatch = do
         Nothing -> return (C.unpack <$> name1, Nothing)
         Just n2  -> return (C.unpack <$> name2, C.unpack <$> name1)
 
--------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Top-level parsers
 
 data InnerReference = 
@@ -206,6 +208,8 @@ innerRefMatch =
 --        InnerIndex idx    -> ExIndexRef idx sh wb
 --    Nothing ->  outOfBoundsMatch <?> "expected valid excel A1:B4 format"
 
+----------------------------------------------------------------------------------------------------
+
 -- | Helper for refMatch that checks for a byte not being a letter or dollar.
 notLetterOrDollar :: Word8 -> Bool
 notLetterOrDollar w = not $ isLetter w ||  w == 36
@@ -214,6 +218,7 @@ notLetterOrDollar w = not $ isLetter w ||  w == 36
 endOrNotDollarDigit :: Maybe Word8 -> Bool
 endOrNotDollarDigit Nothing = True 
 endOrNotDollarDigit (Just w) = not $ isDigit w || w == 36
+
 
 refMatch :: Parser ExRef
 refMatch = do 
@@ -313,5 +318,6 @@ refMatch = do
                   Nothing -> return ()
                   Just n' -> when (isLetter n') $ fail "letter after row"
                 return $! ExIndexRef firstIndex sh wb
+
 
 

@@ -103,10 +103,10 @@ unescapeRaw ps@(BI.PS x s l)
 -- "\"cPickle(\\\"Y2Lg==\\\")\"" -> "cPickle(\"Y2Lg==\")"
 unescapeBetween :: Word8 -> Parser ByteString
 unescapeBetween w = word8 w *> (unescapeRaw <$> scan False f) <* word8 w
-  where f lastWordWasBackslash byte 
+  where f !lastWordWasBackslash !byte 
           | (not lastWordWasBackslash) && byte == w = Nothing
           -- ^ if the last word isn't a backslash, and we match w, stop parsing.
-          | otherwise = Just $ byte == _backslash -- update state
+          | otherwise = Just $! byte == _backslash -- update state
 
 -- | Matches an escaped string and returns the unescaped version. 
 -- E.g. "\"hello\"" -> "hello", "\"hello\\t\"" -> "hello\t".

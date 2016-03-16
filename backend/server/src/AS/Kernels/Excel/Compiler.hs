@@ -153,16 +153,10 @@ ident = do
   -- ^ ending letters can be alphanumerics, _, ', !, or .
   return $! C.append c cs
 
--- | Parser for a reserved operator with a given name. Makes sure that the name is not 
--- followed by a valid opLetter (":!#%&*+./<=>?@\\^|-~")
--- TODO:
+-- | Parser for a reserved operator with a given name. 
+-- TODO: make sure that the name is not followed by a valid opLetter (":!#%&*+./<=>?@\\^|-~")
 reservedOp :: ByteString -> Parser ByteString
-reservedOp name = do 
-  op <- string name
-  next <- peekWord8
-  case next of
-    Nothing -> return op
-    Just w -> return op
+reservedOp = string
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- AST node parsers
@@ -177,7 +171,7 @@ leaf'    =  parens expr
         <|> functionApplication
         <|> arrayConst
         <|> excelValue
-        <|> referenceIntersection
+        -- <|> referenceIntersection
         <|> cellReference
         <|> blankValue
         <?> "simple expression"
@@ -186,12 +180,12 @@ leaf'    =  parens expr
 word :: Parser ByteString
 word = takeWhile $ \w -> isLetter w || isDigit w
 
-referenceIntersection :: Parser Formula
-referenceIntersection = do
-  c1 <- cellReference
-  takeWhile1 (== _space) -- at least one space
-  c2 <- cellReference
-  return $! Basic $ Fun " " [c1, c2]
+--referenceIntersection :: Parser Formula
+--referenceIntersection = do
+--  c1 <- cellReference
+--  takeWhile1 (== _space) -- at least one space
+--  c2 <- cellReference
+--  return $! Basic $ Fun " " [c1, c2]
 
 cellReference :: Parser Formula
 cellReference = fmap (Basic . Ref) refMatch

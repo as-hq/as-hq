@@ -1,9 +1,10 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell, BangPatterns #-}
 
 module AS.Parsing.Substitutions where
 
 import Control.Applicative
 import Control.Lens
+import Control.Monad
 import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
 import Data.Word8 as W
@@ -27,8 +28,39 @@ import AS.Util
 import AS.Kernels.Excel.Compiler (literal)
 import qualified AS.Parsing.Common as PC
 
--------------------------------------------------------------------------------------------------------------------------------------------------
--- General parsing functions
+----------------------------------------------------------------------------------------------------
+-- General parsing functions for Excel
+
+-- | Represents the ByteString until (before) an ExRef, and the ExRef itself
+data UntilExRef = UntilExRef {
+  previousBS :: !ByteString,
+  nextRef :: !ExRef
+}
+
+-- | A version of liftM2 that is strict in the result of its first action.
+liftM2' :: (Monad m) => (a -> b -> c) -> m a -> m b -> m c
+liftM2' f a b = do
+  !x <- a
+  y <- b
+  return (f x y)
+{-# INLINE liftM2' #-}
+
+-- | A version of manyTill that returns not only the intermediate list of values from parsing p, 
+-- but also the result of parsing end. Avoids having to use (lookAhead x) for end. Values
+-- returned by p are forced to WHNF.
+manyTillAndResult :: Parser a -> Parser b -> Parser ([a], b)
+manyTillAndResult p end = scan
+  where success = end >>= (\bResult -> return ([], bResult))
+        add !aResult (aResults, bResult) = (aResult:aResults, bResult)
+        scan = success `mplus` liftM2' add p scan
+
+-- | Parser for extractring the first Excel reference that's not within quotes from a string. 
+-- Returns the bytes before the Excel reference as well as the reference itself. 
+-- Will fail if the input has no Excel refs. 
+getFirstExcelRef :: Parser UntilExRef
+getFirstExcelRef = do 
+  (bs, ref) <- manyTillAndResult notExcelParser refMatch
+  return $! UntilExRef (B.concat bs) ref
 
 -- | Parses a ByteString until the first ExRef match that isn't within quotes. All of the previous
 -- bytes are kept the same, and we use the given function to replace the first ExRef with another 
@@ -36,17 +68,9 @@ import qualified AS.Parsing.Common as PC
 -- Assumes that you're not starting in the middle of a quote. 
 parseNext :: (ExRef -> ByteString) -> Parser ByteString
 parseNext f = do 
-  (bs, ref) <- getFirstExcelRef
+  (UntilExRef bs ref) <- getFirstExcelRef
   return $! B.append bs (f ref)
 {-# INLINE parseNext #-}
-
--- | Parser for extractring the first Excel reference from a string. Returns the bytes before the
--- Excel reference as well as the reference itself. Will fail if the input has no Excel refs. 
-getFirstExcelRef :: Parser (ByteString, ExRef)
-getFirstExcelRef = do 
-  bs <- B.concat <$> manyTill' notExcelParser (lookAhead refMatch)
-  ref <- refMatch
-  return (bs, ref)
 
 -- | This parser is applied "in between" refMatches. It tries to consume as much as possible
 -- given that the refMatch didn't succeed. Instead of only consuming the next character, and
@@ -71,6 +95,17 @@ excelParser f = $fromRight . parseOnly parser
       return $! B.append (B.concat excels) rest
 {-# INLINE excelParser #-}
 
+-- | Returns all of the UntilExRefs, and the last piece of the ByteString after all ExRefs
+-- have been consumed.
+getAllExcelRefs :: Parser ([UntilExRef], ByteString)
+getAllExcelRefs = do 
+  excels <-  many' $ getFirstExcelRef
+  rest <- takeByteString
+  return $! (excels, rest)
+
+----------------------------------------------------------------------------------------------------
+-- Replacing and extracting from an ASExpression
+
 -- | Given a replacer function for Excel references, replace all Excel references in a given 
 -- expression with an application of this replacer function.
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
@@ -84,9 +119,6 @@ replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
 replaceRefsIO f = return . replaceRefs (unsafePerformIO . f) 
 {-# INLINE replaceRefsIO #-}
 
--------------------------------------------------------------------------------------------------------------------------------------------------
--- Helpers
-
 isExcelLiteral :: ASExpression -> Bool
 isExcelLiteral (Expression xp lang) = (lang == Excel) && parsedCorrectly
   where parsedCorrectly = case parseOnly literal $ C.pack xp of
@@ -97,8 +129,18 @@ isExcelLiteral (Expression xp lang) = (lang == Excel) && parsedCorrectly
 getExcelReferences :: ASExpression -> [ExRef]
 getExcelReferences xp@(Expression str lang)
   | isExcelLiteral xp = []
-  | otherwise = (map snd . $fromRight) parseResult
+  | otherwise = (map nextRef . $fromRight) parseResult
       where parseResult = parseOnly (many getFirstExcelRef) (C.pack str)
+
+-- | This is a specialized function for use in Eval/Core so that you don't call replaceRefsIO
+-- in function and then getExcelReferences in a child function (and do 2x the parsing work).
+getSubstitutedXpAndReferences :: (ExRef -> IO String) -> ASExpression -> IO (ASExpression, [ExRef])
+getSubstitutedXpAndReferences f (Expression xp lang) = do 
+  let transform r = C.pack <$> f r
+  let (xs, last) = $fromRight $ parseOnly getAllExcelRefs (C.pack xp)
+  newStr <- B.concat <$> (forM xs $ \(UntilExRef b r) -> B.append b <$> transform r)
+  let finalStr = B.append newStr last
+  return $! (Expression (C.unpack finalStr) lang, map nextRef xs)
 
 -- | Returns the list of dependencies in ASExpression. 
 -- #needsrefactor not all ASReferences are valid references for the graph.
@@ -110,7 +152,7 @@ getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getEx
         SampleExpr _ idx -> IndexRef idx
       _ -> r
 
-----------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Copy/paste and Cut/paste
 
 -- | Takes in an offset and a cell, and returns the cell you get when you shift the cell by
@@ -120,5 +162,8 @@ shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
-shiftCell offset c = ((c &) . ((cellExpression %~ shiftExpression offset) .) . set cellLocation) <$> mLoc
-  where mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation
+shiftCell offset c = ((c &) . modifyXp . set cellLocation) <$> mLoc
+  where modifyXp = ((cellExpression %~ shiftExpression offset) .)
+        mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation
+
+----------------------------------------------------------------------------------------------------

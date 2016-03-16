@@ -58,27 +58,38 @@ evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpr
 evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
-  eitherShortCircuit <- possiblyShortCircuit conn sid ctx xp
-  -- #expressionrefactor
-  case eitherShortCircuit of
+  -- Function from ExRef to string for interpolation
+  let replaceFunc ref = lookUpRef state (xp^.language) ctx (exRefToASRef sid ref) f
+  case equalsSignsCheck xp of
     Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
     Left (ValueS s) -> do 
       let xp' = Expression s lang 
       KE.evaluate conn (xp'^.expression) idx (ctx^.virtualCellsMap)
     -- If we match something as a literal, just evaluate it in Excel.
-    Right xp' -> case lang of
-      Excel -> KE.evaluate conn (xp'^.expression) idx (ctx^.virtualCellsMap)
-        -- Excel needs current location and un-substituted expression, and needs the formatted 
-        -- values for loading the initial entities
-      SQL -> do 
-        pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp' f
-        return <$> KP.evaluateSql mid sid pythonSqlCode
-      Python -> do
-        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp' f
-        return <$> KP.evaluate mid sid xpWithValuesSubstituted
-      R -> do
-        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp' f
-        return <$> KR.evaluate xpWithValuesSubstituted
+    Right xp' -> do
+      -- The expression has exactly one = sign. Note that xp' has the stripped =.
+      -- Get the new expression after interpolation as well as all of the Excel references in xp
+      -- in one parsing fell swoop.
+      (interpolatedXp, refs) <- lift $ getSubstitutedXpAndReferences replaceFunc xp'
+      let depRefs = map (exRefToASRef sid) refs
+      let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
+      -- Check for potentially bad inputs (NoValue or ValueError) among the arguments passed in. 
+      sc <- bimapEitherT' (Left . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp') depInds
+      case sc of 
+        Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
+        Left (ValueS s) -> do 
+          let excelXp = Expression s lang 
+          KE.evaluate conn (excelXp^.expression) idx (ctx^.virtualCellsMap)
+        -- If we match something as a literal, just evaluate it in Excel.
+        Right _ -> case lang of
+          Excel -> KE.evaluate conn (interpolatedXp'^.expression) idx (ctx^.virtualCellsMap)
+            -- Excel needs current location and un-substituted expression, and needs the formatted 
+            -- values for loading the initial entities
+          SQL -> do 
+            pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp' f
+            return <$> KP.evaluateSql mid sid pythonSqlCode
+          Python -> return <$> KP.evaluate mid sid interpolatedXp
+          R -> return <$> KR.evaluate interpolatedXp
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against 
 --  which evals are executed
@@ -213,3 +224,4 @@ handleErrorInLang xp@(Expression _ Excel) _  = Right xp
 handleErrorInLang _ v = Left v
 
 ----------------------------------------------------------------------------------------------------
+

@@ -52,23 +52,31 @@ import AS.Types.Excel
 deriving instance Generic ServerState
 deriving instance Generic ASUserClient
 deriving instance Generic EvalContext
---deriving instance Generic ContextualFormula
---deriving instance Generic Formula
---deriving instance Generic BasicFormula
---deriving instance Generic ExRef
---deriving instance Generic ExTemplateExpr
---deriving instance Generic EValue
+deriving instance Generic ContextualFormula
+deriving instance Generic Formula
+deriving instance Generic BasicFormula
+deriving instance Generic ExRef
+deriving instance Generic ExTemplateExpr
+deriving instance Generic ExRange
+deriving instance Generic RefType
+deriving instance Generic EValue
+deriving instance Generic (Formatted a)
+deriving instance Generic ENumeric 
 
 instance NFData ASExecError
 instance NFData EvalContext
 instance NFData SheetUpdate
---instance NFData ContextualFormula
---instance NFData Formula
---instance NFData BasicFormula
---instance NFData ExRef
---instance NFData ExTemplateExpr
---instance NFData EValue
-
+instance NFData ContextualFormula
+instance NFData Formula
+instance NFData BasicFormula
+instance NFData ExRef
+instance NFData ExTemplateExpr
+instance NFData ExRange
+instance (NFData a) => NFData (ExItem a)
+instance NFData RefType
+instance NFData EValue
+instance (NFData a) => NFData (Formatted a)
+instance NFData ENumeric
 
 
 testSS :: IO ServerState
@@ -109,10 +117,11 @@ main = alphaMain $ do
   --    cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
   --x <- eval (cells1++cells2) emptyCtx
   let cells2 = testCellsWithExpression (\i -> Expression "=2" Python) 1 [1]
-  let cells1 = testCellsWithExpression (\i -> Expression "=$A1+A1 + 1111 +$A1" Excel) 1 [2..10000]
+  let cells1 = testCellsWithExpression (\i -> Expression "A1+$A1+$A$1" Python) 1 [2..10000]
   x <- eval (cells2 ++ cells1) emptyCtx
   -- x <- eval [(U.testCell & cellExpression .~ Expression "range(10000)" Python)] emptyCtx
   evaluate $ rnf x
-  --let results = map (excelParser (\_ -> "boom")) ["=A1" | x <- [1..10000]]
+  ---- let results = map (getExcelReferences) [Expression "=$A1+A1 + 1111 +$A1" Excel | x <- [1..10000]]
+  --let results = map parseFormula ["=1111111 + 1111111" | x <- [1..1000000]]
   --evaluate $ rnf results
   --print (take 10 results)

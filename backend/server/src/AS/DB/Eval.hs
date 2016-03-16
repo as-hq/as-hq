@@ -106,8 +106,6 @@ refToIndicesInCondFormatting conn ref = refToIndicesWithContextDuringEval conn e
 
 -- because our evalContext might contain information the DB doesn't (e.g. decoupling)
 -- so in the pointer case, we need to check the evalContext first for changes that might have happened during eval
--- #RoomForImprovement: Only used in shortCircuitDuringEval. This could be renamed to be more clear.
---  #record after PointerRef
 refToIndicesWithContextDuringEval :: Connection -> EvalContext -> ASReference -> EitherTExec [ASIndex]
 refToIndicesWithContextDuringEval conn _ (IndexRef i) = return [i]
 refToIndicesWithContextDuringEval conn ctx (RangeRef r) =
@@ -121,6 +119,7 @@ refToIndicesWithContextDuringEval conn ctx (PointerRef p) = do -- #record
       case cell of
         Nothing -> left IndexOfPointerNonExistant
         Just cell' -> maybe (left PointerToNormalCell) (return . finiteRangeKeyToIndices) $ cell'^.cellRangeKey
+refToIndicesWithContextDuringEval _ _ (TemplateRef _) = return []
 
 -- This is the function we use to convert ref to indices for updating the map PRIOR TO eval. There are some cases where we don't flip a shit. 
 -- For example, if the map currently has A1 as a normal expression, and we have @A1 somewhere downstream, we won't flip a shit, and instead expect that

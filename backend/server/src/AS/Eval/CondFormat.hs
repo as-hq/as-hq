@@ -14,6 +14,7 @@ import AS.Types.Formats
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Shift
+import AS.Types.Excel hiding (dbConn)
 
 import AS.Kernels.Python
 

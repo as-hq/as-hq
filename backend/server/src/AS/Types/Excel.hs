@@ -35,6 +35,7 @@ import Database.Redis (Connection)
 import Control.Lens hiding ((.=), index, Context)
 import Control.Lens.TH
 import Control.Monad.Trans.Either
+import GHC.Generics
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing
@@ -45,7 +46,8 @@ data RefType = ABS | REL deriving (Eq, Show, Ord, Data, Typeable)
 
 -- Type constructor of one parameter used to build ExCol and ExRow when Col and
 -- Row are passed  in respectively.
-data ExItem a = ExItem { _refType :: RefType, _ind :: a } deriving (Eq, Show, Functor, Data, Typeable)
+data ExItem a = ExItem { _refType :: RefType, _ind :: a } 
+  deriving (Eq, Show, Functor, Data, Generic, Typeable)
 makeLenses ''ExItem
 
 -- Ord is necessary to orient exRanges.
