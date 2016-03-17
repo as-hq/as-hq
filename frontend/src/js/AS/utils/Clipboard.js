@@ -166,7 +166,7 @@ const Clipboard = {
     let self = Clipboard;
      return (i) => {
        return (v, j) => {
-				const idx = ind.shift({ dX: i, dY: j });
+				const idx = ind.shift({ dX: j, dY: i });
 				const expression = self.externalStringToExpression(v, language);
         return TC.makeEvalInstruction(idx, expression, language);
        };
