@@ -43,7 +43,12 @@ declare class AERenderer {
   setShowGutter(showGutter: boolean): void;
 }
 
+declare class AECommands {
+  removeCommand(command: string): void;
+};
+
 declare class AERawClass {
+  commands: AECommands;
   clearSelection(): void;
   focus(): void;
   getValue(): string;

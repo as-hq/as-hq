@@ -42,6 +42,7 @@ type Props = {
   onMouseEnter: Callback;
 };
 
+
 export default class ASCodeField extends React.Component {
   static defaultProps: Props = {
     name: shortid.generate(),
@@ -76,6 +77,12 @@ export default class ASCodeField extends React.Component {
     this.editor.container.addEventListener('mousedown', () => this.props.onMouseDown());
     // $FlowFixMe ::ALEX::
     this.editor.container.addEventListener('mouseenter', () => this.props.onMouseEnter());
+    // Disable certain Ace default shortcuts
+    // For a list of shortcuts and names, see https://ace.c9.io/demo/keyboard_shortcuts.html
+    this.editor.commands.removeCommand('modifyNumberUp'); 
+    this.editor.commands.removeCommand('modifyNumberDown');
+    // ^ When the ace expression was B1, pressing Ctrl+Shift+_ would cause the expression to change
+    // to B2,B3, etc.
   }
 
   componentWillReceiveProps(nextProps: Props) {
