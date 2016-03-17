@@ -46,7 +46,7 @@ void clearSheetIdFromColNeighbors(DAG::ColNeighbors& adj, string sheetId) {
           it = adj.erase(it);
       } else {
           auto neighbors = it->second;  
-          for (auto it2 = neighbors.begin(); it2 != neighbors.end();) {
+          for (auto it2 = neighbors.begin(); it2 != neighbors.end(); ++it2) {
             clearSheetIdFromVertexSet(it2->second, sheetId);
           }
           ++it;
