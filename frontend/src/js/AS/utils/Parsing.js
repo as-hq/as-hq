@@ -71,10 +71,12 @@ const Parsing = {
     const rightNeighbor = suffix.trim()[0];
     const leftSatisfied = refInsertionCharTable.left.includes(leftNeighbor);
     const rightSatisfied = refInsertionCharTable.right.includes(rightNeighbor);
+    const prevCharWasSpace = prefix.slice(-1) === ' ';
     return (
       (prefix.length === 0 && rightSatisfied) ||
       (suffix.length === 0 && leftSatisfied) ||
-      (rightSatisfied && leftSatisfied)
+      (rightSatisfied && leftSatisfied) ||
+      prevCharWasSpace
     );
   },
 
