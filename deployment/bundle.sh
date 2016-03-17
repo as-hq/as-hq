@@ -118,6 +118,7 @@ cd ../../..
 cp -r backend/server/static/dist/file-input-handler/* build/server/static/
 cd backend/server/static
 rm -rf dist build file-input-handler.spec
+cd ../../..
 
 # ## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
 # ###### deployment materials
@@ -140,6 +141,7 @@ if $PUSH_REMOTE; then
   git add -A .
   git commit -m "automated build: $NOW"
   git push origin "$BRANCH"
+  cd ..
 fi
 
 # Remove the created builds folder from the root directory
