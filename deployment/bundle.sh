@@ -143,6 +143,5 @@ if $PUSH_REMOTE; then
 fi
 
 # Remove the created builds folder from the root directory
-cd ..
 cp -r build ../
 rm -rf build
