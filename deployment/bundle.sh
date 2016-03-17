@@ -65,8 +65,12 @@ cd ..
 echo "building..."
 cd frontend
 if $USE_SUDO; then
+  sudo npm install 
+  sudo bower install --allow-root
   sudo gulp prod-build
 else 
+  npm install 
+  bower install 
   gulp prod-build
 fi
 cd ..
@@ -75,6 +79,12 @@ echo "frontend build finished."
 
 # frontend environment
 cp "frontend/src/js/Environment_$BRANCH.js" build/frontend/Environment.js
+
+# Install up-to-date Python libraries
+cd backend/as-libs/py
+python setup.py develop
+cd ../../..
+echo "built Python libraries"
 
 # Haskell executable (use sudo if applicable, copy the executable to the build/server folder)
 cd backend/server
