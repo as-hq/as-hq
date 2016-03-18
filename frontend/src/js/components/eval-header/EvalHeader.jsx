@@ -37,6 +37,7 @@ type EvalHeaderProps = {
   languageLink: ReactLink<ASLanguage>;
   expressionLink: ReactLink<string>;
   onEvaluate: () => void;
+  onMouseEnter: () => void;
 }
 
 type LanguageItem = {
@@ -105,6 +106,7 @@ class EvalHeader extends React.Component {
           text={expressionLink}
           language={languageLink.value}
           onKeyDown={e => this._onKeyDown(e)}
+          onMouseEnter={() => this.props.onMouseEnter()}
         />
 
       </div>
@@ -118,7 +120,7 @@ class EvalHeader extends React.Component {
 
 const buttonText = 'Evaluate';
 
-// #needsrefactor the correct way to do this is flex; this overconstrains the toolbar height. 
+// #needsrefactor the correct way to do this is flex; this overconstrains the toolbar height.
 const toolbarHeight = '56px';
 
 const styles = {

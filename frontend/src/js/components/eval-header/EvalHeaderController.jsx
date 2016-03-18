@@ -71,6 +71,7 @@ class EvalHeaderController extends React.Component {
           }
         }}
         onEvaluate={() => this._onEvaluate(expression, language)}
+        onMouseEnter={() => FocusActions.hover(name)}
       />
     );
   }

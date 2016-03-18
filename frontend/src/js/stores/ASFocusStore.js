@@ -49,7 +49,17 @@ class FocusStore extends ReduceStore<State> {
       }
 
       case 'HOVERED': {
+        console.error('hovered element:', action.hover);
         return state.set('activeHover', action.hover);
+      }
+
+      case 'UNHOVERED': {
+        const curHover = state.get('activeHover');
+        if (curHover === action.hover) {
+          return state.set('activeHover', null);
+        } else {
+          return state;
+        }
       }
 
       case 'FOCUSED_TEXTBOX_FULLY': {
@@ -126,7 +136,8 @@ class FocusStore extends ReduceStore<State> {
     return this.getState().activeFocus;
   }
 
-  getHover(): FocusedElement {
+  getHoveredElement(): ?FocusedElement {
+    //        ^ when the hover is null, an uncontrolled element is hovered.
     return this.getState().activeHover;
   }
 

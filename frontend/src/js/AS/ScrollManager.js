@@ -15,7 +15,7 @@ const ScrollManager = {
 
   handleEvent(e: SyntheticScrollEvent) {
     const focus = FocusStore.getFocus();
-    const hover = FocusStore.getHover();
+    const hover = FocusStore.getHoveredElement();
 
   /*
   In general, we want to execute scroll events on the element that's
@@ -25,13 +25,16 @@ const ScrollManager = {
   (2) editor
   (3) textbox
   (4) header
+
+  When hover === null, an uncontrolled element is currently hovered,
+  and scrollmanager will do nothing.
    */
-    if (focus !== hover) {
+    if (focus !== hover && hover !== null) {
       ScrollManager.executeScroll(e, hover);
     }
   },
 
-  // ::ALEX:: 
+  // ::ALEX::
   executeScroll(e: SyntheticScrollEvent, hover: FocusedElement) {
     switch(hover) {
       case 'grid': {

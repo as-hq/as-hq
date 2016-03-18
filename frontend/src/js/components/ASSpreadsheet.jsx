@@ -163,7 +163,7 @@ class ASSpreadsheet extends React.Component {
         const dims = this._getDimensions();
         GridActions.setDimensions(dims);
       }, 200);
-      // ^ wait for the component(s) to actually mount upon a view configuration change. 
+      // ^ wait for the component(s) to actually mount upon a view configuration change.
     });
 
     // apply hypergrid customizations when its canvas is ready.
@@ -319,6 +319,7 @@ class ASSpreadsheet extends React.Component {
             onKeyDown={evt => this._onKeyDown(evt)}
             onFocus={evt => this._onGridFocus(evt)}
             onMouseEnter={() => FocusActions.hover(name)}
+            onMouseLeave={() => FocusActions.unhover(name)}
           >
             <fin-hypergrid-behavior-default />
           </fin-hypergrid>

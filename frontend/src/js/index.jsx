@@ -35,6 +35,7 @@ window.conf = require('./stores/ASConfigurationStore');
 window.gridstore = require('./stores/ASGridStore');
 window.sheet = require('./stores/ASSheetStateStore');
 window.cellstore = require('./stores/ASCellStore');
+window.focusstore = require('./stores/ASFocusStore');
 
 const Index = ({children}) => (
   <div className="full">

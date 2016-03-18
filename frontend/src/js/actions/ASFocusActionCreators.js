@@ -22,6 +22,13 @@ export default {
     })
   },
 
+  unhover(hover: FocusedElement) {
+    Dispatcher.dispatch({
+      _type: 'UNHOVERED',
+      hover
+    });
+  },
+
   focusTextboxFully() {
     Dispatcher.dispatch({
       _type: 'FOCUSED_TEXTBOX_FULLY'
