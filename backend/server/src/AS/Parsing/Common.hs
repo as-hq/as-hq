@@ -56,7 +56,8 @@ chainl1 p op = do { !x <- p; rest x }
 -------------------------------------------------------------------------------------------------------------------------
 -- String escaping parsers
 
--- | This helper function replaces bytes with their escaped versions
+-- | This helper function replaces bytes with their escaped versions. For example, it will 
+-- replace b with \b. The full old/new byte list is below. 
 -- old = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
 -- new = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
 replaceEscaped :: Word8 -> Word8
@@ -67,9 +68,9 @@ replaceEscaped 114 = 13
 replaceEscaped 116 = 9
 replaceEscaped x = x
 
--- | This helper function replaces \\t with \t, among other things, to unescape a ByteString. 
--- It seems easiest to do this imperatively, advacing Ptrs and keeping track of the current
--- and last position to look for backslashes, and replace the byte right after a backslash, 
+-- | This helper function replaces \\t (two characters) with \t (one character), among other things, 
+-- to unescape a ByteString. It seems easiest to do this imperatively, advancing Ptrs and keeping 
+-- track of the current/last position to look for backslashes, and replace the byte next to a \, 
 -- while filtering out the backslashes. It may be that we could use many (someParser) instead
 -- of mapping over the resulting ByteString, but attoparsec recommends sticking to ByteString 
 -- methods (100x faster).
@@ -156,14 +157,14 @@ float = do
   let !positive = sign == plus || sign /= minus
   when (sign == plus || sign == minus) $ void anyWord8 -- consume the plus or minus
   possiblyDot <- peekWord8
-  -- If the first byte after the sign is a dot, set the integer part to 0
+  -- If the first byte after the sign is a dot (46), set the integer part to 0
   n <- case possiblyDot of 
     Just 46 -> return 0
     _   -> AC.decimal
   -- Given a bunch of digits after the decimal point, construct a SP object
   -- Example: "12345" -> SP 12345 (-5)
   let f fracDigits = SP (B.foldl' step n fracDigits) (negate $ B.length fracDigits)
-      step a w = a * 10 + fromIntegral (w - 48)
+      step a w = a * 10 + fromIntegral (w - 48) -- '1' = 49, '2'= 50, etc.
   dotty <- peekWord8
   let signedCoeff !c | positive  = c
                      | otherwise = -c
@@ -188,6 +189,8 @@ float = do
 bool :: Parser Bool
 bool = readBool <$> (AC.stringCI "true" <|> AC.stringCI "false")
 
+-- | Only used as a helper for the above; if the first letter is t or T, return true; if it's 
+-- f or F return false.
 readBool :: ByteString -> Bool
 readBool b = case BU.unsafeHead b of
   116 -> True

@@ -47,8 +47,8 @@ colStrToInt = colStrToInt' 0
 dollar :: Parser ByteString
 dollar = string "$"
 
-exc :: Parser ByteString
-exc = string "!"
+exclamation :: Parser ByteString
+exclamation = string "!"
 
 pointer :: Parser ByteString
 pointer = string "@"
@@ -62,8 +62,8 @@ colon = string ":"
 -- | Takes a ByteString representing either '' or '$' and returns a RefType.
 readRefType :: ByteString -> RefType
 readRefType d1 = case d1 of
-  "" -> REL
-  _  -> ABS
+  "$" -> ABS
+  ""  -> REL
 
 -- | This parser matches strings of form "$RITESH" to column numbers, represented as ExCols. 
 colMatch :: Parser ExCol
@@ -73,6 +73,7 @@ colMatch = do
   return $! ExItem (readRefType dol) $ colStrToCol col
 
 -- | This parser matches strings of the form "$14211" to rows, represented as ExRows. 
+-- Note that $142a will not parse as a rowMatch, since we check that the next byte isn't a letter.
 rowMatch :: Parser ExRow
 rowMatch = do
   dol  <- option "" dollar
@@ -99,7 +100,7 @@ pointerMatch = do
 -- These expressions (for now) must begin with !, and have the rest between {}. 
 templateMatch :: Parser ExRef
 templateMatch = do
-  exc *> string "{" *> PC.spaces
+  exclamation *> string "{" *> PC.spaces
   n <- AC.decimal
   PC.betweenSpaces $ string ","
   (sh, wb) <- sheetWorkbookMatch
@@ -121,7 +122,7 @@ indexMatch = do
 -- | Parser matching a valid sheet name. It also consumes the !. 
 -- Applying this parser on "hello!" would return "hello".
 nameMatch :: Parser ByteString
-nameMatch = takeWhile1 (not . badWord8) <* exc
+nameMatch = takeWhile1 (not . badWord8) <* exclamation
   where
     -- These Word8's match up to !, $, @, :, and ' ' 
     -- Following attoparsec advice to use custom byte-checking

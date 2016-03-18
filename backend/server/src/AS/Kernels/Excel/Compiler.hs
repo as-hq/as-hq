@@ -29,8 +29,8 @@ import AS.Util
 -- Top-level parsers.
 
 parseFormula :: ByteString -> ThrowsError ContextualFormula
-parseFormula s = either (\_ -> Left ExcelSyntaxError) return res
-  where res = parseOnly eitherLiteralFormula s
+parseFormula s = either (const $ Left ExcelSyntaxError) return parseResult
+  where parseResult = parseOnly eitherLiteralFormula s
 
 eitherLiteralFormula :: Parser ContextualFormula
 eitherLiteralFormula = formula <|> (SimpleFormula <$> literal) <|> (SimpleFormula <$> emptyExpr)
@@ -41,7 +41,7 @@ emptyExpr = (endOfInput <?> "not at end") >> (return $ Basic $ Var EBlank)
 -- | Parser for an Excel literal. Fails if the first character is '='.
 literal :: Parser Formula
 literal = do
-  lookAhead $ (notWord8 61)
+  lookAhead $ notWord8 61 -- fail if first character is '='
   rest <- takeByteString
   let val = parseOnly justNumOrBool rest
   return $! case val of
@@ -63,8 +63,7 @@ formula =  do
 
 -- | Parser for expressions, using a port of Parsec's expression parser.
 expr :: Parser Formula
-expr    =   buildExpressionParser table leaf
-        <?> "expression"
+expr    =   buildExpressionParser table leaf <?> "expression"
 
 -- | Table to build expression grammar for Excel. This is using Data.Attoparsec.Expr which doesn't
 -- look completely optimized, uses lazy folds etc. It's a small part of the perf output, so I won't
@@ -92,10 +91,14 @@ binary name = Infix $ do
   return $ \x y -> Basic $ Fun (C.unpack name) [x, y]
 
 prefix :: ByteString -> Operator ByteString Formula
-prefix name = Prefix (do{ reservedOp name; return $ \x -> Basic $ Fun (C.unpack name) [x] })
+prefix name = Prefix $ do 
+  reservedOp name 
+  return $ \x -> Basic $ Fun (C.unpack name) [x]
 
 postfix :: ByteString -> Operator ByteString Formula
-postfix name = Postfix (do{ reservedOp name; return $ \x -> Basic $ Fun (C.unpack name) [x] })
+postfix name = Postfix $ do 
+  reservedOp name
+  return $ \x -> Basic $ Fun (C.unpack name) [x]
 
 -- NOTE: this parser will not check if there exists a higher-precedence operator that's a superset
 -- the purpose of the ++ "p" is to distinguish infix and prefix operators with the same name, 
