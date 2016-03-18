@@ -143,6 +143,9 @@ cd ../../..
 # # rm -rf build
 # # cd ..
 
+# Copy the deployment folder into the builds folder
+cp -r deployment build/
+
 ## push to remote
 if $PUSH_REMOTE; then
   echo "pushing to remote branch: $BRANCH"
