@@ -151,7 +151,7 @@ if $PUSH_REMOTE; then
   echo "pushing to remote branch: $BRANCH"
   NOW=$(date +"%c")
   cd build
-  git add -A .
+  git add --force -A .
   git commit -m "automated build: $NOW"
   git push origin "$BRANCH"
   cd ..
