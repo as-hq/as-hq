@@ -70,7 +70,7 @@ if $USE_SUDO; then
   sudo gulp prod-build
 else 
   npm install 
-  bower install 
+  bower install --allow-root
   gulp prod-build
 fi
 cd ..
