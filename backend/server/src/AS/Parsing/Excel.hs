@@ -74,6 +74,7 @@ colMatch = do
 
 -- | This parser matches strings of the form "$14211" to rows, represented as ExRows. 
 -- Note that $142a will not parse as a rowMatch, since we check that the next byte isn't a letter.
+-- We do this so that things like plot2d won't parse as Excel refs. 
 rowMatch :: Parser ExRow
 rowMatch = do
   dol  <- option "" dollar

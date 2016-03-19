@@ -31,8 +31,9 @@ import qualified AS.Parsing.Common as PC
 ----------------------------------------------------------------------------------------------------
 -- General parsing functions for Excel
 
--- | Represents the ByteString until (before) an ExRef, and the ExRef itself. For example, as
--- if we're parsing "123+A1", then there's an (UntilExRef "123+" A1) involved. 
+-- | Represents the ByteString until (before) an ExRef, and the ExRef itself. For example, if we're
+-- parsing "123+A1", then we're going to need the pair ("123+", "A1") throughout our parsing 
+-- pretty often. This datatype represents that.
 data UntilExRef = UntilExRef {
   previousBS :: !ByteString,
   nextRef :: !ExRef
@@ -70,15 +71,14 @@ getFirstExcelRef = do
 -- For example, if we're parsing "123+A1+B2", and the replacer function is const "boom", then 
 -- applying this parser will return "123+boom".
 parseNext :: (ExRef -> ByteString) -> Parser ByteString
-parseNext f = do 
-  (UntilExRef bs ref) <- getFirstExcelRef
-  return $! B.append bs (f ref)
-{-# INLINE parseNext #-}
+parseNext f = unsafePerformIO <$> parseNextIO (return . f)
+{-# NOINLINE parseNext #-}
 
 parseNextIO :: (ExRef -> IO ByteString) -> Parser (IO ByteString)
 parseNextIO f = do 
   (UntilExRef bs ref) <- getFirstExcelRef
   return $! B.append bs <$> (f ref)
+{-# INLINE parseNextIO #-}
 
 -- | This parser is applied "in between" refMatches. It tries to consume as much as possible
 -- given that the refMatch didn't succeed. Instead of only consuming the next character, and
@@ -95,13 +95,8 @@ notExcelParser = parser
 
 -- | Replaces all ExRefs in a ByteString that aren't in quotes/apostrophes. 
 excelParser :: (ExRef -> ByteString) -> ByteString -> ByteString
-excelParser f = $fromRight . parseOnly parser
-  where
-    parser = do 
-      excels <- many' $ parseNext f
-      rest <- takeByteString
-      return $! B.append (B.concat excels) rest
-{-# INLINE excelParser #-}
+excelParser f b = unsafePerformIO $ excelParserIO (return . f) b
+{-# NOINLINE excelParser #-}
 
 excelParserIO :: (ExRef -> IO ByteString) -> ByteString -> IO ByteString 
 excelParserIO f = $fromRight . parseOnly parserIO
@@ -110,6 +105,7 @@ excelParserIO f = $fromRight . parseOnly parserIO
       excels <- many' $ parseNextIO f
       rest <- takeByteString 
       return $! (flip B.append) rest <$> (B.concat <$> sequence excels)
+{-# INLINE excelParserIO #-}
 
 -- | Returns all of the UntilExRefs, and the last piece of the ByteString after all ExRefs
 -- have been consumed.
@@ -125,11 +121,8 @@ getAllExcelRefs = do
 -- | Given a replacer function for Excel references, replace all Excel references in a given 
 -- expression with an application of this replacer function.
 replaceRefs :: (ExRef -> String) -> ASExpression -> ASExpression
-replaceRefs f xp@(Expression _ lang) 
-  | isExcelLiteral xp = xp
-  | otherwise = xp & expression %~ modifyExpression
-      where modifyExpression str = C.unpack $ excelParser (C.pack . f) (C.pack str) 
-{-# INLINE replaceRefs #-}
+replaceRefs f e = unsafePerformIO $ replaceRefsIO (return . f) e
+{-# NOINLINE replaceRefs #-}
 
 replaceRefsIO :: (ExRef -> IO String) -> ASExpression -> IO ASExpression
 replaceRefsIO f xp@(Expression str lang)

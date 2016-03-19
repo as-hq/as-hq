@@ -60,13 +60,13 @@ chainl1 p op = do { !x <- p; rest x }
 -- replace b with \b. The full old/new byte list is below. 
 -- old = ['b',  'n',  'f',  'r',  't',  '\\', '\'', '\"', '/']
 -- new = ['\b', '\n', '\f', '\r', '\t', '\\', '\'', '\"', '/']
-replaceEscaped :: Word8 -> Word8
-replaceEscaped 98 = 8
-replaceEscaped 110 = 10
-replaceEscaped 102 = 12
-replaceEscaped 114 = 13
-replaceEscaped 116 = 9
-replaceEscaped x = x
+replaceWithEscaped :: Word8 -> Word8
+replaceWithEscaped 98 = 8
+replaceWithEscaped 110 = 10
+replaceWithEscaped 102 = 12
+replaceWithEscaped 114 = 13
+replaceWithEscaped 116 = 9
+replaceWithEscaped x = x
 
 -- | This helper function replaces \\t (two characters) with \t (one character), among other things, 
 -- to unescape a ByteString. It seems easiest to do this imperatively, advancing Ptrs and keeping 
@@ -85,7 +85,7 @@ unescapeRaw ps@(BI.PS x s l)
       | advancingPtr == endPtr  = return accumPtr
       | lastWordWasBackslash = do 
           curWord <- peek advancingPtr
-          let replacedWord = replaceEscaped curWord 
+          let replacedWord = replaceWithEscaped curWord 
           poke accumPtr replacedWord 
           go (advancingPtr `plusPtr` 1) (accumPtr `plusPtr` 1) endPtr False
       | otherwise = do 
