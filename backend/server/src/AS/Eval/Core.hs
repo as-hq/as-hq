@@ -17,6 +17,8 @@ import Data.Maybe hiding (fromJust)
 import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
+import qualified Data.List.Split as LS
+import Text.ParserCombinators.Parsec
 
 import Prelude()
 import AS.Prelude
@@ -48,31 +50,38 @@ import qualified AS.DB.API as DB
 import qualified AS.DB.Eval as DE
 import qualified AS.DB.Graph as G
 
------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
+evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression 
+                 -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
 evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
-  maybeShortCircuit <- possiblyShortCircuit conn sid ctx xp
-  case maybeShortCircuit of
-    Just e -> return . return $ EvalResult (CellValue e) Nothing -- short-circuited, return this error
-    Nothing -> case lang of
-      Excel -> KE.evaluate conn str idx (ctx^.virtualCellsMap)
-        -- Excel needs current location and un-substituted expression, and needs the formatted values for
-        -- loading the initial entities
+  eitherShortCircuit <- possiblyShortCircuit conn sid ctx xp
+  -- #expressionrefactor
+  case eitherShortCircuit of
+    Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
+    Left (ValueS s) -> do 
+      let xp' = Expression s lang 
+      KE.evaluate conn (xp'^.expression) idx (ctx^.virtualCellsMap)
+    -- If we match something as a literal, just evaluate it in Excel.
+    Right xp' -> case lang of
+      Excel -> KE.evaluate conn (xp'^.expression) idx (ctx^.virtualCellsMap)
+        -- Excel needs current location and un-substituted expression, and needs the formatted 
+        -- values for loading the initial entities
       SQL -> do 
-        pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp f
+        pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp' f
         return <$> KP.evaluateSql mid sid pythonSqlCode
       Python -> do
-        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp f
+        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp' f
         return <$> KP.evaluate mid sid xpWithValuesSubstituted
       R -> do
-        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp f
+        xpWithValuesSubstituted <- lift $ insertValues state mid sid ctx xp' f
         return <$> KR.evaluate xpWithValuesSubstituted
 
--- Python kernel now requires sheetid because each sheet now has a separate namespace against which evals are executed
+-- Python kernel now requires sheetid because each sheet now has a separate namespace against 
+--  which evals are executed
 evaluateHeader :: MessageId -> EvalHeader -> EitherTExec EvalResult
 evaluateHeader mid evalHeader = 
   case lang of 
@@ -83,43 +92,61 @@ evaluateHeader mid evalHeader =
     lang = evalHeader^.evalHeaderLang
     str  = evalHeader^.evalHeaderExpr
 
--- no catchEitherT here for now, but that's because we're obsolescing Repl for now. (Alex ~11/10)
--- DEPRECATED for now
---evaluateLanguageRepl :: String -> ASExpression -> EitherTExec CompositeValue
---evaluateLanguageRepl header (Expression str lang) = case lang of
---  Python  -> KP.evaluateRepl header str
---  R       -> KR.evaluateRepl str
---  SQL     -> KP.evaluateSqlRepl header str
---  OCaml   -> KO.evaluateRepl header str
-
------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Interpolation
 
 -- #mustrefactor IO String should be EitherTExec string
-lookUpRef :: ServerState -> MessageId -> ASLanguage -> EvalContext -> ASReference -> DE.EvalChainFunc -> IO String
-lookUpRef state mid lang context ref f = showValue lang <$> DE.referenceToCompositeValue state mid context ref f
+lookUpRef :: ServerState -> MessageId -> ASLanguage -> EvalContext -> ASReference 
+          -> DE.EvalChainFunc -> IO String
+lookUpRef state mid lang context ref f = 
+  showValue lang <$> DE.referenceToCompositeValue state mid context ref f
 
-insertValues :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
+insertValues :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression 
+             -> DE.EvalChainFunc -> IO EvalCode
 insertValues state mid sheetid ctx xp f = view expression <$> replaceRefsIO replacer xp
   where replacer ref = lookUpRef state mid (xp^.language) ctx (exRefToASRef sheetid ref) f
 
--- | We evaluate SQL expressions by converting them to Python code, and substituting it into a template
--- file that imports pysql and defines helper functions for SQL.  
+-- | We evaluate SQL expressions by converting them to Python code, and substituting it into 
+-- a template file that imports pysql and defines helper functions for SQL.  
 -- Note: this can probably be significantly optimized. 
 -- TODO clean up SQL mess
-sqlToPythonCode :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression -> DE.EvalChainFunc -> IO EvalCode
+sqlToPythonCode :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression 
+                -> DE.EvalChainFunc -> IO EvalCode
 sqlToPythonCode state mid sheetid ctx xp f = do 
   let exRefs = getExcelReferences xp
       matchedRefs = map (exRefToASRef sheetid) exRefs -- ASReferences found inside xp
   context <- mapM (\ref -> lookUpRef state mid SQL ctx ref f) matchedRefs
   let st = ["dataset"++(show i) | i<-[0..((L.length matchedRefs)-1)]]
-      newExp = view expression $ replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
+      newExp = replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
       contextStmt = "setGlobals(" ++ show context ++ ")\n"
-      evalStmt = "db(\'" ++ newExp ++ "\')"
+      evalStmt = "db(\'" ++ (newExp^.expression) ++ "\')"
   return $ contextStmt ++ evalStmt
 
------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 -- Helpers
+
+-- | This type represents an eval short-circuit; either we evaluate Right xp, or we just 
+-- short-circuit and interpret Left val as an Excel literal. 
+type ShortCircuitEval = Either ASValue ASExpression
+
+-- | Makes sure that there is exactly one equal sign in the expression. If there are none, it 
+-- immediately evaluates as a literal, and otherwise returns an error saying that there are too 
+-- many equals signs. If there's exactly one equals sign, strip that = sign and return the new xp.
+-- #expressionrefactor
+equalsSignsCheck :: ASExpression -> ShortCircuitEval
+equalsSignsCheck xp@(Expression str lang) = 
+  case length evalLines of 
+    0 -> Left $ ValueS str 
+    1 -> case lang of 
+      Excel -> Right xp 
+      _ -> Right $ Expression (L.intercalate "\n" strippedLines) lang
+    _ -> Left $ ValueError "Too many lines beginning with equals signs" "Eval error"
+  where
+    startsWithEqual = L.isPrefixOf "=" 
+    stripEqual line = if startsWithEqual line then $tail line else line
+    lines = LS.splitOn "\n" str
+    evalLines = filter startsWithEqual lines
+    strippedLines = map stripEqual lines
 
 -- | Map over both failure and success.
 bimapEitherT' :: Functor m => (e -> b) -> (a -> b) -> EitherT e m a -> EitherT e m b
@@ -138,39 +165,51 @@ catchEitherT a = do
       whenCaught e = return . Right $ Formatted (EvalResult cv Nothing) Nothing
         where cv = CellValue $ ValueError (show e) "StdErr"
 
--- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. If no bad inputs,
--- return Nothing. Otherwise, if there are errors that can't be dealt with, return appropriate ASValue error.
-possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec (Maybe ASValue)
-possiblyShortCircuit conn sheetid ctx xp = do 
-  let depRefs = getDependencies sheetid xp
-  let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
-  bimapEitherT' (Just . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp) depInds
+-- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. 
+-- If no bad inputs, return Nothing. Otherwise, if there are errors that can't be dealt with, 
+-- return the appropriate ASValue error.
+-- #expressionrefactor
+possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression 
+                     -> EitherTExec ShortCircuitEval
+possiblyShortCircuit conn sheetid ctx xp = case equalsSignsCheck xp of
+  Right xp' -> do
+    let depRefs = getDependencies sheetid xp' -- :: [ASReference]
+    let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
+    bimapEitherT' (Left . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp') depInds
+  Left v -> return $ Left v
 
--- When eval's ref to indices fails, we want the error message to be in the actual cell. Possibly short circuit will
--- do this for us, because the evaluateLanguage code bypasses eval in this case. 
+-- When eval's ref to indices fails, we want the error message to be in the actual cell. 
+-- Possibly short circuit will do this for us, because the evaluateLanguage code bypasses 
+-- eval in this case. 
 onRefToIndicesFailure :: ASExecError -> ASValue
-onRefToIndicesFailure PointerToNormalCell = ValueError "Pointer to normal cell" "EvalError"
-onRefToIndicesFailure IndexOfPointerNonExistant = ValueError "Index of pointer doesn't exist" "EvalError"
-onRefToIndicesFailure _ = ValueError "Some eval error" "EvalError"
+onRefToIndicesFailure PointerToNormalCell = 
+  ValueError "Pointer to normal cell" "EvalError"
+onRefToIndicesFailure IndexOfPointerNonExistant = 
+  ValueError "Index of pointer doesn't exist" "EvalError"
+onRefToIndicesFailure _ = 
+  ValueError "Some eval error" "EvalError"
 
-onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> Maybe ASValue
-onRefToIndicesSuccess ctx xp depInds = listToMaybe $ catMaybes $ flip map (zip depInds values) $ \(i, v) -> case v of
-  NoValue                 -> handleNoValueInLang lang i
-  ve@(ValueError _ _)     -> handleErrorInLang lang ve
-  otherwise               -> Nothing
-  where
-    lang           = xp^.language
-    values         = map (maybe NoValue (view cellValue) . (`M.lookup` (ctx^.virtualCellsMap))) depInds
+onRefToIndicesSuccess :: EvalContext -> ASExpression -> [ASIndex] -> ShortCircuitEval
+onRefToIndicesSuccess ctx xp depInds = fmap (const xp) $ sequence $ flip map (zip depInds values) $ 
+  \(i, v) -> case v of
+    NoValue                 -> handleNoValueInLang xp i
+    ve@(ValueError _ _)     -> handleErrorInLang xp ve
+    otherwise               -> Right xp
+    where
+      lang = xp^.language
+      values = map (maybe NoValue (view cellValue) . (`M.lookup` (ctx^.virtualCellsMap))) depInds
 
+-- | Return the same expression if it's OK to pass in NoValue, or the appropriate ValueError.
+handleNoValueInLang :: ASExpression -> ASIndex -> Either ASValue ASExpression
+handleNoValueInLang xp@(Expression _ Excel) _   = Right xp
+handleNoValueInLang xp@(Expression _ Python) _   = Right xp
+handleNoValueInLang xp@(Expression _ R) _   = Right xp
+handleNoValueInLang _ cellRef = 
+  Left $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError"
+-- TODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
 
--- | Nothing if it's OK to pass in NoValue, appropriate ValueError if not.
-handleNoValueInLang :: ASLanguage -> ASIndex -> Maybe ASValue
-handleNoValueInLang Excel _   = Nothing
-handleNoValueInLang Python _  = Nothing
-handleNoValueInLang R _       = Nothing
-handleNoValueInLang _ cellRef = Just $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError"
--- TDODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
+handleErrorInLang :: ASExpression -> ASValue -> Either ASValue ASExpression
+handleErrorInLang xp@(Expression _ Excel) _  = Right xp
+handleErrorInLang _ v = Left v
 
-handleErrorInLang :: ASLanguage -> ASValue -> Maybe ASValue
-handleErrorInLang Excel _  = Nothing
-handleErrorInLang _ err = Just err
+----------------------------------------------------------------------------------------------------

@@ -173,9 +173,9 @@ describe('backend', () => {
 
         it ('should not interpret a3d as an excel ref', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', 'a3d = 3; a3d'),
-            python('A3', 'var3d = 3; Noned'),
+            python('A1', '=1'),
+            python('A2', '=a3d = 3; a3d'),
+            python('A3', '=var3d = 3; Noned'),
             shouldBeError('A3'),
             shouldBe('A2', valueI(3)),
             exec(done)
@@ -199,7 +199,7 @@ describe('backend', () => {
         it ('should work on constants', (done) => {
           _do([
             excel('A1', '1'),
-            python('B1', '!{10,   A1}'),
+            python('B1', '=!{10,   A1}'),
             shouldBe('B1', valueI(1)),
             shouldBeCoupled('B5'),
             shouldBe('B10', valueI(1)),
@@ -209,8 +209,8 @@ describe('backend', () => {
 
         it ('should work on random variables', (done) => {
           _do([
-            python('A1', 'random.random()'),
-            python('B1', '!{10,   A1}'),
+            python('A1', '=random.random()'),
+            python('B1', '=!{10,   A1}'),
             shouldBeCoupled('B10'),
             exec(done)
           ]);
@@ -218,14 +218,14 @@ describe('backend', () => {
 
         it ('should preserve dependencies', (done) => {
           _do([
-            python('A1', 'random.random()'),
-            python('A2', 'A1+1'),
-            python('A3', 'hide([[A1,A2]])'),
-            python('B1', '!{10, A3}'),
-            python('C1', 'unhide(B1)'),
-            python('C2', 'unhide(B2)'),
-            python('E1', 'int(round(D1-C1))'),
-            python('E2', 'int(round(D2-C2))'), // sometimes we get 1.0000
+            python('A1', '=random.random()'),
+            python('A2', '=A1+1'),
+            python('A3', '=hide([[A1,A2]])'),
+            python('B1', '=!{10, A3}'),
+            python('C1', '=unhide(B1)'),
+            python('C2', '=unhide(B2)'),
+            python('E1', '=int(round(D1-C1))'),
+            python('E2', '=int(round(D2-C2))'), // sometimes we get 1.0000
             shouldBe('E1', valueI(1)),
             shouldBe('E2', valueI(1)),
             exec(done)
@@ -234,9 +234,9 @@ describe('backend', () => {
 
         it ('should update when an ancestor updates', (done) => {
           _do([
-            python('A1', 'random.random()'),
-            python('B1', '!{10, A1}'),
-            python('A1', '1'),
+            python('A1', '=random.random()'),
+            python('B1', '=!{10, A1}'),
+            python('A1', '=1'),
             shouldBe('B10', valueI(1)),
             shouldBe('B5', valueI(1)),
             exec(done)
@@ -245,10 +245,10 @@ describe('backend', () => {
 
         it ('should update when a range ancestor updates', (done) => {
           _do([
-            python('A1', '10'),
-            python('B1', 'A1+1'),
-            python('B2', 'sum(B1:B1)'),
-            python('B3', '!{2,B2}'),
+            python('A1', '=10'),
+            python('B1', '=A1+1'),
+            python('B2', '=sum(B1:B1)'),
+            python('B3', '=!{2,B2}'),
             shouldBe('B3', valueI(11)),
             exec(done)
           ]);
@@ -257,10 +257,10 @@ describe('backend', () => {
 
         it ('should cause descendants to update when it updates', (done) => {
           _do([
-            python('A1', 'random.random()'),
-            python('B1', '!{10, A1}'),
-            python('C1', 'sum(@B1)'),
-            python('A1', '2'),
+            python('A1', '=random.random()'),
+            python('B1', '=!{10, A1}'),
+            python('C1', '=sum(@B1)'),
+            python('A1', '=2'),
             shouldBe('C1', valueI(20)),
             exec(done)
           ]);
@@ -268,10 +268,10 @@ describe('backend', () => {
 
         it ('should update when shifted via copy/paste', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '!{3, A1}'),
+            python('A1', '=1'),
+            python('B1', '=!{3, A1}'),
             copy('B1', 'C1'),
-            python('D1', 'sum(@C1)'),
+            python('D1', '=sum(@C1)'),
             shouldBe('D1', valueI(3)),
             exec(done)
           ]);
@@ -279,8 +279,8 @@ describe('backend', () => {
 
         it ('should update when shifted via cut/paste', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '!{3, A1}'),
+            python('A1', '=1'),
+            python('B1', '=!{3, A1}'),
             cut('A1', 'C1'),
             shouldBe('B1', valueI(1)),
             cut('B1:B3', 'D1:D3'),
@@ -300,7 +300,7 @@ describe('backend', () => {
         // IPython magics here, must be disabled
         xit ('should cause parse error if not index', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             shouldError(python('B1', '!{10, #A1}')),
             exec(done)
           ]);
@@ -308,8 +308,8 @@ describe('backend', () => {
 
         it ('should sample lists without infinite loop', (done) => {
           _do([
-            python('A1', 'range(3)'),
-            python('B1', '!{10, A1}'),
+            python('A1', '=range(3)'),
+            python('B1', '=!{10, A1}'),
             shouldBe('B1', valueI(0)),
             shouldBe('B10', valueI(0)),
             shouldBeCoupled('B1'),
@@ -322,7 +322,7 @@ describe('backend', () => {
             python('A1', '1'),
             python('A2', '2'),
             excel('B1', '=sum(A1:A3)'),
-            python('B8', '!{5, B1}'),
+            python('B8', '=!{5, B1}'),
             shouldBe('B8', valueI(3)),
             shouldBe('B12', valueI(3)),
             exec(done)
@@ -332,24 +332,20 @@ describe('backend', () => {
       });
 
       describe('= detection', () => {
-        it ('should ignore the = in expressions that start with = when in non-Excel', (done) => {
-          _do([
-            python('A1', '=range(3)'),
-            r('B1', '=c(1,2,3)'),
-            excel('C1', '=SUM(A1:B3)'),
-            shouldBe('C1', valueI(9)),
-            expressionShouldBe('A1', 'range(3)'),
-            expressionShouldBe('B1', 'c(1,2,3)'),
-            exec(done)
-          ]);
-        });
-
         it ('should ignore plain = expressions when in non-Excel', (done) => {
           _do([
             python('A1', '='),
             r('B1', '='),
-            shouldBeNothing('A1'),
-            shouldBeNothing('B1'),
+            shouldBe('A1', noValue()),
+            shouldBe('B1', noValue()),
+            exec(done)
+          ]);
+        });
+
+        it ('should treat literals in any language like in Excel', (done) => {
+          _do([
+            python('A1', '1/1/1900'),
+            shouldBe('A1', valueD(0)),
             exec(done)
           ]);
         });
@@ -359,8 +355,8 @@ describe('backend', () => {
 
         it ('should decouple a single value and send message', (done) => {
           _do([
-            python('A1', 'range(5)'),
-            python('A2', '44'),
+            python('A1', '=range(5)'),
+            python('A2', '=44'),
             decouple(),
             shouldBe('A1', valueI(0)),
             expressionShouldBe('A1','0'),
@@ -371,8 +367,8 @@ describe('backend', () => {
 
         it ('should decouple when replacing head with a smaller range and send message', (done) => {
           _do([
-            python('A1', 'range(5)'),
-            r('A1', 'c(4,5)'),
+            python('A1', '=range(5)'),
+            r('A1', '=c(4,5)'),
             decouple(),
             shouldBe('A1', valueI(4)),
             shouldBe('A3', valueI(2)),
@@ -382,14 +378,14 @@ describe('backend', () => {
 
         it ('should decouple when replacing middle of object and send message', (done) => {
           _do([
-            python('A1', '[[1,2],[3,4],[5,6]]'),
-            python('A2', 'range(2)'),
+            python('A1', '=[[1,2],[3,4],[5,6]]'),
+            python('A2', '=range(2)'),
             decouple(),
             shouldBe('A1', valueI(1)),
             shouldBe('B1', valueI(2)),
             shouldBe('A2', valueI(0)),
             shouldBe('A3', valueI(1)),
-            expressionShouldBe('A3', 'range(2)'),
+            expressionShouldBe('A3', '=range(2)'),
             shouldBe('B2', valueI(4)),
             exec(done)
           ]);
@@ -399,10 +395,10 @@ describe('backend', () => {
         // but we currently don't have a monadic or function.
         xit ('should decouple one list or the other when they intersect nondeterministically', (done) => {
           _do([
-            python('A1', '2'),
-            python('C1', 'range(A1)'),
-            python('A3', '[range(A1)]'),
-            python('A1', '4'),
+            python('A1', '=2'),
+            python('C1', '=range(A1)'),
+            python('A3', '=[range(A1)]'),
+            python('A1', '=4'),
             // need an or here???
             // or([
             //   and([shouldBeCoupled('C4'), shouldBeDecoupled('D3')]),
@@ -414,8 +410,8 @@ describe('backend', () => {
 
         it ('should not send decouple message when replacing list of same size', (done) => {
           _do([
-            python('A1', 'range(5)'),
-            r('A1', 'c(3,4,5,6,7)'),
+            python('A1', '=range(5)'),
+            r('A1', '=c(3,4,5,6,7)'),
             shouldBe('A1', valueI(3)),
             shouldBe('A2', valueI(4)),
             exec(done)
@@ -424,7 +420,7 @@ describe('backend', () => {
 
         it ('should not send decouple message when deleting list', (done) => {
           _do([
-            python('A1', 'range(5)'),
+            python('A1', '=range(5)'),
             delete_('A1:A5'),
             shouldBeNothing('A1'),
             exec(done)
@@ -434,11 +430,11 @@ describe('backend', () => {
         // Note: where "bitch" = "cell with descendants"
         it ('should not fuck bitches during decouple after having eaten them', (done) => {
           _do([
-            python('A2', '5'),
-            python('B2', 'A2 * 10'),
-            python('A1', 'range(3)'),
+            python('A2', '=5'),
+            python('B2', '=A2 * 10'),
+            python('A1', '=range(3)'),
             shouldBe('B2', valueI(10)),
-            python('A3', '10'),
+            python('A3', '=10'),
             shouldBe('B2', valueI(10)), // checks decoupling did not cause the bitch's children to change value
             exec(done)
           ]);
@@ -446,9 +442,9 @@ describe('backend', () => {
         // TODO: timchu. This won't work until rangekeys are added to expressions like A1:A2.
         xit ('should display A1:A2 when a range in A1:A2 is decoupled', (done) => {
           _do([
-              python('A1', 'range(2)'),
-              python('B1', 'A1:A2'),
-              python('A1', '1'),
+              python('A1', '=range(2)'),
+              python('B1', '=A1:A2'),
+              python('A1', '=1'),
               decouple(),
               shouldBe('A1', valueI(1)),
               shouldBe('A2', valueI(1)),
@@ -467,65 +463,65 @@ describe('backend', () => {
 
           it ('should have overwrite power on any descendants inside itself', (done) => {
             _do([
-              python('A2', '2'),
-              python('B2', 'A2+1'),
-              python('A3', 'B2+1'),
+              python('A2', '=2'),
+              python('B2', '=A2+1'),
+              python('A3', '=B2+1'),
               shouldBe('A3', valueI(4)),
-              python('A1', 'range(6)'),
+              python('A1', '=range(6)'),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
               shouldBe('B2', valueI(2)), // proopagation should still happen
-              expressionShouldBe('B2', 'A2+1'),
-              expressionShouldBe('A2', 'range(6)'), // should be coupled now
-              expressionShouldBe('A3', 'range(6)'),
+              expressionShouldBe('B2', '=A2+1'),
+              expressionShouldBe('A2', '=range(6)'), // should be coupled now
+              expressionShouldBe('A3', '=range(6)'),
               exec(done)
             ]);
           });
 
           it ('should have overwrite power on immediate descendants inside itself', (done) => {
             _do([
-              python('A1', '69'),
-              python('A2', 'A1'),
-              python('A1', 'range(10)'),
+              python('A1', '=69'),
+              python('A2', '=A1'),
+              python('A1', '=range(10)'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
-              expressionShouldBe('A1', 'range(10)'), // should be coupled
-              expressionShouldBe('A2', 'range(10)'),
+              expressionShouldBe('A1', '=range(10)'), // should be coupled
+              expressionShouldBe('A2', '=range(10)'),
               exec(done)
             ]);
           });
 
           it ('should give all fat cells created overwrite power', (done) => {
             _do([
-              python('A2', '1'),
-              python('B2', 'range(A2)'),
-              python('B3', 'B2'),
-              python('A4', 'B3+1'),
+              python('A2', '=1'),
+              python('B2', '=range(A2)'),
+              python('B3', '=B2'),
+              python('A4', '=B3+1'),
               shouldBe('B3',valueI(0)),
               shouldBe('A4',valueI(1)),
-              python('A1','[2,3,4,5,6]'),
+              python('A1','=[2,3,4,5,6]'),
               // This creates two fat cells, and both should have overwrite power
               shouldBe('A4', valueI(5)),
-              expressionShouldBe('A4', '[2,3,4,5,6]'),
+              expressionShouldBe('A4', '=[2,3,4,5,6]'),
               shouldBe('B2', valueI(0)),
-              expressionShouldBe('B2', 'range(A2)'),
+              expressionShouldBe('B2', '=range(A2)'),
               shouldBe('B3', valueI(1)),
-              expressionShouldBe('B3', 'range(A2)'),
+              expressionShouldBe('B3', '=range(A2)'),
               exec(done)
             ]);
           });
 
           it ('should have overwrite power on immediate descendants inside itself', (done) => {
             _do([
-              python('A1', '69'),
-              python('A2', 'A1'),
-              python('A1', 'range(10)'),
+              python('A1', '=69'),
+              python('A2', '=A1'),
+              python('A1', '=range(10)'),
               _forM_(_.range(10), (i) => {
                 return shouldBe(`A${i + 1}`, valueI(i));
               }),
-              expressionShouldBe('A1', 'range(10)'), // should be coupled
-              expressionShouldBe('A2', 'range(10)'),
+              expressionShouldBe('A1', '=range(10)'), // should be coupled
+              expressionShouldBe('A2', '=range(10)'),
               exec(done)
             ]);
           });
@@ -536,18 +532,18 @@ describe('backend', () => {
 
           it ('should be a circ dep if the head expression refers to a cell in the expansion', (done) => {
             _do([
-              python('A2', '5'),
-              shouldError(python('A1', 'range(A2)')),
+              python('A2', '=5'),
+              shouldError(python('A1', '=range(A2)')),
               exec(done)
             ]);
           });
 
           it ('more complicated circ dep when the list expands', (done) => {
             _do([
-              python('A2', '1'),
-              python('B2', 'A2+1'),
-              python('A3', 'B2+1'),
-              python('A1', 'range(A2)'),
+              python('A2', '=1'),
+              python('B2', '=A2+1'),
+              python('A3', '=B2+1'),
+              python('A1', '=range(A2)'),
               shouldError(python('A2','6')),
               exec(done)
             ]);
@@ -559,39 +555,39 @@ describe('backend', () => {
 
           it ('should shrink if their references are smaller', (done) => {
             _do([
-              python('A1', 'range(5)'),
-              python('B2','@A1'),
-              python('A1', '[1,2]'),
+              python('A1', '=range(5)'),
+              python('B2','=@A1'),
+              python('A1', '=[1,2]'),
               decouple(),
               shouldBe('A3', valueI(2)),
               expressionShouldBe('A3', '2'),
-              expressionShouldBe('A1', '[1,2]'),
+              expressionShouldBe('A1', '=[1,2]'),
               shouldBeNothing('B4'),
-              expressionShouldBe('B2','@A1'),
+              expressionShouldBe('B2','=@A1'),
               exec(done)
             ]);
           });
 
           it ('should change if the object they reference updates', (done) => {
             _do([
-              python('B1', 'range(5)'),
-              python('C1', '@B1'),
-              python('A1', '[[1,2]]'),
+              python('B1', '=range(5)'),
+              python('C1', '=@B1'),
+              python('A1', '=[[1,2]]'),
               decouple(),
               // B should decouple and C1 should be a horizontal range now
-              expressionShouldBe('B1', '[[1,2]]'),
+              expressionShouldBe('B1', '=[[1,2]]'),
               expressionShouldBe('B2', '1'),
-              expressionShouldBe('C1', '@B1'),
-              expressionShouldBe('D1', '@B1'),
+              expressionShouldBe('C1', '=@B1'),
+              expressionShouldBe('D1', '=@B1'),
               exec(done)
             ]);
           });
 
           it ('should dereference if their reference is decoupled by small list', (done) => {
             _do([
-              python('A1', 'range(5)'),
-              python('B2', '@A3'),
-              python('A1', '[1,2]'),
+              python('A1', '=range(5)'),
+              python('B2', '=@A3'),
+              python('A1', '=[1,2]'),
               decouple(),
               shouldBeError('B2'), // an error should show up inside B2
               exec(done)
@@ -600,8 +596,8 @@ describe('backend', () => {
 
           it ('should be decoupled when referencing a list that got deleted', (done) => {
             _do([
-              python('A1', 'range(5)'),
-              python('B2', '@A1'),
+              python('A1', '=range(5)'),
+              python('B2', '=@A1'),
               delete_('A2'),
               decouple(),
               shouldBeDecoupled('B2'), // an error should show up inside B2
@@ -616,7 +612,7 @@ describe('backend', () => {
       describe('python', () => {
         it ('should evaluate at all', (done) => {
           _do([
-            python('A1', '1 + 1'),
+            python('A1', '=1 + 1'),
             shouldBe('A1', valueI(2)),
             exec(done)
           ]);
@@ -624,8 +620,8 @@ describe('backend', () => {
 
         it ('should evaluate two cells, dependent', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('A2', 'A1 + 1'),
+            python('A1', '=1 + 1'),
+            python('A2', '=A1 + 1'),
             shouldBe('A1', valueI(2)),
             shouldBe('A2', valueI(3)),
             exec(done)
@@ -634,7 +630,7 @@ describe('backend', () => {
 
         it ('should evaluate a range and expand it', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             _forM_(_.range(10), (i) => {
               return shouldBe(`A${i + 1}`, valueI(i));
             }),
@@ -644,8 +640,8 @@ describe('backend', () => {
 
         it ('should fail to evaluate a circular dependency', (done) => {
           _do([
-            python('A1', '1+1'),
-            python('B1', 'A1+1'),
+            python('A1', '=1+1'),
+            python('B1', '=A1+1'),
             shouldError(
               python('A1', 'B1')
             ),
@@ -656,11 +652,11 @@ describe('backend', () => {
 
         it ('should successfully update diamond dependencies', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', 'A1'),
-            python('A3', 'A1'),
-            python('A4', 'A2+A3'),
-            python('A1', '10'),
+            python('A1', '=1'),
+            python('A2', '=A1'),
+            python('A3', '=A1'),
+            python('A4', '=A2+A3'),
+            python('A1', '=10'),
             shouldBe('A4', valueI(20)),
             exec(done)
           ]);
@@ -668,10 +664,10 @@ describe('backend', () => {
 
         it ('should delete ancestors that are overwritten by ranges', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', 'A1'),
-            python('A1', 'range(10)'),
-            python('A1', '10'),
+            python('A1', '=1'),
+            python('A2', '=A1'),
+            python('A1', '=range(10)'),
+            python('A1', '=10'),
             decouple(),
             shouldBe('A1', valueI(10)),
             exec(done)
@@ -680,11 +676,11 @@ describe('backend', () => {
 
         it ('should not give a circular dependency in this contrived example', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', 'range(A1)'),
-            python('B2', 'A1'),
-            python('C1', 'B2'),
-            python('A1', '2'),
+            python('A1', '=1'),
+            python('B1', '=range(A1)'),
+            python('B2', '=A1'),
+            python('C1', '=B2'),
+            python('A1', '=2'),
             shouldBe('C1', valueI(1)),
             exec(done)
           ]);
@@ -692,7 +688,7 @@ describe('backend', () => {
 
         it ('should not give weird floating point rounding problems on parse', (done) => {
           _do([
-            python('A1', '0.07'),
+            python('A1', '=0.07'),
             shouldBeExact('A1', valueD(0.07)),
             exec(done)
           ]);
@@ -700,10 +696,10 @@ describe('backend', () => {
 
         it ('should rollback ancestors set in failed evals', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '=A1+A2'), // should fail and NOT save anything to graph db. (Until we make circular deps not failed evals in which case this must change again)
+            python('A1', '=1'),
+            python('A2', '==A1+A2'), // should fail and NOT save anything to graph db. (Until we make circular deps not failed evals in which case this must change again)
             excel('A3','=SUM(A2:A2)+1'), // should be 1
-            python('A1', 'A3+2'), // if something got saved to graph db, there should be a circular dep error
+            python('A1', '=A3+2'), // if something got saved to graph db, there should be a circular dep error
             shouldBe('A1', valueI(3)),
             exec(done)
           ]);
@@ -711,10 +707,10 @@ describe('backend', () => {
 
         it ('should correctly parse dependencies in graph-db', (done) => {
           _do([
-            python('A1', '1'),
-            python('A3', '"A1"'),
-            python('A2', '=A1+A2'), // should cause graph-db to recompute ancestors, which should NOT cause A3 to think it's a descendant of A1
-            python('A1', 'A3'),
+            python('A1', '=1'),
+            python('A3', '="A1"'),
+            python('A2', '==A1+A2'), // should cause graph-db to recompute ancestors, which should NOT cause A3 to think it's a descendant of A1
+            python('A1', '=A3'),
             shouldBe('A1', valueS('A1')),
             exec(done)
           ]);
@@ -722,10 +718,10 @@ describe('backend', () => {
 
         it ('should fail to evaluate a circular dependency arising from a range cell', (done) => {
           _do([
-            python('A5', '5'),
-            python('C5', 'A5 + 10'),
+            python('A5', '=5'),
+            python('C5', '=A5 + 10'),
             shouldError(
-              python('A1', 'range(C5, C5 + 10)')
+              python('A1', '=range(C5, C5 + 10)')
             ),
             exec(done)
           ]);
@@ -733,9 +729,9 @@ describe('backend', () => {
 
         it ('range dependencies get updated', (done) => {
           _do([
-            python('A1', 'range(2)'),
-            python('B2', 'A2 + 1'),
-            python('A1', 'range(4,6)'),
+            python('A1', '=range(2)'),
+            python('B2', '=A2 + 1'),
+            python('A1', '=range(4,6)'),
             shouldBe('B2', valueI(6)),
             exec(done)
           ]);
@@ -743,9 +739,9 @@ describe('backend', () => {
 
         it ('sophisticated range dependencies work as expected', (done) => {
           _do([
-            python('A1', 'range(102,110)'),
-            python('C3', 'range(A3, A3+3)'),
-            python('E3', 'range(A3, A3+4)'),
+            python('A1', '=range(102,110)'),
+            python('C3', '=range(A3, A3+3)'),
+            python('E3', '=range(A3, A3+4)'),
             shouldError(
               python('A1', 'range(C3,E5)')
             ),
@@ -755,7 +751,7 @@ describe('backend', () => {
 
         it ('should evaluate to an error when there is one', (done) => {
           _do([
-            python('A1', '1 + "a"'),
+            python('A1', '=1 + "a"'),
             shouldBeError('A1'),
             exec(done)
           ]);
@@ -763,8 +759,8 @@ describe('backend', () => {
 
         it ('should evaluate negative floats', (done) => {
           _do([
-            python('A1', '-1.5'),
-            python('A2', 'A1+3'),
+            python('A1', '=-1.5'),
+            python('A2', '=A1+3'),
             shouldBe('A2', valueD(1.5)),
             exec(done)
           ]);
@@ -772,9 +768,9 @@ describe('backend', () => {
 
         it ('should reference ancestors of dependencies introduced by list cells in round 2 evals', (done) => {
           _do([
-            python('B3', '5'),
+            python('B3', '=5'),
             excel('C3', '=SUM(A3:B3)'),
-            python('A1', 'range(3)'),
+            python('A1', '=range(3)'),
             shouldBe('C3', valueI(7)),
             exec(done)
           ]);
@@ -782,7 +778,7 @@ describe('backend', () => {
 
         it ('should evaluate None correctly', (done) => {
           _do([
-            python('A1', 'None'),
+            python('A1', '=None'),
             shouldBe('A1', noValue()),
             exec(done)
           ]);
@@ -790,9 +786,9 @@ describe('backend', () => {
 
         xit ('plots shit', (done) => {
           _do([
-            python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3])'),
+            python('A1', '=import matplotlib.pyplot as plt; plt.plot([1,2,3])'),
             shouldBeImage('A1'),
-            python('A1', 'import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.show()'),
+            python('A1', '=import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.show()'),
             shouldBeImage('A1'),
             exec(done)
           ]);
@@ -802,9 +798,9 @@ describe('backend', () => {
 
           it ('should not allow IPython magics', (done) => {
             _do([
-              python('A1', '%cd'),
-              python('A2', '%config'),
-              python('A3', '%magicthatdoesnotexist'),
+              python('A1', '=%cd'),
+              python('A2', '=%config'),
+              python('A3', '=%magicthatdoesnotexist'),
               shouldBeError('A1'),
               shouldBeError('A2'),
               shouldBeError('A3'),
@@ -814,8 +810,8 @@ describe('backend', () => {
 
           xit ('should not allow IPython commands', (done) => {
             _do([
-              python('A1', '!(pip install fuzzywuzzy)'),
-              python('A2', '!(ls)'),
+              python('A1', '=!(pip install fuzzywuzzy)'),
+              python('A2', '=!(ls)'),
               shouldBeError('A1'),
               shouldBeError('A2'),
               exec(done)
@@ -828,8 +824,8 @@ describe('backend', () => {
           describe('1D ranges', () => {
             it ('should act like lists when vertical', (done) => {
               _do([
-                python('A1', 'range(10)'),
-                python('B1', '[x ** 2 for x in A1:A10]'),
+                python('A1', '=range(10)'),
+                python('B1', '=[x ** 2 for x in A1:A10]'),
                 shouldBe('B3', valueI(4)),
 
                 exec(done)
@@ -838,8 +834,8 @@ describe('backend', () => {
 
             it ('should work with setting values when vertical', (done) => {
               _do([
-                python('A1', 'range(10)'),
-                python('B1', 'x=A1:A10;x[1]=15;x'),
+                python('A1', '=range(10)'),
+                python('B1', '=x=A1:A10;x[1]=15;x'),
                 shouldBe('B2', valueI(15)),
 
                 exec(done)
@@ -848,8 +844,8 @@ describe('backend', () => {
 
             it ('should act like lists when horizontal', (done) => {
               _do([
-                python('A1', '[range(10)]'),
-                python('A2', '[[x ** 2 for x in A1:J1]]'),
+                python('A1', '=[range(10)]'),
+                python('A2', '=[[x ** 2 for x in A1:J1]]'),
                 shouldBe('C2', valueI(4)),
 
                 exec(done)
@@ -858,8 +854,8 @@ describe('backend', () => {
 
             it ('should work with setting values when horizontal', (done) => {
               _do([
-                python('A1', '[range(10)]'),
-                python('A2', 'x=A1:J1;x[1]=15;x'),
+                python('A1', '=[range(10)]'),
+                python('A2', '=x=A1:J1;x[1]=15;x'),
                 shouldBe('B2', valueI(15)),
 
                 exec(done)
@@ -868,9 +864,9 @@ describe('backend', () => {
 
             it ('initialized to strings works', (done) => {
               _do([
-                python('A1', '"Hey"'),
-                python('A2', '"There"'),
-                python('C1', '[len(x) for x in A1:A2]'),
+                python('A1', '="Hey"'),
+                python('A2', '="There"'),
+                python('C1', '=[len(x) for x in A1:A2]'),
                 shouldBe('C2', valueI(5)),
                 exec(done)
               ]);
@@ -878,10 +874,10 @@ describe('backend', () => {
 
             it ('should update when an ancestor updates', (done) => {
               _do([
-                python('A1', '1'),
-                python('A2', '2'),
-                python('B1', 'A1:A2'),
-                python('A2', '3'),
+                python('A1', '=1'),
+                python('A2', '=2'),
+                python('B1', '=A1:A2'),
+                python('A2', '=3'),
                 shouldBe('B2', valueI(3)),
                 exec(done)
               ]);
@@ -893,8 +889,8 @@ describe('backend', () => {
           describe('2D ranges', () => {
             it ('can be accesed like 2D lists', (done) => {
               _do([
-                python('B2', '5'),
-                python('A1', 'B1:D4[1][0]'),
+                python('B2', '=5'),
+                python('A1', '=B1:D4[1][0]'),
                 shouldBe('A1', valueI(5)),
                 exec(done)
               ]);
@@ -902,11 +898,11 @@ describe('backend', () => {
 
             it ('can be iterated over like 2D lists', (done) => {
               _do([
-                python('A1', '5'),
-                python('A2', '6'),
-                python('B1', '7'),
-                python('B2', '8'),
-                python('C1', '[[x ** 2 for x in y] for y in A1:B2]'),
+                python('A1', '=5'),
+                python('A2', '=6'),
+                python('B1', '=7'),
+                python('B2', '=8'),
+                python('C1', '=[[x ** 2 for x in y] for y in A1:B2]'),
                 shouldBe('D2', valueI(64)),
                 exec(done)
               ]);
@@ -914,11 +910,11 @@ describe('backend', () => {
 
             it ('cannot be summed over with sum', (done) => {
               _do([
-                python('A1', '5'),
-                python('A2', '6'),
-                python('B1', '7'),
-                python('B2', '8'),
-                python('C1', 'sum(A1:B2)'),
+                python('A1', '=5'),
+                python('A2', '=6'),
+                python('B1', '=7'),
+                python('B2', '=8'),
+                python('C1', '=sum(A1:B2)'),
                 shouldBeError('C1'),
                 exec(done)
               ]);
@@ -926,12 +922,12 @@ describe('backend', () => {
 
             it ('should work with setting rows', (done) => {
               _do([
-                python('A1', '5'),
-                python('A2', '6'),
-                python('B1', '7'),
-                python('B2', '8'),
+                python('A1', '=5'),
+                python('A2', '=6'),
+                python('B1', '=7'),
+                python('B2', '=8'),
 
-                python('C1', 'x=A1:B2;x[1]=[13,14];x'),
+                python('C1', '=x=A1:B2;x[1]=[13,14];x'),
                 shouldBe('C2', valueI(13)),
                 shouldBe('D2', valueI(14)),
 
@@ -942,12 +938,12 @@ describe('backend', () => {
             // does not yet work
             xit ('should work with setting values directly', (done) => {
               _do([
-                python('A1', '5'),
-                python('A2', '6'),
-                python('B1', '7'),
-                python('B2', '8'),
+                python('A1', '=5'),
+                python('A2', '=6'),
+                python('B1', '=7'),
+                python('B2', '=8'),
 
-                python('C1', 'x=A1:B2;x[0][0]=15;x'),
+                python('C1', '=x=A1:B2;x[0][0]=15;x'),
                 shouldBe('C1', valueI(15)),
 
                 exec(done)
@@ -956,11 +952,11 @@ describe('backend', () => {
 
             it ('can be initialized to strings', (done) => {
               _do([
-                python('A1', '"Hey"'),
-                python('A2', '"There"'),
-                python('B1', '"Pretty"'),
-                python('B2', '"Boy"'),
-                python('C1', '[len(x[1]) for x in A1:B2]'),
+                python('A1', '="Hey"'),
+                python('A2', '="There"'),
+                python('B1', '="Pretty"'),
+                python('B2', '="Boy"'),
+                python('C1', '=[len(x[1]) for x in A1:B2]'),
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
@@ -968,10 +964,10 @@ describe('backend', () => {
 
             it ('should update A1:B2 when an ancestor updates', (done) => {
               _do([
-                python('A1', '1'),
-                python('B2', '2'),
-                python('C1', 'A1:B2'),
-                python('A2', '3'),
+                python('A1', '=1'),
+                python('B2', '=2'),
+                python('C1', '=A1:B2'),
+                python('A2', '=3'),
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
@@ -979,10 +975,10 @@ describe('backend', () => {
 
             it ('should update B1:A2 when an ancestor updates', (done) => {
               _do([
-                python('A1', '1'),
-                python('B2', '2'),
-                python('C1', 'B1:A2'),
-                python('A2', '3'),
+                python('A1', '=1'),
+                python('B2', '=2'),
+                python('C1', '=B1:A2'),
+                python('A2', '=3'),
                 shouldBe('C2', valueI(3)),
                 exec(done)
               ]);
@@ -991,9 +987,9 @@ describe('backend', () => {
             it ('preserves the types of inputs passed in', (done) => {
               _do([
                 python('A1', '1'),
-                python('A2', '"cat"'),
-                python('B1', 'A1:A2'),
-                python('C1', 'B1+1'),
+                python('A2', 'cat'),
+                python('B1', '=A1:A2'),
+                python('C1', '=B1+1'),
                 shouldBe('C1', valueI(2)),
                 exec(done)
               ]);
@@ -1003,8 +999,8 @@ describe('backend', () => {
           describe('ASIterables initialization', () => {
             it ('works over 1D lists', (done) => {
               _do([
-                python('A1', 'arr([1, 2, 3])'),
-                python('A2', 'A1:A3[1]'),
+                python('A1', '=arr([1, 2, 3])'),
+                python('A2', '=A1:A3[1]'),
                 shouldBe('A2', valueI(2)),
                 exec(done)
               ]);
@@ -1012,8 +1008,8 @@ describe('backend', () => {
 
             it ('works over 1D lists of strings', (done) => {
               _do([
-                python('A1', 'arr(["howdy", "there", "pardner"])'),
-                python('A2', 'A1:A3[1]'),
+                python('A1', '=arr(["howdy", "there", "pardner"])'),
+                python('A2', '=A1:A3[1]'),
                 shouldBe('A2', valueS("there")),
                 exec(done)
               ]);
@@ -1022,8 +1018,8 @@ describe('backend', () => {
             // code like [[1, 2], [3]] results in PasreError... (--Alex 2/28)
             it ('works over 2D lists', (done) => {
               _do([
-                python('A1', 'arr([[1, 2], [3, None]])'),
-                python('A2', 'A1:A3[1]'),
+                python('A1', '=arr([[1, 2], [3, None]])'),
+                python('A2', '=A1:A3[1]'),
                 shouldBe('A2', valueI(3)),
                 exec(done)
               ]);
@@ -1031,8 +1027,8 @@ describe('backend', () => {
 
             it ('works over 1D lists of strings', (done) => {
               _do([
-                python('A1', 'arr(["howdy", "there", "pardner"])'),
-                python('B1', 'A1:A3[1]'),
+                python('A1', '=arr(["howdy", "there", "pardner"])'),
+                python('B1', '=A1:A3[1]'),
                 shouldBe('B1', valueS("there")),
                 exec(done)
               ]);
@@ -1040,8 +1036,8 @@ describe('backend', () => {
 
             it ('works over 2D lists of strings', (done) => {
               _do([
-                python('A1', 'arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
-                python('D1', 'A1:B2[1][0]'),
+                python('A1', '=arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
+                python('D1', '=A1:B2[1][0]'),
                 shouldBe('D1', valueS("how")),
                 exec(done)
               ]);
@@ -1049,8 +1045,8 @@ describe('backend', () => {
 
             it ('works over numpy arrays', (done) => {
               _do([
-                python('A1', 'import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
-                python('C1', 'A1:B2[1][0]'),
+                python('A1', '=import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
+                python('C1', '=A1:B2[1][0]'),
                 shouldBe('C1', valueI(3)),
                 exec(done)
               ]);
@@ -1059,8 +1055,8 @@ describe('backend', () => {
             // code like [[[1], [2]], [3, 4]] results in PasreError... (--Alex 2/28)
             xit ('works over ASIterables', (done) => {
               _do([
-                python('A1', 'arr([arr([1,2]),[3,4]])'),
-                python('C1', 'A1:B2[1][0]'),
+                python('A1', '=arr([arr([1,2]),[3,4]])'),
+                python('C1', '=A1:B2[1][0]'),
                 shouldBe('C1', valueI(3)),
                 exec(done)
               ]);
@@ -1068,7 +1064,7 @@ describe('backend', () => {
 
             it ('fails over a 3D list', (done) => {
               _do([
-                python('A1', 'arr([[[[1]]]])'),
+                python('A1', '=arr([[[[1]]]])'),
                 shouldBeError('A1'),
                 exec(done)
               ]);
@@ -1079,9 +1075,9 @@ describe('backend', () => {
             it ('can be hidden and unhidden', (done) => {
               _do([
                 python('A1', '5'), python('A2', '6'), python('A3', '7'),
-                python('B1', 'hide(A1:A3)'),
+                python('B1', '=hide(A1:A3)'),
                 shouldBeNothing('B2'),
-                python('C1', 'unhide(B1)'),
+                python('C1', '=unhide(B1)'),
                 shouldBe('C2', valueI(6)),
                 exec(done)
               ]);
@@ -1089,9 +1085,9 @@ describe('backend', () => {
 
             it ('preserves dimensions upon hiding and unhiding', (done) => {
               _do([
-                python('A1', 'hide([[1,2]])'),
-                python('A2', 'A1.unhide()'),
-                python('A3', 'unhide(A1)'),
+                python('A1', '=hide([[1,2]])'),
+                python('A2', '=A1.unhide()'),
+                python('A3', '=unhide(A1)'),
                 shouldBe('B2', valueI(2)),
                 shouldBe('B3', valueI(2)),
                 exec(done)
@@ -1102,8 +1098,8 @@ describe('backend', () => {
           describe('Misc perks', () => {
             it ('can be transposed', (done) => {
               _do([
-                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '8'),
-                python('C1', 'A1:B2.transpose()'),
+                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '=8'),
+                python('C1', '=A1:B2.transpose()'),
                 shouldBe('D1', valueI(6)),
                 exec(done)
               ]);
@@ -1111,8 +1107,8 @@ describe('backend', () => {
 
             it ('can be appended as a 2D list', (done) => {
               _do([
-                python('A1', '[[1,2],[3,4]]'),
-                python('A3', 'l = A1:B2\nl.append([5,6])\nl'),
+                python('A1', '=[[1,2],[3,4]]'),
+                python('A3', '=l = A1:B2\nl.append([5,6])\nl'),
                 shouldBe('B5', valueI(6)),
                 exec(done)
               ]);
@@ -1131,7 +1127,7 @@ describe('backend', () => {
           _do([
             excel('A1', 'hello'),
             excel('B1', 'world'),
-            python('A2', '[[x+2*y for x in range(2)] for y in range(5)]'),
+            python('A2', '=[[x+2*y for x in range(2)] for y in range(5)]'),
             sql('D1', 'SELECT hello from A1:B6 LIMIT 4'),
             shouldBe('E1', valueS('hello')),
             shouldBe('E2', valueI(0)),
@@ -1147,7 +1143,7 @@ describe('backend', () => {
       describe('r', () => {
         it ('should evaluate at all', (done) => {
           _do([
-            r('A1', '1 + 1'),
+            r('A1', '=1 + 1'),
             shouldBe('A1', valueI(2)),
             exec(done)
           ]);
@@ -1155,7 +1151,7 @@ describe('backend', () => {
 
         it ('should evaluate a range and expand it', (done) => {
           _do([
-            r('A1', '1:10'),
+            r('A1', '=1:10'),
             _forM_(_.range(10), (i) => {
               return shouldBe(`A${i + 1}`, valueI(i + 1));
             }),
@@ -1165,7 +1161,7 @@ describe('backend', () => {
 
         it ('should evaluate a double', (done) => {
           _do([
-            r('A1', '1.23'),
+            r('A1', '=1.23'),
             shouldBe('A1', valueD(1.23)),
             exec(done)
           ]);
@@ -1173,8 +1169,8 @@ describe('backend', () => {
 
         it ('should evaluate lists correctly', (done) => {
           _do([
-            r('A1', 'list(a=1,b=2)'),
-            r('C1', '@A1$a'),
+            r('A1', '=list(a=1,b=2)'),
+            r('C1', '=@A1$a'),
             shouldBe('C1', valueI(1)),
             exec(done)
           ]);
@@ -1182,7 +1178,7 @@ describe('backend', () => {
 
         xit ('should evaluate a symbol correctly', (done) => {
           _do([
-            r('A1', 'as.symbol(123)'),
+            r('A1', '=as.symbol(123)'),
             shouldBe('A1', valueS('123')),
             exec(done)
           ]);
@@ -1190,10 +1186,10 @@ describe('backend', () => {
 
         it ('should evaluate list dependencies', (done) => {
           _do([
-            r('A1', 'c(1,2,3,4)'),
-            r('B1', 'typeof(A4)'),
+            r('A1', '=c(1,2,3,4)'),
+            r('B1', '=typeof(A4)'),
             shouldBe('B1', valueS('double')),
-            r('A1', 'c("a","b","c","d")'),
+            r('A1', '=c("a","b","c","d")'),
             shouldBe('B1', valueS('character')),
             exec(done)
           ]);
@@ -1201,9 +1197,9 @@ describe('backend', () => {
 
         it ('plots shit', (done) => {
           _do([
-            r('A1','qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
-            r('A2', 'hist(table(iris$Species))'),
-            r('A3', 'pie(table(iris$Species))'),
+            r('A1','=qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),
+            r('A2', '=hist(table(iris$Species))'),
+            r('A3', '=pie(table(iris$Species))'),
             shouldBeImage('A1'),
             shouldBeImage('A2'),
             shouldBeImage('A3'),
@@ -1213,10 +1209,10 @@ describe('backend', () => {
 
         it ('creates matrices', (done) => {
           _do([
-            r('A1', 'matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
+            r('A1', '=matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
             shouldBe('A3', valueI(3)),
             shouldBe('B3', valueI(6)),
-            r('C1', '@A1'),
+            r('C1', '=@A1'),
             shouldBe('C3', valueI(3)),
             shouldBe('D3', valueI(6)),
             exec(done)
@@ -1225,11 +1221,11 @@ describe('backend', () => {
 
         it('exchanges matrices with python correctly', (done) => {
           _do([
-            r('A1', 'matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
-            python('C1', '@A1'),
+            r('A1', '=matrix(c(1,2,3,4,5,6), nrow=3, ncol=2)'),
+            python('C1', '=@A1'),
             shouldBe('C3', valueI(3)),
             shouldBe('D3', valueI(6)),
-            r('E1', '@C1'),
+            r('E1', '=@C1'),
             shouldBe('E3', valueI(3)),
             shouldBe('F3', valueI(6)),
             exec(done)
@@ -1238,9 +1234,9 @@ describe('backend', () => {
 
         it('multiples with python matrices', (done) => {
           _do([
-            python('A1', 'np.matrix([[1,2],[3,4]])'),
-            r('C1', 'matrix(c(1,2,3,4), nrow=2, ncol=2)'),
-            python('A3', '@A1.dot(@C1)'),
+            python('A1', '=np.matrix([[1,2],[3,4]])'),
+            r('C1', '=matrix(c(1,2,3,4), nrow=2, ncol=2)'),
+            python('A3', '=@A1.dot(@C1)'),
             shouldBe('A3', valueI(5)),
             shouldBe('B3', valueI(11)),
             shouldBe('A4', valueI(11)),
@@ -1323,7 +1319,7 @@ describe('backend', () => {
           _do([
               excel('A1', '=RAND()'),
               excel('B1', '=RAND()'),
-              python('A2', '0 <= A1 <= 1 and 0 <= B1 <= 1 and A1 != B1'),
+              python('A2', '=0 <= A1 <= 1 and 0 <= B1 <= 1 and A1 != B1'),
               shouldBe('A2', valueB(true)),
               exec(done)
           ]);
@@ -1362,7 +1358,7 @@ describe('backend', () => {
       describe('excel', () => {
         it ('should evaluate sums', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             excel('B1', '=A1+A2'),
             shouldBe('B1', valueI(1)),
             exec(done)
@@ -1371,7 +1367,7 @@ describe('backend', () => {
 
         it ('should treat blanks as zeroes for arithmetic operations', (done) => {
           _do([
-            python('A1', '5'),
+            python('A1', '=5'),
             excel('B1', '=A2+A3'),
             shouldBe('B1', valueI(0)),
 
@@ -1426,7 +1422,7 @@ describe('backend', () => {
 
         it ('should expand ranges properly', (done) => {
           _do([
-              python('A1', '[[x+2*y for x in range(2)] for y in range(2)]'),
+              python('A1', '=[[x+2*y for x in range(2)] for y in range(2)]'),
               excel('C1', '=A1:B2'),
               shouldBe('C1', valueI(0)),
               shouldBe('D1', valueI(1)),
@@ -1474,7 +1470,7 @@ describe('backend', () => {
         describe('abs', () => {
           it ('should evaluate', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               excel('B1', '=abs(A2)'),
               shouldBe('B1', valueI(1)),
               exec(done)
@@ -1483,7 +1479,7 @@ describe('backend', () => {
 
           it ('should scalarize', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               excel('B1', '=abs(A$1:A$10)'),
               copy('B1', 'B2:B10'),
               shouldBeL(
@@ -1498,7 +1494,7 @@ describe('backend', () => {
         describe('equals', () => {
           it ('should eval 1=1', (done) => {
             _do([
-              python('A1', '1'),
+              python('A1', '=1'),
               excel('B1', '=A1=1'),
               shouldBe('B1', valueB(true)),
               exec(done)
@@ -1507,7 +1503,7 @@ describe('backend', () => {
 
           it ('should array-ize', (done) => {
             _do([
-              python('A1', 'range(2)'),
+              python('A1', '=range(2)'),
               excel('B1', '{=A1:A2=1}'),
               shouldBeL(['B1', 'B2'], [false, true].map(valueB)),
               exec(done)
@@ -1518,7 +1514,7 @@ describe('backend', () => {
         describe('exponentiation', () => {
           it ('should evaluate integer exponentiation', (done) => {
             _do([
-              python('A1', '10'),
+              python('A1', '=10'),
               excel('B1', '=A1^2'),
               shouldBe('B1', valueI(100)),
               exec(done)
@@ -1527,7 +1523,7 @@ describe('backend', () => {
 
           it ('should not raise 0 to the 0', (done) => {
             _do([
-              python('A1', '0'),
+              python('A1', '=0'),
               excel('B1', '=A1^0'),
               shouldBeError('B1'),
               exec(done)
@@ -1583,8 +1579,8 @@ describe('backend', () => {
           // TODO: Activate the expressions shouldBe in the F:J.
           it ('should display A:A properly', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A:A'),
               shouldBe('B1', valueI(0)),
               shouldBe('B10', valueI(9)),
               exec(done)
@@ -1592,8 +1588,8 @@ describe('backend', () => {
           });
           it ('should display A2:A properly', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A2:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A2:A'),
               shouldBe('B1', valueI(1)),
               shouldBe('B4', valueI(4)),
               shouldBe('B9', valueI(9)),
@@ -1603,8 +1599,8 @@ describe('backend', () => {
           });
           it ('should display B2:B properly', (done) => {
             _do([
-              python('B1', 'range(10)'),
-              python('A1', 'B2:B'),
+              python('B1', '=range(10)'),
+              python('A1', '=B2:B'),
               shouldBe('A1', valueI(1)),
               shouldBe('A4', valueI(4)),
               shouldBeNothing('A10'),
@@ -1613,8 +1609,8 @@ describe('backend', () => {
           });
           it ('should display F1:J properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'F1:J'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=F1:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('B1', valueI(2)),
               shouldBe('E1', valueI(8)),
@@ -1629,8 +1625,8 @@ describe('backend', () => {
           });
           it ('should display J1:F properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J1:F'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=J1:F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1646,8 +1642,8 @@ describe('backend', () => {
           // TODO: timchu, current prasing requires the number to be in the first item.
           it ('should display J:F1 properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J:F1'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=J:F1'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1662,8 +1658,8 @@ describe('backend', () => {
           });
           it ('should display F:J properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'F:J'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=F:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1678,8 +1674,8 @@ describe('backend', () => {
           });
           it ('should display J:F properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J:F'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=J:F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1694,8 +1690,8 @@ describe('backend', () => {
           });
           it ('should display $F:J properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', '$F:J'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=$F:J'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1710,8 +1706,8 @@ describe('backend', () => {
           });
           it ('should display J:$F properly', (done) => {
             _do([
-              python('F1', '[[2*x + y for x in range(5)] for y in range(5)]'),
-              python('A1', 'J:$F'),
+              python('F1', '=[[2*x + y for x in range(5)] for y in range(5)]'),
+              python('A1', '=J:$F'),
               shouldBe('A1', valueI(0)),
               shouldBe('A2', valueI(1)),
               shouldBe('A3', valueI(2)),
@@ -1739,8 +1735,8 @@ describe('backend', () => {
           // TODO: timchu, right now an empty range displays as a range of one cell with value NoValue.
           it ('should display an empty A:A as a range with one cell of value NoValue', (done) => {
             _do([
-              python('A1', '10'),
-              python('B1', 'A2:A'),
+              python('A1', '=10'),
+              python('B1', '=A2:A'),
               shouldBe('B1', noValue()),
               shouldBeNothing('B2'),
               shouldBeNothing('A2'),
@@ -1749,7 +1745,7 @@ describe('backend', () => {
           });
           it ('should display an empty A:B as a single row of length 2 with NoValue in each cell.', (done) => {
             _do([
-              python('C1', 'A:B'),
+              python('C1', '=A:B'),
               shouldBe('C1', noValue()),
               shouldBe('D1', noValue()),
               shouldBeNothing('A1'),
@@ -1761,8 +1757,8 @@ describe('backend', () => {
           });
           xit ('should display 1:1 properly', (done) => {
             _do([
-              python('A1', '[range(10)]'),
-              python('B1', '1:1'),
+              python('A1', '=[range(10)]'),
+              python('B1', '=1:1'),
               shouldBe('B1', valueI(0)),
               shouldBe('B2', noValue()),
               exec(done)
@@ -1771,12 +1767,12 @@ describe('backend', () => {
         });
         it ('should change A:A when an item in column A changes', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
-            python('B1', 'A1:A'),
+            python('A1', '=1'),
+            python('A2', '=2'),
+            python('B1', '=A1:A'),
             shouldBe('B1', valueI(1)),
             shouldBe('B2', valueI(2)),
-            python('A1', '0'),
+            python('A1', '=0'),
             shouldBe('B1', valueI(0)),
             shouldBe('B2', valueI(2)),
             exec(done)
@@ -1784,15 +1780,15 @@ describe('backend', () => {
         });
         it ('should update SUM(A:A) in Excel when column A changes', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             excel('B1', '=SUM(A:A)'),
             shouldBe('B1', valueI(3)),
-            python('A4', '5'),
+            python('A4', '=5'),
             shouldBe('B1', valueI(8)),
             excel('A1', '0'),
             shouldBe('B1', valueI(7)),
-            python('A5', 'range(10)'),
+            python('A5', '=range(10)'),
             shouldBe('B1', valueI(52)),
             delete_('A2'),
             shouldBe('B1', valueI(50)),
@@ -1801,9 +1797,9 @@ describe('backend', () => {
         });
         it ('should expand A2:A when a the column size of A increases.', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A2:A'),
-            python('A20', '0'),
+            python('A1', '=range(10)'),
+            python('B1', '=A2:A'),
+            python('A20', '=0'),
             shouldBe('B1', valueI(1)),
             shouldBe('B4', valueI(4)),
             shouldBe('B9', valueI(9)),
@@ -1813,15 +1809,15 @@ describe('backend', () => {
         });
         it ('should expand A:B when a the column size of A or B increases.', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '1'),
-            python('C1', 'A:B'),
-            python('A3', '3'),
+            python('A1', '=1'),
+            python('B1', '=1'),
+            python('C1', '=A:B'),
+            python('A3', '=3'),
             shouldBe('C3', valueI(3)),
             shouldBe('D3', noValue()),
             shouldBeNothing('C5'),
             shouldBeNothing('D5'),
-            python('B5', '5'),
+            python('B5', '=5'),
             shouldBe('C5', noValue()),
             shouldBe('D5', valueI(5)),
             exec(done)
@@ -1829,15 +1825,15 @@ describe('backend', () => {
         });
         it ('should expand B:A when a the column size of A or B increases.', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '1'),
-            python('C1', 'B:A'),
-            python('A3', '3'),
+            python('A1', '=1'),
+            python('B1', '=1'),
+            python('C1', '=B:A'),
+            python('A3', '=3'),
             shouldBe('C3', valueI(3)),
             shouldBe('D3', noValue()),
             shouldBeNothing('C5'),
             shouldBeNothing('D5'),
-            python('B5', '5'),
+            python('B5', '=5'),
             shouldBe('C5', noValue()),
             shouldBe('D5', valueI(5)),
             exec(done)
@@ -1845,10 +1841,10 @@ describe('backend', () => {
         });
         it ('should contract A2:A when a the column size of A decreases.', (done) => {
           _do([
-            python('A1', '1'),
-            python('A3', '3'),
-            python('A5', '5'),
-            python ('B1', 'A1:A'),
+            python('A1', '=1'),
+            python('A3', '=3'),
+            python('A5', '=5'),
+            python ('B1', '=A1:A'),
             delete_('A5'),
             delete_('A1'),
             shouldBe('B1', noValue()),
@@ -1862,10 +1858,10 @@ describe('backend', () => {
         // TODO: timchu, bug: can't delete last item in column.
         it ('should collapse B1=A:A into a one-item cell with value NoValue when the last element in A:A is deleted', (done) => {
           _do([
-            python('A1', '1'),
-            python('A3', '3'),
-            python('A5', '5'),
-            python ('B1', 'A1:A'),
+            python('A1', '=1'),
+            python('A3', '=3'),
+            python('A5', '=5'),
+            python ('B1', '=A1:A'),
             delete_('A1'),
             delete_('A3'),
             delete_('A5'),
@@ -1881,11 +1877,11 @@ describe('backend', () => {
         // TODO: timchu, this test is NOT stupid! rangekeys are also not created on A:A
         xit ('should display A:A when a range in A is decoupled', (done) => {
           _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A:A'),
-              python('A1', '-100'),
+              python('A1', '=range(10)'),
+              python('B1', '=A:A'),
+              python('A1', '=-100'),
               decouple(),
-              python('A12', '100'),
+              python('A12', '=100'),
               shouldBe('B1', valueI(-100)),
               shouldBe('B2', valueI(1)),
               shouldBe('A12', valueI(100)),
@@ -1894,11 +1890,11 @@ describe('backend', () => {
         });
         it ('should decouple B1=A1:A upon insert of item into B1', (done) => {
           _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A1:A'),
-              python('B1', '3'),
+              python('A1', '=range(10)'),
+              python('B1', '=A1:A'),
+              python('B1', '=3'),
               decouple(),
-              python('A12', '100'),
+              python('A12', '=100'),
               shouldBe('B1', valueI(3)),
               shouldBe('B4', valueI(3)),
               shouldBe('B10', valueI(9)),
@@ -1907,7 +1903,7 @@ describe('backend', () => {
               shouldBeNothing('B12'),
 
               // B2 should no longer update on change in A2.
-              python('A2', '100'),
+              python('A2', '=100'),
               decouple(),
               shouldBe('B2', valueI(1)),
               shouldBe('A2', valueI(100)),
@@ -1922,8 +1918,8 @@ describe('backend', () => {
         });
         it ('should expand B1 if B1=A1:A when A is empty, and then an item is added to element A.', (done) => {
           _do([
-            python('B1', 'A1:A'),
-            python('A2', '1'),
+            python('B1', '=A1:A'),
+            python('A2', '=1'),
             shouldBe('A2', valueI(1)),
             shouldBe('B2', valueI(1)),
             shouldBeNothing('A1'),
@@ -1936,8 +1932,8 @@ describe('backend', () => {
         describe('Copy Cut and Paste in A:A', () => {
           it ('should copy/paste A1:A expressions', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A2:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A2:A'),
               copy('B1', 'C2'),
               shouldBe('C2', valueI(3)),
               shouldBe('C8', valueI(9)),
@@ -1947,8 +1943,8 @@ describe('backend', () => {
           });
           it ('should copy/paste A1:A expressions and respect absolute references', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', '$A$2:$A'),
+              python('A1', '=range(10)'),
+              python('B1', '=$A$2:$A'),
               copy('B1', 'D11'),
               shouldBe('D11', valueI(1)),
               shouldBe('D19', valueI(9)),
@@ -1958,8 +1954,8 @@ describe('backend', () => {
           });
           it ('should treat A:A like A$1:A during copy and paste', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A:A'),
               copy('B1', 'B11'),
               shouldBe('B11', valueI(0)),
               shouldBe('B20', valueI(9)),
@@ -1968,8 +1964,8 @@ describe('backend', () => {
           });
           it ('should cut/paste A1:A expressions without shifting references', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A1:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A1:A'),
               cut('B1:B10', 'C2'),
               shouldBe('C2', valueI(0)),
               shouldBe('C3', valueI(1)),
@@ -1982,8 +1978,8 @@ describe('backend', () => {
           });
           it ('Absolute and relative expressions should shift on copy paste of A:A', (done) => {
             _do([
-              python('A1', '1'),
-              python('C1', 'A:$A'),
+              python('A1', '=1'),
+              python('C1', '=A:$A'),
               copy('C1', 'D1'),
               // TODO: timchu, the below should work.
               //expressionShouldBe('C1', "$A:B"),
@@ -1994,8 +1990,8 @@ describe('backend', () => {
         describe('Undo and Redo in A:A', () => {
           it ('should undo creation of A1:A', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A1:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A1:A'),
               undo(),
               shouldBeNothing('B1'),
               shouldBeNothing('B4'),
@@ -2006,10 +2002,10 @@ describe('backend', () => {
           });
           it ('should undo change in A on A1:A', (done) => {
             _do([
-              python('A1', '1'),
-              python('A2', '2'),
-              python('B1', 'A1:A'),
-              python('A3', '3'),
+              python('A1', '=1'),
+              python('A2', '=2'),
+              python('B1', '=A1:A'),
+              python('A3', '=3'),
               undo(),
               shouldBe('A1', valueI(1)),
               shouldBe('B1', valueI(1)),
@@ -2022,8 +2018,8 @@ describe('backend', () => {
           });
           it ('should redo properly after undo creation of A1:A', (done) => {
             _do([
-              python('A1', 'range(10)'),
-              python('B1', 'A1:A'),
+              python('A1', '=range(10)'),
+              python('B1', '=A1:A'),
               undo(),
               redo(),
               shouldBe('B1', valueI(0)),
@@ -2035,10 +2031,10 @@ describe('backend', () => {
           });
           it ('should redo change in A on A1:A', (done) => {
             _do([
-              python('A1', '1'),
-              python('A2', '2'),
-              python('B1', 'A1:A'),
-              python('A3', '3'),
+              python('A1', '=1'),
+              python('A2', '=2'),
+              python('B1', '=A1:A'),
+              python('A3', '=3'),
               undo(),
               redo(),
               shouldBe('A1', valueI(1)),
@@ -2084,17 +2080,17 @@ describe('backend', () => {
               shouldError(
                 python('A5', 'A:A')
               ),
-              python('A1', '1'),
-              python('A2', '2'),
-              python('A3', '3'),
-              python('B1', 'A2:A'),
+              python('A1', '=1'),
+              python('A2', '=2'),
+              python('A3', '=3'),
+              python('B1', '=A2:A'),
               shouldError(
                 python('A5', 'B2')
               ),
-              python('A1', 'B2'),
+              python('A1', '=B2'),
               shouldBe('A1', valueI(3)),
               delete_('A3'),
-              python('A5', 'B2'),
+              python('A5', '=B2'),
               shouldBe('A5', noValue()),
               exec(done)
             ]);
@@ -2106,7 +2102,7 @@ describe('backend', () => {
         describe('row insertion', () => {
           it ('should move cells to correct locations', (done) => {
             _do([
-              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              python('A1', '10'), python('A2', '11'), python('A3', '=12'),
               insertRow(2),
               shouldBe('A1', valueI(10)),
               shouldBeNothing('A2'),
@@ -2118,7 +2114,7 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              python('A1', '10'), python('A2', '=A1+1'), python('A3', '=A2+1'), python('A4', '=A3+1'),
               insertRow(2),
               shouldBe('A3', valueI(11)),
               shouldBe('A4', valueI(12)),
@@ -2129,7 +2125,7 @@ describe('backend', () => {
 
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               excel('A2', '=SUM(A1:J1)'),
               insertRow(1),
               shouldBe('A3', valueI(45)),
@@ -2139,7 +2135,7 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               insertRow(3),
               decouple(),
               shouldBe('A1', valueI(0)),
@@ -2153,7 +2149,7 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               insertRow(1),
               shouldBeNothing('A1'),
               shouldBe('A2', valueI(0)),
@@ -2166,7 +2162,7 @@ describe('backend', () => {
         describe('row deletion', () => {
           it ('should move cells to correct locations', (done) => {
             _do([
-              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              python('A1', '10'), python('A2', '11'), python('A3', '=12'),
               deleteRow(2),
               shouldBe('A1', valueI(10)),
               shouldBe('A2', valueI(12)),
@@ -2176,10 +2172,10 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('A2', 'A1+1'), python('A3', 'A2+1'), python('A4', 'A3+1'),
+              python('A1', '10'), python('A2', '=A1+1'), python('A3', '=A2+1'), python('A4', '=A3+1'),
               deleteRow(2),
               shouldBe('A2', noValue()), // this used to be A3, which had A2+1 in it.
-              python('A2', 'A1+5'),
+              python('A2', '=A1+5'),
               shouldBe('A3', valueI(16)),
               exec(done)
             ]);
@@ -2187,9 +2183,9 @@ describe('backend', () => {
 
           it ('should give a ref error if a critical ancestor of a cell is in a removed row', (done) => {
             _do([
-              python('A1', '1'),
-              python('B1', '2'),
-              python('A2', 'A1:B1'),
+              python('A1', '=1'),
+              python('B1', '=2'),
+              python('A2', '=A1:B1'),
               deleteRow(1),
               shouldBe('A1', noValue()),
               exec(done)
@@ -2197,9 +2193,9 @@ describe('backend', () => {
           });
           it ('should update properly if an ancestor of a cell is in a deleted row', (done) => {
             _do([
-              python('A1', '1'),
-              python('A2', '2'),
-              python('B2', 'A1:A2'),
+              python('A1', '=1'),
+              python('A2', '=2'),
+              python('B2', '=A1:A2'),
               deleteRow(1),
               shouldBe('A1', valueI(2)),
               shouldBe('B1', valueI(2)),
@@ -2210,7 +2206,7 @@ describe('backend', () => {
 
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('A2', '[range(10)]'),
+              python('A2', '=[range(10)]'),
               excel('A3', '=SUM(A2:J2)'),
               deleteRow(1),
               decouple(),
@@ -2221,7 +2217,7 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               deleteRow(3),
               decouple(),
               shouldBe('A3', valueI(3)),
@@ -2232,7 +2228,7 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               deleteRow(11),
               shouldBe('A2', valueI(1)),
               shouldBeCoupled('A2'),
@@ -2244,7 +2240,7 @@ describe('backend', () => {
         describe('row drag', () => {
           it ('should move cells to correct locations when dragging left-to-right', (done) => {
             _do([
-              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              python('A1', '10'), python('A2', '11'), python('A3', '=12'),
               dragRow(1,3),
               shouldBe('A1', valueI(11)),
               shouldBe('A2', valueI(12)),
@@ -2255,7 +2251,7 @@ describe('backend', () => {
 
           it ('should move cells to correct locations when dragging right-to-left', (done) => {
             _do([
-              python('A1', '10'), python('A2', '11'), python('A3', '12'),
+              python('A1', '10'), python('A2', '11'), python('A3', '=12'),
               dragRow(3,1),
               shouldBe('A1', valueI(12)),
               shouldBe('A2', valueI(10)),
@@ -2266,7 +2262,7 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('A2', 'A1+2'), python('A3', 'A2+3'), python('A4', 'A3+4'),
+              python('A1', '10'), python('A2', '=A1+2'), python('A3', '=A2+3'), python('A4', '=A3+4'),
               dragRow(2,4), //1,2,3,4 --> 1,3,4,2
               shouldBe('A2', valueI(15)),
               shouldBe('A3', valueI(19)),
@@ -2277,7 +2273,7 @@ describe('backend', () => {
 
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '=4'),
               excel('A5', '=SUM(A1:B2)'),
               dragRow(2,3),
               shouldBe('A5', valueI(8)),
@@ -2287,17 +2283,17 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               dragRow(3,1),
               decouple(),
               shouldBeDecoupled('A1'),
 
-              python('A1', '[[1,2],[3,4]]'),
+              python('A1', '=[[1,2],[3,4]]'),
               dragRow(1,3),
               decouple(),
               shouldBeDecoupled('A1'),
 
-              python('A1', '[[1,2],[3,4],[5,6]]'),
+              python('A1', '=[[1,2],[3,4],[5,6]]'),
               dragRow(5,2),
               decouple(),
               shouldBeDecoupled('A1'),
@@ -2308,12 +2304,12 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', '[range(3)]'),
+              python('A1', '=[range(3)]'),
               dragRow(1,2),
               shouldBe('B2', valueI(1)),
               shouldBeCoupled('B2'),
 
-              python('D1', 'range(10)'),
+              python('D1', '=range(10)'),
               dragRow(11, 1),
               shouldBe('D2', valueI(0)),
               shouldBeCoupled('D2'),
@@ -2325,7 +2321,7 @@ describe('backend', () => {
         describe('column insertion', () => {
           it ('should move cells to correct locations', (done) => {
             _do([
-              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              python('A1', '10'), python('B1', '11'), python('C1', '=12'),
               insertCol(2),
               shouldBe('A1', valueI(10)),
               shouldBeNothing('B1'),
@@ -2337,7 +2333,7 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              python('A1', '10'), python('B1', '=A1+1'), python('C1', '=B1+1'), python('D1', '=C1+1'),
               insertCol(2),
               shouldBe('C1', valueI(11)),
               shouldBe('D1', valueI(12)),
@@ -2348,7 +2344,7 @@ describe('backend', () => {
 
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('A1', 'range(10)'),
+              python('A1', '=range(10)'),
               excel('B1', '=SUM(A1:A10)'),
               insertCol(1),
               shouldBe('C1', valueI(45)),
@@ -2358,7 +2354,7 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               insertCol(3),
               decouple(),
               shouldBe('A1', valueI(0)),
@@ -2372,7 +2368,7 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               insertCol(1),
               shouldBeNothing('A1'),
               shouldBe('B1', valueI(0)),
@@ -2386,7 +2382,7 @@ describe('backend', () => {
         describe('column deletion', () => {
           it ('should move cells to correct locations', (done) => {
             _do([
-              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              python('A1', '10'), python('B1', '11'), python('C1', '=12'),
               deleteCol(2),
               shouldBe('A1', valueI(10)),
               shouldBe('B1', valueI(12)),
@@ -2396,19 +2392,19 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('B1', 'A1+1'), python('C1', 'B1+1'), python('D1', 'C1+1'),
+              python('A1', '10'), python('B1', 'A1+1'), python('C1', '=B1+1'), python('D1', '=C1+1'),
               deleteCol(2),
               shouldBe('B1', noValue()), // this used to be A3, which had A2+1 in it.
-              python('B1', 'A1+5'),
+              python('B1', '=A1+5'),
               shouldBe('C1', valueI(16)),
               exec(done)
             ]);
           });
           it ('should give a ref error if a critical ancestor of a cell is in a removed column', (done) => {
             _do([
-              python('A1', '1'),
-              python('A2', '2'),
-              python('B1', 'A1:A2'),
+              python('A1', '=1'),
+              python('A2', '=2'),
+              python('B1', '=A1:A2'),
               deleteCol(1),
               shouldBe('A1', noValue()),
               exec(done)
@@ -2416,9 +2412,9 @@ describe('backend', () => {
           });
           it ('should update properly if an ancestor of a cell is in a deleted column', (done) => {
             _do([
-              python('A1', '1'),
-              python('B1', '2'),
-              python('B2', 'A1:B1'),
+              python('A1', '=1'),
+              python('B1', '=2'),
+              python('B2', '=A1:B1'),
               deleteCol(1),
               shouldBe('A1', valueI(2)),
               shouldBe('A2', valueI(2)),
@@ -2428,7 +2424,7 @@ describe('backend', () => {
           });
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('B1', 'range(10)'),
+              python('B1', '=range(10)'),
               excel('C1', '=SUM(B1:B10)'),
               deleteCol(1),
               decouple(),
@@ -2439,7 +2435,7 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               deleteCol(3),
               decouple(),
               shouldBe('C1', valueI(3)),
@@ -2450,7 +2446,7 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               deleteCol(11),
               shouldBe('B1', valueI(1)),
               shouldBeCoupled('B1'),
@@ -2462,7 +2458,7 @@ describe('backend', () => {
        describe('column drag', () => {
           it ('should move cells to correct locations when dragging up-to-down', (done) => {
             _do([
-              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              python('A1', '10'), python('B1', '11'), python('C1', '=12'),
               dragCol(1,3),
               shouldBe('A1', valueI(11)),
               shouldBe('B1', valueI(12)),
@@ -2473,7 +2469,7 @@ describe('backend', () => {
 
           it ('should move cells to correct locations when dragging down-to-up', (done) => {
             _do([
-              python('A1', '10'), python('B1', '11'), python('C1', '12'),
+              python('A1', '10'), python('B1', '11'), python('C1', '=12'),
               dragCol(3, 1),
               shouldBe('A1', valueI(12)),
               shouldBe('B1', valueI(10)),
@@ -2484,7 +2480,7 @@ describe('backend', () => {
 
           it ('should shift references appropriately', (done) => {
             _do([
-              python('A1', '10'), python('B1', 'A1+2'), python('C1', 'B1+3'), python('D1', 'C1+4'),
+              python('A1', '10'), python('B1', '=A1+2'), python('C1', '=B1+3'), python('D1', '=C1+4'),
               dragCol(2,4), //1,2,3,4 --> 1,3,4,2
               shouldBe('B1', valueI(15)),
               shouldBe('C1', valueI(19)),
@@ -2495,18 +2491,18 @@ describe('backend', () => {
 
           it ('should shift references appropriately in succession', (done) => {
             _do([
-              python('A1', '10'),
-              python('B1', 'A1'),
+              python('A1', '=10'),
+              python('B1', '=A1'),
               dragCol(1, 2),
               dragCol(1, 2),
-              expressionShouldBe('B1', 'A1'),
+              expressionShouldBe('B1', '=A1'),
               exec(done)
             ]);
           });
 
           it ('should shift range references appropriately', (done) => {
             _do([
-              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '4'),
+              python('A1', '0'), python('A2', '1'), python('B1', '3'), python('B2', '=4'),
               excel('E1', '=SUM(A1:B2)'),
               dragCol(2,3),
               shouldBe('E1', valueI(8)),
@@ -2516,17 +2512,17 @@ describe('backend', () => {
 
           it ('should decouple lists when it destroys it', (done) => {
             _do([
-              python('A1', '[range(10)]'),
+              python('A1', '=[range(10)]'),
               dragCol(3,1),
               decouple(),
               shouldBeDecoupled('A1'),
 
-              python('A1', '[[1,2],[3,4]]'),
+              python('A1', '=[[1,2],[3,4]]'),
               dragCol(1,3),
               decouple(),
               shouldBeDecoupled('A1'),
 
-              python('A1', '[[1,2],[3,4],[5,6]]'),
+              python('A1', '=[[1,2],[3,4],[5,6]]'),
               dragCol(5,2),
               decouple(),
               shouldBeDecoupled('A1'),
@@ -2537,12 +2533,12 @@ describe('backend', () => {
 
           it ('should not decouple lists when it does not destroy it', (done) => {
             _do([
-              python('A1', 'range(3)'),
+              python('A1', '=range(3)'),
               dragCol(1,2),
               shouldBe('B2', valueI(1)),
               shouldBeCoupled('B2'),
 
-              python('A4', '[range(10)]'),
+              python('A4', '=[range(10)]'),
               dragCol(11, 1),
               shouldBe('B4', valueI(0)),
               shouldBeCoupled('B4'),
@@ -2568,8 +2564,8 @@ describe('backend', () => {
       describe('general', () => {
         it ('should do multi language eval', (done) => {
           _do([
-            python('A1', '10'),
-            r('B1', '1:A1'),
+            python('A1', '=10'),
+            r('B1', '=1:A1'),
             _forM_(_.range(10), (i) => {
               return shouldBe(`B${i + 1}`, valueI(i + 1));
             }),
@@ -2579,12 +2575,12 @@ describe('backend', () => {
 
         it ('should shrink a range based on a dependency', (done) => {
           _do([
-            python('A1', '10'),
-            python('B1', 'range(A1)'),
+            python('A1', '=10'),
+            python('B1', '=range(A1)'),
             _forM_(_.range(10), (i) => {
               return shouldBe(`B${i + 1}`, valueI(i));
             }),
-            python('A1', '1'),
+            python('A1', '=1'),
             shouldBeNothing('B2'),
             exec(done)
           ]);
@@ -2599,7 +2595,7 @@ describe('backend', () => {
       it ('lets you declare global variables', (done) => {
         _do([
           pythonEvalHeader('a=1'),
-          python('A1', 'a+1'),
+          python('A1', '=a+1'),
           shouldBe('A1', valueI(2)),
           exec(done)
         ]);
@@ -2608,7 +2604,7 @@ describe('backend', () => {
       it ('lets you declare global functions', (done) => {
         _do([
           pythonEvalHeader('def sq(x):\n\treturn x**2'),
-          python('A1', 'sq(2)'),
+          python('A1', '=sq(2)'),
           shouldBe('A1', valueI(4)),
           exec(done)
         ]);
@@ -2617,7 +2613,7 @@ describe('backend', () => {
       it ('lets you make imports', (done) => {
         _do([
           pythonEvalHeader('import numpy as np'),
-          python('A1', 'np.array([[1,2],[3,4]]).tolist()'),
+          python('A1', '=np.array([[1,2],[3,4]]).tolist()'),
           shouldBe('B1', valueI(2)),
           exec(done)
         ]);
@@ -2626,7 +2622,7 @@ describe('backend', () => {
       it ('allows you to continue evaluating after a failure', (done) => {
         _do([
           rEvalHeader("x=read.table(\"test.csv\", sep=\",\")"),
-          r('A1', '3'),
+          r('A1', '=3'),
           shouldBe('A1', valueI(3)),
           exec(done)
         ]);
@@ -2637,7 +2633,7 @@ describe('backend', () => {
       describe('copy/paste', () => {
         it ('should copy and paste', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             copy('A1', 'A2'),
             shouldBe('A2', valueI(1)),
             exec(done)
@@ -2646,9 +2642,9 @@ describe('backend', () => {
 
         it ('should copy and paste a reference', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
-            python('B1', 'A1'),
+            python('A1', '=1'),
+            python('A2', '=2'),
+            python('B1', '=A1'),
             copy('B1', 'B2'),
             shouldBe('B2', valueI(2)),
             exec(done)
@@ -2657,8 +2653,8 @@ describe('backend', () => {
 
         it ('should handle $A1 references', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '$A1'),
+            python('A1', '=1'),
+            python('B1', '=$A1'),
             copy('B1', 'C1'),
             shouldBe('C1', valueI(1)),
             exec(done)
@@ -2667,9 +2663,9 @@ describe('backend', () => {
 
         it ('should copy and paste a range reference', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', '[x ** 2 for x in range(10)]'),
-            python('C1', 'sum(A1:A10)'),
+            python('A1', '=range(10)'),
+            python('B1', '=[x ** 2 for x in range(10)]'),
+            python('C1', '=sum(A1:A10)'),
             copy('C1', 'D1'),
             shouldBe('D1', valueI(285)),
             exec(done)
@@ -2678,10 +2674,10 @@ describe('backend', () => {
 
         it ('should re-evaluate copy/paste selections composed of only list heads', (done) => {
           _do([
-            python('A1', '"John Smith"'),
-            python('A2', '"Alex Zhu"'),
-            python('A3', '"Bob Ghandi"'),
-            python('B1', '[A1.split ()]'),
+            python('A1', '="John Smith"'),
+            python('A2', '="Alex Zhu"'),
+            python('A3', '="Bob Ghandi"'),
+            python('B1', '=[A1.split ()]'),
             copy('B1', 'B2:B3'),
             shouldBe('C2', valueS("Zhu")),
             shouldBe('C3', valueS("Ghandi")),
@@ -2698,7 +2694,7 @@ describe('backend', () => {
           };
 
           _do([
-            python('A1', '[[0,1],[2,3]]'),
+            python('A1', '=[[0,1],[2,3]]'),
             copy('A1:B2', 'C1:F4'),
             _forM_(_.range(4), (col) => {
               return _forM_(_.range(4), (row) => {
@@ -2715,8 +2711,8 @@ describe('backend', () => {
 
         it ('should copy a cell down', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', 'A1*2'),
+            python('A1', '=range(10)'),
+            python('B1', '=A1*2'),
             copy('B1', 'B2:B10'),
             _forM_(fromToInclusive(2, 10), (i) => {
               return shouldBe(`B${i}`, valueI((i-1) * 2));
@@ -2727,8 +2723,8 @@ describe('backend', () => {
 
         it ('can copy a range onto another and decouple', (done) => {
           _do([
-            python('B1', 'range(1)'),
-            python('C1', 'range(2)'),
+            python('B1', '=range(1)'),
+            python('C1', '=range(2)'),
             copy('B1', 'C1'),
             decouple(),
             shouldBeCoupled('C1'),
@@ -2739,9 +2735,9 @@ describe('backend', () => {
 
         it ('should trigger eval when a cell is copied into a dependency', (done) => {
           _do([
-            python('A1', '1'),
-            python('B1', '2'),
-            python('C1', 'B1 + 1'),
+            python('A1', '=1'),
+            python('B1', '=2'),
+            python('C1', '=B1 + 1'),
             shouldBe('C1', valueI(3)),
             copy('A1', 'B1'),
             shouldBe('C1', valueI(2)),
@@ -2751,9 +2747,9 @@ describe('backend', () => {
 
         it ('should refuse to copy to create a circular dependency', (done) => {
           _do([
-            python('D1', '5'),
-            python('C1', 'D1'),
-            python('B1', 'A1 + 1'),
+            python('D1', '=5'),
+            python('C1', '=D1'),
+            python('B1', '=A1 + 1'),
             shouldError(
               copy('B1', 'D1')
             ),
@@ -2764,7 +2760,7 @@ describe('backend', () => {
 
         it ('should behave correctly when copying out of bounds', (done) => {
           _do([
-            python('A2', 'A1+1'),
+            python('A2', '=A1+1'),
             copy('A2', 'A1'),
             shouldBe('A1', noValue()),
             exec(done)
@@ -2775,10 +2771,10 @@ describe('backend', () => {
         it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
-            // python('A0', '0'),
+            // python('A0', '=0'),
             // shouldBe('A0', valueI(0)),
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             copy('A1:A2', 'B0:B1'), // fun fact, this actually works
             shouldBe('B1', valueI(2)),
             shouldBeNothing('B0'),
@@ -2788,8 +2784,8 @@ describe('backend', () => {
 
         it ('should copy expressions with both a list and a dependency to the list', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', 'sum(A1:A10)'),
+            python('A1', '=range(10)'),
+            python('B1', '=sum(A1:A10)'),
             copy('A1:B10', 'C1:D10'),
             shouldBe('D1', valueI(45)),
             exec(done)
@@ -2798,7 +2794,7 @@ describe('backend', () => {
 
         it ('should successfully copy out of bounds expressions', (done) => {
           _do([
-            python('A2', 'A1+1'),
+            python('A2', '=A1+1'),
             copy('A2', 'A1'),
             copy('A1', 'B1'),
             shouldBe('B1', noValue()),
@@ -2808,12 +2804,12 @@ describe('backend', () => {
 
         it ('should not shift quoted excel references', (done) => {
           _do([
-            python('B1', '"there"'),
-            python('A2', '"A1"+A1'),
+            python('B1', '="there"'),
+            python('A2', '="A1"+A1'),
             copy('A2','B2'),
             shouldBe('B2', valueS('A1there')),
 
-            python('A2', 'A1+"A1"'),
+            python('A2', '=A1+"A1"'),
             copy('A2','B2'),
             shouldBe('B2', valueS('thereA1')),
 
@@ -2823,9 +2819,9 @@ describe('backend', () => {
 
         it ('should not shift quoted excel references with escaped chars', (done) => {
           _do([
-            python('B1', '"there"'),
+            python('B1', '="there"'),
 
-            python('A2', "A1+'A1'+A1+\"A1\"+\"\\\"A1\\\"\""),
+            python('A2', "=A1+'A1'+A1+\"A1\"+\"\\\"A1\\\"\""),
             copy('A2','B2'),
             shouldBe('B2', valueS("thereA1thereA1\"A1\"")),
             exec(done)
@@ -2844,10 +2840,10 @@ describe('backend', () => {
 
         it ('should successfully copy and paste cells that depend on each other', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', 'A1 + 1'),
-            python('B1', 'A2 + 1'),
-            python('B2', 'A1 + A2 + B1'),
+            python('A1', '=1'),
+            python('A2', '=A1 + 1'),
+            python('B1', '=A2 + 1'),
+            python('B2', '=A1 + A2 + B1'),
             copy('A1:B2', 'C1:D2'),
             shouldBeL(
               ['C1', 'C2', 'D1', 'D2'],
@@ -2859,16 +2855,16 @@ describe('backend', () => {
 
         it ('should copy an entire list without decoupling it', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             copy('A1:A10', 'B1:B10'),
-            expressionShouldBe('B1', 'range(10)'),
+            expressionShouldBe('B1', '=range(10)'),
             exec(done)
           ]);
         });
 
         it ('should decouple a partial list while copying it', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             copy('A1:A2', 'B1:B2'),
             expressionShouldBe('B1', '0'),
             exec(done)
@@ -2877,8 +2873,8 @@ describe('backend', () => {
 
         it ('should copy blank cells', (done) => {
           _do([
-            python('A1', '1'),
-            python('B2', '2'),
+            python('A1', '=1'),
+            python('B2', '=2'),
             copy('A1:A2', 'B1:B2'),
             shouldBeNothing('B2'),
             exec(done)
@@ -2918,10 +2914,10 @@ describe('backend', () => {
       describe('cut/paste', () => {
         it ('should cut properly', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            python('B2', '4'),
+            python('A1', '=1 + 1'),
+            python('B1', '=A1 + 1'),
+            python('A2', '=3'),
+            python('B2', '=4'),
             cut('A1:B2', 'B1:C2'),
             shouldBeNothing('A1'),
             shouldBeNothing('A2'),
@@ -2935,10 +2931,10 @@ describe('backend', () => {
 
         it ('should cut properly with blank cells', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('A2', '3'),
-            python('C2', '5'),
+            python('A1', '=1 + 1'),
+            python('B1', '=A1 + 1'),
+            python('A2', '=3'),
+            python('C2', '=5'),
             cut('A1:B2', 'B1:C2'),
             shouldBeNothing('A1'),
             shouldBeNothing('A2'),
@@ -2952,12 +2948,12 @@ describe('backend', () => {
 
         it ('should cut ranges and pointers to those ranges properly', (done) => {
           _do([
-            python('A1', 'range(1)'),
-            python('B1', '@A1'),
+            python('A1', '=range(1)'),
+            python('B1', '=@A1'),
             cut('A1:B1', 'A2:B2'),
             shouldBeNothing('A1'),
             shouldBeNothing('B1'),
-            python('A2', 'range(2)'),
+            python('A2', '=range(2)'),
             shouldBe('A3', valueI(1)),
             shouldBe('B3', valueI(1)),
             exec(done)
@@ -2966,69 +2962,69 @@ describe('backend', () => {
 
         it ('should only shift dependencies in the cut region', (done) => {
           _do([
-            python('E1', '10'),
-            python('A1', '1 + E1'),
-            python('B1', 'A1 + 1'),
-            python('A2', 'B1+1'),
+            python('E1', '=10'),
+            python('A1', '=1 + E1'),
+            python('B1', '=A1 + 1'),
+            python('A2', '=B1+1'),
             cut('A1:B2', 'B1:C2'),
-            expressionShouldBe('B1', '1 + E1'),
+            expressionShouldBe('B1', '=1 + E1'),
             exec(done)
           ]);
         });
 
         it ('should only shift dependencies entirely contained in the cut region for ranges', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '12'),
-            python('A4', 'sum(A1:A3)'),
-            python('A5', 'sum(A3:A4)'),
+            python('A1', '10'), python('A2', '11'), python('A3', '=12'),
+            python('A4', '=sum(A1:A3)'),
+            python('A5', '=sum(A3:A4)'),
             cut('A3:A5', 'B3:B5'),
-            expressionShouldBe('B4', 'sum(A1:A3)'),
-            expressionShouldBe('B5', 'sum(B3:B4)'),
+            expressionShouldBe('B4', '=sum(A1:A3)'),
+            expressionShouldBe('B5', '=sum(B3:B4)'),
             exec(done)
           ]);
         });
 
         it ('should shift absolute index references within the cut region', (done) => {
           _do([
-            python('A1', '10'), python('A2', '$A$1+5'),
+            python('A1', '10'), python('A2', '=$A$1+5'),
             cut('A1:A2', 'B1:B2'),
-            expressionShouldBe('B2', '$B$1+5'),
+            expressionShouldBe('B2', '=$B$1+5'),
             exec(done)
           ]);
         });
 
         it ('should shift absolute range references within the cut region', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '12'),
-            python('A4', 'sum($A$1:$A$3)'),
+            python('A1', '10'), python('A2', '11'), python('A3', '=12'),
+            python('A4', '=sum($A$1:$A$3)'),
             cut('A1:A4', 'B1:B4'),
-            expressionShouldBe('B4', 'sum($B$1:$B$3)'),
+            expressionShouldBe('B4', '=sum($B$1:$B$3)'),
             exec(done)
           ]);
         });
 
         it ('should shift index references in descendant cells', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A3', '$A$1'),
+            python('A1', '10'), python('A2', '11'), python('A3', '=$A$1'),
             cut('A1:A2', 'B1:B2'),
-            expressionShouldBe('A3', '$B$1'),
+            expressionShouldBe('A3', '=$B$1'),
             exec(done)
           ]);
         });
 
         it ('should only shift references in range of cut', (done) => {
           _do([
-            python('A1', '10'), python('A2', '11'), python('A4', 'sum($A$2:A3)'),
+            python('A1', '10'), python('A2', '11'), python('A4', '=sum($A$2:A3)'),
             cut('A1:A2', 'B1:B2'),
-            expressionShouldBe('A4', 'sum($A$2:A3)'),
+            expressionShouldBe('A4', '=sum($A$2:A3)'),
             exec(done)
           ]);
         });
 
         it ('pointer to decoupled cells from cut gives error', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('C1', '@A1'),
+            python('A1', '=range(10)'),
+            python('C1', '=@A1'),
             cut('A1', 'B1'),
             decouple(),
             shouldBeError('C1'),
@@ -3038,7 +3034,7 @@ describe('backend', () => {
 
         it ('should not re-eval the head of a fat cell', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             cut('A1', 'B1'),
             decouple(),
             shouldBe('B1', valueI(0)),
@@ -3049,7 +3045,7 @@ describe('backend', () => {
 
         it ('should cut/paste entire ranges', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             cut('A1:A10', 'B1:B10'),
             shouldBe('B1', valueI(0)),
             shouldBeNothing('A1', valueI(0)),
@@ -3061,10 +3057,10 @@ describe('backend', () => {
         it ('should not save cells that go out of bounds', (done) => {
           _do([
             // fun fact, the below works
-            // python('A0', '0'),
+            // python('A0', '=0'),
             // shouldBe('A0', valueI(0)),
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             cut('A1:A2', 'B0:B1'), // fun fact, this actually works
             shouldBe('B1', valueI(2)),
             shouldBeNothing('B0'),
@@ -3079,7 +3075,7 @@ describe('backend', () => {
       xdescribe('repeat', () => {
         it ('should repeat eval on Ctrl+Y', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             repeat('A2:A10', 'A2'),
             shouldBe('A5', valueI(1)),
             exec(done)
@@ -3088,8 +3084,8 @@ describe('backend', () => {
 
         it ('should repeat copy on Ctrl+Y', (done) => {
           _do([
-            python('A2', 'A1+1'),
-            python('B1', '1'),
+            python('A2', '=A1+1'),
+            python('B1', '=1'),
             copy('A2', 'B2'),
             repeat('B3:B10', 'B3'),
             shouldBe('B5', valueI(5)),
@@ -3101,8 +3097,8 @@ describe('backend', () => {
         // Acknowledge message shortly after the delete??
         xit ('should repeat delete on Ctrl+Y', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', '1'),
+            python('A1', '=range(10)'),
+            python('B1', '=1'),
             delete_('B1'),
             repeat('A1:B10', 'B1'),
             decouple(),
@@ -3113,7 +3109,7 @@ describe('backend', () => {
 
         it ('should redo on Ctrl+Y after undo', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             undo(),
             repeat('A69:A69', 'A69'),
             shouldBe('A5', valueI(4)),
@@ -3126,7 +3122,7 @@ describe('backend', () => {
     describe('delete', () => {
       it ('should replace a decoupled blank cell with a blank cell', (done) => {
         _do([
-          python('A1', '[[None, 2],[3,4]]'),
+          python('A1', '=[[None, 2],[3,4]]'),
           delete_('A1'),
           decouple(),
           shouldBeNothing('A1'),
@@ -3139,8 +3135,8 @@ describe('backend', () => {
       describe('bolding', () => {
         it ('should bold blocks of cells at once', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             toggleProp('A1:A2', 'Bold'),
             shouldHaveProp('A1', 'Bold'),
             shouldHaveProp('A2', 'Bold'),
@@ -3150,8 +3146,8 @@ describe('backend', () => {
 
         it ('should make all cells in range bold if at least one is not', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             toggleProp('A1', 'Bold'),
             toggleProp('A1:A2', 'Bold'),
             shouldHaveProp('A1', 'Bold'),
@@ -3162,8 +3158,8 @@ describe('backend', () => {
 
         it ('should unbold all cells in range if all are bold', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             toggleProp('A1', 'Bold'),
             toggleProp('A1:A2', 'Bold'),
             toggleProp('A1:A2', 'Bold'),
@@ -3176,7 +3172,7 @@ describe('backend', () => {
         it ('should bold blank cells', (done) => {
           _do([
             toggleProp('A1', 'Bold'),
-            python('A1', '1'),
+            python('A1', '=1'),
             shouldHaveProp('A1', 'Bold'),
             exec(done)
           ]);
@@ -3184,7 +3180,7 @@ describe('backend', () => {
 
         it ('should stay bold after a delete', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             toggleProp('A1', 'Bold'),
             delete_('A1'),
             shouldHaveProp('A1', 'Bold'),
@@ -3194,7 +3190,7 @@ describe('backend', () => {
 
         it ('should not stay bold after a cut', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             toggleProp('A1', 'Bold'),
             cut('A1', 'B1'),
             shouldNotHaveProp('A1', 'Bold'),
@@ -3203,12 +3199,12 @@ describe('backend', () => {
         });
         it ('should undo bolding', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             toggleProp('A1', 'Bold'),
             undo(),
             shouldNotHaveProp('A1', 'Bold'),
 
-            python('A2', '2'),
+            python('A2', '=2'),
             toggleProp('A2', 'Bold'),
             shouldHaveProp('A2', 'Bold'),
             shouldNotHaveProp('A1', 'Bold'),
@@ -3228,8 +3224,8 @@ describe('backend', () => {
       describe('setting props', () => {
         it ('should format blocks of cells at once', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '2'),
+            python('A1', '=1'),
+            python('A2', '=2'),
             setFormat('A1:A2', 'Money'),
             shouldHaveProp('A1', 'ValueFormat', 'Money'),
             shouldHaveProp('A2', 'ValueFormat', 'Money'),
@@ -3240,7 +3236,7 @@ describe('backend', () => {
         it ('should format blank cells', (done) => {
           _do([
             setFormat('A1', 'Money'),
-            python('A1', '1'),
+            python('A1', '=1'),
             shouldHaveProp('A1', 'ValueFormat', 'Money'),
             exec(done)
           ]);
@@ -3248,7 +3244,7 @@ describe('backend', () => {
 
         it ('should call the API prop setters successfully', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             setTextColor('A1', 'red'),
             setFillColor('A2', 'blue'),
             setVAlign('A3', 'TopAlign'),
@@ -3270,7 +3266,7 @@ describe('backend', () => {
         });
         it ('should undo and redo on set props', (done) => {
           _do([
-            python('A1', '1'),
+            python('A1', '=1'),
             setTextColor('A1', 'red'),
             setFillColor('A1', 'blue'),
             shouldHaveProp('A1', 'TextColor'),
@@ -3289,7 +3285,7 @@ describe('backend', () => {
             shouldHaveProp('A1', 'TextColor'),
 
 
-            python('A2', '1'),
+            python('A2', '=1'),
             undo(),
             shouldNotHaveProp('A1', 'FillColor'),
             shouldHaveProp('A1', 'TextColor'),
@@ -3314,7 +3310,7 @@ describe('backend', () => {
       describe('basic functionality', () => {
         it ('should format cells already present', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6")
             ),
@@ -3329,7 +3325,7 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1>5")
             ),
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             shouldHaveProp('A7', 'Italic'),
             shouldNotHaveProp('A6', 'Italic'),
             exec(done)
@@ -3338,8 +3334,8 @@ describe('backend', () => {
 
         it ('should apply multiple rules simultaneously', (done) => {
           _do([
-            python('A1', 'range(10)'),
-            python('B1', 'range(10)'),
+            python('A1', '=range(10)'),
+            python('B1', '=range(10)'),
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("B1:B10", "Bold", "=B1>4")
             ),
@@ -3357,7 +3353,7 @@ describe('backend', () => {
         it ('should revert formats bold when a rule is deleted (1)', (done) => {
           let rule = makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6");
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(rule),
             shouldHaveProp('A6', 'Italic'),
             removeCondFormattingRule(rule.condFormatRuleId),
@@ -3369,7 +3365,7 @@ describe('backend', () => {
         it ('should revert formats bold when a rule is deleted (2)', (done) => {
           let rule = makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6");
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             toggleProp('A6', 'Italic'),
             updateCondFormattingRule(rule),
             shouldHaveProp('A6', 'Italic'),
@@ -3432,7 +3428,7 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeLambdaRule('A1', "lambda x: 'not a format'")
             ),
-            python('A1', 'AAAAA'),
+            python('A1', '=AAAAA'),
             shouldBeError('A1'),
             // shouldn't crash the code
             exec(done)
@@ -3441,7 +3437,7 @@ describe('backend', () => {
 
         it ('conditionally formats based on a lambda', (done) => {
           _do([
-            python('A1', 'range(3)'),
+            python('A1', '=range(3)'),
             updateCondFormattingRule(
               makeLambdaRule('A1:A10', "lambda x: Format(bold=(x >= 1), italic=(x <= 1))")
             ),
@@ -3457,7 +3453,7 @@ describe('backend', () => {
 
         it ('can reference values from other cells', (done) => {
           _do([
-            python('A1', 'range(3)'),
+            python('A1', '=range(3)'),
             updateCondFormattingRule(
               makeLambdaRule('A1:A10', "lambda x: Format(bold=(A1 >= 1), italic=(A2 <= 1))")
             ),
@@ -3488,7 +3484,7 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeLambdaRule('A1:A10', "lambda x: Format(fillColor=Color(hue=0,saturation=1,luminance=x/10.0))")
             ),
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             shouldHaveProp('A1', 'FillColor'), // currently API doesn't expose nice way to peek at color
             shouldHaveProp('A10', 'FillColor'),
             exec(done)
@@ -3500,7 +3496,7 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeLambdaRule('A1:A10', "lambda x: Format(fillColor=colorAverage(Color('red'), Color('green'), x/10.0))")
             ),
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             shouldHaveProp('A1', 'FillColor'), // currently API doesn't expose nice way to peek at color
             shouldHaveProp('A10', 'FillColor'),
             exec(done)
@@ -3514,7 +3510,7 @@ describe('backend', () => {
       describe('Predefined functions in conditional formatting', () => {
         it ('formats bold on IsNotEmptyCondition properly', (done) => {
           _do([
-            python('A1', 'range(5)'),
+            python('A1', '=range(5)'),
             updateCondFormattingRule(
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
@@ -3528,7 +3524,7 @@ describe('backend', () => {
 
         it ('formats bold on IsEmptyCondition properly', (done) => {
           _do([
-            python('A1', 'range(5)'),
+            python('A1', '=range(5)'),
             updateCondFormattingRule(
               makeIsEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
@@ -3542,7 +3538,7 @@ describe('backend', () => {
 
         it ('formats bold on GreaterThanCondition properly, and correctly evaluates expression passed into GreaterThanCondition', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeGreaterThanCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$2+$A$3+$A$4")
             ),
@@ -3560,7 +3556,7 @@ describe('backend', () => {
         });
         it ('formats bold on LessThanCondition properly', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeLessThanCondFormattingFontRuleExcel("A1:A10", "Bold", "6")
             ),
@@ -3575,7 +3571,7 @@ describe('backend', () => {
 
         it ('formats bold on EqualsCondition properly', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeEqualsCondFormattingFontRuleExcel("A1:A10", "Bold", "6")
             ),
@@ -3590,7 +3586,7 @@ describe('backend', () => {
 
         it ('formats bold on GeqCondition properly', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
              makeGeqCondFormattingFontRuleExcel("A1:A10", "Bold", "=$A$3+$A$2+$A$4")
             ),
@@ -3605,7 +3601,7 @@ describe('backend', () => {
 
         it ('formats bold on LeqCondition properly', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
              makeLeqCondFormattingFontRuleExcel("A1:A10", "Bold", "6")
             ),
@@ -3620,7 +3616,7 @@ describe('backend', () => {
 
         it ('formats bold on NotEqualsCondition properly', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
              makeNotEqualsCondFormattingFontRuleExcel("A1:A10", "Bold", "6")
             ),
@@ -3635,11 +3631,11 @@ describe('backend', () => {
 
         it ('formats bold on IsBetweenCondition properly', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '4'),
-            python('A3', '2'),
-            python('A4', '5'),
-            python('B5', '3'),
+            python('A1', '=1'),
+            python('A2', '=4'),
+            python('A3', '=2'),
+            python('A4', '=5'),
+            python('B5', '=3'),
             updateCondFormattingRule(
              makeIsBetweenCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4")
             ),
@@ -3655,11 +3651,11 @@ describe('backend', () => {
 
         it ('formats bold on IsNotBetweenCondition properly', (done) => {
           _do([
-            python('A1', '1'),
-            python('A2', '4'),
-            python('A3', '2'),
-            python('A4', '5'),
-            python('B5', '3'),
+            python('A1', '=1'),
+            python('A2', '=4'),
+            python('A3', '=2'),
+            python('A4', '=5'),
+            python('B5', '=3'),
             updateCondFormattingRule(
              makeIsNotBetweenCondFormattingFontRuleExcel("A1:B5", "Bold", "2", "4")
             ),
@@ -3675,7 +3671,7 @@ describe('backend', () => {
 
         it ('formats bold on IsNotBetweenCondition properly for variable expressions', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeIsNotBetweenCondFormattingFontRuleExcel("A1:A10", "Bold", "=(A2+1)/2-0.01", "5") // floating point equality problems :(
             ),
@@ -3688,10 +3684,10 @@ describe('backend', () => {
         // TODO: timchu 12/17/15, the below test does not pass.
         xit ('should not format cells in GreaterThanCondition cond formatting if the expression passed in or the value in the cell being formatted is an error', (done) => {
           _do([
-            python('A1', '=1'), // ERROR
+            python('A1', '==1'), // ERROR
             excel('A2', '=1/0'), // ERROR
-            python('A4', '4'),
-            python('B1', '1'),
+            python('A4', '=4'),
+            python('B1', '=1'),
             updateCondFormattingRule(
               makeGreaterThanCondFormattingFontRuleExcel("A1:A10", "Bold", "0")
             ),
@@ -3713,7 +3709,7 @@ describe('backend', () => {
       describe('Updating on mutation', () => {
         it ('shifts formatting rules on column drag', (done) => {
           _do([
-            python('A1', 'range(5)'),
+            python('A1', '=range(5)'),
             updateCondFormattingRule(
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:A10", "Bold")
             ),
@@ -3721,7 +3717,7 @@ describe('backend', () => {
             dragCol(1, 2),
             shouldNotHaveProp('A5', 'Bold'),
             shouldHaveProp('B5', 'Bold'),
-            python('B6', '1'),
+            python('B6', '=1'),
             shouldHaveProp('B6', 'Bold'),
             exec(done)
           ]);
@@ -3735,10 +3731,10 @@ describe('backend', () => {
             updateCondFormattingRule(
               makeLambdaRule("B1", "lambda x: Format(italic=(B1==1))"),
             ),
-            python('B1', '1'),
+            python('B1', '=1'),
             insertRow(1),
             dragCol(1, 2),
-            python('B2', 'range(10)'),
+            python('B2', '=range(10)'),
             shouldHaveProp('B3', 'Bold'),
             shouldNotHaveProp('B4', 'Bold'),
             shouldHaveProp('A2', 'Italic'),
@@ -3748,7 +3744,7 @@ describe('backend', () => {
 
         it ('handles deleted columns correctly', (done) => {
           _do([
-            python('B1', 'range(5)'),
+            python('B1', '=range(5)'),
             updateCondFormattingRule(
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:C10", "Bold")
             ),
@@ -3756,7 +3752,7 @@ describe('backend', () => {
             deleteCol(1),
             shouldHaveProp('A5', 'Bold'),
             shouldNotHaveProp('A6', 'Bold'),
-            python('A6', '1'),
+            python('A6', '=1'),
             shouldHaveProp('A6', 'Bold'),
             exec(done)
           ]);
@@ -3764,7 +3760,7 @@ describe('backend', () => {
 
         it ('handles deleted rows correctly', (done) => {
           _do([
-            python('A2', '[range(3)]'),
+            python('A2', '=[range(3)]'),
             updateCondFormattingRule(
               makeIsNotEmptyCondFormattingFontRuleExcel("A1:D10", "Bold")
             ),
@@ -3772,10 +3768,10 @@ describe('backend', () => {
             deleteRow(1),
             shouldHaveProp('C1', 'Bold'),
             shouldNotHaveProp('D1', 'Bold'),
-            python('D1', '1'),
+            python('D1', '=1'),
             shouldHaveProp('D1', 'Bold'),
-            python('A8', '1'),
-            python('A9', '1'),
+            python('A8', '=1'),
+            python('A9', '=1'),
             shouldHaveProp('A8', 'Bold'),
             shouldNotHaveProp('A9', 'Bold'),
             exec(done)
@@ -3788,7 +3784,7 @@ describe('backend', () => {
       describe('undo', () => {
         it ('should undo a aimple request', (done) => {
           _do([
-            python('A1', '10'),
+            python('A1', '=10'),
             undo(),
             shouldBeNothing('A1'), // since cell should be clear
             exec(done)
@@ -3797,7 +3793,7 @@ describe('backend', () => {
 
         it ('should undo a range request', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             undo(),
             _forM_(_.range(10), (i) => {
               return shouldBeNothing(`A${i + 1}`);
@@ -3808,11 +3804,11 @@ describe('backend', () => {
 
         it ('should undo a dependency cleanly', (done) => {
           _do([
-            python('A1', '1+1'),
-            python('B1', 'A1+1'),
-            python('C1', 'B1+1'),
+            python('A1', '=1+1'),
+            python('B1', '=A1+1'),
+            python('C1', '=B1+1'),
             undo(),
-            python('B1', '4'),
+            python('B1', '=4'),
             shouldBe('B1', valueI(4)),
             shouldBeNothing('C1'),
             exec(done)
@@ -3821,8 +3817,8 @@ describe('backend', () => {
 
         it ('should undo a copy', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
+            python('A1', '=1 + 1'),
+            python('B1', '=A1 + 1'),
             copy('A1:B1', 'C1:D1'),
             undo(),
             _forM_(['C1', 'D1'],
@@ -3834,8 +3830,8 @@ describe('backend', () => {
 
         it ('should undo a cut', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
+            python('A1', '=1 + 1'),
+            python('B1', '=A1 + 1'),
             cut('A1:B1', 'C1:D1'),
             undo(),
             _forM_(['C1', 'D1'],
@@ -3851,7 +3847,7 @@ describe('backend', () => {
       describe('redo', () => {
         it ('should undo and redo a simple request', (done) => {
           _do([
-            python('A1', '1 + 1'),
+            python('A1', '=1 + 1'),
             undo(),
             redo(),
             shouldBe('A1', valueI(2)),
@@ -3861,7 +3857,7 @@ describe('backend', () => {
 
         it ('should undo and redo a range request', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             undo(),
             redo(),
             _forM_(_.range(10), (i) => {
@@ -3873,9 +3869,9 @@ describe('backend', () => {
 
         it ('should undo and redo series of dependencies', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('B1', 'A1 + 1'),
-            python('C1', 'A1 + B1'),
+            python('A1', '=1 + 1'),
+            python('B1', '=A1 + 1'),
+            python('C1', '=A1 + B1'),
             undo(),
             redo(),
             undo(), undo(),
@@ -3891,8 +3887,8 @@ describe('backend', () => {
 
         it ('should undo and redo copy and paste', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('A2', 'A1 + 1'),
+            python('A1', '=1 + 1'),
+            python('A2', '=A1 + 1'),
             copy('A1:A2', 'B1:B2'),
             undo(),
             redo(),
@@ -3906,8 +3902,8 @@ describe('backend', () => {
 
         it ('should undo and redo cut and paste', (done) => {
           _do([
-            python('A1', '1 + 1'),
-            python('A2', 'A1 + 1'),
+            python('A1', '=1 + 1'),
+            python('A2', '=A1 + 1'),
             cut('A1:A2', 'B1:B2'),
             undo(),
             redo(),
@@ -3923,7 +3919,7 @@ describe('backend', () => {
 
         it ('should undo and redo a conditional format', (done) => {
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             updateCondFormattingRule(
               makeCustomCondFormattingFontRuleExcel("A1:A10", "Italic", "=A1<6")
             ),
@@ -3938,7 +3934,7 @@ describe('backend', () => {
 
         xit ('should undo and redo a column drag column properties', (done) => {
           _do([
-            python('A1', '15'),
+            python('A1', '=15'),
             setColumnWidth(1, 150),
             setColumnWidth(2, 200),
             dragCol(1, 4),
@@ -3967,13 +3963,13 @@ describe('backend', () => {
         it ('undoing should delete list key and not cause crashes', (done) => {
           // based off a crash that actually happened
           _do([
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             undo(),
-            python('A1', 'range(10)'),
+            python('A1', '=range(10)'),
             undo(),
             redo(),
             copy('A1:A10', 'B1:B10'),
-            expressionShouldBe('B1', "range(10)"),
+            expressionShouldBe('B1', "=range(10)"),
             exec(done)
           ]);
         });
@@ -3983,8 +3979,8 @@ describe('backend', () => {
     describe('pointer syntax', () => {
       it ('references python lists', (done) => {
         _do([
-          python('A1', 'range(3)'),
-          python('B1', 'sum(@A1)'),
+          python('A1', '=range(3)'),
+          python('B1', '=sum(@A1)'),
           shouldBe('B1', valueI(3)),
           exec(done)
           ]);
@@ -3992,9 +3988,9 @@ describe('backend', () => {
 
       it ('references r lists ', (done) => {
         _do([
-          r('A1', 'c(1,2)'),
-          r('B1', 'c(3,4)'),
-          r('C1', 'union(@A1, @B1)'),
+          r('A1', '=c(1,2)'),
+          r('B1', '=c(3,4)'),
+          r('C1', '=union(@A1, @B1)'),
           shouldBeL(['C1', 'C2', 'C3', 'C4'], [1,2,3,4].map(valueI)),
           exec(done)
           ]);
@@ -4002,8 +3998,8 @@ describe('backend', () => {
 
       it ('references dataframes', (done) => {
         _do([
-          r('A1', 'data.frame(a=c(1,2))'),
-          python('C1', '@A1.T'),
+          r('A1', '=data.frame(a=c(1,2))'),
+          python('C1', '=@A1.T'),
           shouldBe('C2', valueS('a')),
           exec(done)
           ]);
@@ -4011,8 +4007,8 @@ describe('backend', () => {
 
       it ('references series', (done) => {
         _do([
-          python('A1', 'pd.Series([1,2,3])'),
-          r('B1', '@A1'),
+          python('A1', '=pd.Series([1,2,3])'),
+          r('B1', '=@A1'),
           shouldBeL(['B1','B2','B3'], [1,2,3].map(valueI)),
           exec(done)
           ]);
@@ -4020,8 +4016,8 @@ describe('backend', () => {
 
       it ('references np matrices', (done) => {
         _do([
-          python('A1', 'np.matrix([[1,2],[3,4]])'),
-          python('C1', '@A1 * 2'),
+          python('A1', '=np.matrix([[1,2],[3,4]])'),
+          python('C1', '=@A1 * 2'),
           shouldBe('C1', valueI(2)),
           exec(done)
           ]);
@@ -4029,9 +4025,9 @@ describe('backend', () => {
 
       it ('embeds dictionaries', (done) => {
         _do([
-          python('A1', '{\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
+          python('A1', '={\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),
           shouldBeSerialized('A1'),
-          python('B1', 'A1[\'c\']'),
+          python('B1', '=A1[\'c\']'),
           shouldBe('B1', valueS('SHIT')),
           exec(done)
           ]);
@@ -4039,7 +4035,7 @@ describe('backend', () => {
 
       it ('python NaNs', (done) => {
         _do([
-          python('A1', 'np.nan'),
+          python('A1', '=np.nan'),
           shouldBe('A1', valueNaN()),
           exec(done)
           ]);
@@ -4047,7 +4043,7 @@ describe('backend', () => {
 
       it ('python Infs', (done) => {
         _do([
-          python('A1', 'np.inf'),
+          python('A1', '=np.inf'),
           shouldBe('A1', valueInf()),
           exec(done)
           ]);
@@ -4055,11 +4051,11 @@ describe('backend', () => {
 
       xit ('converts NaNs', (done) => {
         _do([
-          python('A1', 'np.nan'),
-          r('B1', 'A1 + 1'),
+          python('A1', '=np.nan'),
+          r('B1', '=A1 + 1'),
           shouldBe('B1', valueNaN()),
-          r('A2', 'NaN'),
-          python('B2', 'A2 + 1'),
+          r('A2', '=NaN'),
+          python('B2', '=A2 + 1'),
           shouldBe('B2', valueNaN()),
           exec(done)
           ]);
@@ -4067,11 +4063,11 @@ describe('backend', () => {
 
       xit ('converts Infs', (done) => {
         _do([
-          python('A1', 'np.inf'),
-          r('B1', 'A1 + 1'),
+          python('A1', '=np.inf'),
+          r('B1', '=A1 + 1'),
           shouldBe('B1', valueInf()),
-          r('A2', 'Inf'),
-          python('B2', 'A2 + 1'),
+          r('A2', '=Inf'),
+          python('B2', '=A2 + 1'),
           shouldBe('B2', valueInf()),
           exec(done)
           ]);
@@ -4079,10 +4075,10 @@ describe('backend', () => {
 
       it ('should something something something critch bug', (done) => {
         _do([
-          python('A1', 'range(10)'),
-          python('C1', '@A1'),
+          python('A1', '=range(10)'),
+          python('C1', '=@A1'),
           insertCol(1),
-          python('A1', '10'),
+          python('A1', '=10'),
           shouldBe('A1', valueI(10)),
           exec(done)
         ]);
@@ -4092,9 +4088,9 @@ describe('backend', () => {
     describe('dependencies on expanding cells', () => {
       it ('throws error on incorrect pointer ref', (done) => {
         _do([
-          python('A1', 'range(10)'),
-          python('B1', '@A1'),
-          python('A1', '10'),
+          python('A1', '=range(10)'),
+          python('B1', '=@A1'),
+          python('A1', '=10'),
           decouple(),
           shouldBeError('B1'),
           exec(done)
@@ -4102,7 +4098,7 @@ describe('backend', () => {
       });
       it ('deletes fat cell heads properly', (done) => {
         _do([
-          python('A1', 'range(10)'),
+          python('A1', '=range(10)'),
           delete_('A1'),
           decouple(),
           shouldBeDecoupled('A2'),
@@ -4111,9 +4107,9 @@ describe('backend', () => {
       });
       it ('propagates overwritten expanded cells', (done) => {
         _do([
-          python('A1', 'range(10)'),
-          python('B1', '@A1'),
-          python('A1', 'range(5)'),
+          python('A1', '=range(10)'),
+          python('B1', '=@A1'),
+          python('A1', '=range(5)'),
           decouple(),
           shouldBeNothing('B6'),
           exec(done)
@@ -4124,64 +4120,64 @@ describe('backend', () => {
     describe('arbitrary datatype embedding in python', () => {
       it ('embeds lists of dicts', (done) => {
         _do([
-          python('A1', '[{\'a\': 1}, {\'b\': 2}]'),
+          python('A1', '=[{\'a\': 1}, {\'b\': 2}]'),
           shouldBeSerialized('A2'),
-          python('B1', 'A1[\'a\']'),
+          python('B1', '=A1[\'a\']'),
           shouldBe('B1', valueI(1)),
           exec(done)
           ]);
       });
       it ('embeds multidimensional lists', (done) => {
         _do([
-          python('A1', '[[[1]]]'),
+          python('A1', '=[[[1]]]'),
           shouldBeSerialized('A1'),
-          python ('B1', 'A1[0][0][0]'),
+          python ('B1', '=A1[0][0][0]'),
           shouldBe('B1', valueI(1)),
           exec(done)
           ]);
       });
       it ('embeds arbitrary cell-defined objects', (done) => {
         _do([
-          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          python('A1', '=class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
           shouldBeSerialized('A1'),
           exec(done)
           ]);
       });
       it ('lets you reference cell-defined objects', (done) => {
         _do([
-          python('A1', 'class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
-          python('B1', 'A1.x'),
+          python('A1', '=class A(object):\n\tdef __init__(self):\n\t\tself.x = 5\nA()'),
+          python('B1', '=A1.x'),
           shouldBe('B1', valueI(5)),
           exec(done)
           ]);
       });
       xit ('expands high-dimensional lists when possible', (done) => {
         _do([
-          python('A1', '[[[1]], [[2]]]'),
+          python('A1', '=[[[1]], [[2]]]'),
           shouldBeSerialized('A2'),
           exec(done)
           ]);
       });
       it ('lets you make numpy arrays with dtype=dict', (done) => {
         _do([
-          python('A1', 'np.array([1, {\'a\': 1}])'),
+          python('A1', '=np.array([1, {\'a\': 1}])'),
           shouldBeSerialized('A2'),
-          python('B1', 'A2[\'a\']'),
+          python('B1', '=A2[\'a\']'),
           shouldBe('B1', valueI(1)),
           exec(done)
           ]);
       });
       xit ('lets you import scikit datasets', (done) => {
         _do([
-          python('A1', 'from sklearn import datsets\ndatasets.load_iris()'),
+          python('A1', '=from sklearn import datsets\ndatasets.load_iris()'),
           shouldBeSerialized('A1'),
           exec(done)
           ]);
       });
       xit ('references scikit datasets properly', (done) => {
         _do([
-          python('A1', 'from sklearn import datasets\ndatasets.load_iris()'),
-          python('B1', 'A1.data'),
+          python('A1', '=from sklearn import datasets\ndatasets.load_iris()'),
+          python('B1', '=A1.data'),
           shouldBeCoupled('B1'),
           exec(done)
           ]);
@@ -4211,7 +4207,7 @@ describe('backend', () => {
               return pws.readyState() === 1;
             });
           }),
-          python('A1', '1'),
+          python('A1', '=1'),
           shouldBe('A1', valueI(1)),
           exec(done)
         ]);

@@ -40,6 +40,20 @@ class Textbox extends React.Component {
 
   componentDidMount() {
     this._storeListener = ExpressionStore.addListener(() => this.forceUpdate());
+    this.__getAce().commands.addCommand({
+      name: 'altenter',
+      bindKey: {win: 'Alt-Enter', mac: 'Alt-Enter'},
+      exec: function(editor) {
+        editor.insert('\n');
+      }
+    });
+    this.__getAce().commands.addCommand({
+      name: 'ctrlenter',
+      bindKey: {win: 'Ctrl-Enter', mac: 'Command-Enter'},
+      exec: function(editor) {
+        editor.insert('\n');
+      }
+    });
   }
 
   componentWillUnmount() {

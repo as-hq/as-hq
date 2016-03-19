@@ -110,9 +110,7 @@ function installAllShortcuts() {
   install('evalpane', 'new_sheet', 'Shift+F11', (wildcard: string) => {
     // TODO
   });
-  install('evalpane', 'cell_eval', 'Ctrl+Enter', (wildcard: string) => {
-    APIActions.evaluate({dX: 0, dY: 0});
-  });
+ 
   install('evalpane', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
     let expression = ExpressionStore.getExpression();
     if (ExpressionStore.getLanguage() === 'Excel') {
@@ -320,23 +318,43 @@ function installAllShortcuts() {
     });
   });
 
-  // textbox shortcuts -------------------------------------------------------------------------------
-  install('textbox', 'textbox_eval_down', 'Enter', (wildcard: string) => {
-    APIActions.evaluate({dX: 0, dY: 1});
-  });
+  // textbox and editor shortcuts ------------------------------------------------------------------
 
-  install('textbox', 'textbox_eval_up', 'Shift+Enter', (wildcard: string) => {
-    APIActions.evaluate({dX: 0, dY: -1});
-  });
+  const textboxAndEditorShortcuts = [
+    {
+      name: 'eval_down', 
+      key: 'Enter', 
+      func: (wildcard: string) => {
+        APIActions.evaluate({dX: 0, dY: 1});
+      }
+    },
+    {
+      name: 'eval_up', 
+      key: 'Shift+Enter', 
+      func: (wildcard: string) => {
+        APIActions.evaluate({dX: 0, dY: -1});
+      }
+    },
+    {
+      name: 'eval_right', 
+      key: 'Tab', 
+      func: (wildcard: string) => {
+        APIActions.evaluate({dX: 1, dY: 0});
+      }
+    },
+    {
+      name: 'eval_left', 
+      key: 'Shift+Tab', 
+      func: (wildcard: string) => {
+        APIActions.evaluate({dX: -1, dY: 0});
+      }
+    }
+  ];
 
-  install('textbox', 'textbox_eval_right', 'Tab', (wildcard: string) => {
-    APIActions.evaluate({dX: 1, dY: 0});
+  textboxAndEditorShortcuts.forEach((shortcut) => {
+    install('textbox', 'textbox_' + shortcut.name, shortcut.key, shortcut.func);
+    install('editor', 'editor_' + shortcut.name, shortcut.key, shortcut.func);
   });
-
-  install('textbox', 'textbox_eval_left', 'Shift+Tab', (wildcard: string) => {
-    APIActions.evaluate({dX: -1, dY: 0});
-  });
-
 
   // header shortcuts -------------------------------------------------------------------------------
   install('header', 'save', 'Ctrl+S', (wildcard: string) => {

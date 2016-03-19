@@ -18,20 +18,8 @@ import AS.DB.Internal as DI
 -- | This is middleware for evaluation; we take a cell recieved with the "Evaluate" action tag and preprocess it
 -- Add tags 
 evalMiddleware :: [ASCell] -> IO [ASCell]
-evalMiddleware = return . cleanPossiblyExtaneousEqualSignsFromCells
+evalMiddleware = return 
 
-cleanPossiblyExtaneousEqualSignsFromCells :: [ASCell] -> [ASCell]
-cleanPossiblyExtaneousEqualSignsFromCells = map $ cellExpression %~ cleanPossiblyExtaneousEqualSign
-
--- | If the first char in your expression is an =, and your language isn't Excel, you
--- *probably* didn't intend to put it there. 
-cleanPossiblyExtaneousEqualSign :: ASExpression -> ASExpression
-cleanPossiblyExtaneousEqualSign xp = 
-  case xp^.language of 
-    Excel     -> xp
-    otherwise -> case headMay $ xp^.expression of 
-      Just '='  -> xp & expression %~ $tail
-      otherwise -> xp
 
 -- addBackTags :: [ASCell] -> IO [ASCell]
 -- addBackTags cells = do 

@@ -276,7 +276,6 @@ function tryInsertingRef(state: State, gridSelection: ASSelection): State {
   }
 }
 
-
 /**
  * Attempts to toggle a ref.
  */

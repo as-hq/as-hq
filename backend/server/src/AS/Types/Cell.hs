@@ -35,6 +35,9 @@ import Control.DeepSeq.Generics (genericRnf)
 
 data ASLanguage = R | Python | OCaml | CPP | Java | SQL | Excel deriving (Show, Read, Eq, Data, Typeable, Generic)
 
+-- #expressionrefactor The correct type should now be something like
+-- ASExpression = Literal { _literalExpression :: String } | Code { _codeExpression :: string, _language :: ASLanguage }
+-- Because the types aren't like this, the code in Eval/Core is... rather suboptimal. 
 data ASExpression = Expression { _expression :: String, _language :: ASLanguage } deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 data ASCell = Cell { _cellLocation :: ASIndex

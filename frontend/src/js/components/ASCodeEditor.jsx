@@ -34,6 +34,20 @@ class ASCodeEditor extends React.Component {
   componentDidMount() {
     this._expressionListener = ExpressionStore.addListener(() => this.forceUpdate());
     this._focusListener = FocusStore.addListener(() => this.forceUpdate());
+    this.__getAce().commands.addCommand({
+      name: 'altenter',
+      bindKey: {win: 'Alt-Enter', mac: 'Alt-Enter'},
+      exec: function(editor) {
+        editor.insert('\n');
+      }
+    });
+    this.__getAce().commands.addCommand({
+      name: 'ctrlenter',
+      bindKey: {win: 'Ctrl-Enter', mac: 'Command-Enter'},
+      exec: function(editor) {
+        editor.insert('\n');
+      }
+    });
   }
 
   componentWillUnmount() {
@@ -46,7 +60,7 @@ class ASCodeEditor extends React.Component {
     const expression = ExpressionStore.getExpression();
     const language = ExpressionStore.getLanguage();
     const isActive = FocusStore.isFocused(name);
-    const maxLines = isActive ? 10 : 4;
+    const maxLines = isActive ? 10: 1; 
 
     return (
       <div style={styles.root}>
@@ -67,8 +81,9 @@ class ASCodeEditor extends React.Component {
             }}
             theme='monokai'
             maxLines={maxLines}
-            minLines={4}
+            minLines={1}
             language={language}
+            fontSize={17}
             onKeyDown={e => this._onKeyDown(e)}
             onMouseEnter={() => FocusActions.hover(name)}
           />
@@ -113,7 +128,8 @@ const styles = {
     flexBasis: 'auto',
   },
   editor: {
-    height: '100%'
+    height: '100%',
+    lineHeight: '19px' // height of cursor and each line in the editor
   }
 };
 
