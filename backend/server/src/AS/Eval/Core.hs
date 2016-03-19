@@ -59,7 +59,7 @@ evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = ca
   printWithTimeT "Starting eval code"
   let conn = state^.dbConn
   -- Function from ExRef to string for interpolation
-  let replaceFunc ref = lookUpRef state (xp^.language) ctx (exRefToASRef sid ref) f
+  let replaceFunc ref = lookUpRef state mid lang ctx (exRefToASRef sid ref) f
   case equalsSignsCheck xp of
     Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
     Left (ValueS s) -> do 
@@ -81,15 +81,15 @@ evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = ca
           let excelXp = Expression s lang 
           KE.evaluate conn (excelXp^.expression) idx (ctx^.virtualCellsMap)
         -- If we match something as a literal, just evaluate it in Excel.
-        Right _ -> case lang of
-          Excel -> KE.evaluate conn (interpolatedXp'^.expression) idx (ctx^.virtualCellsMap)
+        Right nonInterpolatedXp -> case lang of
+          Excel -> KE.evaluate conn (nonInterpolatedXp^.expression) idx (ctx^.virtualCellsMap)
             -- Excel needs current location and un-substituted expression, and needs the formatted 
             -- values for loading the initial entities
           SQL -> do 
-            pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx xp' f
+            pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx nonInterpolatedXp f
             return <$> KP.evaluateSql mid sid pythonSqlCode
-          Python -> return <$> KP.evaluate mid sid interpolatedXp
-          R -> return <$> KR.evaluate interpolatedXp
+          Python -> return <$> KP.evaluate mid sid (interpolatedXp^.expression)
+          R -> return <$> KR.evaluate (interpolatedXp^.expression)
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against 
 --  which evals are executed
