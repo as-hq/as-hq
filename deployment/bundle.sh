@@ -64,6 +64,8 @@ cd ..
 ## build and copy distributable files
 echo "building..."
 cd frontend
+# Copy the correct environment file into the default one read by gulp while building
+cp src/js/Environment_$BRANCH.js src/js/Environment.js
 if $USE_SUDO; then
   sudo npm install 
   sudo bower install --allow-root
@@ -78,7 +80,7 @@ cp -r frontend/dist/* build/frontend/
 echo "frontend build finished."
 
 # frontend environment
-cp "frontend/src/js/Environment_$BRANCH.js" build/frontend/Environment.js
+cp frontend/src/js/Environment_$BRANCH.js build/frontend/Environment.js
 
 # Install up-to-date Python libraries
 cd backend/as-libs/py
