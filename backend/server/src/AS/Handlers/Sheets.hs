@@ -49,6 +49,17 @@ handleNewSheet mid uc state name = do
   -- automatically open the new sheet
   handleOpenSheet mid uc state sid
 
+-- | When a user wants to rename a sheet, they will send us the new sheet, which will contain 
+-- the new sheetName and the old sheetId. All we have to then do is modify the SheetId -> Sheet
+-- pair in the DB, and send back the updated sheets. 
+handleRenameSheet :: MessageId -> ASUserClient -> ServerState -> ASSheetId -> SheetName -> IO ()
+handleRenameSheet mid uc state sid sname = do 
+  let conn = state^.dbConn
+  sheet <- $fromJust <$> getV conn (SheetKey sid) dbValToSheet
+  let newSheet = sheet {sheetName = sname}
+  setV conn (SheetKey sid) (SheetValue newSheet)
+  handleGetSheets mid uc state
+
 handleOpenSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpenSheet mid uc state sid = do 
   conn <- view dbConn <$> readState state

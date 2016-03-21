@@ -913,6 +913,15 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  renameSheet(renameSheetId: string, newSheetName: string) {
+    const msg = {
+      tag: 'RenameSheet',
+      renameSheetId, 
+      newSheetName
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   getMySheets() {
     const msg = {
       tag: "GetMySheets",

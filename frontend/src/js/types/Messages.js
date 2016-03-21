@@ -303,6 +303,7 @@ export type ServerAction =
     Initialize
   | InitializeDaemon
   | OpenSheet
+  | RenameSheet
   | NewSheet
   | GetMySheets
   | UpdateWindow
@@ -338,6 +339,7 @@ export type ServerActionType =
     'Initialize'
   | 'InitializeDaemon'
   | 'OpenSheet'
+  | 'RenameSheet'
   | 'NewSheet'
   | 'GetMySheets'
   | 'UpdateWindow'
@@ -382,6 +384,12 @@ export type InitializeDaemon = {
 export type OpenSheet = {
   tag: "OpenSheet";
   contents: string;
+};
+
+export type RenameSheet = {
+  tag: "RenameSheet";
+  renameSheetId: string;
+  newSheetName: string;
 };
 
 export type NewSheet = {

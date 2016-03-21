@@ -29,20 +29,27 @@ export default class ASBottomBarController extends React.Component {
   state: {};
   _gridStoreListener: StoreToken;
   _cellStoreListener: StoreToken;
+  _sheetsListener: () => void;
 
   $storeLinks: Array<StoreLink>;
+
+  constructor(props: Props) {
+    super(props);
+    this._sheetsListener = () => this.forceUpdate();
+  }
 
   componentDidMount() {
     U.React.addStoreLinks(this, [
       { store: SheetStateStore },
     ]);
-
+    SheetStateStore.addListener('GOT_MY_SHEETS', this._sheetsListener);
     this._gridStoreListener = GridStore.addListener(() => this.forceUpdate());
     this._cellStoreListener = CellStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
     U.React.removeStoreLinks(this);
+    SheetStateStore.removeListener('GOT_MY_SHEETS', this._sheetsListener);
     this._gridStoreListener.remove();
     this._cellStoreListener.remove();
   }

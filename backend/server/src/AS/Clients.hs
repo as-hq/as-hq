@@ -118,6 +118,7 @@ instance Client ASUserClient where
       GetSessionLogs logSource     -> handleGetSessionLogs mid user curState logSource
       StartDebuggingLog            -> handleStopLoggingActions state
       GetAllSessions               -> handleGetAllSessions mid user
+      RenameSheet sid sname        -> handleRenameSheet mid user curState sid sname
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 

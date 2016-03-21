@@ -171,6 +171,21 @@ export default class ASTopBar extends React.Component {
               }
             }),
 
+            simple({
+              title: 'Rename',
+              callback() {
+                // Set timeout so that the callback finishes quickly and menu closes
+                // before the popup appears
+                setTimeout(function() {
+                  const newSheetName = window.prompt("Enter the new sheet name.");
+                  if (newSheetName != null) {
+                    const sheetId = SheetStateStore.getCurrentSheetId();
+                    API.renameSheet(sheetId, newSheetName);
+                  }
+                }, 20);
+              }
+            }),
+
             file({
               title: 'Import CSV',
               callback(files) {

@@ -115,6 +115,7 @@ data ServerAction =
   | GetSessionLogs LogSource
   | StartDebuggingLog
   | GetAllSessions
+  | RenameSheet { renameSheetId :: ASSheetId, newSheetName :: SheetName }
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
