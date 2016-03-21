@@ -26,7 +26,7 @@ class ASIterable(object):
     def _unwrap(cls, arr):
         # True if an ASIterable was passed in. 
         if issubclass(type(arr), ASIterable): 
-            arr = arr.toList2D()
+            arr = arr.tolist2d()
         if issubclass(type(arr), str):
             return arr
         try: 
@@ -60,7 +60,7 @@ class ASIterable(object):
     def _isRow(self):
         return len(self.arr) == 1
 
-    def toList1D(self):
+    def tolist1d(self):
         if self._isRow():
             return self.arr[0]
         elif self._isColumn(): 
@@ -68,16 +68,16 @@ class ASIterable(object):
         else: 
             raise CannotCoerceTo1DList
 
-    def toList2D(self):
+    def tolist2d(self):
         return self.arr
 
     # If you're vertical, present yourself as a 1D list. Otherwise present yourself
     # as a 2D list. 
     def _to1DListIf1D(self):
         try: 
-            return self.toList1D()
+            return self.tolist1d()
         except:
-            return self.toList2D()
+            return self.tolist2d()
 
     ###########################################################################
     ### List overloading 
@@ -177,7 +177,7 @@ class ASIterable(object):
 
     def __repr__(self):
         if not self.hidden:
-            return repr(self.toList2D())
+            return repr(self.tolist2d())
         else:
             return str({ "displayValue": self.name, "objectType": "ASIterable", "jsonRepresentation": self.serialize() })
 

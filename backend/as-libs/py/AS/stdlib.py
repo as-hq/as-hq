@@ -10,34 +10,20 @@ from AS.formats import *
 def arr(lst):
   return ASIterable(lst)
 
-def space(lst, sp):
-  lst2 = map((lambda x: prefixPush(x, ["" for _ in range(sp)])), lst)
-  return flat(lst2)[:-sp]
-
-def flat(lst):
+def flatten(lst):
   return [item for sublist in lst for item in sublist]
 
-def prefixPush(elem, lst):
-  lst.insert(0, elem) 
-  return lst
-
-def every(lst, k):
-  return lst[0::k]
-
-def sumAxis(lst, axis):
-  return np.sum(lst, axis).tolist()
-
-def multiply(lst1, lst2):
-  return (np.multiply(lst1, lst2)).tolist()
-
-def reshape(lst,axis1,axis2):
-  return np.array(lst).reshape((axis1, axis2)).tolist() 
+def remove_nones(lst):
+  return [x for x in lst if x != None]
 
 def transpose(lst):
-  return np.array(lst).transpose().tolist()
-
-def sumSquares(lst):
-  return sum(np.array(lst)**2)
+  if isinstance(lst, ASIterable):
+    return lst.transpose()
+  arr = np.array(lst)
+  if arr.ndim == 1:
+    return np.array([lst]).tolist() # [1,2] down a column --> [[1,2]]
+  else: 
+    return arr.transpose().tolist()
 
 # def rand(m=1,n=1,upperbound=1):
 #   if n==1 and m != 1:

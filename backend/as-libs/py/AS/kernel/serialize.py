@@ -91,7 +91,7 @@ def serialize(val):
         name = val.name
       return json.dumps(generalSerialize(val, name))
     else: 
-      vals = [serializeListElem(e) for e in val.toList2D()]
+      vals = [serializeListElem(e) for e in val.tolist2d()]
       sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
       return json.dumps(sVal)
 
@@ -116,7 +116,7 @@ def serializeListElem(val):
   elif isinstance(val, np.ndarray):
     return [serializeListElem(e) for e in val.tolist()]
   elif isinstance(val, ASIterable):
-    return [serializeListElem(e) for e in val.toList()]
+    return [serializeListElem(e) for e in val.tolist()]
   elif isinstance(val, dict):
     return generalSerialize(val, 'DICT')
   elif isPrimitive(val):

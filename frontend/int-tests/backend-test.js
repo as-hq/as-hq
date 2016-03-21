@@ -820,298 +820,338 @@ describe('backend', () => {
 
         });
 
-        describe('ASIterable', () => {
-          describe('1D ranges', () => {
-            it ('should act like lists when vertical', (done) => {
+        describe('AlphaSheets Python libraries', () => {
+          describe('top-level functions', () => {
+            it ('includes a working transpose function', (done) => {
               _do([
-                python('A1', '=range(10)'),
-                python('B1', '=[x ** 2 for x in A1:A10]'),
-                shouldBe('B3', valueI(4)),
-
-                exec(done)
-              ]);
-            });
-
-            it ('should work with setting values when vertical', (done) => {
-              _do([
-                python('A1', '=range(10)'),
-                python('B1', '=x=A1:A10;x[1]=15;x'),
-                shouldBe('B2', valueI(15)),
-
-                exec(done)
-              ]);
-            });
-
-            it ('should act like lists when horizontal', (done) => {
-              _do([
-                python('A1', '=[range(10)]'),
-                python('A2', '=[[x ** 2 for x in A1:J1]]'),
-                shouldBe('C2', valueI(4)),
-
-                exec(done)
-              ]);
-            });
-
-            it ('should work with setting values when horizontal', (done) => {
-              _do([
-                python('A1', '=[range(10)]'),
-                python('A2', '=x=A1:J1;x[1]=15;x'),
-                shouldBe('B2', valueI(15)),
-
-                exec(done)
-              ]);
-            })
-
-            it ('initialized to strings works', (done) => {
-              _do([
-                python('A1', '="Hey"'),
-                python('A2', '="There"'),
-                python('C1', '=[len(x) for x in A1:A2]'),
-                shouldBe('C2', valueI(5)),
-                exec(done)
-              ]);
-            });
-
-            it ('should update when an ancestor updates', (done) => {
-              _do([
-                python('A1', '=1'),
-                python('A2', '=2'),
-                python('B1', '=A1:A2'),
-                python('A2', '=3'),
-                shouldBe('B2', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-
-          });
-
-          describe('2D ranges', () => {
-            it ('can be accesed like 2D lists', (done) => {
-              _do([
-                python('B2', '=5'),
-                python('A1', '=B1:D4[1][0]'),
-                shouldBe('A1', valueI(5)),
-                exec(done)
-              ]);
-            });
-
-            it ('can be iterated over like 2D lists', (done) => {
-              _do([
-                python('A1', '=5'),
-                python('A2', '=6'),
-                python('B1', '=7'),
-                python('B2', '=8'),
-                python('C1', '=[[x ** 2 for x in y] for y in A1:B2]'),
-                shouldBe('D2', valueI(64)),
-                exec(done)
-              ]);
-            });
-
-            it ('cannot be summed over with sum', (done) => {
-              _do([
-                python('A1', '=5'),
-                python('A2', '=6'),
-                python('B1', '=7'),
-                python('B2', '=8'),
-                python('C1', '=sum(A1:B2)'),
-                shouldBeError('C1'),
-                exec(done)
-              ]);
-            });
-
-            it ('should work with setting rows', (done) => {
-              _do([
-                python('A1', '=5'),
-                python('A2', '=6'),
-                python('B1', '=7'),
-                python('B2', '=8'),
-
-                python('C1', '=x=A1:B2;x[1]=[13,14];x'),
-                shouldBe('C2', valueI(13)),
-                shouldBe('D2', valueI(14)),
-
-                exec(done)
-              ]);
-            })
-
-            // does not yet work
-            xit ('should work with setting values directly', (done) => {
-              _do([
-                python('A1', '=5'),
-                python('A2', '=6'),
-                python('B1', '=7'),
-                python('B2', '=8'),
-
-                python('C1', '=x=A1:B2;x[0][0]=15;x'),
-                shouldBe('C1', valueI(15)),
-
-                exec(done)
-              ]);
-            })
-
-            it ('can be initialized to strings', (done) => {
-              _do([
-                python('A1', '="Hey"'),
-                python('A2', '="There"'),
-                python('B1', '="Pretty"'),
-                python('B2', '="Boy"'),
-                python('C1', '=[len(x[1]) for x in A1:B2]'),
-                shouldBe('C2', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            it ('should update A1:B2 when an ancestor updates', (done) => {
-              _do([
-                python('A1', '=1'),
-                python('B2', '=2'),
-                python('C1', '=A1:B2'),
-                python('A2', '=3'),
-                shouldBe('C2', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            it ('should update B1:A2 when an ancestor updates', (done) => {
-              _do([
-                python('A1', '=1'),
-                python('B2', '=2'),
-                python('C1', '=B1:A2'),
-                python('A2', '=3'),
-                shouldBe('C2', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            it ('preserves the types of inputs passed in', (done) => {
-              _do([
-                python('A1', '1'),
-                python('A2', 'cat'),
-                python('B1', '=A1:A2'),
-                python('C1', '=B1+1'),
-                shouldBe('C1', valueI(2)),
-                exec(done)
-              ]);
-            });
-          });
-
-          describe('ASIterables initialization', () => {
-            it ('works over 1D lists', (done) => {
-              _do([
-                python('A1', '=arr([1, 2, 3])'),
-                python('A2', '=A1:A3[1]'),
-                shouldBe('A2', valueI(2)),
-                exec(done)
-              ]);
-            });
-
-            it ('works over 1D lists of strings', (done) => {
-              _do([
-                python('A1', '=arr(["howdy", "there", "pardner"])'),
-                python('A2', '=A1:A3[1]'),
-                shouldBe('A2', valueS("there")),
-                exec(done)
-              ]);
-            });
-
-            // code like [[1, 2], [3]] results in PasreError... (--Alex 2/28)
-            it ('works over 2D lists', (done) => {
-              _do([
-                python('A1', '=arr([[1, 2], [3, None]])'),
-                python('A2', '=A1:A3[1]'),
-                shouldBe('A2', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            it ('works over 1D lists of strings', (done) => {
-              _do([
-                python('A1', '=arr(["howdy", "there", "pardner"])'),
-                python('B1', '=A1:A3[1]'),
-                shouldBe('B1', valueS("there")),
-                exec(done)
-              ]);
-            });
-
-            it ('works over 2D lists of strings', (done) => {
-              _do([
-                python('A1', '=arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
-                python('D1', '=A1:B2[1][0]'),
-                shouldBe('D1', valueS("how")),
-                exec(done)
-              ]);
-            });
-
-            it ('works over numpy arrays', (done) => {
-              _do([
-                python('A1', '=import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
-                python('C1', '=A1:B2[1][0]'),
-                shouldBe('C1', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            // code like [[[1], [2]], [3, 4]] results in PasreError... (--Alex 2/28)
-            xit ('works over ASIterables', (done) => {
-              _do([
-                python('A1', '=arr([arr([1,2]),[3,4]])'),
-                python('C1', '=A1:B2[1][0]'),
-                shouldBe('C1', valueI(3)),
-                exec(done)
-              ]);
-            });
-
-            it ('fails over a 3D list', (done) => {
-              _do([
-                python('A1', '=arr([[[[1]]]])'),
-                shouldBeError('A1'),
-                exec(done)
-              ]);
-            });
-          });
-
-          describe('Hiding and unhiding', () => {
-            it ('can be hidden and unhidden', (done) => {
-              _do([
-                python('A1', '5'), python('A2', '6'), python('A3', '7'),
-                python('B1', '=hide(A1:A3)'),
-                shouldBeNothing('B2'),
-                python('C1', '=unhide(B1)'),
-                shouldBe('C2', valueI(6)),
-                exec(done)
-              ]);
-            });
-
-            it ('preserves dimensions upon hiding and unhiding', (done) => {
-              _do([
-                python('A1', '=hide([[1,2]])'),
-                python('A2', '=A1.unhide()'),
-                python('A3', '=unhide(A1)'),
-                shouldBe('B2', valueI(2)),
+                python('A1', '1'), python('A2', '2'), python('B1', '3'), python('B2', '4'),
+                python('A3', '=transpose(A1:A2)'), 
                 shouldBe('B3', valueI(2)),
+                python('A4', '=transpose(A1:B1)'), 
+                shouldBe('A5', valueI(3)), 
+                python('A8', '=transpose([1,2,3])'),
+                shouldBe('C8', valueI(3)), 
+                python('A9', '=transpose([[1,2],[3,4]])'),
+                shouldBe('B9', valueI(3)),
+                exec(done)
+              ]);
+            }); 
+
+            it ('includes a working flatten function', (done) => {
+              _do([
+                python('A1', '1'), python('A2', '2'), python('B1', '3'), python('B2', '4'),
+                python('A3', '=flatten(A1:B2)'), 
+                shouldBe('A3', valueI(1)),
+                shouldBe('A4', valueI(3)),
+                shouldBe('A5', valueI(2)),
+                shouldBe('A6', valueI(4)),
                 exec(done)
               ]);
             });
+
+            it ('includes a working remove_nones function', (done) => {
+              _do([
+                python('A1', '1'), 
+                python('A3', '=remove_nones(flatten(A1:B2))'), 
+                shouldBeNothing('A4'),
+                exec(done)
+              ]);
+            }); 
           });
 
-          describe('Misc perks', () => {
-            it ('can be transposed', (done) => {
-              _do([
-                python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '=8'),
-                python('C1', '=A1:B2.transpose()'),
-                shouldBe('D1', valueI(6)),
-                exec(done)
-              ]);
+          describe('ASIterable', () => {
+            describe('1D ranges', () => {
+              it ('should act like lists when vertical', (done) => {
+                _do([
+                  python('A1', '=range(10)'),
+                  python('B1', '=[x ** 2 for x in A1:A10]'),
+                  shouldBe('B3', valueI(4)),
+
+                  exec(done)
+                ]);
+              });
+
+              it ('should work with setting values when vertical', (done) => {
+                _do([
+                  python('A1', '=range(10)'),
+                  python('B1', '=x=A1:A10;x[1]=15;x'),
+                  shouldBe('B2', valueI(15)),
+
+                  exec(done)
+                ]);
+              });
+
+              it ('should act like lists when horizontal', (done) => {
+                _do([
+                  python('A1', '=[range(10)]'),
+                  python('A2', '=[[x ** 2 for x in A1:J1]]'),
+                  shouldBe('C2', valueI(4)),
+
+                  exec(done)
+                ]);
+              });
+
+              it ('should work with setting values when horizontal', (done) => {
+                _do([
+                  python('A1', '=[range(10)]'),
+                  python('A2', '=x=A1:J1;x[1]=15;x'),
+                  shouldBe('B2', valueI(15)),
+
+                  exec(done)
+                ]);
+              })
+
+              it ('initialized to strings works', (done) => {
+                _do([
+                  python('A1', '="Hey"'),
+                  python('A2', '="There"'),
+                  python('C1', '=[len(x) for x in A1:A2]'),
+                  shouldBe('C2', valueI(5)),
+                  exec(done)
+                ]);
+              });
+
+              it ('should update when an ancestor updates', (done) => {
+                _do([
+                  python('A1', '=1'),
+                  python('A2', '=2'),
+                  python('B1', '=A1:A2'),
+                  python('A2', '=3'),
+                  shouldBe('B2', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+
             });
 
-            it ('can be appended as a 2D list', (done) => {
-              _do([
-                python('A1', '=[[1,2],[3,4]]'),
-                python('A3', '=l = A1:B2\nl.append([5,6])\nl'),
-                shouldBe('B5', valueI(6)),
-                exec(done)
-              ]);
+            describe('2D ranges', () => {
+              it ('can be accesed like 2D lists', (done) => {
+                _do([
+                  python('B2', '=5'),
+                  python('A1', '=B1:D4[1][0]'),
+                  shouldBe('A1', valueI(5)),
+                  exec(done)
+                ]);
+              });
+
+              it ('can be iterated over like 2D lists', (done) => {
+                _do([
+                  python('A1', '=5'),
+                  python('A2', '=6'),
+                  python('B1', '=7'),
+                  python('B2', '=8'),
+                  python('C1', '=[[x ** 2 for x in y] for y in A1:B2]'),
+                  shouldBe('D2', valueI(64)),
+                  exec(done)
+                ]);
+              });
+
+              it ('cannot be summed over with sum', (done) => {
+                _do([
+                  python('A1', '=5'),
+                  python('A2', '=6'),
+                  python('B1', '=7'),
+                  python('B2', '=8'),
+                  python('C1', '=sum(A1:B2)'),
+                  shouldBeError('C1'),
+                  exec(done)
+                ]);
+              });
+
+              it ('should work with setting rows', (done) => {
+                _do([
+                  python('A1', '=5'),
+                  python('A2', '=6'),
+                  python('B1', '=7'),
+                  python('B2', '=8'),
+
+                  python('C1', '=x=A1:B2;x[1]=[13,14];x'),
+                  shouldBe('C2', valueI(13)),
+                  shouldBe('D2', valueI(14)),
+
+                  exec(done)
+                ]);
+              })
+
+              // does not yet work
+              xit ('should work with setting values directly', (done) => {
+                _do([
+                  python('A1', '=5'),
+                  python('A2', '=6'),
+                  python('B1', '=7'),
+                  python('B2', '=8'),
+
+                  python('C1', '=x=A1:B2;x[0][0]=15;x'),
+                  shouldBe('C1', valueI(15)),
+
+                  exec(done)
+                ]);
+              })
+
+              it ('can be initialized to strings', (done) => {
+                _do([
+                  python('A1', '="Hey"'),
+                  python('A2', '="There"'),
+                  python('B1', '="Pretty"'),
+                  python('B2', '="Boy"'),
+                  python('C1', '=[len(x[1]) for x in A1:B2]'),
+                  shouldBe('C2', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              it ('should update A1:B2 when an ancestor updates', (done) => {
+                _do([
+                  python('A1', '=1'),
+                  python('B2', '=2'),
+                  python('C1', '=A1:B2'),
+                  python('A2', '=3'),
+                  shouldBe('C2', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              it ('should update B1:A2 when an ancestor updates', (done) => {
+                _do([
+                  python('A1', '=1'),
+                  python('B2', '=2'),
+                  python('C1', '=B1:A2'),
+                  python('A2', '=3'),
+                  shouldBe('C2', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              it ('preserves the types of inputs passed in', (done) => {
+                _do([
+                  python('A1', '1'),
+                  python('A2', 'cat'),
+                  python('B1', '=A1:A2'),
+                  python('C1', '=B1+1'),
+                  shouldBe('C1', valueI(2)),
+                  exec(done)
+                ]);
+              });
+            });
+
+            describe('ASIterables initialization', () => {
+              it ('works over 1D lists', (done) => {
+                _do([
+                  python('A1', '=arr([1, 2, 3])'),
+                  python('A2', '=A1:A3[1]'),
+                  shouldBe('A2', valueI(2)),
+                  exec(done)
+                ]);
+              });
+
+              it ('works over 1D lists of strings', (done) => {
+                _do([
+                  python('A1', '=arr(["howdy", "there", "pardner"])'),
+                  python('A2', '=A1:A3[1]'),
+                  shouldBe('A2', valueS("there")),
+                  exec(done)
+                ]);
+              });
+
+              // code like [[1, 2], [3]] results in PasreError... (--Alex 2/28)
+              it ('works over 2D lists', (done) => {
+                _do([
+                  python('A1', '=arr([[1, 2], [3, None]])'),
+                  python('A2', '=A1:A3[1]'),
+                  shouldBe('A2', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              it ('works over 1D lists of strings', (done) => {
+                _do([
+                  python('A1', '=arr(["howdy", "there", "pardner"])'),
+                  python('B1', '=A1:A3[1]'),
+                  shouldBe('B1', valueS("there")),
+                  exec(done)
+                ]);
+              });
+
+              it ('works over 2D lists of strings', (done) => {
+                _do([
+                  python('A1', '=arr([["howdy", "there", "pardner"], ["how", "are", "you?"]])'),
+                  python('D1', '=A1:B2[1][0]'),
+                  shouldBe('D1', valueS("how")),
+                  exec(done)
+                ]);
+              });
+
+              it ('works over numpy arrays', (done) => {
+                _do([
+                  python('A1', '=import numpy as np;\narr(np.array([[1,2],[3,4]]))'),
+                  python('C1', '=A1:B2[1][0]'),
+                  shouldBe('C1', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              // code like [[[1], [2]], [3, 4]] results in PasreError... (--Alex 2/28)
+              xit ('works over ASIterables', (done) => {
+                _do([
+                  python('A1', '=arr([arr([1,2]),[3,4]])'),
+                  python('C1', '=A1:B2[1][0]'),
+                  shouldBe('C1', valueI(3)),
+                  exec(done)
+                ]);
+              });
+
+              it ('fails over a 3D list', (done) => {
+                _do([
+                  python('A1', '=arr([[[[1]]]])'),
+                  shouldBeError('A1'),
+                  exec(done)
+                ]);
+              });
+            });
+
+            describe('Hiding and unhiding', () => {
+              it ('can be hidden and unhidden', (done) => {
+                _do([
+                  python('A1', '5'), python('A2', '6'), python('A3', '7'),
+                  python('B1', '=hide(A1:A3)'),
+                  shouldBeNothing('B2'),
+                  python('C1', '=unhide(B1)'),
+                  shouldBe('C2', valueI(6)),
+                  exec(done)
+                ]);
+              });
+
+              it ('preserves dimensions upon hiding and unhiding', (done) => {
+                _do([
+                  python('A1', '=hide([[1,2]])'),
+                  python('A2', '=A1.unhide()'),
+                  python('A3', '=unhide(A1)'),
+                  shouldBe('B2', valueI(2)),
+                  shouldBe('B3', valueI(2)),
+                  exec(done)
+                ]);
+              });
+            });
+
+            describe('Misc perks', () => {
+              it ('can be transposed', (done) => {
+                _do([
+                  python('A1', '5'), python('A2', '6'), python('B1', '7'), python('B2', '=8'),
+                  python('C1', '=A1:B2.transpose()'),
+                  shouldBe('D1', valueI(6)),
+                  exec(done)
+                ]);
+              });
+
+              it ('can be appended as a 2D list', (done) => {
+                _do([
+                  python('A1', '=[[1,2],[3,4]]'),
+                  python('A3', '=l = A1:B2\nl.append([5,6])\nl'),
+                  shouldBe('B5', valueI(6)),
+                  exec(done)
+                ]);
+              });
             });
           });
         });
