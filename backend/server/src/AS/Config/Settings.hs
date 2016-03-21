@@ -19,6 +19,8 @@ import qualified Data.ByteString.Char8 as BC
 import Control.Exception
 import Control.Lens hiding ((.=))
 
+import GHC.Conc (getNumProcessors, setNumCapabilities)
+
 --------------------------------------------------------------------------------------
 -- Types
 
@@ -112,6 +114,8 @@ getSetting = readIORef
 -- !!!!!!MUST BE CALLED UPON APP START!!!!!!
 initializeSettings :: IO ()
 initializeSettings = do
+  setNumCapabilities =<< getNumProcessors
+
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory
 

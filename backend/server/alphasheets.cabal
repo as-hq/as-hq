@@ -168,7 +168,6 @@ executable alphasheets-exe
   main-is:             Main.hs
   ghc-options:         -O2
                        -threaded
-                       -with-rtsopts="-N4"
                        -W
                        -Werror
                 -- these optimizations prevent global variable configuration in 
@@ -210,7 +209,7 @@ executable alphasheets-profiling-exe
   ghc-options:         -O2 
                        -threaded
                        -fprof-auto
-                       "-with-rtsopts=-p -N -s -h -i"
+                       "-with-rtsopts=-p -s -h -i"
   build-depends:       base
                      , alphasheets
                      , aeson
@@ -272,7 +271,6 @@ executable alphasheets-migrate
   main-is:             Main.hs
   ghc-options:         -O2
                        -threaded
-                       -with-rtsopts=-N
   build-depends:       base
                      , alphasheets
                      , text
@@ -307,7 +305,6 @@ test-suite alphasheets-test
                      , inline-r
   ghc-options:         -O2
                        -threaded
-                       -with-rtsopts=-N
   default-language:    Haskell2010
 
 test-suite excel-test
@@ -327,7 +324,6 @@ test-suite excel-test
                      , hspec
   ghc-options:         -O2
                        -threaded
-                       -with-rtsopts=-N
   default-language:    Haskell2010
 
 source-repository head
