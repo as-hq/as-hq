@@ -2,14 +2,21 @@ import _ from 'underscore';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
+<<<<<<< HEAD
 describe('stress testing', () => {
+=======
+describe('backend', () => {
+>>>>>>> stress testing added
   const Util = require('../src/js/AS/Util');
   const {
     __injectExpect,
 
     locToExcel,
 
+<<<<<<< HEAD
     openCurrentSheet,
+=======
+>>>>>>> stress testing added
     openSheet,
     syncWindow,
     init,
@@ -104,9 +111,6 @@ describe('stress testing', () => {
     blockUntil
   } = require('../src/js/browser-test/exec-monad');
 
-  const shortid = require('shortid');
-  const sheetName = shortid.generate();
-
   const API = require('../src/js/actions/ASApiActionCreators');
 
   beforeAll(() => {
@@ -114,7 +118,6 @@ describe('stress testing', () => {
   });
 
   describe('stress-test-run', () => {
-
     beforeAll((done) => {
       _do([
         logP('Initializing...'),
@@ -133,7 +136,7 @@ describe('stress testing', () => {
         logP('Clearing sheet...'),
         clear(), // every it () starts with a clear spreadsheet
         logP('Finished preparing.'),
-        logP('==========================STARTING STRESS TEST ENTRY=========================='),
+        logP('========================== STARTING STRESS TEST =========================='),
         exec(done)
       ]);
     });
