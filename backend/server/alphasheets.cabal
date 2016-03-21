@@ -168,7 +168,7 @@ executable alphasheets-exe
   main-is:             Main.hs
   ghc-options:         -O2
                        -threaded
-                       -with-rtsopts=-N
+                       -with-rtsopts="-N4"
                        -W
                        -Werror
                 -- these optimizations prevent global variable configuration in 
