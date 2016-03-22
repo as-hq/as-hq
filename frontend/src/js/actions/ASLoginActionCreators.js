@@ -17,11 +17,13 @@ export default {
   },
 
   relogin() {
-    if (! API.isTesting) {
+    if (API.isTesting) {
+      API_test.login();
+    } else if (LoginStore.isPublicLogin()) {
+      API.loginPublicly();
+    } else {
       const token = LoginStore.getToken();
       API.login(token);
-    } else {
-      API_test.login();
     }
   },
 
@@ -33,10 +35,17 @@ export default {
     });
   },
 
-  registerCallback(cb: Callback) {
+  registerCallback(cb: Callback, callbackId?: string) {
     Dispatcher.dispatch({
       _type: 'LOGIN_CALLBACK_REGISTERED',
-      cb
+      cb,
+      callbackId
+    });
+  },
+
+  setPublicLogin() {
+    Dispatcher.dispatch({
+      _type: 'SET_PUBLIC_LOGIN',
     });
   },
 }

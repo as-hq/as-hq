@@ -11,6 +11,8 @@ import type {
 import React from 'react';
 import {Dialog, TextField} from 'material-ui';
 // $FlowFixMe:
+import Toggle from 'material-ui/lib/toggle';
+// $FlowFixMe:
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
 // $FlowFixMe:
 import LightTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
@@ -22,13 +24,25 @@ import SheetStore from '../stores/ASSheetStateStore';
 type Props = {
   onRequestClose: Callback;
   open: bool;
-}
+};
+
+type State = {
+  shareable: bool;
+};
 
 class ASShareDialog extends React.Component {
   static defaultProps = {};
   props: Props;
-  state: {};
+  state: State;
   $storeLinks: Array<StoreLink>;
+  _linkField: any;
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      shareable: false
+    };
+  }
 
   componentDidMount() {
     U.React.addStoreLinks(this, [
@@ -48,21 +62,35 @@ class ASShareDialog extends React.Component {
 
   render(): React.Element {
     const {open, onRequestClose} = this.props;
-    const link = SheetStore.getSheetLink();
+    const {shareable} = this.state;
+    const url = SheetStore.getSheetLink(shareable);
 
     return (
-      <Dialog
-        title="Share"
-        actions={[ {text: "Dismiss"} ]}
-        open={open}
-        onRequestClose={onRequestClose} >
+      <Dialog title="Share"
+              actions={[ {text: "Dismiss"} ]}
+              open={open}
+              onRequestClose={onRequestClose} >
 
-        <TextField
-          value={link}
-          fullWidth={true} />
+        <TextField ref={elem => this._linkField = elem}
+                   value={url}
+                   fullWidth={true}
+                   onClick={() => this._onLinkClick()} />
+
+        <Toggle label="Don't require AlphaSheets account for access"
+                toggled={shareable}
+                onToggle={() => this._onShareToggle()} />
 
       </Dialog>
     );
+  }
+
+  _onLinkClick() {
+    this._linkField._getInputNode().select();
+  }
+
+  _onShareToggle() {
+    const {shareable} = this.state;
+    this.setState({shareable: !shareable});
   }
 }
 

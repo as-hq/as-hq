@@ -442,6 +442,14 @@ const API = {
     API.send(msg);
   },
 
+  loginPublicly() {
+    const msg = {
+      tag: 'PublicAuth',
+      contents: []
+    };
+    API.send(msg);
+  },
+
   /**************************************************************************************************************************/
   /* Sending admin-related requests to the server */
 
@@ -917,7 +925,7 @@ const API = {
   renameSheet(renameSheetId: string, newSheetName: string) {
     const msg = {
       tag: 'RenameSheet',
-      renameSheetId, 
+      renameSheetId,
       newSheetName
     };
     API.sendMessageWithAction(msg);

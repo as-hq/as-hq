@@ -215,6 +215,7 @@ processAsyncWithTimeout c state msg = case clientType c of
   UserType -> do
     successLock <- newEmptyMVar 
     tid <- timeoutAsync successLock (\_ -> do
+      printObjForced "RECEIVED MESSAGE" msg
       processMessage c state msg
       putStrLn . ("=== FINISH PROCESSING ====" ++) =<< getTime)
     modifyMVar_' state $ \curState -> 

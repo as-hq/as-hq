@@ -24,12 +24,12 @@ import ConfigStore from '../stores/ASConfigurationStore';
 import pws from '../AS/PWSInstance';
 
 type Props = RoutedComponentProps;
-type State = { 
-  isLoggingIn: boolean; 
+type State = {
+  isLoggingIn: boolean;
 }
 
 class Login extends React.Component {
-  static defaultProps: {} = {}; 
+  static defaultProps: {} = {};
   props: Props;
   state: State;
   _storeToken: StoreToken;
@@ -42,26 +42,21 @@ class Login extends React.Component {
   }
 
   componentDidMount() {
-
-    // $FlowFixMe gapi is in scope due to a top-level script import in Index.html
-    gapi.signin2.render('google-signin-button', {
-      onsuccess: (user) => this._onLoginSubmit(user),
-      ...properties.googleSignin
-    });
-    
     this._storeToken = LoginStore.addListener(() => this._onLoginStateChange());
 
-    // Warn user if login appears to take more than 5 seconds.
-    setTimeout(() => {
-      if (! LoginStore.isLoggedIn() && ConfigStore.isConnected()) {
-        NotificationActions.addNotification({
-          title: 'The server appears to be taking a long time to respond.',
-          message: 'Try refreshing the page?',
-          level: 'info',
-          position: 'bc'
-        });
-      }
-    }, 5000);
+    if (LoginStore.isPublicLogin()) {
+      console.error('PUBLIC LOGIN!!!');
+      this.setState({isLoggingIn: true});
+      API.loginPublicly();
+    } else {
+      // if not public login, render the usual Google signin button.
+      // $FlowFixMe gapi is in scope due to a top-level script import in Index.html
+      gapi.signin2.render('google-signin-button', {
+        onsuccess: (user) => this._onLoginSubmit(user),
+        ...properties.googleSignin
+      });
+    }
+
   }
 
   componentWillUnmount() {
@@ -93,6 +88,18 @@ class Login extends React.Component {
       const idToken = user.getAuthResponse().id_token;
       LoginActions.login(idToken);
     });
+
+    // Warn user if login submit appears to take more than 5 seconds.
+    setTimeout(() => {
+      if (! LoginStore.isLoggedIn() && ConfigStore.isConnected()) {
+        NotificationActions.addNotification({
+          title: 'The server appears to be taking a long time to respond.',
+          message: 'Try refreshing the page?',
+          level: 'info',
+          position: 'bc'
+        });
+      }
+    }, 5000);
   }
 
   _onLoginStateChange() {

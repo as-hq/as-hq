@@ -169,7 +169,6 @@ class ASSpreadsheet extends React.Component {
     // apply hypergrid customizations when its canvas is ready.
     document.addEventListener('fin-ready', () => {
       this._initHypergrid();
-      this.pullInitialData();
       window.onresize = () => {
         GridActions.setDimensions(this._getDimensions());
       }
@@ -284,14 +283,6 @@ class ASSpreadsheet extends React.Component {
   _isLeftClick(e: HGMouseEvent): boolean {
     return e.primitiveEvent.detail.primitiveEvent.which == 1;
   }
-
-  // expects that the current sheet has already been set
-  pullInitialData() {
-    API.openSheet(SheetStateStore.getCurrentSheetId());
-    // lazy-loading disabled (anand 2/15)
-    // GridActions.scroll(this.getViewingWindow());
-  }
-
 
   /*************************************************************************************************************************/
   // Render

@@ -34,6 +34,10 @@ const Constants = Object.assign({
     return Constants.isRemote ? Constants.REMOTE_HOST : 'localhost';
   },
 
+  getFrontendHost(): string {
+    return Constants.isRemote ? Constants.REMOTE_HOST : 'localhost:8080';
+  },
+
   BACKEND_WS_PORT: '5000',
   BACKEND_STATIC_PORT: '8000',
   BACKEND_IMPORT_PORT: '9000',
@@ -120,6 +124,7 @@ const Constants = Object.assign({
   UntimedActions: [
     'Initialize',
     'Open',
+    'OpenSheet',
     'UpdateWindow',
     'ClearSheetServer',
     'BugReport',

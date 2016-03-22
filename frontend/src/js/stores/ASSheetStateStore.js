@@ -159,11 +159,13 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     return sheet.sheetName + qualifier;
   },
 
-  getSheetLink(): string {
+  getSheetLink(shareable: boolean): string {
+    invariant(_data.currentSheetId, "Cannot produce a sheet link when there is no sheet id!");
     return (
       'http://' +
-      (Constants.REMOTE_HOST || 'localhost:8080') +
+      Constants.getFrontendHost() +
       '/#/sheets/' +
+      (shareable ? 'public/' : '') +
       _data.currentSheetId
     );
   },

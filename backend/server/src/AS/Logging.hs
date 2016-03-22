@@ -16,7 +16,7 @@ import Control.Monad (when, void)
 import qualified Network.Wreq as Wreq
 
 truncateLength :: Int
-truncateLength = 2000
+truncateLength = 400
 
 truncated :: String -> String
 truncated str

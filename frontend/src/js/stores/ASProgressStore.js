@@ -33,6 +33,7 @@ class ProgressStore extends MapStore<MessageId, MessageMetadata> {
       case 'CLEARED_SHEET': {
         return Immutable.Map();
       }
+      
       case 'MARK_SENT': {
         const { locations, messageId } = action;
         const metadata = {

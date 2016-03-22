@@ -24,7 +24,10 @@ const LoginRecord = Immutable.Record({
   userId: null,
   loggedIn: false,
   token: null,
-  callbacks: []
+  callbacks: [],
+  // for callbacks that can only be registered once; they are registered by a provided ID.
+  singletonCallbacks: Immutable.Map(),
+  isPublicLogin: false
 });
 
 class LoginStore extends ReduceStore<LoginState> {
@@ -58,8 +61,16 @@ class LoginStore extends ReduceStore<LoginState> {
       }
 
       case 'LOGIN_CALLBACK_REGISTERED': {
-        const {cb} = action;
-        return state.update('callbacks', cbs => cbs.concat([cb]));
+        const {cb, callbackId} = action;
+        if (callbackId !== undefined) {
+          return state.update('singletonCallbacks', cbs => cbs.set(callbackId, cb));
+        } else {
+          return state.update('callbacks', cbs => cbs.concat([cb]));
+        }
+      }
+
+      case 'SET_PUBLIC_LOGIN': {
+        return state.set('isPublicLogin', true);
       }
 
       default: {
@@ -70,6 +81,10 @@ class LoginStore extends ReduceStore<LoginState> {
 
   isLoggedIn(): boolean {
     return this.getState().loggedIn;
+  }
+
+  isPublicLogin(): boolean {
+    return this.getState().isPublicLogin;
   }
 
   getUserId(): string {
@@ -90,7 +105,8 @@ class LoginStore extends ReduceStore<LoginState> {
   }
 
   getCallbacks(): Array<Callback> {
-    return this.getState().callbacks;
+    const {callbacks, singletonCallbacks} = this.getState();
+    return callbacks.concat(singletonCallbacks.toArray());
   }
 }
 

@@ -11,6 +11,7 @@ import qualified Data.ByteString.Char8 as B
 import qualified Network.WebSockets as WS
 
 import AS.Prelude
+import AS.Util
 import AS.Config.Settings (google_token_verify_url, google_client_id, getWhitelistedUsers)
 import AS.Types.User hiding (userId)
 import AS.Types.Network 
@@ -44,7 +45,10 @@ authenticateUser strat = case strat of
     where
       onException :: SomeException -> IO (Either String ASUserId)
       onException e = return $ Left "connection failure"
-  TestAuth -> return $ Right "test_user_id" -- when running tests, no authentication performed.
+  -- a randomly generated, unique user id. Ensures that a publicly-referred user has access only to the sheet she was referred to.
+  PublicAuth -> Right . T.pack <$> getUniqueId 
+  -- when running tests, no authentication performed.
+  TestAuth -> return $ Right "test_user_id" 
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 
 

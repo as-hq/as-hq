@@ -33,6 +33,7 @@ data LoginMessage = Login AuthStrategy deriving (Show, Read, Generic)
 
 data AuthStrategy = 
     GoogleAuth { idToken :: T.Text }
+  | PublicAuth
   | TestAuth
   deriving (Show, Read, Generic)
 

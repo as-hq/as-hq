@@ -36,6 +36,7 @@ window.gridstore = require('./stores/ASGridStore');
 window.sheet = require('./stores/ASSheetStateStore');
 window.cellstore = require('./stores/ASCellStore');
 window.focusstore = require('./stores/ASFocusStore');
+window.api = require('./actions/ASApiActionCreators');
 
 const Index = ({children}) => (
   <div className="full">
@@ -50,19 +51,50 @@ function requireAuth(nextState, replace) {
   }
 }
 
+function regularAuth(nextState, replace) {
+  LoginActions.registerCallback(() => {
+    API.openSheet();
+  }, 'OpenSheet');
+  // ^ register callback with an ID (in this case, 'OpenSheet')
+  // so we don't register it more than once.
+  //
+  // `regularAuth` may be called many times due to routing. E.g.:
+  // user goes to `/` =>
+  // regularAuth() =>
+  // redirect to `/login` =>
+  // login success =>
+  // redirect to `/app` =>
+  // regularAuth()
+  requireAuth(nextState, replace);
+}
+
+function referredSheetAuth(nextState, replace, isPublicReferral) {
+  LoginActions.registerCallback(() => {
+    const {referredSheetId} = nextState.params;
+    API.acquireSheet(referredSheetId);
+  }, 'AcquireSheet');
+  // ^ see above comment for justification of callback ID
+  if (isPublicReferral) {
+    LoginActions.setPublicLogin();
+  }
+  requireAuth(nextState, replace);
+}
+
 const main = (
   <Router>
     <Route path="/" component={Index}>
       <IndexRoute component={Login} />
-      <Route path="login" component={Login} />
-      <Route path="app" component={App} onEnter={requireAuth} />
-      <Route path="sheets/:referredSheetId" component={App} onEnter={(ns, rep) => {
-        LoginActions.registerCallback(() => {
-          const {referredSheetId} = ns.params;
-          API.acquireSheet(referredSheetId);
-        });
-        requireAuth(ns, rep);
-      }} />
+      <Route path="login"
+             component={Login} />
+      <Route path="app"
+             component={App}
+             onEnter={(ns, rep) => regularAuth(ns, rep)} />
+      <Route path="sheets/:referredSheetId"
+             component={App}
+             onEnter={(ns, rep) => referredSheetAuth(ns, rep, false)} />
+      <Route path="sheets/public/:referredSheetId"
+             component={App}
+             onEnter={(ns, rep) => referredSheetAuth(ns, rep, true)} />
     </Route>
   </Router>
 );
