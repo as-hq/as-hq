@@ -23,7 +23,7 @@ import FocusActions from '../actions/ASFocusActionCreators';
 import {actions as Shortcuts} from '../AS/Shortcuts';
 
 class ASCodeEditor extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: {};
   state: {};
 
@@ -60,7 +60,7 @@ class ASCodeEditor extends React.Component {
     const expression = ExpressionStore.getExpression();
     const language = ExpressionStore.getLanguage();
     const isActive = FocusStore.isFocused(name);
-    const maxLines = isActive ? 10: 1; 
+    const maxLines = isActive ? 10: 1;
 
     return (
       <div style={styles.root}>
@@ -129,7 +129,7 @@ const styles = {
   },
   editor: {
     height: '100%',
-    lineHeight: '19px' // height of cursor and each line in the editor
+    lineHeight: '27px' // height of cursor and each line in the editor
   }
 };
 

@@ -18,6 +18,34 @@ type Props = {
   sheetName: string;
 };
 
+function LabeledIconButton(props: {
+  label: string;
+  onClick: () => void;
+  contentStyle: any;
+  tooltip: string;
+  iconClassName: string;
+}): React.Element {
+  const {label, onClick, contentStyle, tooltip, iconClassName} = props;
+
+  return <div style={styles.button}>
+    <IconButton
+      style={styles.iconButton}
+      iconStyle={contentStyle}
+      onClick={onClick}
+      iconClassName="material-icons"
+      tooltip={tooltip}
+      tooltipPosition="top-right"
+      tooltipStyles={styles.tooltip} >
+      {iconClassName}
+    </IconButton>
+    <div
+      style={styles.buttonLabel}
+      onClick={onClick} >
+      {label}
+    </div>
+  </div>;
+}
+
 export default class ASBottomBar extends React.Component<{}, Props, {}>
 {
   constructor(props: Props) {
@@ -34,39 +62,31 @@ export default class ASBottomBar extends React.Component<{}, Props, {}>
   render(): React.Element {
     const {errorIconStyle, outputIconStyle, sheetName,
            onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props;
+
     return (
       <Paper style={styles.root}>
-        <IconButton
-          style={styles.button}
-          iconStyle={errorIconStyle}
+        <LabeledIconButton
+          contentStyle={errorIconStyle}
           onClick={onErrorIconClick}
-          iconClassName="material-icons"
           tooltip={`Errors (${U.Browser.metaKeyName()}+Alt+E)`}
-          tooltipPosition="top-right"
-          tooltipStyles={styles.tooltip} >
-          error_outline
-        </IconButton>
+          iconClassName="error_outline"
+          label="Errors"
+        />
 
-        <IconButton
-          style={styles.button}
-          iconStyle={outputIconStyle}
+        <LabeledIconButton
+          contentStyle={outputIconStyle}
           onClick={onOutputIconClick}
-          iconClassName="material-icons"
           tooltip={`Cell output (${U.Browser.metaKeyName()}+Alt+O)`}
-          tooltipPosition="top-right"
-          tooltipStyles={styles.tooltip}>
-          label_outline
-        </IconButton>
+          iconClassName="label_outline"
+          label="Cell output"
+        />
 
-        <IconButton
-          style={styles.button}
+        <LabeledIconButton
           onClick={onHeaderIconClick}
-          iconClassName="material-icons"
           tooltip={`Header output (${U.Browser.metaKeyName()}+Alt+H)`}
-          tooltipPosition="top-right"
-          tooltipStyles={styles.tooltip}>
-          input
-        </IconButton>
+          iconClassName="input"
+          label="Header output"
+        />
 
         <span style={styles.sheetName(sheetName)}>
           { sheetName }
@@ -90,9 +110,21 @@ const styles = {
   button: {
     position: 'relative',
     display: 'inline-block',
-    width: '40px',
     top: '50%',
     transform: 'translateY(-50%)' // vertically center
+  },
+
+  iconButton: {
+    display: 'inline-block',
+    width: '40px'
+  },
+
+  buttonLabel: {
+    position: 'relative',
+    display: 'inline-block',
+    color: '#ffffff',
+    fontWeight: 500,
+    top: '-7px'
   },
 
   tooltip: {
