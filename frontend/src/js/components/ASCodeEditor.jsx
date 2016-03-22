@@ -12,6 +12,7 @@ import type { StoreToken } from 'flux';
 
 import React from 'react';
 import Constants from '../Constants';
+import U from '../AS/Util';
 
 import Focusable from './transforms/Focusable.jsx';
 import ASControlledCodeField from './basic-controls/ASControlledCodeField.jsx';
@@ -59,6 +60,7 @@ class ASCodeEditor extends React.Component {
     const selection = ExpressionStore.getSelection();
     const expression = ExpressionStore.getExpression();
     const language = ExpressionStore.getLanguage();
+    const isCode = U.Parsing.expressionIsCode(expression, language);
     const isActive = FocusStore.isFocused(name);
     const maxLines = isActive ? 10: 1;
 
@@ -83,7 +85,7 @@ class ASCodeEditor extends React.Component {
             scrollMargin={{ top: 5, bottom: 5 }}
             maxLines={maxLines}
             minLines={1}
-            language={language}
+            language={isCode ? language : 'Excel'}
             onKeyDown={e => this._onKeyDown(e)}
             onMouseEnter={() => FocusActions.hover(name)}
           />

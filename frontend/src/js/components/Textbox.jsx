@@ -64,6 +64,7 @@ class Textbox extends React.Component {
     const selection = ExpressionStore.getSelection();
     const expression = ExpressionStore.getExpression();
     const language = ExpressionStore.getLanguage();
+    const isCode = U.Parsing.expressionIsCode(expression, language);
     const position = ExpressionStore.getTextboxPosition();
     const style = this._getRootStyle(expression, position);
 
@@ -85,7 +86,7 @@ class Textbox extends React.Component {
               }
             }}
             theme=''
-            language={language}
+            language={isCode ? language : 'Excel'}
             maxLines={Infinity}
             showGutter={false}
             onKeyDown={e => this._onKeyDown(e)}
