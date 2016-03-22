@@ -82,7 +82,6 @@ const Constants = Object.assign({
     GOT_UNDO:null,
     GOT_REDO:null,
     GOT_SELECTION:null,
-    GOT_UPDATED_CELLS:null,
     CLEARED: null,
     CLEARED_SHEET: null,
     GOT_UPDATED_WORKBOOKS: null,

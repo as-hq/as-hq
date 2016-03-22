@@ -31,7 +31,7 @@ import Render from '../AS/Renderers';
 import U from '../AS/Util';
 
 // #flowlens
-type State = any; 
+type State = any;
 
 const StateRecord = Immutable.Record({
   expression: '',
@@ -106,8 +106,6 @@ class ExpressionStore extends ReduceStore<State> {
         return state.set('selection', action.selection);
       }
 
-      case 'SHEET_UPDATED':
-      case 'GOT_UPDATED_CELLS': 
       case 'API_EVALUATE': {
         this.getDispatcher().waitFor([CellStore.getDispatchToken(), GridStore.getDispatchToken()]);
 
@@ -148,6 +146,18 @@ class ExpressionStore extends ReduceStore<State> {
 
       case 'FIND_BAR_VISIBILITY_CHANGED': {
         return state.set('isEditing', false);
+      }
+
+      case 'SHEET_UPDATED': {
+        this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
+
+        // If I am editing, the active expression being displayed is
+        // the one I have just typed, in which case we shouldn't update it.
+        if (! state.isEditing) {
+          const {origin} = GridStore.getActiveSelection();
+          return displayActiveExpression(state, origin);
+        }
+        return state;
       }
 
       default:

@@ -6,7 +6,7 @@
 // message id, but we only track evaluation requests here.
 
 import Immutable from 'immutable';
-// $FlowFixMe 
+// $FlowFixMe
 import { MapStore } from 'flux/utils';
 
 import dispatcher from '../Dispatcher';

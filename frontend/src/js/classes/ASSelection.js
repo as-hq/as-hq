@@ -26,9 +26,9 @@ export default class ASSelection {
   get sheetId(): string { return this._sheetId; }
 
   constructor(obj: ASSelectionObject, sheetId?: ?string) {
-    this._origin = ASIndex.fromNaked(obj.origin);
-    this._range = ASRange.fromNaked(obj.range);
     this._sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    this._origin = ASIndex.fromNaked(obj.origin, this._sheetId);
+    this._range = ASRange.fromNaked(obj.range, this._sheetId);
   }
 
   equals(other: ASSelection): boolean {
@@ -78,6 +78,15 @@ export default class ASSelection {
       range: ASRange.fromExcelString(range),
       sheetId: sheetId
     });
+  }
+
+  // non-mutating
+  changeSheet(sheetId: string): ASSelection {
+    const {origin, range} = this;
+    return new ASSelection({
+      origin: origin.obj().index,
+      range: range.obj().range
+    }, sheetId);
   }
 
   originIsCorner(): boolean {

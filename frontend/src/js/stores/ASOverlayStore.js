@@ -68,11 +68,6 @@ class ASOverlayStore extends ReduceStore<State> {
         return resetOverlays(state, cells);
       }
 
-      // We listen to cell updates to see if we need to add/change any overlays
-      case 'GOT_UPDATED_CELLS': {
-        return resetOverlays(state, action.newCells);
-      }
-
       case 'OVERLAY_RESIZED': {
         const newOverlay = action.overlay;
         newOverlay.imageWidth = action.width;

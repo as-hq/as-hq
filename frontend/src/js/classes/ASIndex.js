@@ -108,6 +108,13 @@ export default class ASIndex {
     return this.toRange().toSelection();
   }
 
+  changeSheet(sheetId: string): ASIndex {
+    return ASIndex.fromNaked(
+      this.toNaked(),
+      sheetId
+    );
+  }
+
   shift({dY, dX}: Offset): ASIndex {
     return new ASIndex({ // safely shifts, preserving window bounds
       ...this.obj(),

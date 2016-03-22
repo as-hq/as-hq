@@ -65,6 +65,11 @@ class GridStore extends ReduceStore<State> {
         return setActiveSelection(state, selection, shouldScroll);
       }
 
+      case 'CHANGED_SHEET': {
+        const {sheetId} = action;
+        return state.update('activeSelection', sel => sel.changeSheet(sheetId));
+      }
+
       case 'GRID_DIMENSIONS_CHANGED': {
         const {width, height} = action;
         return state.merge({width, height});

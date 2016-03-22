@@ -44,10 +44,8 @@ export default class ASRange {
     const {range: unorientedRange, sheetId} = obj;
     const {tl: ttl, br: tbr} = orientRange(unorientedRange);
 
-    const tl = ASIndex.fromNaked(ttl), br = ASIndex.fromNaked(tbr);
-
-    this._tl = tl;
-    this._br = br;
+    this._tl = ASIndex.fromNaked(ttl, sheetId);
+    this._br = ASIndex.fromNaked(tbr, sheetId);
     this._sheetId = sheetId;
   }
 
@@ -125,6 +123,13 @@ export default class ASRange {
       origin: this.tl.obj().index,
       range: this.obj().range
     });
+  }
+
+  changeSheet(sheetId: string): ASRange {
+    return ASRange.fromNaked(
+      this.toNaked(),
+      sheetId
+    );
   }
 
   isIndex(): boolean {

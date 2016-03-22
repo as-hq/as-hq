@@ -15,13 +15,11 @@ export default {
   markSent(msg: any) {
     const {messageId, serverAction} = msg;
     const locations = ConversionU.getLocationsFromServerAction(serverAction);
-    if (locations.length > 0) {
-      Dispatcher.dispatch({
-        _type: 'MARK_SENT',
-        locations,
-        messageId
-      });
-    }
+    Dispatcher.dispatch({
+      _type: 'MARK_SENT',
+      locations,
+      messageId
+    });
   },
 
   markReceived(messageId: MessageId) {

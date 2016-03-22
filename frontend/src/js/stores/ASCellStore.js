@@ -124,12 +124,6 @@ class ASCellStore extends ReduceStore<CellStoreData> {
         return state;
       }
 
-      case 'GOT_UPDATED_CELLS': {
-        // Wait for range descriptors to be updated.
-        Dispatcher.waitFor([DescriptorStore.dispatcherIndex]);
-        return updateCells(state, action.newCells, action.oldLocs);
-      }
-
       case 'CLEARED': {
         return state.set('allCells', Map());
       }

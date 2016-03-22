@@ -91,12 +91,6 @@ export type GotSelectionAction = {
   newSelection: ASSelection;
 };
 
-export type GotUpdatedCellsAction = {
-  _type: 'GOT_UPDATED_CELLS';
-  newCells: Array<ASCell>;
-  oldLocs: Array<ASLocation>;
-};
-
 export type GotUpdatedRangeDescriptorsAction = {
   _type: 'GOT_UPDATED_RANGE_DESCRIPTORS';
   newRangeDescriptors: Array<RangeDescriptor>;
@@ -390,7 +384,6 @@ export type ASAction =
   | ScrolledAction
   | HeaderDataResetAction
   | GotSelectionAction
-  | GotUpdatedCellsAction
   | GotUpdatedRangeDescriptorsAction
   | ClearedAction
   | ClearedSheetAction
