@@ -35,6 +35,11 @@ type Props = {
   maxLines: ?number;
   style?: any;
 
+  scrollMargin: {
+    top: number;
+    bottom: number;
+  };
+
   onKeyDown: Callback<SyntheticKeyboardEvent>;
   onKeyUp: Callback<SyntheticKeyboardEvent>;
   onFocus: Callback<SyntheticFocusEvent>;
@@ -57,12 +62,17 @@ export default class ASCodeField extends React.Component {
     maxLines: null,
     minLines: 1,
 
+    scrollMargin: {
+      top: 0,
+      bottom: 0
+    },
+
     onKeyDown(evt) { },
     onKeyUp(evt) { },
     onFocus() { },
     onMouseDown() { },
     onMouseEnter() { },
-  }; 
+  };
   props: Props;
   state: {};
 
@@ -79,7 +89,7 @@ export default class ASCodeField extends React.Component {
     this.editor.container.addEventListener('mouseenter', () => this.props.onMouseEnter());
     // Disable certain Ace default shortcuts
     // For a list of shortcuts and names, see https://ace.c9.io/demo/keyboard_shortcuts.html
-    this.editor.commands.removeCommand('modifyNumberUp'); 
+    this.editor.commands.removeCommand('modifyNumberUp');
     this.editor.commands.removeCommand('modifyNumberDown');
     // ^ When the ace expression was B1, pressing Ctrl+Shift+_ would cause the expression to change
     // to B2,B3, etc.
@@ -117,6 +127,9 @@ export default class ASCodeField extends React.Component {
     this.editor.setFontSize(props.fontSize);
     this.editor.renderer.setShowGutter(props.showGutter);
 
+    const {top, bottom} = props.scrollMargin;
+    this.editor.renderer.setScrollMargin(top, bottom);
+
     this.editor.setOption('readOnly', props.readOnly);
     this.editor.setOption('highlightActiveLine', props.highlightActiveLine);
     this.editor.setShowPrintMargin(props.showPrintMargin);
@@ -125,5 +138,3 @@ export default class ASCodeField extends React.Component {
     this.editor.resize();
   }
 }
-
-  

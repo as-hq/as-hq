@@ -40,6 +40,7 @@ declare class AECursorPosition {
 }
 
 declare class AERenderer {
+  setScrollMargin(top: number, bottom: number): void;
   setShowGutter(showGutter: boolean): void;
 }
 

@@ -80,10 +80,10 @@ class ASCodeEditor extends React.Component {
               }
             }}
             theme='monokai'
+            scrollMargin={{ top: 5, bottom: 5 }}
             maxLines={maxLines}
             minLines={1}
             language={language}
-            fontSize={17}
             onKeyDown={e => this._onKeyDown(e)}
             onMouseEnter={() => FocusActions.hover(name)}
           />
@@ -128,8 +128,7 @@ const styles = {
     flexBasis: 'auto',
   },
   editor: {
-    height: '100%',
-    lineHeight: '27px' // height of cursor and each line in the editor
+    height: '100%'
   }
 };
 
