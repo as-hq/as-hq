@@ -8,6 +8,8 @@ import type {
   ASLanguage
 } from '../../types/Eval';
 
+import _ from 'lodash';
+
 import {logDebug} from '../Logger';
 
 import Constants from '../../Constants';
@@ -57,13 +59,25 @@ const Parsing = {
     }
   },
 
+  expressionIsCode(exp: string): boolean {
+    const nonEmpty = (ln) => ln !== '';
+    const lines = exp.split('\n').filter(nonEmpty);
+
+    if (lines.length > 0) {
+      return _.startsWith(_.last(lines), '=')
+    } else {
+      return true;
+    }
+  },
+
   parseDependencies(str: string, lang: ?ASLanguage): Array<ASRange> {
-    if (lang == 'Excel' && str.length > 0 && str[0] != '=') {
+    if (Parsing.expressionIsCode(str)) {
+      const matches = Parsing.parseRefs(str);
+      const parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
+      return parsed;
+    } else {
       return [];
     }
-    const matches = Parsing.parseRefs(str);
-    const parsed = matches.map((m) => ASRange.fromExcelString(m), Parsing);
-    return parsed;
   },
 
   canInsertRef(prefix: string, suffix: string): boolean {

@@ -86,8 +86,10 @@ class ExpressionStore extends ReduceStore<State> {
 
       case 'EXPRESSION_CHANGED': {
         const {expression} = action;
-        const deps = U.Parsing.parseDependencies(expression, state.currentLanguage);
-        Render.setDependencies(deps);
+        const {currentLanguage} = state;
+
+        highlightAncestors(expression, currentLanguage);
+
         return state.merge({
           expression,
           isInsertingRef: false
@@ -210,6 +212,11 @@ class ExpressionStore extends ReduceStore<State> {
   }
 }
 
+function highlightAncestors(exp: string, lang: ?ASLanguage) {
+  const deps = U.Parsing.parseDependencies(exp, lang);
+  Render.setDependencies(deps);
+}
+
 
 /**
  * This returns all editing functionality to the "ground" state;
@@ -226,8 +233,9 @@ function displayActiveExpression(state: State, origin: ASIndex): State {
   const cell = CellStore.getCell(origin);
   const expression = (!! cell) ? cell.expression.expression : '';
   const currentLanguage = (!! cell) ? cell.expression.language : state.defaultLanguage;
-  const deps = U.Parsing.parseDependencies(expression, currentLanguage);
-  Render.setDependencies(deps);
+
+  highlightAncestors(expression, currentLanguage);
+
   return state.merge({
     expression,
     currentLanguage,
