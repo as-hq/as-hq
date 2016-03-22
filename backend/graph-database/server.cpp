@@ -15,6 +15,12 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <pthread.h>
+#include <unistd.h>
+#include <cassert>
+#include <string>
+#include <iostream>
+
 using namespace boost; 
 using namespace std; 
 using boost::property_tree::ptree;
@@ -25,6 +31,13 @@ using boost::property_tree::read_json;
 
 const char* msgPartDelimiter = "`";
 const char* relationDelimiter = "&";
+const int NUM_WORKERS = 50;
+
+struct arg_struct {
+    zmq::context_t* context;
+    DAG& dag;
+};
+
 
 /*
     For functions like getDescendants, given the requestParts and an empty location vector,
@@ -147,49 +160,24 @@ vector<string> processRequest(DAG& dag, string& request) {
     }
 }
 
+void *worker_routine (void *arguments)
+{
+    arg_struct *args = (struct arg_struct *) arguments;
+    zmq::context_t *context = args->context;
 
-int main () {
-
-    /* Reading settings from Environment.js */
-    string addr;
-    try {
-        ptree json;
-        read_json("../Environment.json", json);
-        addr = json.get("graphDbAddress_cpp", "tcp://*:5555"); // specifying default in case we don't find it
-        cout << "Found address in environment: " << addr << endl;
-    } catch (...) {
-        cout << "exception reading Environment.json, falling back on defaults" << endl;
-        addr = "tcp://*:5555";
-    }
-
-    /* Socket configuration */
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REP);
-    socket.bind (addr);
-
-    /* Variables to help detect start + end of multi-part messages */
-    int rcvMore = 0;
-    size_t sizeInt = sizeof(int);
-
-    cout << "\nServer started\n";
-    /* DAG to be stored in memory */
-    DAG dag; 
-    // int computeResult = dag.recomputeDAG();
-    // if (computeResult != 0) {
-    //     cout << "Graph DB recomputation failure. Exiting..." << endl << endl;
-    //     return -1;
-    // }
+    zmq::socket_t socket (*context, ZMQ_REP);
+    socket.connect ("inproc://workers");
 
     while (true) {
-        /* Wait for next multi-part message from client */
+         /* Wait for next multi-part message from client */
         zmq::message_t requestMsg;
+        socket.recv(&requestMsg, 0); // blocks until receives a message
         clock_t begin = clock(); 
-        socket.recv(&requestMsg, rcvMore); // blocks until receives a message
 
-        string request = string(static_cast<char*>(requestMsg.data()), requestMsg.size());
+        string request = string(static_cast<char*> (requestMsg.data()), requestMsg.size());
         // removes first and last quotes from string (artifact of ByteString show)
-        request = request.substr(1, request.size() - 2); 
-        vector<string> response = processRequest(dag,request);
+        request = request.substr (1, request.size() - 2); 
+        vector<string> response = processRequest (args->dag, request);
 
         clock_t end = clock(); 
         cout << "Time taken: " << (double)(end - begin)/CLOCKS_PER_SEC << endl; 
@@ -205,4 +193,43 @@ int main () {
         socket.send (res); 
         /* ^ Sent back request */
     }
+    return (NULL);
+}
+
+int main ()
+{
+    /* Reading settings from Environment.js */
+    string addr;
+    try {
+        ptree json;
+        read_json("../Environment.json", json);
+        addr = json.get("graphDbAddress_cpp", "tcp://*:5555"); // specifying default in case we don't find it
+        cout << "Found address in environment: " << addr << endl;
+    } catch (...) {
+        cout << "exception reading Environment.json, falling back on defaults" << endl;
+        addr = "tcp://*:5555";
+    }
+
+    //  Prepare our context and sockets
+    zmq::context_t context (1);
+    zmq::socket_t clients (context, ZMQ_ROUTER);
+    clients.bind (addr);
+    zmq::socket_t workers (context, ZMQ_DEALER);
+    workers.bind ("inproc://workers");
+
+    cout << "Creating workers...\n";
+    /* DAG to be stored in memory */
+    DAG dag; 
+
+    arg_struct args = {&context, dag};
+
+    //  Launch pool of worker threads
+    for (int thread_nbr = 0; thread_nbr != NUM_WORKERS; thread_nbr++) {
+        pthread_t worker;
+        pthread_create (&worker, NULL, worker_routine, (void *) &args);
+    }
+    cout << "\nServer started\n";
+    //  Connect work threads to client threads via a queue
+    zmq::proxy (static_cast<void *> (clients), static_cast<void *> (workers), nullptr);
+    return 0;
 }

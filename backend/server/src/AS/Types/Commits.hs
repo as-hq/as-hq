@@ -2,6 +2,7 @@
 
 module AS.Types.Commits where
 
+import AS.Prelude
 import AS.ASJSON
 
 import AS.Types.Cell

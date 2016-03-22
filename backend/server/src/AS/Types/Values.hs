@@ -2,6 +2,7 @@
 
 module AS.Types.Values where 
 
+import AS.Prelude
 import AS.ASJSON
 
 import AS.Types.Locations (Dimensions(..), int)

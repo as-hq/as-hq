@@ -4,7 +4,6 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Errors

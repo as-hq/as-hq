@@ -2,6 +2,7 @@
 
 module AS.Types.User where
 
+import AS.Prelude
 import AS.Types.Sheets
 
 import AS.ASJSON

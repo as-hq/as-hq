@@ -19,6 +19,7 @@ setup(name='AS',
                         'zmq', \
                         'colour', \
                         'pandasql', \
-                        'openpyxl' \
+                        'openpyxl', \
+                        'shortid'
                         ],
       zip_safe=False)

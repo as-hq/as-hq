@@ -14,7 +14,6 @@ import Control.Monad.Trans.Either
 import Database.Redis (Connection)
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages

@@ -1,5 +1,6 @@
 module AS.Handlers.Eval where
 
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.User hiding (userId)
@@ -10,7 +11,9 @@ import AS.Types.Network
 
 import AS.Dispatch.Core
 import AS.Eval.Core (evaluateHeader)
+
 import qualified AS.Kernels.Python as Python
+import qualified AS.Kernels.R.Client as R
 
 import AS.DB.API
 import AS.DB.Transaction
@@ -87,7 +90,9 @@ handleTimeout :: MessageId -> State -> IO ()
 handleTimeout mid state = 
   modifyState_ state $ \curState -> do
     putStrLn $ "Killing message ID: " ++ (T.unpack mid)
-    maybe (return ()) killThread $
-      M.lookup mid (view threads curState)
+    case M.lookup mid (curState^.threads) of 
+      Just tid -> putStrLn ("killed thread: " ++ (show tid)) >> killThread tid
+      _ -> return ()
     Python.haltMessage mid
+    R.haltMessage mid
     return $ curState & threads %~ (M.delete mid)

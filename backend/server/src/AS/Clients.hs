@@ -7,7 +7,6 @@ import Control.Monad (when)
 import Control.Lens hiding ((.=))
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Network 
 import AS.Types.Cell
 import AS.Types.Messages hiding (userId)
@@ -46,7 +45,7 @@ shouldLogMessage _ = True
 shouldPrintMessage :: ServerMessage -> Bool
 shouldPrintMessage (ServerMessage _ (LogAction _)) = False
 shouldPrintMessage (ServerMessage _ (GetSessionLogs _)) = False
-shouldPrintMessage _ = True
+shouldPrintMessage _ = False -- True
 
 instance Client ASUserClient where
   clientType _ = UserType

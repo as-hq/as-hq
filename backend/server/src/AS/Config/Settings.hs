@@ -1,6 +1,5 @@
 module AS.Config.Settings where
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Network
 import AS.Types.Cell
@@ -28,6 +27,8 @@ data AppSettings = AppSettings  { _backendWsAddress :: String
                                 , _backendWsPort :: Int
                                 , _graphDbAddress :: String
                                 , _pyKernelAddress :: String
+                                , _rKernelAddress_server :: String
+                                , _rKernelAddress_client :: String
                                 , _redisPort :: Int
                                 , _redisHost :: String
                                 , _redisPassword :: Maybe BC.ByteString
@@ -43,6 +44,8 @@ instance FromJSON AppSettings where
     wsPort <- v .: "backendWsPort"
     graphAddr <- v .: "graphDbAddress_haskell"
     pyAddr <- v .: "pyKernelAddress_haskell"
+    rAddr_server <- v .: "rKernelAddress_server"
+    rAddr_client <- v .: "rKernelAddress_client"
     redisPort <- v .: "redisPort"
     redisHost <- v .: "redisHost"
     redisPassword <- v .:? "redisPassword"
@@ -53,6 +56,8 @@ instance FromJSON AppSettings where
               wsPort 
               graphAddr 
               pyAddr 
+              rAddr_server
+              rAddr_client
               redisPort 
               redisHost 
               (BC.pack <$> redisPassword) 
@@ -124,19 +129,21 @@ initializeSettings = do
   writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
   writeIORef graphAddress (appSettings^.graphDbAddress)
   writeIORef pykernelAddress (appSettings^.pyKernelAddress)
+  writeIORef rkernelAddress_server (appSettings^.rKernelAddress_server)
+  writeIORef rkernelAddress_client (appSettings^.rKernelAddress_client)
   writeIORef serverHost (appSettings^.backendWsAddress)
   writeIORef serverPort (appSettings^.backendWsPort)
   writeIORef dbHost (appSettings^.redisHost)
   writeIORef dbPort (appSettings^.redisPort)
   writeIORef dbPassword (appSettings^.redisPassword)
-  putStrLn "hI"
 
-  putStrLn . ("[DIRECTORY] root directory : " ++) . show =<< getCurrentDirectory
   putStrLn . ("[CONFIG] appDirectory : " ++) . show =<< getSetting appDirectory
   putStrLn . ("[CONFIG] shouldLogSlack : " ++) . show =<< getSetting shouldLogSlack
   putStrLn . ("[CONFIG] shouldLogConsole : " ++) . show =<< getSetting shouldLogConsole
   putStrLn . ("[CONFIG] graphAddress : " ++) . show =<< getSetting graphAddress
   putStrLn . ("[CONFIG] pykernelAddress : " ++) . show=<< getSetting pykernelAddress
+  putStrLn . ("[CONFIG] rkernelAddress_server : " ++) . show =<< getSetting rkernelAddress_server
+  putStrLn . ("[CONFIG] rkernelAddress_client : " ++) . show =<< getSetting rkernelAddress_client
   putStrLn . ("[CONFIG] serverHost : " ++) . show =<< getSetting serverHost
   putStrLn . ("[CONFIG] serverPort : " ++) . show =<< getSetting serverPort
   putStrLn . ("[CONFIG] dbHost : " ++) . show =<< getSetting dbHost
@@ -158,6 +165,12 @@ graphAddress = declareGlobal "string"
 
 pykernelAddress :: IORef String
 pykernelAddress = declareGlobal "string"
+
+rkernelAddress_server :: IORef String
+rkernelAddress_server  = declareGlobal "string"
+
+rkernelAddress_client :: IORef String
+rkernelAddress_client  = declareGlobal "string"
 
 serverHost :: IORef String
 serverHost = declareGlobal "string"
@@ -182,7 +195,7 @@ declareGlobal :: a -> IORef a
 declareGlobal x = unsafePerformIO $ newIORef x
 
 getRuntimeSettings :: IO AppSettings
-getRuntimeSettings = catch readEnvironment handleException
+getRuntimeSettings = catchAny readEnvironment onException
   where 
     readEnvironment = do
       mainDir <- getCurrentDirectory
@@ -190,15 +203,15 @@ getRuntimeSettings = catch readEnvironment handleException
       case eitherDecode env of 
         Right settings -> return settings
         Left err -> $error $ "couldn't decode environment file, because: " ++ err
-    handleException :: SomeException -> IO AppSettings
-    handleException e = $error $ "decoding Environment failed with error: " ++ show e 
+    onException :: SomeException -> IO AppSettings
+    onException e = $error $ "decoding Environment failed with error: " ++ show e 
 
 getWhitelistedUsers :: IO [ASUserId]
-getWhitelistedUsers = catch getWhitelistedUsers' handleException
+getWhitelistedUsers = catchAny getWhitelistedUsers' onException
   where 
     getWhitelistedUsers' = do
       mainDir <- getCurrentDirectory
       whitelist <- T.readFile $ mainDir </> whitelist_path
       return $ T.lines whitelist
-    handleException :: SomeException -> IO [ASUserId]
-    handleException e = $error $ "opening whitelist file failed with error: " ++ show e 
+    onException :: SomeException -> IO [ASUserId]
+    onException e = $error $ "opening whitelist file failed with error: " ++ show e 

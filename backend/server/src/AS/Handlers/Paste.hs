@@ -1,5 +1,6 @@
 module AS.Handlers.Paste (handleCopy, handleCut, performCopy) where
 
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages

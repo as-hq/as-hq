@@ -12,7 +12,6 @@ module AS.Types.Locations
   ) where
 
 import AS.Prelude hiding (isInfinite)
-import Prelude()
 
 import AS.Types.Migrations.Locations
 import AS.Types.Infinites

@@ -5,7 +5,6 @@ module AS.Types.Window
   ) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.Locations
 import AS.Types.Cell

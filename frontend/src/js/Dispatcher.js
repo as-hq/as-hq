@@ -5,6 +5,7 @@
 
 import type {ASAction} from './types/Actions';
 import * as LogActionCreator from './actions/ASLogActionCreators';
+import Constants from './Constants';
 
 var invariant = require('invariant');
 
@@ -99,8 +100,11 @@ class Dispatcher<TPayload> {
     } finally {
       this._stopDispatching();
     }
-    // $FlowFixMe
-    LogActionCreator.log(payload);
+
+    if (Constants.logActions) {
+      // $FlowFixMe
+      LogActionCreator.log(payload);
+    }
   }
 
   /**

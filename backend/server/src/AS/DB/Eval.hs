@@ -1,6 +1,5 @@
 module AS.DB.Eval where
 
-import Prelude()
 import AS.Prelude
 
 import AS.Types.Cell
@@ -27,9 +26,12 @@ import Database.Redis hiding (decode)
 import Data.List
 import Data.Maybe (catMaybes)
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Lens hiding (set)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+
+import Control.Concurrent (myThreadId)
 
 type EvalChainFunc = ServerState -> MessageId -> [ASCell] -> EvalContext -> EitherTExec EvalContext
 

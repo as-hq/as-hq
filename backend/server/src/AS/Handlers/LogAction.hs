@@ -5,6 +5,7 @@ import Control.Monad
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 as BC (unpack)
 
+import AS.Prelude
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.DB

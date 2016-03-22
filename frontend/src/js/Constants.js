@@ -45,6 +45,7 @@ const Constants = Object.assign({
   isDebug: false,
   isProduction: true,
   isRemote: true,
+  logActions: true,
   promptUser: false,
   showConnectionLost: true,
   shouldReconnect: true,

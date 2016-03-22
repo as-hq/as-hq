@@ -7,7 +7,6 @@ import Data.SafeCopy
 import qualified Data.Text as T
 
 import AS.Prelude
-import Prelude()
 import AS.ASJSON
 import AS.Types.Window
 import AS.Types.Commits

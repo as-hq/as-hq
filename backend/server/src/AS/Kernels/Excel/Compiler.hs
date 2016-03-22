@@ -16,7 +16,6 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
 
 import AS.Prelude hiding (Prefix, Infix, takeWhile)
-import Prelude()
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Excel

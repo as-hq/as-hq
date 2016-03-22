@@ -13,7 +13,6 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as C
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Excel
 import AS.Types.Formats
 import AS.Types.Cell

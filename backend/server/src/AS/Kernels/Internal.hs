@@ -1,5 +1,6 @@
 module AS.Kernels.Internal where
 
+import AS.Prelude
 import AS.Types.Cell
 
 import System.Process

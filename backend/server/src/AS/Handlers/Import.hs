@@ -1,7 +1,6 @@
 module AS.Handlers.Import where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Config.Constants (import_message_id)
 import AS.DB.Clear as DC

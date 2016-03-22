@@ -3,7 +3,6 @@
 module AS.Types.EvalHeader where
 
 import AS.Prelude
-import Prelude()
 
 import AS.ASJSON
 import AS.Config.Constants

@@ -4,7 +4,6 @@ module AS.Types.Network
   ) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.Sheets 
 import AS.Types.Locations
@@ -67,7 +66,7 @@ data ServerState = ServerState { _userClients :: [ASUserClient]
                           , _daemonClients :: [ASDaemonClient]
                           , _dbConn :: R.Connection
                           , _threads :: ThreadMap
-                          , _isDebuggingLog :: Bool}
+                          , _isDebuggingLog :: Bool} 
 -- #needsrefactor rename isDebuggingLog to stopLoggingMessages or something. The idea is that in "dev debug"
 -- mode, you shouldn't be logging replays. 
 

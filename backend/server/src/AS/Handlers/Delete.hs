@@ -7,6 +7,7 @@ import Control.Applicative
 import Control.Lens
 import qualified Data.Map as M
 
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.CellProps
 import AS.Types.Commits

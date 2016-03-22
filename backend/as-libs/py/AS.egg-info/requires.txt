@@ -9,3 +9,4 @@ zmq
 colour
 pandasql
 openpyxl
+shortid

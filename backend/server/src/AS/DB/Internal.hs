@@ -2,18 +2,6 @@
 
 module AS.DB.Internal where
 
-import Control.Applicative
-import Control.Concurrent
-import Control.Monad
-import Control.Monad.Trans
-import Control.Lens
-import Network.Socket.Internal
-import Data.List.Split
-import Data.Maybe (fromJust, catMaybes)
-import Data.SafeCopy (SafeCopy)
-import Database.Redis hiding (decode, Message)
-
-import Prelude()
 import AS.Prelude
 import AS.Config.Settings
 import AS.Types.DB
@@ -24,6 +12,9 @@ import AS.Types.Network
 import AS.Util as U
 import AS.Logging
 import AS.Parsing.Show (showPrimitive)
+
+import Control.Lens
+import Database.Redis hiding (decode, Message)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Settings

@@ -13,7 +13,6 @@ import Control.Lens hiding (set)
 import qualified Database.MySQL.Simple as DM
 
 import AS.Prelude
-import Prelude()
 import AS.Config.Constants (new_sheet_name)
 import AS.Serialize (encode, maybeDecode) 
 import AS.Types.Network hiding (userId)

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module AS.Config.Constants where 
 
+import AS.Prelude
 import Data.Text hiding (unlines)
 
 -- daemons do not require generated MessageIDs because they are 

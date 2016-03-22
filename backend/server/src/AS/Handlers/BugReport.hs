@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 
+import AS.Prelude
 import AS.Types.Network
 import AS.Types.Messages
 import AS.Types.User hiding (userId)

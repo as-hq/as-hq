@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, QuasiQuotes, DataKinds, TemplateHaskell, ViewPatterns #-}
+{-# LANGUAGE QuasiQuotes, DataKinds, ViewPatterns, TemplateHaskell, OverloadedStrings #-}
 
 module Main where
   
@@ -24,6 +24,7 @@ import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
 import qualified AS.Kernels.Python as KP
+import qualified AS.Kernels.R.Client as KR
 
 import AS.Async
 
@@ -58,7 +59,6 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.Wai.Application.Static as Static
 
 import Language.R.Instance as R
-import Language.R.QQ
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Main
@@ -72,8 +72,9 @@ main = alphaMain $ R.withEmbeddedR R.defaultConfig $ do
   curState <- readMVar state
   when isDebug $ initDebug state
 
+  putStrLn "\n\nRecomputing DAG..."
   G.recomputeAllDAGs (curState^.dbConn)
-  putStrLn "RECOMPUTED DAG"
+  putStrLn "Done."
 
   port <- S.getSetting S.serverPort
   putStrLn $ "server started on port " ++ show port
@@ -90,21 +91,16 @@ initApp = do
   -- init state
   conn <- DI.connectRedis
   state <- newMVar $ emptyServerState conn
-  -- init python kernel
+  -- init kernels
   KP.initialize conn
-  -- init R
-  R.runRegion $ do
-    -- the app needs sudo to install packages.
-    [r|library("rjson")|]
-    [r|library("ggplot2")|]
-    return ()
+  KR.initialize conn
   return state
 
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
 initDebug _ = do
   putStrLn "\n\nEvaluating debug statements..."
-  putStrLn "\nDone."
+  putStrLn "Done."
   return ()
 
 runServer :: MVar ServerState -> IO ()
@@ -183,7 +179,8 @@ preprocess conn state = do
         -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
         mockUc = UserClient uid' conn win uid'
     curState <- readMVar state
-    when (isNothing $ US.getUserClientBySessionId uid' curState) $ liftIO $ modifyMVar_ state (return . addClient mockUc)
+    when (isNothing $ US.getUserClientBySessionId uid' curState) $ 
+      liftIO $ modifyMVar_ state (return . addClient mockUc)
     processMessage mockUc state ($read msg)
     putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
   putStrLn "\n\nFinished preprocessing."
@@ -197,7 +194,9 @@ initClient client state = do
 -- | Maintains connection until user disconnects
 talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
+  putStrLn . ("=== MAIN THREAD RELEASED ====" ++) =<< getTime
   dmsg <- WS.receiveDataMessage (clientConn client)
+  putStrLn . ("=== RECEIVE MESSAGE ====" ++) =<< getTime
   case dmsg of 
     WS.Binary b -> handleImportBinary client (State state) b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
@@ -215,15 +214,17 @@ processAsyncWithTimeout :: (Client c) => c -> MVar ServerState -> ServerMessage 
 processAsyncWithTimeout c state msg = case clientType c of 
   UserType -> do
     successLock <- newEmptyMVar 
-    tid <- timeoutAsync successLock $ processMessage c state msg
-    modifyMVar_ state $ \curState -> 
+    tid <- timeoutAsync successLock (\_ -> do
+      processMessage c state msg
+      putStrLn . ("=== FINISH PROCESSING ====" ++) =<< getTime)
+    modifyMVar_' state $ \curState -> 
       return $ curState & threads %~ (M.insert mid tid)
     putMVar successLock ()
     where
       mid = serverMessageId msg
       act = getServerActionType (serverAction msg)
       timeoutAsync lock f = forkIO $ 
-        timeout S.process_message_timeout onTimeout (onSuccess lock) f
+        timeout S.process_message_timeout onTimeout (onSuccess lock) (f ())
       onTimeout = 
         sendMessage 
           (ClientMessage timeout_message_id $ AskTimeout mid act) 
@@ -231,7 +232,7 @@ processAsyncWithTimeout c state msg = case clientType c of
       onSuccess lock = do
         -- block until the first modifyMVar_ above finishes.
         takeMVar lock
-        modifyMVar_ state $ \curState -> 
+        modifyMVar_' state $ \curState -> 
           return $ curState & threads %~ (M.delete mid)
   DaemonType -> void $ forkIO (processMessage c state msg)
 
@@ -274,4 +275,4 @@ processMessage oldClient mstate message = do
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect user state = do
   printWithTime "Client disconnected"
-  liftIO $ modifyMVar_ state (return . removeClient user) -- remove client from server
+  liftIO $ modifyMVar_' state (return . removeClient user) -- remove client from server

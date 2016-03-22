@@ -6,14 +6,18 @@ module AS.Types.Eval
   , module AS.Types.Values
   ) where
 
+import AS.Prelude
 import GHC.Generics
 import Control.Lens hiding (index)
 import Control.Applicative ((<$>), (<*>))
+import Control.DeepSeq
+import Control.DeepSeq.Generics (genericRnf)
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Safe (headMay)
+import Data.SafeCopy
 
 import AS.Types.CellProps
 import AS.Types.Values
@@ -57,6 +61,10 @@ emptyResult = EvalResult (CellValue NoValue) Nothing
 makeLenses ''EvalResult
 makeLenses ''HeaderResult
 asLensedToJSON ''HeaderResult -- only used for sending header
+
+deriveSafeCopy 1 'base ''EvalResult
+
+instance NFData EvalResult where rnf = genericRnf
 ----------------------------------------------------------------------------------------------------------------------
 -- Fat cells
 

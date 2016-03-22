@@ -3,7 +3,6 @@
 module AS.Types.Selection (Selection, activeIndex, indicesInFiniteSelection, selectedRanges) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.Locations
 import GHC.Generics

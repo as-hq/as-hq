@@ -1,6 +1,5 @@
 module AS.Parsing.Show where
 
-import Prelude()
 import AS.Prelude
 
 import Data.List (elemIndex)

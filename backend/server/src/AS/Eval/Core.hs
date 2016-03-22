@@ -20,7 +20,6 @@ import qualified Data.Text as T
 import qualified Data.List.Split as LS
 import Text.ParserCombinators.Parsec
 
-import Prelude()
 import AS.Prelude
 import AS.Util
 import AS.Types.Cell
@@ -35,7 +34,7 @@ import AS.Types.Network
 import AS.Types.Messages (MessageId)
 
 import AS.Kernels.Python as KP
-import AS.Kernels.R as KR
+import AS.Kernels.R.Client as KR
 import AS.Kernels.Excel.Eval as KE
 import AS.Kernels.OCaml as KO
 import AS.Dispatch.Expanding as DE
@@ -53,6 +52,7 @@ import qualified AS.DB.Graph as G
 ----------------------------------------------------------------------------------------------------
 -- Exposed functions
 
+-- #needsrefactor this function can be split into nicer composed parts
 evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression 
                  -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
 evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
@@ -89,7 +89,7 @@ evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = ca
             pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx nonInterpolatedXp f
             return <$> KP.evaluateSql mid sid pythonSqlCode
           Python -> return <$> KP.evaluate mid sid (interpolatedXp^.expression)
-          R -> return <$> KR.evaluate (interpolatedXp^.expression)
+          R -> return <$> KR.evaluate mid sid (interpolatedXp^.expression)
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against 
 --  which evals are executed
@@ -97,7 +97,7 @@ evaluateHeader :: MessageId -> EvalHeader -> EitherTExec EvalResult
 evaluateHeader mid evalHeader = 
   case lang of 
     Python -> KP.evaluateHeader mid sid str
-    R      -> KR.evaluateHeader str
+    R      -> KR.evaluateHeader mid sid str
   where 
     sid  = evalHeader^.evalHeaderSheetId
     lang = evalHeader^.evalHeaderLang
@@ -167,7 +167,7 @@ bimapEitherT' f g (EitherT m) = EitherT (fmap h m) where
 
 catchEitherT :: EitherTExec (Formatted EvalResult) -> EitherTExec (Formatted EvalResult)
 catchEitherT a = do
-  result <- liftIO $ catch (runEitherT a) whenCaught
+  result <- liftIO $ catchAny (runEitherT a) whenCaught
   case result of
     Left e -> left e
     Right e -> right e

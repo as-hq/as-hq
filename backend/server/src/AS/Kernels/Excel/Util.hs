@@ -1,7 +1,6 @@
 module AS.Kernels.Excel.Util where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.Cell
 import AS.Types.Errors

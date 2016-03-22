@@ -3,7 +3,6 @@
 module AS.Types.Updates where
 
 import AS.Prelude
-import Prelude()
 
 import GHC.Generics
 import Control.Applicative (liftA2)

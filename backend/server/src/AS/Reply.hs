@@ -5,6 +5,7 @@ import Control.Concurrent.ParallelIO.Global (parallel_)
 import Control.Lens
 import Control.Monad (unless)
 
+import AS.Prelude
 import AS.Types.Bar
 import AS.Types.Cell
 import AS.Types.Commits

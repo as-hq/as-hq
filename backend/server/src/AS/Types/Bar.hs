@@ -5,7 +5,6 @@
 module AS.Types.Bar where
 
 import AS.Prelude
-import Prelude()
 
 import AS.ASJSON
 import AS.Types.Sheets

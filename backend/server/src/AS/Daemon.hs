@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module AS.Daemon where
 
-import Prelude()
 import AS.Prelude
 
 import AS.Config.Constants

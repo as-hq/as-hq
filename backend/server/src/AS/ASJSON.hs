@@ -2,6 +2,7 @@
 
 module AS.ASJSON where
 
+import AS.Prelude
 import Language.Haskell.TH
 import Data.Aeson
 import Data.Aeson.TH

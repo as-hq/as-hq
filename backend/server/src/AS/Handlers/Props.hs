@@ -1,7 +1,6 @@
 module AS.Handlers.Props (handleToggleProp, handleSetProp, handleChangeDecimalPrecision) where
 
 import AS.Prelude
-import Prelude()
 import AS.Config.Constants
 
 import AS.Types.Cell

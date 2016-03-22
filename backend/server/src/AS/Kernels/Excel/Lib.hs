@@ -41,7 +41,6 @@ import qualified Statistics.Distribution.Normal as SDN
 import qualified Statistics.Matrix as SM
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Excel
 import AS.Types.Shift
 import AS.Types.Cell hiding (isBlank)

@@ -6,6 +6,7 @@ import GHC.Generics
 import Data.SafeCopy
 import qualified Data.Map as M
 
+import AS.Prelude
 import AS.ASJSON
 import AS.Types.Locations
 import AS.Types.Updates

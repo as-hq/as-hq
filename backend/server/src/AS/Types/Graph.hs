@@ -21,6 +21,7 @@ import Data.SafeCopy
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Commits
 import AS.Types.Locations
@@ -30,8 +31,6 @@ import AS.Types.CellProps
 import AS.Types.Bar
 import AS.Types.CondFormat
 import AS.Types.User
-import Prelude()
-import AS.Prelude
 
 import AS.Serialize as S (encode)
 

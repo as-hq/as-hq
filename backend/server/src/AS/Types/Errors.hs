@@ -4,6 +4,7 @@
 
 module AS.Types.Errors where
 
+import AS.Prelude
 import AS.ASJSON
 
 import AS.Types.Locations

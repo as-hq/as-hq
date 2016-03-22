@@ -15,7 +15,6 @@ import qualified Data.ByteString.Char8     as B
 import qualified Data.ByteString.Lazy      as BL
 import qualified Database.Redis as R
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Locations

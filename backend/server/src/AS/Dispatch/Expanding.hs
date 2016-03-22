@@ -12,7 +12,6 @@ import qualified Data.Map as M
 import qualified Data.List as L
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Cell
 import AS.Types.Eval
 

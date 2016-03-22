@@ -1,7 +1,6 @@
 module AS.Types.BarProps where
 
 import AS.Prelude
-import Prelude()
 
 import AS.ASJSON
 

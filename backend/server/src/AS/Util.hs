@@ -12,7 +12,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Network.WebSockets as WS
 import qualified Data.ByteString as B
 
-import Prelude()
 import AS.Prelude
 import AS.Logging
 import AS.Types.Cell
@@ -34,9 +33,9 @@ testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emp
 
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
-  printObjForced "About to send message" msg
+  --printObjForced "About to send message" msg
   WS.sendTextData conn (encode msg)
-  printWithTimeForced "Server sent message!"
+  --printWithTimeForced "Server sent message!"
 
 -- | Generates a random number
 getUniqueId :: IO String

@@ -19,7 +19,6 @@ import qualified Data.ByteString.Internal as BI
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Sci
 
-import Prelude()
 import AS.Prelude hiding (takeWhile)
 import AS.Util
 import qualified AS.LanguageDefs as LD

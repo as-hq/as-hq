@@ -1,3 +1,6 @@
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module AS.Prelude 
   ( module PreludeMinus
   , module Data.Data
@@ -13,6 +16,9 @@ module AS.Prelude
   , nub
   , filterBy
   , (<++>)
+  , modifyMVar_'
+  , catchAny
+  , handleAny
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -21,6 +27,8 @@ import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined)
 import qualified Prelude as P
 import Data.Data
 
+import Control.Concurrent
+import Control.Exception
 import Control.Lens
 import Language.Haskell.TH
 import Safe (headMay, lastMay, tailMay)
@@ -125,3 +133,22 @@ nub xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
 
 filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
 filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
+
+-- | a version of modifyMVar_ that strictly computes the new state
+modifyMVar_' :: MVar a -> (a -> IO a) -> IO ()
+modifyMVar_' s f = modifyMVar s $ \s' -> (,()) <$> f s'
+
+-- | a version of catch that never swallows asynchronous exceptions.
+catchAny :: IO a -> (SomeException -> IO a) -> IO a
+catchAny m f = catch m onExc
+  where
+    onExc e
+        | shouldCatch e = f e
+        | otherwise = throwIO e
+    shouldCatch e
+        | Just (_ :: AsyncException) <- fromException e = False
+        | otherwise = True
+
+-- | a version of handle that never swallows asynchronous exceptions.
+handleAny :: (SomeException -> IO a) -> IO a -> IO a
+handleAny h f = catchAny f h

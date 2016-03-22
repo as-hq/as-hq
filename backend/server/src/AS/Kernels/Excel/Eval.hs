@@ -9,6 +9,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 import qualified Data.Vector as V
 
+import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Excel

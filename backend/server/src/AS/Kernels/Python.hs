@@ -15,6 +15,7 @@ import Control.Monad.Trans.Either
 import Database.Redis (Connection)
 import qualified Data.List.Utils as LU
 
+import AS.Prelude
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.EvalHeader
@@ -32,7 +33,7 @@ import AS.Config.Constants
 import qualified AS.Parsing.Read as R
 import AS.Parsing.Show
 import AS.Parsing.Common
-import AS.DB.API (getEvalHeader, getAllSheets)
+import AS.DB.API (getAllHeaders)
 
 
 -----------------------------------------------------------------------------------------------------------------------------
@@ -41,8 +42,7 @@ import AS.DB.API (getEvalHeader, getAllSheets)
 initialize :: Connection -> IO ()
 initialize conn = do
   -- run all the headers in db to initialize the sheet namespaces
-  sids <- map sheetId <$> getAllSheets conn
-  headers <- mapM (\sid -> getEvalHeader conn sid Python) sids
+  headers <- getAllHeaders conn Python
   mapM_ (\h -> runEitherT $ evaluateHeader initialize_message_id (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) headers
 
 evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
@@ -92,7 +92,7 @@ formatSqlCode code = do
 -- Helpers
 
 data EvalScope = Header | Cell deriving (Generic)
-data KernelMessage = 
+data KernelRequest = 
     EvaluateRequest { scope :: EvalScope, evalMessageId :: MessageId, envSheetId :: ASSheetId, code :: String } 
   | EvaluateFormatRequest { envSheetId :: ASSheetId, code :: String }
   | GetStatusRequest ASSheetId
@@ -101,7 +101,7 @@ data KernelMessage =
   | HaltMessageRequest MessageId
   deriving (Generic)
 
-data KernelResponse = 
+data KernelReply = 
     EvaluateReply { value :: Maybe String, evalError :: Maybe String, display :: Maybe String } 
   | EvaluateFormatReply { formatValue :: Maybe String, formatError :: Maybe String }
   | GetStatusReply -- TODO
@@ -112,7 +112,7 @@ data KernelResponse =
 
 instance ToJSON EvalScope
 
-instance ToJSON KernelMessage where
+instance ToJSON KernelRequest where
   toJSON msg = case msg of 
     EvaluateRequest scope mid sid code -> object  [ "type" .= ("evaluate" :: String)
                                                   , "scope" .= scope
@@ -137,7 +137,7 @@ instance ToJSON KernelMessage where
     HaltMessageRequest mid -> object [ "type" .= ("halt_message" :: String)
                                      , "message_id" .= mid]
 
-instance FromJSON KernelResponse where
+instance FromJSON KernelReply where
   parseJSON (Object v) = do
     val <- v .: "type" :: (Parser String)
     case val of 
@@ -160,7 +160,7 @@ evaluateWithScope scope mid sid code = do
       cval <- hoistEither $ R.parseValue Python (BC.pack v)
       return $ EvalResult cval disp
 
-sendMessage :: KernelMessage -> EitherTExec KernelResponse
+sendMessage :: KernelRequest -> EitherTExec KernelReply
 sendMessage msg = do
   resp <- liftIO $ runZMQ $ do
     reqSocket <- connectToKernel
@@ -173,7 +173,7 @@ sendMessage msg = do
     Right (GenericErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
-sendMessage_ :: KernelMessage -> IO ()
+sendMessage_ :: KernelRequest -> IO ()
 sendMessage_ msg = runZMQ $ do
   reqSocket <- connectToKernel  
   send' reqSocket [] $ encode msg

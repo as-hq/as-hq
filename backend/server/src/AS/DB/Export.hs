@@ -3,7 +3,6 @@ module AS.DB.Export where
 import Control.Lens hiding ((.=))
 import Database.Redis
 
-import Prelude()
 import AS.Config.Settings
 import AS.Prelude
 import AS.Types.Cell

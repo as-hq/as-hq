@@ -20,7 +20,7 @@ module.exports = {
     tasks: ['build']
   },
   test: {
-    karmaConfig: 'karma.conf.js',
+    karmaConfig: 'karma-test.conf.js',
     getConfig: function (fname) {
       var ret = {
         files:
@@ -40,6 +40,26 @@ module.exports = {
     excelFile: 'test-context-excel.js',
     formulaFile: 'test-context-formula.js',
     allFile: 'test-context-all.js'
+  },
+  stress: {
+    karmaConfig: 'karma-stress.conf.js',
+    getConfig: function (fname) {
+      var ret = {
+        files:
+          [].concat(
+            [ 'node_modules/babel-core/browser-polyfill.js' ],
+            [{
+              pattern: fname,
+              watched: false
+            }]),
+        preprocessors: {}
+      };
+      ret.preprocessors[fname] = ['webpack'];
+
+      return ret;
+    },
+    execFile: 'test-stress-all.js',
+    numClients: 2,
   },
   prodServe: {
     src: dest,

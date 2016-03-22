@@ -1,6 +1,5 @@
 module AS.LanguageDefs where
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Cell
 

@@ -25,7 +25,6 @@ module AS.Types.CellProps
   ) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.User
 import AS.Types.Formats

@@ -8,7 +8,6 @@ module AS.Types.Cell
   ) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.ASJSON
 

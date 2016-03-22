@@ -1,5 +1,7 @@
 module AS.Serialize where
 
+import AS.Prelude
+
 import Data.SafeCopy
 import Data.Serialize.Put (runPut, runPutLazy)
 import Data.Serialize.Get (runGet, runGetLazy)

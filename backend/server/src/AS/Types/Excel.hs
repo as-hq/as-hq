@@ -6,7 +6,6 @@
 
 module AS.Types.Excel where
 
-import Prelude()
 import AS.Prelude hiding (isInfinite)
 
 import AS.Types.CellProps

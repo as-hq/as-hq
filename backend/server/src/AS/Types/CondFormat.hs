@@ -3,7 +3,6 @@
 module AS.Types.CondFormat where
 
 import AS.Prelude
-import Prelude()
 
 import AS.ASJSON 
 

@@ -8,7 +8,6 @@ import Control.Monad
 import Control.Lens hiding (set)
 import Control.Monad.Trans
 
-import Prelude()
 import AS.Config.Settings
 import AS.DB.Graph as G
 import AS.Prelude

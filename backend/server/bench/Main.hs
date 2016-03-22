@@ -113,11 +113,11 @@ main = alphaMain $ do
 
       , it "does multithreaded shit" $ 
           runIO $ do
-            cs <- replicateM 10 $ async $ KP.testCell "INIT_SHEET_ID" "range(int(random.random()*1000))"
+            cs <- replicateM 10 $ async $ KP.testCell "INIT_SHEET_ID" xp
             mapM wait cs
 
       , xit "evaluates range(10000)" $ 
-          runIO $ KP.testCell "INIT_SHEET_ID" "range(10000)"
+          runIO $ KP.testCell "INIT_SHEET_ID" "range(30000)"
       ]
 
     --, has () $ \ ~(myEnv, _) -> 
@@ -135,3 +135,12 @@ main = alphaMain $ do
     --              (CommitSource "BENCH_ID" "")
     --      ]
     ]
+
+xp :: String
+xp = "\
+\import time;\
+\time.sleep(random.random()*5);\
+\import urllib2;\
+\urllib2.urlopen('http://deelay.me/' + str(int(random.random()*3)) + '/http://microsoft.com');\
+\range(int(random.random()*10000))\
+\"

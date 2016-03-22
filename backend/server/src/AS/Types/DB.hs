@@ -2,7 +2,6 @@
 
 module AS.Types.DB where
 
-import Prelude()
 import AS.Prelude
 import Data.Maybe
 import qualified Data.ByteString.Char8         as BC

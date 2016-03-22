@@ -3,11 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-module AS.Kernels.R
-  ( evaluate
-  , evaluateRepl
-  , evaluateHeader
-  ) where
+module AS.Kernels.R.Shell where
 
 import Data.List (transpose, dropWhile, dropWhileEnd)
 import Data.List.Split (chunksOf)
@@ -16,16 +12,21 @@ import System.Directory
 import Control.Monad.IO.Class
 import Control.Applicative
 import Control.Exception (handle, SomeException)
+import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
+import Control.Lens
+import Control.Concurrent
 import System.Directory (getCurrentDirectory)
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.Map as M
 
 import qualified Data.Vector.SEXP as SV
 import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
 import Foreign.Marshal.Array (peekArray)
 import Language.Haskell.TH.Ppr (bytesToString)
+
 import qualified Foreign.R as R
 import Foreign.R.Type as R
 import Foreign.R (SEXP, SEXPTYPE, printValue)
@@ -33,43 +34,63 @@ import Language.R.Instance as R
 import Language.R as LR
 import Language.R.QQ
 import Language.R.HExp as H
+import Control.Memory.Region
 
 import AS.Prelude
-import Prelude()
 import AS.Config.Settings as S
 import AS.Logging
 import AS.Util 
-import AS.Types.Cell
+import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Kernels.Internal
+import AS.Kernels.R.Types
+
+type VarSymbol = String
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
--- Don't actually need the sheet id's as arguments right now. (Alex 11/15)
-evaluate :: EvalCode -> EitherTExec EvalResult
-evaluate ""  = return emptyResult
-evaluate str = do
-  v <- liftIO $ execOnString str (execR False)
-  return $ EvalResult v Nothing
+newShell :: IO Shell
+newShell = R.runRegion $ do
+  -- the app needs to be run as root to install packages.
+  [r|
+    library("rjson")
+    library("ggplot2")
+  |]
 
-evaluateRepl :: EvalCode -> EitherTExec EvalResult
-evaluateRepl ""  = return emptyResult
-evaluateRepl str = do
-  v <- liftIO $ execOnString str (execR True)
-  return $ EvalResult v Nothing
+  return $ Shell M.empty
 
-evaluateHeader :: EvalCode -> EitherTExec EvalResult
-evaluateHeader str = do 
-  lift clearRepl
-  evaluateRepl str
+runBlock :: MVar State -> EvalCode -> EvalScope -> ASSheetId -> IO EvalResult
+runBlock state code scope sid = do
+  curState <- readMVar state
+  cwd <- S.getSetting S.appDirectory
+  uid <- getUniqueId
+  let imageName = uid ++ ".png"
+  let imagePath = cwd ++ "/static/images/" ++ imageName
 
-clearRepl :: IO ()
-clearRepl = do
- R.runRegion $ castR =<< [r| rm(list=ls()) |]
- return ()
+  let onException :: SomeException -> IO EvalResult
+      onException e = do
+        putStrLn ("runBlock ERROR: " ++ show e) 
+        return $ EvalResult 
+          (CellValue (ValueError (show e) "R error"))
+          (Just $ "Runtime error: " ++ (show e))
+
+  handleAny onException $ 
+    possiblyOverrideWithImage imageName =<< (
+      R.runRegion $ do
+        when (M.notMember sid (curState^.shell.environments)) $ 
+          installEnv state sid
+        curState <- liftIO $ readMVar state
+        let runCode = prepareExpression scope imagePath code
+        let againstEnv :: SEXP a 'R.Env
+            againstEnv = R.sexp $ (curState^.shell.environments) M.! sid
+        execR [r| eval(parse(text=runCode_hs), envir=againstEnv_hs) |]
+    )
+
+clear :: MVar State -> ASSheetId -> IO ()
+clear state sid = runRegion $ installEnv state sid
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Util
@@ -78,91 +99,69 @@ trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to ge
 trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
   where isWhitespace c = (c == ' ') || (c == '\n') || (c == '\t') || (c == ';')
 
+prepareExpression :: EvalScope -> FilePath -> EvalCode -> EvalCode
+prepareExpression scope imagePath code = 
+  let code' = "\npng(" ++ show imagePath ++ ")" ++ 
+              "\nresult = eval(parse(text=" ++ show code ++ "))"  ++ 
+              "\ndev.off()" ++ 
+              "\nresult"
+  in case scope of 
+    Cell -> isolateCodeScope code'
+    Header -> code'
+      
+isolateCodeScope :: EvalCode -> EvalCode 
+isolateCodeScope code = "(function() {" ++ code ++ "})()"
+  
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exec helpers
 
-execOnString :: EvalCode -> (EvalCode -> IO CompositeValue) -> IO CompositeValue
-execOnString str f = do
-  printWithTime "starting R eval"
-  case (trimWhitespace R str) of
-    "" -> return $ CellValue NoValue
-    trimmed -> f trimmed
+installEnv :: MVar State -> ASSheetId -> R a ()
+installEnv state sid = do
+  newEnvUnformed <- [r|new.env()|]
+  liftIO $ do
+    let newEnv = R.cast R.SEnv newEnvUnformed
+    R.preserveObject newEnv -- preserve across all gc sweeps (for multithreaded access)
+    modifyMVar_' state $ return . (& shell.environments %~ M.insert sid (R.unsexp newEnv))
 
--- takes (current project dir, isGlobalExecution, str)
--- change wd and then change back so that things like read.table will read from the static folder
-execR :: Bool -> EvalCode -> IO CompositeValue
-execR isGlobal s = do 
-  fp <- S.getSetting S.appDirectory
-  let fpStatic = S.static_dir
-      onException :: SomeException -> IO CompositeValue
-      onException e = do
-        R.runRegion $ castR =<< [r| setwd(fp_hs) |]
-        return . CellValue $ ValueError (show e) "R error"
-  uid <- liftIO getUniqueId
-  -- See comment under possiblyOverrideWithImage for how images work
-  let imageName = uid ++ ".png"
-      imagePath = "images/" ++ imageName
-  handle onException $ 
-    possiblyOverrideWithImage imageName =<< (R.runRegion $ castR =<< if isGlobal
-      then [r| eval(parse(text=s_hs)) |]
-      else [r| 
-      AS_LOCAL_ENV <- function() {
-        setwd(fpStatic_hs) 
-        png(imagePath_hs)
-        result = eval(parse(text=s_hs))
-        dev.off()
-        setwd(fp_hs)
-        result
-      }; 
-      AS_LOCAL_EXEC<-AS_LOCAL_ENV()
-      AS_LOCAL_EXEC 
-      |])
-
--- @anand faster unboxing, but I can't figure out how to restrict x to (IsVector x)
---castR :: (IsVector a) => (R.SomeSEXP (R.SEXP (Control.Memory.Region s) a) -> IO ASValue
---castR (R.SomeSEXP x) =
-  --let offset = R.length x
-  --case x of
-    --(hexp -> H.Real _)    -> (map ValueD) <$> (peekArray offset =<< R.real x)
-    --(hexp -> H.Int _)     -> (map (ValueI . fromIntegral)) <$> (peekArray offset =<< R.integer x)
-    --(hexp -> H.Logical _) -> (map (ValueB . fromLogical)) <$> (peekArray offset =<< R.logical x)
-    --(hexp -> H.Char _)    -> (\s -> [ValueS s]) <$> (peekCString =<< R.char x)
-    --(hexp -> H.String _)  -> (map ValueS) <$> (mapM peekCString =<< mapM R.char =<< peekArray offset =<< R.string x)
+-- TODO stacktraces (fill in the second argument of EvalResult)
+execR :: R m (R.SomeSEXP m) -> R m EvalResult
+execR ex = ex >>= castR >>= (\cv -> return $ EvalResult cv Nothing)
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Casting helpers
 
-castR :: R.SomeSEXP a -> R a CompositeValue
-castR s@(R.SomeSEXP x) = do
-  (CellValue (ValueB isMatrix)) <- (\(R.SomeSEXP b) -> castSEXP b) =<< [r|is.matrix(s_hs)|]
+castR :: R.SomeSEXP m -> R m CompositeValue
+castR s = do
+  CellValue (ValueB isMatrix) <- castSEXP =<< [r|is.matrix(s_hs)|]
   if isMatrix
-    then castMatrix x
-    else castSEXP x
+    then castMatrix s
+    else castSEXP s
 
 -- | In the R code, png(imagePath_hs) means that any image generated gets saved into the file
 -- named imagePath (within the directory of fpStatic). If any code generates an image without returning
 -- an error, we override the return value of that code with the image. 
-possiblyOverrideWithImage :: String -> CompositeValue -> IO CompositeValue
-possiblyOverrideWithImage imageName cv = do 
+possiblyOverrideWithImage :: String -> EvalResult -> IO EvalResult
+possiblyOverrideWithImage imageName (EvalResult cv disp) = do 
   exist <- doesFileExist $ S.images_dir ++ imageName
-  return $ if exist 
-    then CellValue . ValueImage $ imageName
-    else cv 
+  let cv' = if exist 
+            then CellValue . ValueImage $ imageName
+            else cv 
+  return $ EvalResult cv' disp
 
-castSEXP :: R.SEXP s a -> R s CompositeValue
-castSEXP x = case x of
+castSEXP :: R.SomeSEXP m -> R m CompositeValue
+castSEXP origValue@(R.SomeSEXP x) = case x of
   (hexp -> H.Nil)       -> return $ CellValue NoValue
   (hexp -> H.Real v)    -> return . rdVector $ map fromReal $ SV.toList v
   (hexp -> H.Int v)     -> return . rdVector $ map (ValueI . fromIntegral) $ SV.toList v
   (hexp -> H.Logical v) -> return . rdVector $ map fromLogical $ SV.toList v
   (hexp -> H.Char v)    -> return $ CellValue (castString v)
   (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
-  (hexp -> H.Symbol s s' s'') -> castSEXP s
+  (hexp -> H.Symbol s s' s'') -> castSEXP $ R.SomeSEXP s
   -- (hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] 
   -- ^ this case only fires on pairlists, due to HaskellR issue #214
   (hexp -> H.Special i)    -> return $ CellValue (ValueI $ fromIntegral i)
-  (hexp -> H.DotDotDot s)  -> castSEXP s
-  (hexp -> H.Vector len v) -> castVector v
+  (hexp -> H.DotDotDot s)  -> castSEXP $ R.SomeSEXP s
+  (hexp -> H.Vector len v) -> castVector origValue v
   (hexp -> H.Builtin i)    -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.Raw v)        -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
   (hexp -> H.S4 s)         -> CellValue <$> castS4 s
@@ -176,27 +175,27 @@ rdVector vals
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
 
-castVector :: SV.Vector s 'R.Vector (R.SomeSEXP s) -> R s CompositeValue
-castVector v = do
-  vals <- rdVectorVals <$> (mapM castR $ SV.toList v)
-  (CellValue (ValueB isList)) <- castR =<< [r|is.list(AS_LOCAL_EXEC)|]
-  (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(AS_LOCAL_EXEC)|]
+castVector :: R.SomeSEXP m -> SV.Vector m 'R.Vector (R.SomeSEXP m) -> R m CompositeValue
+castVector origValue vec = do
+  vals <- rdVectorVals <$> mapM castR (SV.toList vec)
+  (CellValue (ValueB isList)) <- castR =<< [r|is.list(origValue_hs)|]
+  (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(origValue_hs)|]
 
   if isList
     then if isDf
       then do
-        names <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
-        indices <- castNames <$> (castR =<< [r|rownames(AS_LOCAL_EXEC)|])
+        names <- castNames <$> (castR =<< [r|names(origValue_hs)|])
+        indices <- castNames <$> (castR =<< [r|rownames(origValue_hs)|])
         return . Expanding $ VRDataFrame names indices (transpose vals)
       else do
-        listNames <- castNames <$> (castR =<< [r|names(AS_LOCAL_EXEC)|])
+        listNames <- castNames <$> (castR =<< [r|names(origValue_hs)|])
         let nameStrs = map (\(ValueS s) -> s) listNames
         if (isRGgPlot nameStrs)
           then do
             uid <- liftIO getUniqueId
             let imageName = uid ++ ".png"
                 savePath = S.images_dir ++ imageName
-            [r|ggsave(filename=savePath_hs, plot=AS_LOCAL_EXEC)|]
+            [r|ggsave(filename=savePath_hs, plot=origValue_hs)|]
             return . CellValue $ ValueImage imageName
           else return . Expanding . VRList $ zip nameStrs vals
           -- ggplot plots generated within functions don't save, so we're adding
@@ -204,10 +203,10 @@ castVector v = do
           -- http://stackoverflow.com/questions/7034647/save-ggplot-within-a-function
     else return . Expanding . VList . M $ vals
 
-castMatrix :: R.SEXP s a -> R s CompositeValue
-castMatrix x = do
-  (Expanding (VList (A vals))) <- castSEXP x
-  (Expanding (VList (A dims))) <- castR =<< [r|dim(AS_LOCAL_EXEC)|]
+castMatrix :: R.SomeSEXP m -> R m CompositeValue
+castMatrix s = do
+  Expanding (VList (A vals)) <- castSEXP s
+  Expanding (VList (A dims)) <- castR =<< [r|dim(s_hs)|]
   let [(ValueI nrows), _] = dims
   return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
 
@@ -227,7 +226,7 @@ castNames val = case val of
   _ -> $error $ "could not cast dataframe labels from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
-castS4 :: R.SEXP s a -> R s ASValue
+castS4 :: SEXP m a -> R m ASValue
 castS4 s = return $ ValueError "S4 objects not currently supported." "R Error"
 
 fromLogical :: R.Logical -> ASValue

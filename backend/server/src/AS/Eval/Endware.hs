@@ -6,7 +6,6 @@ import Database.Redis as R
 import Control.Concurrent
 import Control.Lens hiding ((.=))
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Commits

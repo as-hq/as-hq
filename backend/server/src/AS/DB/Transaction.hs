@@ -1,6 +1,5 @@
 module AS.DB.Transaction where 
 
-import Prelude()
 import AS.Prelude
 
 import AS.Types.Cell

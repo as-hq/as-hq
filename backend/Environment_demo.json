@@ -3,6 +3,8 @@
   "backendWsPort": 5200,
   "graphDbAddress_haskell": "tcp://localhost:5755",
   "pyKernelAddress_haskell": "tcp://localhost:20200",
+  "rKernelAddress_server": "tcp://*:21200",
+  "rKernelAddress_client": "tcp://localhost:21200",
   "graphDbAddress_cpp": "tcp://*:5755",
   "pyKernelAddress_python": "tcp://*:20200",
   "redisPort": 6381,

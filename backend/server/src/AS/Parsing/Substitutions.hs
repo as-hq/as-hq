@@ -15,7 +15,6 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
 import Data.Attoparsec.Combinator (lookAhead)
 
-import Prelude()
 import AS.Prelude hiding (takeWhile)
 import AS.Types.Cell
 import AS.Types.Excel

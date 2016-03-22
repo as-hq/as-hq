@@ -25,16 +25,15 @@ if __name__ == '__main__':
   except:
     settings = {}
 
-  kernel = None
+  kernel = ASKernel()
+
   if 'pyKernelAddress_python' in settings:
     addr = settings['pyKernelAddress_python']
     cprint("Using address '" + addr + "' from Environment.json\n")
-    kernel = ASKernel(address=addr)
+    kernel.listen(addr)
   else:
     cprint("No environment specified, falling back on defaults\n")
-    kernel = ASKernel()
-
-  kernel.listen()
+    kernel.listen()
 
 # debugging cruft
 # pls leave

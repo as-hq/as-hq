@@ -2,7 +2,6 @@
 
 module AS.DB.API where
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
@@ -294,6 +293,10 @@ setEvalHeader conn evalHeader = do
       xp   = evalHeader^.evalHeaderExpr
   setV conn (EvalHeaderKey sid lang) (HeaderValue (BC.pack xp))
 
+getAllHeaders :: Connection -> ASLanguage -> IO [EvalHeader]
+getAllHeaders conn lang = do
+  sids <- map sheetId <$> getAllSheets conn
+  mapM (\sid -> getEvalHeader conn sid lang) sids
 ------------------------------------------------------------------------------------------------------------------------
 
 -- Each commit source has a temp commit, used for decouple warnings

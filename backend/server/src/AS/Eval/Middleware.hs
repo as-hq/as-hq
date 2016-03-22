@@ -1,6 +1,5 @@
 module AS.Eval.Middleware (evalMiddleware) where
 
-import Prelude()
 import AS.Prelude
 import AS.Types.Cell
 

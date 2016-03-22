@@ -408,6 +408,7 @@ const API = {
 
   send(msg: any) {
     pws.waitForConnection((innerClient: WebSocket) => {
+      console.warn('sending message');
       innerClient.send(JSON.stringify(msg));
     });
   },

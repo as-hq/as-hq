@@ -1,6 +1,5 @@
 module AS.Eval.CondFormat where
 
-import Prelude()
 import AS.Prelude
 
 import AS.DB.API as DB

@@ -10,5 +10,6 @@ class CannotEmbedListsOfDimensionGreaterThanTwo(Exception):
 class CannotCoerceTo1DList(Exception):
   pass
 
-class KilledException(Exception):
-  pass
+class TimeoutException(Exception):
+  def __repr__(self):
+    return "Killed by a timeout exception."

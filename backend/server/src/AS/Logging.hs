@@ -1,19 +1,6 @@
-module AS.Logging 
-  ( printWithTime
-  , printWithTimeForced
-  , printWithTimeT
-  , printList2
-  , printListT2
-  , printObj
-  , printObjForced
-  , printObjT
-  , printDebug
-  , printDebugT
-  , logServerMessage
-  , logError
-  , logBugReport
-  ) where
+module AS.Logging where
 
+import AS.Prelude
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.Graph
@@ -45,7 +32,7 @@ getDate :: IO String
 getDate = getCurrentTime >>= (return . (take 10) . show)
 
 appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catch (appendFile fname msg) (\e -> void . return $ (e :: SomeException))
+appendFile' fname msg = catchAny (appendFile fname msg) (\e -> void . return $ (e :: SomeException))
 
 printWithTime :: String -> IO ()
 printWithTime msg = do

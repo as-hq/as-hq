@@ -1,7 +1,6 @@
 module AS.Dispatch.Core where
 
 -- AlphaSheets and base
-import Prelude()
 import AS.Prelude
 import qualified Data.Map   as M
 import qualified Data.Set   as S
@@ -209,7 +208,7 @@ evalChainWithException state mid cells ctx =
         printObj "Runtime exception caught" (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catch (runEitherT $ evalChain state mid cells ctx) whenCaught
+    result <- liftIO $ catchAny (runEitherT $ evalChain state mid cells ctx) whenCaught
     hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
@@ -267,7 +266,7 @@ removeMultipleDescriptorsFromContext :: [RangeDescriptor] -> PureEvalTransform
 removeMultipleDescriptorsFromContext descriptors ctx =
   ctx & (updateAfterEval . descriptorUpdates) %~ descriptorTransform
     where
-      descriptorTransform = \ddiff -> L.foldl' (flip removeKey) ddiff (map key descriptors)
+      descriptorTransform = \ddiff ->  L.foldl' (flip removeKey) ddiff (map key descriptors)
 
 -- Helper function  that adds a descriptor to the ddiff of a context
 addValueToContext :: RangeDescriptor -> PureEvalTransform

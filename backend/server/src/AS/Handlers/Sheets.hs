@@ -7,7 +7,6 @@ import Control.Lens
 import Control.Monad.Trans.Either
 
 import AS.Prelude
-import Prelude()
 import AS.Types.Network
 import AS.Types.Locations
 import AS.Types.Messages

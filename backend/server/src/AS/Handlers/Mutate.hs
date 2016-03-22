@@ -1,7 +1,6 @@
 module AS.Handlers.Mutate (handleMutateSheet) where
 
 import AS.Prelude
-import Prelude()
 
 import AS.Types.Cell
 import AS.Types.Network
