@@ -24,6 +24,9 @@ cd ../
 cd server
 tmux new -s "backend" -d "./alphasheets-exe"
 
+# rkernel
+tmux new -s "rkernel" -d "./rkernel-exe"
+
 # fileinput
 cd static
 tmux new -s "fileinput" -d "./file-input-handler"

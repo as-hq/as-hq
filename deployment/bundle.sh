@@ -96,7 +96,9 @@ else
   stack build 
 fi
 cd ../..
-cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server
+cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server/
+cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/rkernel-exe build/server/
+
 # backend environments are all the same, because they run on docker
 cp backend/Environment_$BRANCH.json build/Environment.json
 echo "backend build finished."
