@@ -43,8 +43,9 @@ const ASCondFormatStore = Object.assign({}, BaseStore, {
         ASCondFormatStore.emitChange();
         break;
 
-      case 'RESET':
+      case 'CLEARED_SHEET':
         _data.rules = [];
+        ASCondFormatStore.emitChange();
         break;
     }
   }),

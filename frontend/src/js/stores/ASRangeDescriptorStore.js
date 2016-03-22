@@ -30,7 +30,7 @@ const ASRangeDescriptorStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register((action) => {
     logDebug('Range descriptor store received action', action);
     switch (action._type) {
-      case 'RESET':
+      case 'CLEARED_SHEET':
         _data.rangeDescriptors = new ObjectDict();
         break;
 

@@ -23,7 +23,7 @@ import ObjectDict from '../classes/ObjectDict';
 
 let _data = {
   bars: new ObjectDict(),
-  lastUpdatedBars: ([]: Array<Bar>)
+  lastUpdatedBars: ([]: Array<Bar>) // when BarStore updates, the outside world needs to know which bars actually got updated
 };
 
 // Dict that takes in a RowType/ColumnType and maps to ordered pairs of row/col indices and their heights/widths (null if not set)
@@ -48,9 +48,12 @@ const ASBarStore = Object.assign({}, BaseStore, {
         }
         break;
 
-      case 'RESET':
+      case 'CLEARED_SHEET':
+        const oldBarLocs = _data.bars.values().map(({barIndex}) => barIndex); 
+        // have to reset the dimensions of the bars at the old locations
+        _data.lastUpdatedBars = ASBarStore._blankBarsAt(oldBarLocs);
         _data.bars = new ObjectDict();
-        _data.lastUpdatedBars = [];
+        ASBarStore.emitChange();
         break;
     }
   }),
@@ -74,7 +77,6 @@ const ASBarStore = Object.assign({}, BaseStore, {
     return dims;
   },
 
-  // #incomplete must also filter by sheet
   getLastUpdatedBarsDimensions(): BarDimensions {
     return ASBarStore._getDimensions(_data.lastUpdatedBars);
   },

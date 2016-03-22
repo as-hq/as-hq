@@ -16,7 +16,10 @@ export default class ObjectDict<A, B> {
   del(item: A) {
     const str = stringify(item);
     if (this._dict[str] != null) {
-      delete this._dict[stringify(item)];
+      delete this._dict[str];
     }
+  }
+  values(): Array<B> { 
+    return Object.keys(this._dict).map((key) => this._dict[key]);
   }
 }

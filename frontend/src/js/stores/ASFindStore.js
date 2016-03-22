@@ -15,7 +15,7 @@ let _data = {
 
 dispatcherIndex: Dispatcher.register(function (action) {
   switch (action._type) {
-    case 'RESET':
+    case 'CLEARED_SHEET':
       _data = {
         findText: '',
         findPos: 0, 

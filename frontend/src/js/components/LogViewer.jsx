@@ -47,11 +47,9 @@ export default class LogViewer extends React.Component {
 
   // Tell all stores to reset themselves and clear the current sheet
   // Called before replaying 
-  // #needs refactor overlap between reset and clearsheet
   _reset() {
     // TODO: this is asynchronous, and we may want to wait for it to get back before proceeding
     API.clearSheet();
-    Dispatcher.dispatch({_type: 'RESET'});
   }
 
   // To replay until a given point, just dispatch actions or send API messages until we get to that point

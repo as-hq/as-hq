@@ -135,9 +135,6 @@ class ASCellStore extends ReduceStore<CellStoreData> {
         );
       }
 
-      case 'RESET':
-        return this.getInitialState();
-
       default:
         return state;
     }

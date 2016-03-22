@@ -30,8 +30,9 @@ class ProgressStore extends MapStore<MessageId, MessageMetadata> {
 
   reduce(state: ProgressState, action: ASAction): ProgressState {
     switch (action._type) {
-      case 'RESET':
+      case 'CLEARED_SHEET': {
         return Immutable.Map();
+      }
       case 'MARK_SENT': {
         const { locations, messageId } = action;
         const metadata = {

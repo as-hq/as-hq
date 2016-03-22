@@ -44,7 +44,7 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
 
   reduce(state: HeaderStoreData, action: ASAction): HeaderStoreData {
     switch (action._type) {
-      case 'RESET':
+      case 'CLEARED_SHEET':
         return this.getInitialState();
   
       case 'HEADER_UPDATED': {

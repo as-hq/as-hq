@@ -18,7 +18,7 @@ let _notifications: Array<string> = [];
 const NotificationStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
-      case 'RESET':
+      case 'CLEARED_SHEET':
         _notifications = [];
         break;
 

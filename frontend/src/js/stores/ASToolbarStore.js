@@ -9,7 +9,7 @@ const _data = {
 const ASToolbarStore = Object.assign({}, BaseStore, {
   dispatcherIndex: Dispatcher.register(action => {
     switch (action._type) {
-      case 'RESET':
+      case 'CLEARED_SHEET':
         _data.openItem = null;
         break;
       case 'OPEN_TOOLBAR_ITEM':

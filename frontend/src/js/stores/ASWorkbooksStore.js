@@ -48,7 +48,7 @@ const ASWorkbookStore = Object.assign({}, BaseStore, {
       });
 
       switch (_action._type) {
-        case 'RESET':
+        case 'CLEARED_SHEET':
           _data.workbooks = {};
           break;
         case 'GOT_UPDATED_WORKBOOKS':

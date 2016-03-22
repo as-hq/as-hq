@@ -9,7 +9,7 @@ let _data = {
 
 let dispatcherIndex = Dispatcher.register((action) => {
   switch (action._type) {
-    case 'RESET':
+    case 'CLEARED_SHEET':
       _data.shortcutHelperOpen = false;
       break;
     case 'TOGGLE_SHORTCUT_HELPER':

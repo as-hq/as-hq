@@ -11,7 +11,7 @@ let _data = {
 
 let dispatcherIndex = Dispatcher.register((action) => {
   switch (action._type) {
-    case 'RESET':
+    case 'CLEARED_SHEET':
       _data = {
         condFormattingOpen: false,
         chartOpen: false,
