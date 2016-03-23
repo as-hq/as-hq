@@ -2,21 +2,14 @@ import _ from 'underscore';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
-<<<<<<< HEAD
 describe('stress testing', () => {
-=======
-describe('backend', () => {
->>>>>>> stress testing added
   const Util = require('../src/js/AS/Util');
   const {
     __injectExpect,
 
     locToExcel,
 
-<<<<<<< HEAD
     openCurrentSheet,
-=======
->>>>>>> stress testing added
     openSheet,
     syncWindow,
     init,

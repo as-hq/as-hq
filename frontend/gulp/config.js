@@ -59,11 +59,7 @@ module.exports = {
       return ret;
     },
     execFile: 'test-stress-all.js',
-<<<<<<< HEAD
-    numClients: 2,
-=======
     numClients: 3,
->>>>>>> stress testing added
   },
   prodServe: {
     src: dest,
