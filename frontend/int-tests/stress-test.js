@@ -116,20 +116,10 @@ describe('stress testing', () => {
         logP('Initializing...'),
         init (),
         logP('Opening sheet...'),
-        openCurrentSheet(),
+        openSheet(),
         logP('Syncing window...'),
         syncWindow(),
         logP('Set up environment.'),
-        exec(done)
-      ]);
-    });
-
-    beforeEach((done) => {
-      _do([
-        logP('Clearing sheet...'),
-        clear(), // every it () starts with a clear spreadsheet
-        logP('Finished preparing.'),
-        logP('========================== STARTING STRESS TEST =========================='),
         exec(done)
       ]);
     });
@@ -138,7 +128,7 @@ describe('stress testing', () => {
       it ('makes ranges and operates on them', (done) => {
         _do([
           python('A1', 'range(10)'),
-          python('B1', 'range(100)'),
+          python('B1', 'range(10000)'),
           excel('C1', '=sum(A1:A100)'),
           excel('D1', '=sum(A:A)'),
           exec(done)
@@ -167,7 +157,7 @@ describe('stress testing', () => {
           python('A1', 'random.random()'),
           python('B1', '!{10, A1}'),
           python('C1', '!{100, A1}'),
-          python('D1', 'hide(!{1000, A1})'),
+          python('D1', '!{1000, A1}'),
           exec(done)
         ]);
       });
