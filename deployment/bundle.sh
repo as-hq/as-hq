@@ -106,7 +106,7 @@ echo "backend build finished."
 
 # C++ executable (compile, move executable over to build/graph
 cd backend/graph-database
-g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -std=c++11
+g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -lpthread -std=c++11 
 cd ../../
 cp backend/graph-database/server build/graph/
 
