@@ -18,7 +18,7 @@ import Constants from '../Constants.js'
 const TRY_FLUSH_QUEUE_INTERVAL = 50; // every n ms, try sending queued messages
 const CHECK_ALIVE_INTERVAL = 100; // perform the alive check every n ms
 const HEARTBEAT_TIMEOUT = 20; // if we don't receive a heartbeat at least once in this many intervals, timeout the connection
-const CHECK_CONNECTION_INTERVAL = 3000; // every 3s, check internet connection.
+const CONNECTION_TIMEOUT = 100; // if websockets doesn't change its ready state in this many intervals, timeout
 
 class PersistentWebSocket {
   _url: string;
@@ -152,10 +152,6 @@ class PersistentWebSocket {
       this._tryFlushingQueue();
     }, TRY_FLUSH_QUEUE_INTERVAL);
 
-    // (3) internet connection detector
-    this._connectionWatch = setInterval(() => {
-      this._checkConnection();
-    }, CHECK_CONNECTION_INTERVAL);
   }
 
   whenReady(cb: Callback) {
@@ -179,7 +175,6 @@ class PersistentWebSocket {
     this._client.close();
     clearInterval(this._heartbeat);
     clearInterval(this._messagePump);
-    clearInterval(this._connectionWatch);
   }
 
   /******************************* Private functions **************************/
@@ -191,13 +186,7 @@ class PersistentWebSocket {
 
   _connecting(): boolean {
     const {readyState} = this._client;
-    // if the readyState is 1, we can only trust that the socket is properly bound
-    // and backend is simply taking a long time to initialize (this is empirically
-    // true when connecting remotely). Otherwise, there is the possibility that
-    // the client will prematurely close the connection. If the readyState is 0
-    // (in connecting phase), then we will timeout for the heartbeat, since the
-    // very first thing backend does upon connection is start a heartbeat.
-    return (readyState === 1)
+    return (readyState === 1 && this._timeoutCounter < CONNECTION_TIMEOUT)
         || (readyState === 0 && this._timeoutCounter < HEARTBEAT_TIMEOUT);
   }
 
@@ -205,12 +194,6 @@ class PersistentWebSocket {
     if (this._connecting()) {
       this._timeoutCounter++;
     } else {
-      this._onConnectionLoss();
-    }
-  }
-
-  _checkConnection() {
-    if (! hasInternetConnection() || this._isDisconnected) {
       this._onConnectionLoss();
     }
   }
@@ -253,29 +236,13 @@ class PersistentWebSocket {
 
   _attemptReconnect() {
     console.log("attempting reconnect");
-    let {onmessage, onopen} = this._client;
+    const {onmessage, onopen} = this._client;
     this._client = new ws(this._url);
     this._client.onmessage = onmessage;
     this._client.onopen = onopen;
     this._resetCounter();
   }
 
-}
-
-function hasInternetConnection() {
-  // Handle IE and more capable browsers
-  const xhr = new ( window.ActiveXObject || XMLHttpRequest )( "Microsoft.XMLHTTP" );
-
-  // Open new request as a HEAD with a random param to bust the cache
-  xhr.open("HEAD", "http://enable-cors.org" +  "/?rand=" + Math.floor((1 + Math.random()) * 0x10000), false);
-
-  // Issue request and handle response
-  try {
-    xhr.send();
-    return ( xhr.status >= 200 && (xhr.status < 300 || xhr.status === 304) );
-  } catch (error) {
-    return false;
-  }
 }
 
 export default PersistentWebSocket;
