@@ -72,7 +72,8 @@ function referredSheetAuth(nextState, replace, isPublicReferral) {
 const main = (
   <Router>
     <Route path="/" component={Index}>
-      <IndexRoute component={Login} />
+      <IndexRoute component={App}
+                  onEnter={(ns, rep) => regularAuth(ns, rep)} />
       <Route path="login"
              component={Login} />
       <Route path="app"
