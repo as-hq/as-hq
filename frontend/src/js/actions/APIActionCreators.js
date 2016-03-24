@@ -8,6 +8,7 @@ import Dispatcher from '../Dispatcher';
 
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
+import SheetStore from '../stores/ASSheetStateStore';
 
 let lastEval = 0;
 
@@ -26,5 +27,24 @@ export default {
       });
       API.evaluate(origin, expression, language);
     }
-  }
+  },
+
+  // Used to open sheets that the user owns.
+  openSheet(mySheetId?: string) {
+    const sheetId = mySheetId || SheetStore.getCurrentSheetId();
+    Dispatcher.dispatch({
+      _type: 'API_OPENING_SHEET',
+      sheetId
+    });
+    API.openSheet(sheetId);
+  },
+
+  // Used to open sheets that the user has received a link to. 
+  acquireSheet(sheetId: string) {
+    Dispatcher.dispatch({
+      _type: 'API_OPENING_SHEET',
+      sheetId
+    });
+    API.acquireSheet(sheetId);
+  },
 }

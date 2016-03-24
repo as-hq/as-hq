@@ -66,6 +66,7 @@ import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
+import SheetStateStore from '../stores/ASSheetStateStore';
 import CellStore from '../stores/ASCellStore';
 import Constants from '../Constants';
 
@@ -132,7 +133,7 @@ export function directAPIExec(fn: () => void): Promise {
 
 export function openSheet(): Prf {
   return apiExec(() => {
-    API.openSheet();
+    API.openSheet(SheetStateStore.getCurrentSheetId());
   });
 }
 

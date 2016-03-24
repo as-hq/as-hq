@@ -14,6 +14,7 @@ import type {
 import React from 'react';
 
 import API from '../actions/ASApiActionCreators';
+import APIActions from '../actions/APIActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import LogStore from '../stores/ASLoginStore';
 import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
@@ -56,7 +57,7 @@ function file({callback, title}): FileItemSpec {
 }
 
 export default class ASTopBar extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: ASTopBarProps;
   state: {};
 
@@ -138,7 +139,7 @@ export default class ASTopBar extends React.Component {
                   simple({
                     title: sheet.sheetName,
                     callback() {
-                      API.openSheet(sheet.sheetId);
+                      APIActions.openSheet(sheet.sheetId);
                     }
                   })
                 )
@@ -151,7 +152,7 @@ export default class ASTopBar extends React.Component {
                   simple({
                     title: sheet.sheetName,
                     callback() {
-                      API.openSheet(sheet.sheetId);
+                      APIActions.openSheet(sheet.sheetId);
                     }
                   })
                 )

@@ -18,6 +18,7 @@ import LoginActions from './actions/ASLoginActionCreators';
 import FocusActions from './actions/ASFocusActionCreators';
 import GridActions from './actions/ASGridActionCreators';
 import API from './actions/ASApiActionCreators';
+import APIActions from './actions/APIActionCreators';
 
 // XXX(joel) - only include in dev
 window.Perf = require('react-addons-perf');
@@ -49,7 +50,7 @@ function regularAuth(nextState, replace) {
   if (! LoginStore.isLoggedIn()) {
     LoginActions.registerCallback(() => {
       console.error('REGULAR AUTH!!');
-      API.openSheet();
+      APIActions.openSheet();
     });
     replace({ nextPathName: nextState.location.pathname }, '/login');
   }
@@ -60,7 +61,7 @@ function referredSheetAuth(nextState, replace, isPublicReferral) {
     LoginActions.registerCallback(() => {
       const {referredSheetId} = nextState.params;
       console.error('REFERRED AUTH!!!');
-      API.acquireSheet(referredSheetId);
+      APIActions.acquireSheet(referredSheetId);
     });
     if (isPublicReferral) {
       LoginActions.setPublicLogin();

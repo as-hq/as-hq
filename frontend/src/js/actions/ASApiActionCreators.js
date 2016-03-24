@@ -193,7 +193,7 @@ pws.whenReady(() => {
 
   pws.onreconnect = () => {
     ConfigActions.setConnectedState(true);
-    API.openSheet();
+    API.openSheet(SheetStateStore.getCurrentSheetId());
   };
 
   pws.onmessage = (event: MessageEvent) => {
@@ -906,10 +906,10 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  openSheet(mySheetId?: string) {
+  openSheet(mySheetId: string) {
     const msg = {
       tag: "OpenSheet",
-      contents: mySheetId || SheetStateStore.getCurrentSheetId()
+      contents: mySheetId
     };
     API.sendMessageWithAction(msg);
   },
