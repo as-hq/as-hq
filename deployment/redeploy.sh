@@ -12,26 +12,32 @@
 ## redeploy backend services
 # graph
 cd graph
+tmux kill-session -t "graphdb"
 tmux new -s "graphdb" -d "./server"
 cd ../
 
 # pykernel
 cd pykernel
+tmux kill-session -t "pykernel"
 tmux new -s "pykernel" -d "./server"
 cd ../
 
+# rkernel
+tmux kill-session -t "rkernel"
+tmux new -s "rkernel" -d "./rkernel-exe"
+
 # backend
 cd server
+tmux kill-session -t "backend"
 tmux new -s "backend" -d "./alphasheets-exe"
-
-# rkernel
-tmux new -s "rkernel" -d "./rkernel-exe"
 
 # fileinput
 cd static
+tmux kill-session -t "fileinput"
 tmux new -s "fileinput" -d "./file-input-handler"
 
 # static
+tmux kill-session -t "static"
 tmux new -s "static" -d "python -m SimpleHTTPServer"
 cd ../..
 
