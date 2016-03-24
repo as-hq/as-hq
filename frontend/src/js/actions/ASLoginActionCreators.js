@@ -35,11 +35,10 @@ export default {
     });
   },
 
-  registerCallback(cb: Callback, callbackId?: string) {
+  registerCallback(cb: Callback) {
     Dispatcher.dispatch({
       _type: 'LOGIN_CALLBACK_REGISTERED',
-      cb,
-      callbackId
+      cb
     });
   },
 

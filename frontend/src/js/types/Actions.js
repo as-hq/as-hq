@@ -281,7 +281,6 @@ export type LoginSuccessAction = {
 export type LoginCallbackRegisteredAction = {
   _type: 'LOGIN_CALLBACK_REGISTERED';
   cb: Callback;
-  callbackId?: string; // used to register singleton (i.e. cannot be registered multiple times) callbacks
 };
 
 export type WorkbookAction =

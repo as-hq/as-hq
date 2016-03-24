@@ -45,39 +45,28 @@ const Index = ({children}) => (
   </div>
 );
 
-function requireAuth(nextState, replace) {
+function regularAuth(nextState, replace) {
   if (! LoginStore.isLoggedIn()) {
+    LoginActions.registerCallback(() => {
+      console.error('REGULAR AUTH!!');
+      API.openSheet();
+    });
     replace({ nextPathName: nextState.location.pathname }, '/login');
   }
 }
 
-function regularAuth(nextState, replace) {
-  LoginActions.registerCallback(() => {
-    API.openSheet();
-  }, 'OpenSheet');
-  // ^ register callback with an ID (in this case, 'OpenSheet')
-  // so we don't register it more than once.
-  //
-  // `regularAuth` may be called many times due to routing. E.g.:
-  // user goes to `/` =>
-  // regularAuth() =>
-  // redirect to `/login` =>
-  // login success =>
-  // redirect to `/app` =>
-  // regularAuth()
-  requireAuth(nextState, replace);
-}
-
 function referredSheetAuth(nextState, replace, isPublicReferral) {
-  LoginActions.registerCallback(() => {
-    const {referredSheetId} = nextState.params;
-    API.acquireSheet(referredSheetId);
-  }, 'AcquireSheet');
-  // ^ see above comment for justification of callback ID
-  if (isPublicReferral) {
-    LoginActions.setPublicLogin();
+  if (! LoginStore.isLoggedIn()) {
+    LoginActions.registerCallback(() => {
+      const {referredSheetId} = nextState.params;
+      console.error('REFERRED AUTH!!!');
+      API.acquireSheet(referredSheetId);
+    });
+    if (isPublicReferral) {
+      LoginActions.setPublicLogin();
+    }
+    replace({ nextPathName: nextState.location.pathname }, '/login');
   }
-  requireAuth(nextState, replace);
 }
 
 const main = (

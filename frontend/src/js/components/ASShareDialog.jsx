@@ -27,7 +27,7 @@ type Props = {
 };
 
 type State = {
-  shareable: bool;
+  accountRequired: bool;
 };
 
 class ASShareDialog extends React.Component {
@@ -40,7 +40,7 @@ class ASShareDialog extends React.Component {
   constructor(props: Props) {
     super(props);
     this.state = {
-      shareable: false
+      accountRequired: true
     };
   }
 
@@ -62,8 +62,8 @@ class ASShareDialog extends React.Component {
 
   render(): React.Element {
     const {open, onRequestClose} = this.props;
-    const {shareable} = this.state;
-    const url = SheetStore.getSheetLink(shareable);
+    const {accountRequired} = this.state;
+    const url = SheetStore.getSheetLink(accountRequired);
 
     return (
       <Dialog title="Share"
@@ -76,8 +76,8 @@ class ASShareDialog extends React.Component {
                    fullWidth={true}
                    onClick={() => this._onLinkClick()} />
 
-        <Toggle label="Don't require AlphaSheets account for access"
-                toggled={shareable}
+        <Toggle label="Require AlphaSheets account for access"
+                toggled={accountRequired}
                 onToggle={() => this._onShareToggle()} />
 
       </Dialog>
@@ -89,8 +89,8 @@ class ASShareDialog extends React.Component {
   }
 
   _onShareToggle() {
-    const {shareable} = this.state;
-    this.setState({shareable: !shareable});
+    const {accountRequired} = this.state;
+    this.setState({accountRequired: !accountRequired});
   }
 }
 
