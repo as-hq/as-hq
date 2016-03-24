@@ -180,7 +180,8 @@ executable alphasheets-exe
                 -- http://stackoverflow.com/questions/19371636/am-i-abusing-unsafeperformio (second answer)
                        -fno-cse -fno-full-laziness 
                 -- profiling
-                       -fprof-auto "-with-rtsopts=-N8 -s -h -i"
+                       -eventlog
+                       -fprof-auto "-with-rtsopts=-s -h -i -ls"
   build-depends:       base
                      , alphasheets
                      , aeson
@@ -252,7 +253,7 @@ executable rkernel-exe
   main-is:             Main.hs
   ghc-options:         -O2 
                        -threaded
-                       "-with-rtsopts=-N8 -s -h -i"
+                       "-with-rtsopts=-s -h -i"
   build-depends:       base
                      , alphasheets
                      , inline-r

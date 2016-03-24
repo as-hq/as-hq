@@ -119,7 +119,7 @@ getSetting = readIORef
 -- !!!!!!MUST BE CALLED UPON APP START!!!!!!
 initializeSettings :: IO ()
 initializeSettings = do
-  setNumCapabilities =<< getNumProcessors
+  setNumCapabilities . (-1 +) =<< getNumProcessors
 
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory
