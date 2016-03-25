@@ -110,15 +110,9 @@ g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -lpthread -s
 cd ../../
 cp backend/graph-database/server build/graph/
 
-# Python executables for pykernel
-# Copy all of the needed executables for the pykernel right into the build/pykernel folder
-cd backend/pykernel
-pyinstaller server.py
-cd ../..
-cp -r backend/pykernel/dist/server/* build/pykernel/
-cd backend/pykernel
-rm -rf dist build server.spec
-cd ../..
+# pykernel
+cp -r backend/as-libs/py build/pylib
+cp backend/pykernel/server.py  build/pykernel/
 
 # Make a static directory inside of the build/server for images + file input handler
 cd build/server

@@ -17,9 +17,11 @@ tmux new -s "graphdb" -d "./server"
 cd ../
 
 # pykernel
-cd pykernel
+cd pylibs
+python setup.py develop
+cd ../pykernel
 tmux kill-session -t "pykernel"
-tmux new -s "pykernel" -d "./server"
+tmux new -s "pykernel" -d "python server.py"
 cd ../
 
 # rkernel
