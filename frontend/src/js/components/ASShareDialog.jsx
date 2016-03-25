@@ -9,7 +9,7 @@ import type {
 } from '../types/React';
 
 import React from 'react';
-import {Dialog, TextField} from 'material-ui';
+import {Dialog, FlatButton, TextField} from 'material-ui';
 // $FlowFixMe:
 import Toggle from 'material-ui/lib/toggle';
 // $FlowFixMe:
@@ -65,9 +65,14 @@ class ASShareDialog extends React.Component {
     const {accountRequired} = this.state;
     const url = SheetStore.getSheetLink(accountRequired);
 
+    const dismissAction = <FlatButton
+      label="Dismiss"
+      onTouchTap={onRequestClose}
+    />;
+
     return (
       <Dialog title="Share"
-              actions={[ {text: "Dismiss"} ]}
+              actions={[dismissAction]}
               open={open}
               onRequestClose={onRequestClose} >
 

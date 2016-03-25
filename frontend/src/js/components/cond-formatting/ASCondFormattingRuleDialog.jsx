@@ -10,7 +10,7 @@ import type {
 
 import React from 'react';
 
-import {Dialog, TextField} from 'material-ui';
+import {Dialog, FlatButton, TextField} from 'material-ui';
 
 import RuleForm from './RuleForm.jsx';
 
@@ -53,15 +53,22 @@ function submitRuleWithProps({
   onRequestClose();
 }
 
-export default function ASCondFormattingRuleDialog(props: RuleDialogProps): React.Element { 
+export default function ASCondFormattingRuleDialog(props: RuleDialogProps): React.Element {
   const {open, onRequestClose, rangeValueLink, formatterValueLink} = props;
+
+  const cancelAction = <FlatButton
+    label="Cancel"
+    onTouchTap={onRequestClose}
+  />;
+
+  const submitAction = <FlatButton
+    label="Submit"
+    onTouchTap={(e) => submitRuleWithProps(props)}
+  />;
 
   return (
     <Dialog
-      actions={[
-        { text: 'Cancel' },
-        { text: 'Submit', onTouchTap: (e) => { submitRuleWithProps(props); }, ref: 'submit' }
-      ]}
+      actions={[cancelAction, submitAction]}
       open={open}
       onRequestClose={onRequestClose}
     >
