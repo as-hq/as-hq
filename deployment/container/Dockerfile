@@ -37,7 +37,7 @@ EXPOSE 8000
 EXPOSE 9000
 
 # Environment variable to enable if you want to pull from github and bust the cache
-ENV test1 test1
+ENV test1 test3
 # Make an alphasheets folder inside the home directory
 # Pull from the builds folder using OAuth
 # The user for this OAuth is favoriteshirt, who only has access to the builds repo
@@ -64,6 +64,7 @@ RUN useradd demo && \
     chmod -R 500 /home/alphasheets/ && \
     chmod -R 700 /home/alphasheets/server/ && \
     chmod 500 /home/alphasheets/server/alphasheets-exe && \
+    chmod 500 /home/alphasheets/server/rkernel-exe && \
     chown demo: /usr/local/bin/execute.sh && \
     chmod 500 /usr/local/bin/execute.sh
 

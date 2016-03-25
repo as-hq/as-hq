@@ -12,4 +12,5 @@ cd server/static
 python -m SimpleHTTPServer &
 ./file-input-handler &
 cd ..
+./rkernel-exe &
 ./alphasheets-exe 
