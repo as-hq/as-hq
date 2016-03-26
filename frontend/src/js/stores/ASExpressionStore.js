@@ -127,10 +127,13 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'START_EDITING': {
+        const {initialText} = action;
+        const initialSelection = U.String.getInitialSelectionForText(initialText);
+
         return state.merge({
           isEditing: true,
-          expression: action.initialText,
-        });
+          expression: initialText
+        }).set('selection', initialSelection);
       }
 
       case 'REFERENCE_TOGGLED': {
@@ -253,13 +256,13 @@ function displayActiveExpression(state: State, origin: ASIndex): State {
 function tryInsertingRef(state: State, gridSelection: ASSelection): State {
   const {selection, expression, currentLanguage, isInsertingRef, textboxPosition} = state;
   const [prefix, suffix] = U.String.splitOnSelection(expression, selection);
-  const ref = gridSelection.range.toExcel().toString();
+  const ref = gridSelection.toExcelString();
   const {row, column} = U.String.getSelectionLead(selection);
 
   if (isInsertingRef) {
 
     // trim old ref, insert the new ref, move selection in front.
-    const oldRef = GridStore.getLastActiveSelection().range.toExcel().toString();
+    const oldRef = GridStore.getLastActiveSelection().toExcelString();
     const newExpression = prefix.slice(0, -1*oldRef.length) + ref + suffix;
     const newLead = {row, column: column - oldRef.length + ref.length};
     const newSelection = {

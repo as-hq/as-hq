@@ -80,6 +80,10 @@ export default class ASSelection {
     });
   }
 
+  toExcelString(): string {
+    return this.range.toExcel().toString();
+  }
+
   // non-mutating
   changeSheet(sheetId: string): ASSelection {
     const {origin, range} = this;

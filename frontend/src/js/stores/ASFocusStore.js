@@ -37,7 +37,6 @@ class FocusStore extends ReduceStore<State> {
 
       case 'FOCUSED': {
         const { focus } = action;
-        console.error('focusing element:', focus);
 
         // focus-stealing prevention
         if (isFocusTheft(state, focus)) {
@@ -49,7 +48,6 @@ class FocusStore extends ReduceStore<State> {
       }
 
       case 'HOVERED': {
-        console.error('hovered element:', action.hover);
         return state.set('activeHover', action.hover);
       }
 

@@ -16,6 +16,17 @@ const StringUtils = {
     }
   },
 
+  getInitialSelectionForText(text: string): EditorSelection {
+    //#8020 TODO
+    return ({
+      range: {
+        start: { row: 0, column: text.length },
+        end: { row: 0, column: text.length }
+      },
+      backwards: false
+    });
+  },
+
   // returns length of a line in characters.
   getLineLength(text: string): number {
     return text.split('').map((char) => {
