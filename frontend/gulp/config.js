@@ -61,6 +61,25 @@ module.exports = {
     execFile: 'test-stress-all.js',
     numClients: 20,
   },
+  keepup: {
+    karmaConfig: 'karma-keepup.conf.js',
+    getConfig: function (fname) {
+      var ret = {
+        files:
+          [].concat(
+            [ 'node_modules/babel-core/browser-polyfill.js' ],
+            [{
+              pattern: fname,
+              watched: false
+            }]),
+        preprocessors: {}
+      };
+      ret.preprocessors[fname] = ['webpack'];
+
+      return ret;
+    },
+    keepupFile: 'test-keepup.js',
+  },
   prodServe: {
     src: dest,
     port: 8080
