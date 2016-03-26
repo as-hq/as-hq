@@ -59,14 +59,29 @@ const Parsing = {
     }
   },
 
-  expressionIsCode(exp: string): boolean {
-    const nonEmpty = (ln) => ln !== '';
-    const lines = exp.split('\n').filter(nonEmpty);
+  lines(exp: string): Array<string> {
+    return exp.split('\n');
+  },
 
+  nonEmptyLines(exp: string): Array<string> {
+    const nonEmpty = (ln) => ln !== '';
+    return Parsing.lines(exp).filter(nonEmpty);
+  },
+
+  expressionIsCode(exp: string): boolean {
+    const lines = Parsing.nonEmptyLines(exp);
     if (lines.length > 0) {
       return _.startsWith(_.last(lines), '=')
     } else {
       return true;
+    }
+  },
+
+  getActiveLineIdx(exp: string): number {
+    if (Parsing.expressionIsCode(exp)) {
+      return Parsing.lines(exp).indexOf(_.last(Parsing.nonEmptyLines(exp)))
+    } else {
+      return 0;
     }
   },
 

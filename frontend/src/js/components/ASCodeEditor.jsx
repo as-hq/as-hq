@@ -33,8 +33,17 @@ class ASCodeEditor extends React.Component {
   _editor: any;
 
   componentDidMount() {
-    this._expressionListener = ExpressionStore.addListener(() => this.forceUpdate());
-    this._focusListener = FocusStore.addListener(() => this.forceUpdate());
+    const codeEditorListener = () =>
+      this.forceUpdate(() =>
+        this._maintainScroll()
+      );
+
+    this._expressionListener = ExpressionStore.addListener(codeEditorListener);
+
+    // NOTE: this is needed so that every time we might defocus from the code
+    // editor, we will scroll to the active line
+    this._focusListener = FocusStore.addListener(codeEditorListener);
+
     this.__getAce().commands.addCommand({
       name: 'altenter',
       bindKey: {win: 'Alt-Enter', mac: 'Alt-Enter'},
@@ -113,6 +122,16 @@ class ASCodeEditor extends React.Component {
 
   _takeFocus() {
     this.__getAce().focusSync();
+  }
+
+  _maintainScroll() {
+    if (!FocusStore.isFocused('editor')) {
+      const expression = ExpressionStore.getExpression();
+      const scrollIdx = U.Parsing.getActiveLineIdx(expression);
+      const editor = this.__getAce();
+      editor.resize(true);
+      editor.scrollToLine(scrollIdx);
+    }
   }
 
   __getAce() {
