@@ -89,8 +89,9 @@ logError err (CommitSource sid uid) = do
 
 logSlack :: String -> IO ()
 logSlack msg = do
-  proceed <- S.getSetting S.shouldLogSlack
-  when proceed $ void $ Wreq.post webhookUrl payload
+  appShouldLog <- S.getSetting S.shouldLogSlack
+  let shouldIgnore = msg `elem` S.ignoredErrorMessages
+  when (appShouldLog && not shouldIgnore) $ void $ Wreq.post webhookUrl payload
   where
     webhookUrl = "https://hooks.slack.com/services/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"
     payload = object [

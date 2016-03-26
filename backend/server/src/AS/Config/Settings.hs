@@ -82,7 +82,10 @@ ignoredErrorMessages :: [String]
 ignoredErrorMessages = ["Thread killed by Warp's timeout reaper", 
                         "receiveloop: timeout (Connection timed out)", 
                         "receiveloop: resource vanished (Connection reset by peer)",
+                        "receiveloop: does not exist (No route to host)",
                         "send: resource vanished (Broken pipe)",
+                        "ConnectionClosed",
+                        "CloseRequest 1000 \"\"",
                         "CloseRequest 1001 \"\""]
 
 headerLangs :: [ASLanguage]
