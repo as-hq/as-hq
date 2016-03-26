@@ -3,8 +3,9 @@ import requests
 import random
 import json
 
-HOSTS = []
-router_address = ('0.0.0.0', 11000)
+HOSTS                 = ['launch1.alphasheets.com']
+INSTANCE_ROUTER_PORT  = 11000
+router_address        = ('0.0.0.0', 12000)
 
 class ASMasterRouter(BaseHTTPRequestHandler):
   # allow cross-origin from all origins
@@ -19,13 +20,19 @@ class ASMasterRouter(BaseHTTPRequestHandler):
   #  get an instance to connect to
   def do_GET(self):
     host = random.choice(HOSTS)
-    r = requests.get('http://' + host + ':10000') 
-    if (r.status_code == 200):
-      print 'SUCCESS! got an instance from a router.'
-      self.sendContent(200, r.content)
-    else:
-      print 'FUCK! your get fucked up.'
-      self.send_response(500, 'Received error from instance router.')
+    try:
+      r = requests.get('http://' + host + ':' + str(INSTANCE_ROUTER_PORT)) 
+      if (r.status_code == 200):
+        print 'SUCCESS! got an instance from a router.'
+        instance = json.loads(r.content)
+        instance['host'] = host
+        self.sendContent(200, json.dumps(instance))
+      else:
+        print 'GET instance router failed'
+        self.send_response(500, 'Received error from instance router.')
+    except e:
+      print 'GET instance router failed'
+      self.send_response(500, 'Could not reach instance router')
 
   def do_POST(self):
     content_len = int(self.headers.getheader('content-length', 0))

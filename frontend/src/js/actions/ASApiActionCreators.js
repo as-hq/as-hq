@@ -85,6 +85,7 @@ import LoginActions from '../actions/ASLoginActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 
+import request from 'superagent';
 import pws from '../AS/PWSInstance';
 
 
@@ -153,24 +154,24 @@ let refreshDialogShown: boolean = false;
 */
 
 if (Constants.isRemote && !Constants.noRouter) {
-  const xhr = new XMLHttpRequest();
-  xhr.onload = () => {
-    if (xhr.status === 200) {
-      const { fileinput_port, backend_port, static_port } = JSON.parse(xhr.responseText);
-      Constants.BACKEND_WS_PORT = backend_port;
-      Constants.BACKEND_IMPORT_PORT = fileinput_port;
-      Constants.BACKEND_STATIC_PORT = static_port;
+  request
+    .get(Constants.ROUTER_URL)
+    .end((err, res) => {
+      if (!! res && res.status == 200) {
+        const { host, fileinput_port, backend_port, static_port } = JSON.parse(res.text);
+        Constants.REMOTE_HOST = host;
+        Constants.BACKEND_WS_PORT = backend_port;
+        Constants.BACKEND_IMPORT_PORT = fileinput_port;
+        Constants.BACKEND_STATIC_PORT = static_port;
 
-      console.log(fileinput_port, backend_port, static_port);
+        console.log('GOT CONNECTION PARAMS: ', fileinput_port, backend_port, static_port);
 
-      const url = Constants.getBackendUrl('ws', backend_port);
-      pws.begin(url);
-    } else {
-      invariant(false, 'Did not receive valid response from router!');
-    }
-  }
-  xhr.open('GET', Constants.getRouterUrl(), true);
-  xhr.send();
+        const url = Constants.getBackendUrl('ws', backend_port);
+        pws.begin(url);
+      } else {
+        throw new Error('Did not receive valid response from router!');
+      }
+    });
 } else {
   const url = Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT);
   pws.begin(url);

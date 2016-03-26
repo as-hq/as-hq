@@ -5,8 +5,10 @@
 cd /home/alphasheets
 cd graph
 ./server &
+cd ../pylib
+python setup.py develop
 cd ../pykernel
-./server &
+python server.py &
 cd ../
 cd server/static
 python -m SimpleHTTPServer &

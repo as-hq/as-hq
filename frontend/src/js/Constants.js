@@ -18,11 +18,7 @@ function keyMirror<T>(obj: T): T {
 
 const Constants = Object.assign({
 
-  REMOTE_ROUTER_PORT: 10000,
-
-  getRouterUrl(): string {
-    return 'http://' + Constants.getRemoteHost() + ':' + Constants.REMOTE_ROUTER_PORT;
-  },
+  ROUTER_URL: 'http://launch.alphasheets.com:12000',
 
   // network parameters
   getBackendUrl(protocol: string, port: string): string {
