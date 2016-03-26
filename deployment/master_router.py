@@ -4,9 +4,18 @@ import random
 import json
 
 HOSTS = []
-router_address = ('0.0.0.0', 10000)
+router_address = ('0.0.0.0', 11000)
 
 class ASMasterRouter(BaseHTTPRequestHandler):
+  # allow cross-origin from all origins
+  def do_OPTIONS(self):
+    self.send_response(200, "ok")
+    self.send_header('Access-Control-Allow-Origin', '*')
+    self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
+    self.send_header("Access-Control-Allow-Headers", "Content-Type")
+    self.end_headers()
+  
   #  get an instance to connect to
   def do_GET(self):
     host = random.choice(HOSTS)
@@ -22,7 +31,7 @@ class ASMasterRouter(BaseHTTPRequestHandler):
     content_len = int(self.headers.getheader('content-length', 0))
     post_body = json.loads(self.rfile.read(content_len))
 
-    if post_body['action'] == 'get_hosts':
+    if post_body['action'] == 'get_all_hosts':
       self.sendContent(200, json.dumps(HOSTS)) 
 
   def sendContent(self, status, content):

@@ -7,6 +7,7 @@ server/alphasheets-test.aux
 server/alphasheets-test.hp
 server/alphasheets-test.prof
 server/alphasheets-test.ps
+server/alphasheets-exe.eventlog
 
 dump.rdb
 server/Index*

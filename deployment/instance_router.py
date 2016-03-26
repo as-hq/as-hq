@@ -7,7 +7,7 @@ import random
 import subprocess
 from docker import Client
 
-router_address          = ('0.0.0.0', 10000)
+router_address          = ('0.0.0.0', 11000)
 
 default_backend_port    = 20000
 default_fileinput_port  = 30000
@@ -104,10 +104,7 @@ class ASRouter(BaseHTTPRequestHandler):
   def do_GET(self):
     resp = random.choice(self.instances.values()).toJSON()
     print("Sending response to GET: " + json.dumps(resp))
-    self.send_response(200)
-    self.send_header('Access-Control-Allow-Origin', '*')
-    self.end_headers()
-    self.wfile.write(json.dumps(resp)) 
+    self.sendContent(resp) 
 
   # the container spinup and spindown scripts will use to create and destroy instances
   def do_POST(self):
@@ -116,37 +113,35 @@ class ASRouter(BaseHTTPRequestHandler):
 
     if post_body['action'] == 'create':
       self.createInstance()
-      self.sendReply()
+      self.sendContent()
 
     elif post_body['action'] == 'destroy':
       self.destroyInstance(post_body['name'])
-      self.sendReply()
+      self.sendContent()
 
     elif post_body['action'] == 'get_status':
       status = ASRouter.instances[post_body['name']].getStatus()
-      self.sendReply('status', json.dumps(status))
+      self.sendContent('status', status)
 
     elif post_body['action'] == 'get_all_status':
       statuses = [c.getStatus() for c in ASRouter.instances.values()]
-      self.sendReply('statuses', json.dumps(statuses))
+      self.sendContent('statuses', statuses)
 
     elif post_body['action'] == 'redeploy_all':
       for c in ASRouter.instances.values():
         c.spindown()
         c.spinup()
-      self.sendReply()
+      self.sendContent()
 
     else:
       self.send_response(400)
       print "ERROR: received action other than create or destroy"
 
-  def sendReply(self, header=None, value=None):
+  def sendContent(self, content=None):
     self.send_response(200)
-    if header != None:
-      self.send_header(header, value)
     self.send_header('Access-Control-Allow-Origin', '*')
-    self.send_header('Access-Control-Expose-Headers', header)
     self.end_headers()
+    self.wfile.write(json.dumps(content)) 
 
 if __name__ == '__main__':
   httpd = HTTPServer(router_address, ASRouter)
