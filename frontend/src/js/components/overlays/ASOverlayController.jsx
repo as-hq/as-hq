@@ -10,6 +10,10 @@ import type {
   ResizeEventDetail
 } from '../../types/Overlay';
 
+import type {
+  PXRectangle
+} from '../../types/Render';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -19,11 +23,13 @@ import OverlayStore from '../../stores/ASOverlayStore';
 import API from '../../actions/ASApiActionCreators';
 import U from '../../AS/Util';
 
+import ASIndex from '../../classes/ASIndex';
+
 import ASOverlay from './ASOverlay.jsx';
 
 // We need a function with access to hg-positioning things
 type ASOverlayControllerProps = {
-  computeTopLeftPxOfLoc: (col: number, row: number) => {top: number, left: number};
+  getPixelCoordinates: (idx: ASIndex) => PXRectangle;
 };
 
 // Keep track if any of the overlays is resizing. If so, then we shouldn't
@@ -33,7 +39,7 @@ type ASOverlayControllerState = {
 };
 
 export default class ASOverlayController extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: ASOverlayControllerProps;
   state: ASOverlayControllerState;
 
@@ -104,7 +110,10 @@ export default class ASOverlayController extends React.Component {
   // cell that the overlay is bound to.
   _getTopLeftOfOverlay(overlay: ASOverlaySpec): {top: number, left: number} {
     if (overlay.loc != null) {
-      return this.props.computeTopLeftPxOfLoc(overlay.loc.col, overlay.loc.row);
+      const {origin: {x: left, y: top}} =
+        this.props.getPixelCoordinates(overlay.loc);
+
+      return {top, left};
     } else {
       return {top: 0, left: 0};
     }

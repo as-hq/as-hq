@@ -297,11 +297,10 @@ class ASSpreadsheet extends React.Component {
                 style={{cursor: cursorStyle, ...styles.root}}>
 
         <ASOverlayController
-          computeTopLeftPxOfLoc={(c, r) => this._computeTopLeftPxOfLoc(c, r)}
+          getPixelCoordinates={idx => this._getPixelCoordinates(idx)}
           />
 
         <div style={styles.sheetContainer} >
-
           <Textbox getPixelCoordinates={idx => this._getPixelCoordinates(idx)} />
 
           <fin-hypergrid
@@ -329,34 +328,50 @@ class ASSpreadsheet extends React.Component {
 
   _getPixelCoordinates({col, row}: ASIndex): PXRectangle {
     if (!! this._grid) {
+      // get extent from getBoundsOfCell
       const scroll = this._getScroll();
       const point = finRect.point.create(col - scroll.x + 1, row - scroll.y + 1);
-      const {origin, extent} =  this._grid.getBoundsOfCell(point);
-      return {origin, extent};
+      const {extent} = this._grid.getBoundsOfCell(point);
 
+      const fixedPaddingX = this._grid.getFixedColumnWidth(0);
+      const fixedPaddingY = this._grid.getFixedRowHeight(0);
+
+      const sum = (arr) => arr.reduce((acc, cur) => acc + cur, 0);
+
+      // directional sum from i=[start, end) of iterator(i)
+      function liftDirectionalDiff(
+        iterator: (val: number) => number,
+        start: number,
+        end: number
+      ): number {
+        if (end >= start) {
+          return sum(_.range(start, end).map(iterator));
+        } else {
+          return -sum(_.range(end, start).map(iterator));
+        }
+      }
+
+      // get origin from summing
+      // scroll.x ... col
+      // scroll.y ... row
+
+      const left = liftDirectionalDiff(
+        (x) => this._grid.getColumnWidth(x),
+        scroll.x - 1, col - 1
+      ) + fixedPaddingX;
+
+      const top = liftDirectionalDiff(
+        (y) => this._grid.getRowHeight(y),
+        scroll.y - 1, row - 1
+      ) + fixedPaddingY;
+
+      const origin = {x: left, y: top};
+
+      return {origin, extent};
     } else {
       console.error('no grid found in getTextboxPosition!');
       return U.Hypergrid.defaultRectangle();
     }
-  }
-
-  // Given a column and row number, compute the location of that cell relative to the
-  // top left of the grid. Used for positioning overlays.
-  // Note that the results can be negative.
-  // If this function turns out to be a bit slow (because it does some looping),
-  // some stuff can be moved into store, but this doesn't seem to be a bottleneck currently.
-  _computeTopLeftPxOfLoc(col: number, row: number) : {top: number, left: number} {
-    const {x, y} = this._getScroll();
-    const bounds = this._grid.getBoundsOfCell(finRect.point.create(col, row));
-
-    let scrollPxX = 0, scrollPxY = 0;
-    for (let i = 1 ; i <= x; i++) {
-      scrollPxX += this._grid.getColumnWidth(i);
-    }
-    for (let j = 1 ; j <= y; j++) {
-      scrollPxY += this._grid.getRowHeight(j);
-    }
-    return {top: bounds.origin.y - scrollPxY, left: bounds.origin.x - scrollPxX};
   }
 
   _getCoordsFromMouseEvent(evt: HGMouseEvent): HGPoint {

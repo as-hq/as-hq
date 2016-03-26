@@ -95,7 +95,7 @@ class PersistentWebSocket {
       this._onMessageInternal(evt);
       // swallow 'ACK's and 'PING's, because separation of concerns.
       if (evt.data === 'ACK' || evt.data === 'PING') {
-        console.warn("Got heartbeat: " + evt.data);
+        // console.warn("Got heartbeat: " + evt.data);
       } else {
         fn(evt);
       }
