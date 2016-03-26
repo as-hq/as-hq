@@ -1,4 +1,4 @@
 export default {
-  master_router_host: 'launch.alphasheets.com',
-  router_port: 11000,
+  master_router_url: 'http://launch.alphasheets.com:12000',
+  instance_router_port: 11000,
 }

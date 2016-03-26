@@ -15,7 +15,7 @@ docker run hello-world
 
 # build
 cd container
-docker build .
+docker build -t alphasheets/demo .
 
 # router
 apt-get install -y python-pip

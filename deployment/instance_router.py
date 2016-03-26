@@ -112,22 +112,25 @@ class ASRouter(BaseHTTPRequestHandler):
     post_body = json.loads(self.rfile.read(content_len))
 
     if post_body['action'] == 'create':
+      print 'CREATING INSTANCE!'
       self.createInstance()
       self.sendContent()
 
     elif post_body['action'] == 'destroy':
+      print 'DESTROYING INSTANCE!'
       self.destroyInstance(post_body['name'])
       self.sendContent()
 
     elif post_body['action'] == 'get_status':
       status = ASRouter.instances[post_body['name']].getStatus()
-      self.sendContent('status', status)
+      self.sendContent(status)
 
     elif post_body['action'] == 'get_all_status':
       statuses = [c.getStatus() for c in ASRouter.instances.values()]
-      self.sendContent('statuses', statuses)
+      self.sendContent(statuses)
 
     elif post_body['action'] == 'redeploy_all':
+      print 'REDPLOYING ALL!'
       for c in ASRouter.instances.values():
         c.spindown()
         c.spinup()
@@ -144,6 +147,9 @@ class ASRouter(BaseHTTPRequestHandler):
     self.wfile.write(json.dumps(content)) 
 
 if __name__ == '__main__':
+  print 'Destroying existing instances...'
+  subprocess.call(['docker stop $(docker ps -a -q)'], shell=True)
+  subprocess.call(['docker rm $(docker ps -a -q)'], shell=True)
   httpd = HTTPServer(router_address, ASRouter)
   print('Router running on address: ' + str(router_address))
   httpd.serve_forever()

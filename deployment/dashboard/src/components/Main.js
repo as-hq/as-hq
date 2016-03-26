@@ -5,43 +5,60 @@ import React from 'react';
 import Constants from '../Constants';
 import JSONTree from 'react-json-tree';
 import { FlatButton, Styles, List, ListItem, Divider } from 'material-ui';
+import CircularProgress from 'material-ui/lib/circular-progress';
 import request from  'superagent';
 
 import _ from 'lodash';
+
+window.request = request;
 
 class Index extends React.Component {
 
   constructor(props) {
     super(props);
+    this.state = {
+      loadingReason: 'contacting master router...',
+    };
     this._instances = {};
-    let hosts;
     request
-      .post(this._getRouterUrl(Constants.master_router_host))
+      .post(Constants.master_router_url)
       .send({action: 'get_all_hosts'})
       .end((err, res) => {
+        let hosts;
         if (res.status == 200) {
-          hosts = res.body;
+          hosts = JSON.parse(res.text);
         } else {
           console.error('Could not reach master router, at ' + Constants.master_router_host);
           hosts = [];
         }
+        hosts.forEach(host => {
+          this._instances[host] = [];
+        });
+        this.setState({loadingReason: null});
       });
-    hosts.forEach(host => {
-      this._instances[host] = [];
-    });
   }
 
   componentDidMount() {
     setInterval(() => {
-      this._refreshInstances();
-    }, 500);
+      if (this.state.loadingReason === null) {
+        this._refreshInstances();
+      }
+    }, 1000);
   }
 
   render() {
+    const {loadingReason} = this.state;
     return (
       <div className="index" style={styles.root}>
         <h1>AlphaSheets instance dashboard</h1>
-        {_.map(this._instances, (containers, host) =>
+        {!! loadingReason &&
+          <div style={styles.loader}>
+            <h3>{loadingReason}</h3>
+            <CircularProgress size={2} color='white' />
+          </div>
+        }
+
+        {_.map(this._instances, (hostData, host) =>
           <div>
             <div style={styles.host}>
 
@@ -51,18 +68,11 @@ class Index extends React.Component {
                   style={styles.createButton}
                   onClick={() => this._onCreate(host)}
                   color={Styles.Colors.grey50}>
-                  create
+                  spawn
                 </FlatButton>
               </h3>
 
-              <List>
-                {containers.map(container =>
-                  <div>
-                    <ListItem children={this._getContainerPane(host, container)} />
-                    <Divider />
-                  </div>
-                )}
-              </List>
+              {this._getHostContent(host, hostData)}
 
             </div>
             <br />
@@ -86,21 +96,46 @@ class Index extends React.Component {
     );
   }
 
+  _getHostContent(host, hostData) {
+    if (hostData.constructor === Array) {
+      return (
+        <List>
+          {hostData.map(container =>
+            <div>
+              <ListItem children={this._getContainerPane(host, container)} />
+              <Divider />
+            </div>
+          )}
+        </List>
+      )
+    } else {
+      return (
+        <h4>{typeof hostData == "string" ? hostData : JSON.stringify(hostData)}</h4>
+      );
+    }
+  }
+
   _onCreate(host) {
+    this.setState({loadingReason: 'fulfilling create request...'});
     request
       .post(this._getRouterUrl(host))
-      .send(JSON.stringify({
-        action: 'create'
-      }));
+      .send({action: 'create'})
+      .end((a, b) => {
+        this.setState({loadingReason: null});
+      });
   }
 
   _onDestroy(host, container) {
+    this.setState({loadingReason: 'fulfilling destroy request...'});
     request
       .post(this._getRouterUrl(host))
-      .send(JSON.stringify({
+      .send({
         action: 'destroy',
         name: container.name
-      }));
+      })
+      .end((a, b) => {
+        this.setState({loadingReason: null});
+      });
   }
 
   _refreshInstances() {
@@ -110,34 +145,48 @@ class Index extends React.Component {
         .post(this._getRouterUrl(host))
         .send({action: 'get_all_status'})
         .end((err, res) => {
-          if (res.status == 200) {
-            self._instances[host] = res.body;
-            self.forceUpdate();
+          if (!! res && res.status == 200) {
+            const data = JSON.parse(res.text);
+            if (data.length > 0) {
+              self._instances[host] = data;
+            } else {
+              self._instances[host] = 'No active instances.'
+            }
           } else {
-            console.error('Could not reach host: ' + host);
+            self._instances[host] = 'Could not reach host.';
           }
+          self.forceUpdate();
         });
       });
   }
 
   _getRouterUrl(host) {
-    return 'http://' + host + ':' + Constants.router_port;
+    return 'http://' + host + ':' + Constants.instance_router_port;
   }
 }
 
 const styles = {
   root: {
-    backgroundColor: 'black'
+  },
+  loader: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    textAlign: 'center'
   },
   createButton: {
     marginLeft: 20,
     position: 'inline',
-    backgroundColor: Styles.Colors.green900
+    backgroundColor: Styles.Colors.blue900
   },
   destroyButton: {
-    backgroundColor: Styles.Colors.amber900
+    backgroundColor: Styles.Colors.red900
   },
   host: {
+    padding: 2,
+    backgroundColor: 'black',
     display: 'block',
     width: 'auto',
     height: 'auto',
