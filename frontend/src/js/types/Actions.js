@@ -32,6 +32,10 @@ import type {
 } from './State';
 
 import type {
+  SheetUpdate
+} from './Updates';
+
+import type {
   ASBackendWorkbookSheet,
   ClientMessage,
   EvalHeader,
@@ -370,6 +374,12 @@ export type HoveredAction = {
   hover: FocusedElement;
 };
 
+export type SheetUpdatedAction = {
+  _type: 'SHEET_UPDATED';
+  update: SheetUpdate;
+  sheetId: string;
+};
+
 export type ASAction =
   ToggleShortcutHelper
   | CloseShortcutHelper
@@ -434,4 +444,5 @@ export type ASAction =
   | FocusedTextboxFullyAction
   | HoveredAction
   | GridScrollOffsetAction
+  | SheetUpdatedAction
   ;

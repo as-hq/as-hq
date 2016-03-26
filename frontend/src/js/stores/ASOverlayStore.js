@@ -8,6 +8,10 @@ import type {
 } from '../types/Errors';
 
 import type {
+  ASLocationObject
+} from '../types/Eval';
+
+import type {
   ASOverlaySpec
 } from '../types/Overlay';
 
@@ -18,6 +22,10 @@ import type {
 import type {
   ASCellGrid
 } from '../types/State';
+
+import type {
+  CellUpdate
+} from '../types/Updates';
 
 import React from 'react';
 import {fromJS, Map, Record, Record$Class} from 'immutable';
@@ -64,8 +72,7 @@ class ASOverlayStore extends ReduceStore<State> {
 
       case 'SHEET_UPDATED': {
         this.getDispatcher().waitFor([CellStore.getDispatchToken()]);
-        const cells = CellStore.getAllCells(action.sheetId);
-        return resetOverlays(state, cells);
+        return resetOverlays(state, action.update.cellUpdates);
       }
 
       case 'OVERLAY_RESIZED': {
@@ -185,19 +192,19 @@ function delFloatingOverlay(state: State, overlay: ASOverlaySpec): State {
   return state.update('floatingOverlays', (owl) => owl.delete(fromJS(overlay.id)));
 }
 
-function resetOverlays(state: State, cells: Array<ASCell>): State {
+function resetOverlays(state: State, update: CellUpdate): State {
   let state_ = state;
 
-  cells.forEach((cell) => {
-    // Delete any existing overlays at the cell location, so that if the cell updates
-    // the overlay will also update
-    state_ = delLoc(state_, cell.location)
+  ASCell.makeCells(update.newVals).forEach((cell) => {
     const possibleOverlay = getPossibleOverlay(cell);
     // If we have an image cell, update state, and the new overlay will render
     if (possibleOverlay != null) {
       state_ = setCellOverlay(state_, possibleOverlay)
+    } else {
+      state_ = delLoc(state_, cell.location);
     }
   });
+
   return state_;
 }
 
