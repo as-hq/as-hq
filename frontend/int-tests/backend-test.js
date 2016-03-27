@@ -1604,6 +1604,18 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it ('should handle apostrophes appropriately', (done) => {
+          _do([
+            excel('A1', '\'123'),
+            excel('A2', '\'abc'),
+            excel('A3', '\'\'abc'),
+            shouldBe('A1', valueS('123')),
+            shouldBe('A2', valueS('abc')),
+            shouldBe('A3', valueS('\'abc')),
+            exec(done)
+          ]);
+        });
       });
 
       describe('ocaml', () => {

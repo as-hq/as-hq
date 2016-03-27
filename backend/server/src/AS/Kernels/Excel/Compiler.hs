@@ -32,7 +32,8 @@ parseFormula s = either (const $ Left ExcelSyntaxError) return parseResult
   where parseResult = parseOnly eitherLiteralFormula s
 
 eitherLiteralFormula :: Parser ContextualFormula
-eitherLiteralFormula = formula <|> (SimpleFormula <$> literal) <|> (SimpleFormula <$> emptyExpr)
+eitherLiteralFormula = formula <|> (SimpleFormula <$> stringLiteral) <|> 
+                       (SimpleFormula <$> literal) <|> (SimpleFormula <$> emptyExpr)
 
 emptyExpr :: Parser Formula
 emptyExpr = (endOfInput <?> "not at end") >> (return $ Basic $ Var EBlank)
@@ -44,8 +45,14 @@ literal = do
   rest <- takeByteString
   let val = parseOnly justNumOrBool rest
   return $! case val of
-    Left _ -> Basic . Var $ EValueS (C.unpack rest)
+    Left _ -> Basic . Var . EValueS . C.unpack $ rest
     Right v -> v
+
+stringLiteral :: Parser Formula
+stringLiteral = do
+  string "'"
+  rest <- takeByteString
+  return $! Basic . Var . EValueS . C.unpack $ rest 
 
 -- | Parser for Excel formulas
 formula :: Parser ContextualFormula
