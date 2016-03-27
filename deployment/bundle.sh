@@ -79,8 +79,8 @@ cd ..
 cp -r frontend/dist/* build/frontend/
 echo "frontend build finished."
 
-# frontend environment
-cp frontend/src/js/Environment_$BRANCH.js build/frontend/Environment.js
+# frontend environments
+cp frontend/src/js/Environment*.js build/frontend
 
 # Install up-to-date Python libraries
 cd backend/as-libs/py
