@@ -171,7 +171,10 @@ class ASSpreadsheet extends React.Component {
       this._initHypergrid();
       window.onresize = () => {
         GridActions.setDimensions(this._getDimensions());
-      }
+      };
+      window.addEventListener('focus', () => {
+        this._grid.repaint();
+      });
     });
 
     document.addEventListener('grid-repaint', () => {

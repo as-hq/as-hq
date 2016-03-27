@@ -6,8 +6,6 @@ declare class AEPoint {
 declare class AEWordRange {
   start: AEPoint;
   end: AEPoint;
-
-  clone(): AEWordRange;
 }
 
 declare class AEDocument {
