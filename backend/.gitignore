@@ -43,4 +43,6 @@ server/src/AS/Config/Environment.hs
 alphasheets-profiling-exe.hp
 alphasheets-profiling-exe.prof
 
+alphasheets-exe.eventlog
+
 **/*.hp

@@ -16,6 +16,7 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
 
 import AS.Prelude hiding (Prefix, Infix, takeWhile)
+import AS.Config.Constants
 import AS.Types.CellProps
 import AS.Types.Errors
 import AS.Types.Excel
@@ -293,8 +294,7 @@ date = do
   month <- natural
   string "/"
   day <- natural
-  string "/"
-  year <- natural
+  year <- option current_year $ string "/" >> natural
   if month > 12 || day > 31
     then fail "Invalid date"
     else return $! Formatted (dateToDecimal month day year) $ Just (Format Date Nothing)

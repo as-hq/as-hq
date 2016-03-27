@@ -1286,10 +1286,11 @@ describe('backend', () => {
         });
       });
 
-      describe('excelfunctions', () => {
-        // This test won't work until double equality is fixed.
-        xit ('CORREL', (done) => {
-            _do([
+      describe('excel', () => {
+        describe('excel functions', () => {
+          // This test won't work until double equality is fixed.
+          xit ('CORREL', (done) => {
+              _do([
                 excel('A1', 'Data1'),
                 excel('A2', '3'),
                 excel('A3', '2'),
@@ -1311,29 +1312,29 @@ describe('backend', () => {
                 shouldBe('A8', valueD(0.997054486)),
 
                 exec(done)
+              ]);
+          });
+          it ('SUM', (done) => {
+            _do([
+              excel('A1', '-5'),
+              excel('A2', '15'),
+              excel('A3', '20'),
+              excel('A4', '5'),
+              excel('A5', 'TRUE'),
+              excel('B1', '=SUM(A1,A2)'),
+              excel('B2', '=SUM(A2:A4,15)'),
+              excel('B2', '=SUM(A2:A5,15)'),
+              excel('B3', '=SUM("5", 15, TRUE)'),
+              excel('B4', '=SUM(A5,A6, 2)'),
+              shouldBe('B1', valueI(10)),
+              shouldBe('B2', valueI(55)),
+              shouldBe('B3', valueI(21)),
+              shouldBe('B4', valueI(2)),
+              exec(done)
             ]);
-        });
-        it ('SUM', (done) => {
-          _do([
-            excel('A1', '-5'),
-            excel('A2', '15'),
-            excel('A3', '20'),
-            excel('A4', '5'),
-            excel('A5', 'TRUE'),
-            excel('B1', '=SUM(A1,A2)'),
-            excel('B2', '=SUM(A2:A4,15)'),
-            excel('B2', '=SUM(A2:A5,15)'),
-            excel('B3', '=SUM("5", 15, TRUE)'),
-            excel('B4', '=SUM(A5,A6, 2)'),
-            shouldBe('B1', valueI(10)),
-            shouldBe('B2', valueI(55)),
-            shouldBe('B3', valueI(21)),
-            shouldBe('B4', valueI(2)),
-            exec(done)
-          ]);
-        });
-        it ('COVAR', (done) => {
-          _do([
+          });
+          it ('COVAR', (done) => {
+            _do([
               excel('A1', 'Data1'),
               excel('A2', '3'),
               excel('A3', '2'),
@@ -1353,18 +1354,18 @@ describe('backend', () => {
               excel('C7', 'Result'),
               shouldBe('A8', valueD(5.2)),
               exec(done)
-          ]);
-        });
-        it ('RAND', (done) => {
-          _do([
+            ]);
+          });
+          it ('RAND', (done) => {
+            _do([
               excel('A1', '=RAND()'),
               excel('B1', '=RAND()'),
               python('A2', '=0 <= A1 <= 1 and 0 <= B1 <= 1 and A1 != B1'),
               shouldBe('A2', valueB(true)),
               exec(done)
-          ]);
-        });
-        xit ('MATCH', (done) => {
+            ]);
+          });
+          xit ('MATCH', (done) => {
             _do([
                 excel('A1', 'Product'),
                 excel('A2', 'Bananas'),
@@ -1392,6 +1393,7 @@ describe('backend', () => {
 
                 exec(done)
             ]);
+          });
         });
       });
 
@@ -1613,6 +1615,34 @@ describe('backend', () => {
             shouldBe('A1', valueS('123')),
             shouldBe('A2', valueS('abc')),
             shouldBe('A3', valueS('\'abc')),
+            exec(done)
+          ]);
+        });
+
+        it ('should parse percents correctly', (done) => {
+          _do([
+            excel('A1', '100.1%'),
+            shouldBe('A1', valueD(1.001)),
+            exec(done)
+          ]);
+        });
+
+        it ('should parse dates correctly', (done) => {
+          _do([
+            excel('A1', '1/1/1900'),
+            shouldBe('A1', valueD(0)),
+            
+            excel('A2', '1/1/1901'),
+            shouldBe('A2', valueD(365)),
+            exec(done)
+          ]);
+        });
+
+        it ('should infer current year when missing', (done) => {
+          _do([
+            excel('A1', '1/1'),
+            excel('A2', '=A1=1/1/2016'),
+            shouldBe('A2', valueB(true)),
             exec(done)
           ]);
         });
