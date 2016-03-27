@@ -116,7 +116,7 @@ const Parsing = {
 };
 
 const infixOps = ['+', '*', '=', '-', '/', ',', '&', '|', '%', '^', '>', '<'];
-const prefixOps = ['[', '(', '{', '!'];
+const prefixOps = ['[', '(', '{', '!', '@'];
 const postfixOps = [']', ')', '}'];
 
 // TODO language-dependent parsing
