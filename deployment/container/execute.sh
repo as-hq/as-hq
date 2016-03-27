@@ -5,8 +5,6 @@
 cd /home/alphasheets
 cd graph
 ./server &
-cd ../pylib
-python setup.py develop
 cd ../pykernel
 python server.py &
 cd ../

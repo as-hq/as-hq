@@ -14,7 +14,14 @@ RUN apt-get update && apt-get install -y \
   pkg-config \
   build-essential \
   autoconf \
-  automake
+  automake \ 
+  python-all-dev \
+  libpng-dev \
+  zlib1g-dev \
+  libfreetype6-dev \
+  python-dev \
+  python-pip \
+  python-numpy
 
 # Start and configure Redis with password
 RUN /etc/init.d/redis-server start && redis-cli config set requirepass $6$saltsalt$Uo5kzWNTGQ2076QrWJ82kMi9kDBJbDLsHhWED3z07aMh5FhdziAKu8RhfoJo.bC0uuXRAc2tvhKIO5OeoHB/X1
@@ -23,6 +30,15 @@ RUN /etc/init.d/redis-server start && redis-cli config set requirepass $6$saltsa
 ADD installs.sh /usr/local/bin/installs.sh
 RUN sudo chmod +x /usr/local/bin/installs.sh
 RUN ./usr/local/bin/installs.sh
+
+# Install Python dependencies 
+RUN pip install six && \
+    pip install pandas && \
+    pip install yahoo_finance && \
+    pip install -U pandasql && \
+    pip install sqlalchemy && \
+    pip install zmq && \
+    pip install ipython
 
 # Install R package dependencies
 RUN echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile&& \
@@ -37,7 +53,7 @@ EXPOSE 8000
 EXPOSE 9000
 
 # Environment variable to enable if you want to pull from github and bust the cache
-ENV test1 test3
+ENV test1 test5
 # Make an alphasheets folder inside the home directory
 # Pull from the builds folder using OAuth
 # The user for this OAuth is favoriteshirt, who only has access to the builds repo
@@ -56,6 +72,12 @@ RUN sudo chmod +x /usr/local/bin/startup.sh
 # Add the execute script in the right place (runs the executables)
 ADD execute.sh /usr/local/bin/execute.sh
 
+# Installing numpy gives a version mismatch in PyKernel. This fixes that.
+RUN rm -rf /usr/lib/python2.7/dist-packages/numpy
+
+# Develop python package as root
+RUN cd /home/alphasheets/pylib && python setup.py develop
+
 # Permissions for demo (non-root user)
 # Own, read, and execute /home/alphasheets, write to /server/static/X (but not executable) (for images)
 # Own and execute execute.sh
@@ -66,7 +88,7 @@ RUN useradd demo && \
     chmod 500 /home/alphasheets/server/alphasheets-exe && \
     chmod 500 /home/alphasheets/server/rkernel-exe && \
     chown demo: /usr/local/bin/execute.sh && \
-    chmod 500 /usr/local/bin/execute.sh
+    chmod 500 /usr/local/bin/execute.sh  
 
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
 

@@ -14,5 +14,5 @@
   "shouldWriteToSlack": false,
   "frontendPort": 8080,
   "fileInputHandlerPort": 9000,
-  "host": "master.alphasheets.com"
+  "host": "0.0.0.0"
 }
