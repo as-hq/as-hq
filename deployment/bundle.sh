@@ -54,7 +54,8 @@ cd build
 git init
 git remote add origin git@github.com:ooblahman/alphasheets-builds.git
 # preserve the branch history
-git pull origin "$BRANCH"
+git fetch -a
+git checkout "$BRANCH"
 rm -rf *
 mkdir frontend server graph pykernel
 

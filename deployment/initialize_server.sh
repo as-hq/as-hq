@@ -25,8 +25,10 @@ apt-get install apparmor
 apt-get install docker-engine
 service docker restart
 
-# nginx
-apt-get install nginx
+# pip
+curl -O https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+pip install docker-py
 
 # misc
 apt-get install tmux
@@ -34,29 +36,16 @@ apt-get install tmux
 ###### Write configurations ######
 
 # ssh
-cp config/sshd_config /etc/ssh/sshd_config
+cd deployment/config
+cp sshd_config /etc/ssh/sshd_config
 service ssh restart
-
-# nginx
-cp config/nginx.conf /etc/nginx/nginx.conf
-rm -rf /etc/nginx/sites-enabled
-cp -r config/sites-enabled /etc/nginx/
 
 ###### Build and deploy ######
 
 # start router
-cd deployment/router
-tmux new -s "router" -d "./router"
+cd ../
+tmux new -s "instance_router" -d "python instance_router.py"
 
 # build image
 cd container
 ./docker_build.sh
-
-# deploy a backend instance
-curl -H "Content-Type: application/json" -X POST \
-     -d '{"action":"create"}' http://localhost:10000
-
-# start sites
-cd ../..
-cp -r frontend /www/alphasheets
-nginx -s reload

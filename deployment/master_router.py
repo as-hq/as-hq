@@ -3,11 +3,11 @@ import requests
 import random
 import json
 
-HOSTS                 = ['launch1.alphasheets.com']
 INSTANCE_ROUTER_PORT  = 11000
 router_address        = ('0.0.0.0', 12000)
 
 class ASMasterRouter(BaseHTTPRequestHandler):
+  hosts = []
   # allow cross-origin from all origins
   def do_OPTIONS(self):
     self.send_response(200, "ok")
@@ -19,7 +19,7 @@ class ASMasterRouter(BaseHTTPRequestHandler):
   
   #  get an instance to connect to
   def do_GET(self):
-    host = random.choice(HOSTS)
+    host = random.choice(ASMasterRouter.hosts)
     try:
       r = requests.get('http://' + host + ':' + str(INSTANCE_ROUTER_PORT)) 
       if (r.status_code == 200):
@@ -39,7 +39,7 @@ class ASMasterRouter(BaseHTTPRequestHandler):
     post_body = json.loads(self.rfile.read(content_len))
 
     if post_body['action'] == 'get_all_hosts':
-      self.sendContent(200, json.dumps(HOSTS)) 
+      self.sendContent(200, json.dumps(ASMasterRouter.hosts)) 
 
   def sendContent(self, status, content):
     self.send_response(status)
@@ -48,6 +48,8 @@ class ASMasterRouter(BaseHTTPRequestHandler):
     self.wfile.write(content) 
 
 if __name__ == '__main__':
+  with open('./hosts.txt', 'r') as f:
+    ASMasterRouter.hosts = f.read().splitlines()
   httpd = HTTPServer(router_address, ASMasterRouter)
   print('Router running on address: ' + str(router_address))
   httpd.serve_forever()
