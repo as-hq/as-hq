@@ -301,13 +301,6 @@ export type ToggledFocusF2Action = {
   _type: 'TOGGLED_FOCUS_F2';
 };
 
-export type SetActiveSelectionAction = {
-  _type: 'SET_ACTIVE_SELECTION';
-  selection: ASSelection;
-  expression: string;
-  language: ?ASLanguage;
-};
-
 export type APIEvaluateAction = {
   _type: 'API_EVALUATE';
   offset: Offset;
@@ -419,7 +412,6 @@ export type ASAction =
   | SetConnectingStateAction
   | FocusedAction
   | ToggledFocusF2Action
-  | SetActiveSelectionAction
   | SetConnectingStateAction
   | OpenMenuItem
   | CloseMenuItem

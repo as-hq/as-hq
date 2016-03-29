@@ -9,6 +9,9 @@ import Immutable from 'immutable';
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
 import dispatcher from '../Dispatcher';
+
+import CellStore from './ASCellStore';
+import GridStore from './ASGridStore';
 import HeaderOutputStore from './ASHeaderOutputStore';
 
 // #flowlens
@@ -75,6 +78,22 @@ class ConfigurationStore extends ReduceStore<State> {
 
       case 'SHEET_UPDATED': {
         return state.set('sheetLoading', false);
+      }
+
+      case 'SELECTION_CHANGED': {
+        const {origin, range} = action.selection;
+
+        const cell = CellStore.getCell(origin);
+        if (cell != null && cell.hasOutput()) {
+          return state.set('bottomPane', 'cell_output');
+        } else {
+          const cells = CellStore.getCells(range);
+          if (cells.some((cell) => cell != null && cell.hasError())) {
+            return state.set('bottomPane', 'errors');
+          } else {
+            return state.set('bottomPane', null);
+          }
+        }
       }
 
       default:

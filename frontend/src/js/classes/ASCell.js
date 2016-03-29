@@ -137,4 +137,12 @@ export default class ASCell {
   isImage(): boolean {
     return this._value.tag === 'ValueImage';
   }
+
+  hasError(): boolean {
+    return this._value.tag === 'ValueError';
+  }
+
+  hasOutput(): boolean {
+    return (this._display != null) && (this._display !== '');
+  }
 }

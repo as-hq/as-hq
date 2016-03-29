@@ -154,14 +154,19 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     return this.getCell(origin);
   }
 
+  getActiveCells(): Array<?ASCell> {
+    const {range} = GridStore.getActiveSelection();
+    return this.getCells(range);
+  }
+
   activeCellHasError(): boolean {
     const cell = this.getActiveCell();
-    return !!cell ? cell._value.tag === "ValueError" : false;
+    return !!cell ? cell.hasError() : false;
   }
 
   activeCellHasOutput(): boolean {
-    const disp = this.getActiveCellDisplay();
-    return disp != null && disp !== "";
+    const cell = this.getActiveCell();
+    return !!cell ? cell.hasOutput() : false;
   }
 
   getActiveCellDisplay(): ?string {
@@ -204,8 +209,11 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     );
   }
 
-  getCells(rng: ASRange): Array<Array<?ASCell>> {
-    const data = this.getState();
+  getCells(rng: ASRange): Array<?ASCell> {
+    return rng.toIndices().map((loc) => this.getCell(loc));
+  }
+
+  getCells2D(rng: ASRange): Array<Array<?ASCell>> {
     return U.Array.map2d(rng.toIndices2d(), loc => this.getCell(loc));
   }
 

@@ -3,6 +3,8 @@
 import BaseStore from './BaseStore';
 import Dispatcher from '../Dispatcher';
 
+import CellStore from './ASCellStore';
+
 let _data = {
   condFormattingOpen: false,
   chartOpen: false,
