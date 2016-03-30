@@ -4105,6 +4105,15 @@ describe('backend', () => {
           ]);
       });
 
+      it ('references 1D np matrices', (done) => {
+        _do([
+          python('A1', '=np.transpose(np.matrix([3,2,1]))'),
+          python('C1', '=@A1'),
+          shouldBe('C1', valueI(3)),
+          exec(done)
+          ]);
+      });
+
       it ('embeds dictionaries', (done) => {
         _do([
           python('A1', '={\'a\':1, \'b\':[1,2,3], \'c\': \'SHIT\'}'),

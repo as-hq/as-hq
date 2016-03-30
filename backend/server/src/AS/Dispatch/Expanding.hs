@@ -143,9 +143,9 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key NPArray _)) = Expand
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key NPMatrix _)) = Expanding val
   where
-    val     = VNPMatrix mat
-    (M mat) = recomposeCells dims cells
-    dims    = keyDimensions key
+    val  = VNPMatrix mat
+    mat  = recomposeCellsIntoMatrix dims cells
+    dims = keyDimensions key
 
 recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Expanding val
   where
@@ -164,6 +164,9 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Ex
     dims      = Dimensions { width = Col 1, height = Row $ length cells }
 
 recomposeCells :: Dimensions -> [ASCell] -> Collection
-recomposeCells dims cells = case (width dims) of 
+recomposeCells dims cells = case width dims of 
   1 -> A $ map (view cellValue) cells
-  _ -> M . map (map (view cellValue)) $ reshapeList cells dims
+  _ -> M $ recomposeCellsIntoMatrix dims cells
+
+recomposeCellsIntoMatrix :: Dimensions -> [ASCell] -> Matrix
+recomposeCellsIntoMatrix dims cells = map (map (view cellValue)) $ reshapeList cells dims
