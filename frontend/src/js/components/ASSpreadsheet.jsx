@@ -83,6 +83,7 @@ type Props = {
 
 type State = {
   cursorStyle: ASCursorStyle;
+  forceReflow: boolean;
 };
 
 class ASSpreadsheet extends React.Component {
@@ -139,7 +140,8 @@ class ASSpreadsheet extends React.Component {
     };
 
     this.state = {
-      cursorStyle: 'auto'
+      cursorStyle: 'auto',
+      forceReflow: false
     };
 
     // Overridden by the Focusable HOC
@@ -173,7 +175,7 @@ class ASSpreadsheet extends React.Component {
         GridActions.setDimensions(this._getDimensions());
       };
       window.addEventListener('focus', () => {
-        this._grid.repaint();
+        this.forceGridReflow();
       });
     });
 
@@ -187,6 +189,23 @@ class ASSpreadsheet extends React.Component {
     U.React.removeStoreLinks(this);
     this._cellStoreListener.remove();
     this._configStoreListener.remove();
+  }
+
+  /*****/
+  // Make sure the grid doesn't go blank.
+  /* On Macs (especially with dual GPUs), there is a recurring but
+  irreproducible problem with losing graphics context and thereby making the
+  canvas of hypergrid blank. We fix this by setting display: 'none' and then
+  display: 'block' 250ms after, whenever the window is focused, since the
+  problem only ever occurs when we switch back into the AlphaSheets tab after
+  being on another tab for a while. */
+
+  forceGridReflow() {
+    this.setState({forceReflow: true}, () => {
+      setTimeout(() => {
+        this.setState({forceReflow: false});
+      }, 250);
+    });
   }
 
   /*************************************************************************************************************************/
@@ -308,7 +327,10 @@ class ASSpreadsheet extends React.Component {
 
           <fin-hypergrid
             ref={elem => this._grid = elem}
-            style={styles.sheet}
+            style={{
+              ...styles.sheet,
+              display: this.state.forceReflow ? 'none' : 'block'
+            }}
             onKeyDown={evt => this._onKeyDown(evt)}
             onFocus={evt => this._onGridFocus(evt)}
             onMouseEnter={() => FocusActions.hover(name)}
