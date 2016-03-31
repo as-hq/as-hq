@@ -125,57 +125,19 @@ describe('stress testing', () => {
     });
 
     describe('basic operations', () => {
-      it ('makes ranges and operates on them', (done) => {
+      
+      it ('can eval', (done) => {
         _do([
-          python('A1', 'range(10)'),
-          python('B1', 'range(10000)'),
-          excel('C1', '=sum(A1:A100)'),
-          excel('D1', '=sum(A:A)'),
+          python('A1', '=1+1'),
+          r('B1', '=1+1'),
+          excel('C1', '=1+1'),
+          shouldBe('A1', valueI(2)),
+          shouldBe('B1', valueI(2)),
+          shouldBe('C1', valueI(2)),
           exec(done)
         ]);
       });
 
-      xit('decouples the ranges just made', (done) => {
-        _do([
-          python('A1', '\'decoupled\''),
-          decouple(),
-          python('B1', '\'decoupled\''),
-          decouple(),
-          exec(done)
-        ]);
-      });
-
-      it('copies data within the spreadsheet', (done) => {
-        _do([
-          copy('B1:B100', 'E1'),
-          exec(done)
-        ]);
-      });
-
-      it('samples cells', (done) => {
-        _do([
-          python('A1', 'random.random()'),
-          python('B1', '!{10, A1}'),
-          python('C1', '!{100, A1}'),
-          python('D1', '!{1000, A1}'),
-          exec(done)
-        ]);
-      });
-
-      it('updates dependencies', (done) => {
-        _do([
-          python('E1', 'range(int(A1 * 10))'),
-          python('A1', 'random.random() * 10'),
-          exec(done)
-        ]);
-      });
-
-      it('deletes all of the data just created', (done) => {
-        _do([
-          delete_('A1:E100'),
-          exec(done)
-        ]);
-      });
     });
 
   });
