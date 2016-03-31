@@ -205,7 +205,8 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 evalChainWithException :: ServerState -> MessageId -> [ASCell] -> EvalTransform
 evalChainWithException state mid cells ctx = 
   let whenCaught e = do
-        printObj "Runtime exception caught" (e :: SomeException)
+        printObjForced "Runtime exception caught" (e :: SomeException)
+        logSlack $ show e
         return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catchAny (runEitherT $ evalChain state mid cells ctx) whenCaught
