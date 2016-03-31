@@ -127,16 +127,16 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     let fromRange = U.Clipboard.getAttrsFromHtmlString(e.clipboardData.getData("text/html"));
     let fromSheetId = sel.range.sheetId;
 
-    // clipboard.area is basically obsolete, except for allowing copy/paste within the same sheets
-    // for browser tests. (We need a special case for this because mocking the actual clipboard is difficult.)
+    // clipboard.area is basically obsolete, except for allowing copy/paste on Macs (which currently
+    // can't copy contents onto the clipboard directly).
     if (API.isTesting || U.Browser.isMac()) {
       if (!! clipboard.area) {
         fromRange   = clipboard.area.range;
         fromSheetId = SheetStateStore.getCurrentSheetId();
       }
     }
-    if (fromRange) {
 
+    if (fromRange) {
       if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
         API.cut(fromRange, toASRange);
         // XXX should not mutate stores!!!
@@ -159,7 +159,7 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     if (containsPlain) {
       const lang = ExpressionStore.getLanguage();
       const plain = e.clipboardData.getData("text/plain");
-      const vals = U.Clipboard.plainStringToVals(plain);
+      const vals = U.Clipboard.tabularStringToTable(plain);
       const evalInstructions2d = U.Clipboard.externalStringsToEvalInstructions(sel.origin, vals, lang);
       const evalInstructions = U.Array.concatAll(evalInstructions2d);
       API.pasteSimple(evalInstructions);

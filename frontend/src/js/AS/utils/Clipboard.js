@@ -90,13 +90,14 @@ const Clipboard = {
     }
   },
 
-	/* Takes a text/plain string like "3\t4" and returns a list of list of values (row-major)
+	/* Takes a text/plain string like "3\t4\n5\6" and returns a list of list of values (row-major)
+  (row 1: [3,4], row 2: [5,6])
 	TODO: make correct in all cases (need to look at text/html for that)
 	Right now, if a row has a tab, separate by tab. Else, push the row as a single value.
   Works for Sheets, MAY OR MAY NOT work for sheets,Libre,gfin.
 	-- Ritesh 10/16
   -- Updated to not include commas, Alex 11/5*/
-	plainStringToVals(s: string): Array<Array<string>> {
+	tabularStringToTable(s: string): Array<Array<string>> {
 		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
 		let rows = s.split('\n'),
 			vals = [],
@@ -129,22 +130,6 @@ const Clipboard = {
 		return !isNaN(Number(str));
 	},
 
-  externalStringToExpression(str: string, lang: ASLanguage): string {
-    if (lang == "Excel") {
-      return str;
-    } else {
-      if (Clipboard._isPlainNumber(str, lang)) {
-        return str;
-      } else if (str.toUpperCase() == "TRUE") {
-        return Clipboard.externalStringToBool(true, lang);
-      } else if (str.toUpperCase() == "FALSE") {
-        return Clipboard.externalStringToBool(false, lang);
-      } else {
-        return JSON.stringify(str);
-      }
-    }
-  },
-
   externalStringToBool(b: boolean, lang: ASLanguage): string {
     if (b) {
       if (["R", "OCaml"].indexOf(lang) != -1) {
@@ -167,8 +152,7 @@ const Clipboard = {
      return (i) => {
        return (v, j) => {
 				const idx = ind.shift({ dX: j, dY: i });
-				const expression = self.externalStringToExpression(v, language);
-        return TC.makeEvalInstruction(idx, expression, language);
+        return TC.makeEvalInstruction(idx, v, language);
        };
      };
    },
