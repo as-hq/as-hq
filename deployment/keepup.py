@@ -10,15 +10,14 @@ import subprocess
 # This script will try to evaluate in all languages. If it fails in any way, it will trigger a 
 # redeploy. It's meant to be run from the root directory, with two arguments: 
 # 1) either "stable" or "master"
-# 2) The backend port (usually 5000)
+# 2) The websocket address (usually ws://localhost:5000)
 
 #---------------------------------------------------------------------------------------------------
 # Constants
 
 languages = ["Excel", "Python", "R"]
 server_type = sys.argv[1]
-port = sys.argv[2]
-address = "ws://localhost:" + str(port)
+address = sys.argv[2]
 
 #---------------------------------------------------------------------------------------------------
 # Timeout errors
