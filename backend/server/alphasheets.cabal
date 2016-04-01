@@ -180,8 +180,7 @@ executable alphasheets-exe
                 -- http://stackoverflow.com/questions/19371636/am-i-abusing-unsafeperformio (second answer)
                        -fno-cse -fno-full-laziness 
                 -- profiling
-                       -eventlog
-                       -fprof-auto "-with-rtsopts=-s -h -i -ls"
+                       -fprof-auto "-with-rtsopts=-s -h -i"
   build-depends:       base
                      , alphasheets
                      , aeson

@@ -206,6 +206,11 @@ talk client state = forever $ do
                                ++ "\n\n due to parse error: " 
                                ++ s)
 
+-- Only show relevant messages (not logAction, which clutters stdout)
+showGoodMessages :: ServerMessage -> IO ()
+showGoodMessages (ServerMessage _ (LogAction _)) = return ()
+showGoodMessages msg = printObjForced "RECEIVED MESSAGE: " msg
+
 -- this functions runs an IO action in a forked thread, adds some thread bookkeeping to the server state, and 
 -- removes this bookkeeping upon success. Upon timeout, send an "AskTimeout" message to the client. The 
 -- client is expected to reply with a message with the same messageId, in order to reconcile the AskTimeout 
@@ -215,7 +220,7 @@ processAsyncWithTimeout c state msg = case clientType c of
   UserType -> do
     successLock <- newEmptyMVar 
     tid <- timeoutAsync successLock (\_ -> do
-      printObjForced "RECEIVED MESSAGE" msg
+      showGoodMessages msg
       processMessage c state msg
       putStrLn . ("=== FINISH PROCESSING ====" ++) =<< getTime)
     modifyMVar_' state $ \curState -> 
