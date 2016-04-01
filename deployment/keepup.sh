@@ -5,6 +5,7 @@ type=$1
 
 cd frontend
 xvfb-run -a gulp keepup
+killall Xvfb
 if [ $? -eq 0 ]; then
   echo "BACKEND UP"
 else
