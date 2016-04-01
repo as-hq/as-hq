@@ -5,8 +5,9 @@ type=$1
 
 cd frontend
 xvfb-run -a gulp keepup
+res=$?
 killall Xvfb
-if [ $? -eq 0 ]; then
+if [ $res -eq 0 ]; then
   echo "BACKEND UP"
 else
   echo "BACKEND DOWN"
