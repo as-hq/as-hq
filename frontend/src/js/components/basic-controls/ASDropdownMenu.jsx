@@ -426,13 +426,14 @@ const ASDropDownMenu = React.createClass({
       if (selectedItem) {
         e.target.value = selectedItem[valueMember];
       }
-      this._onMenuRequestClose();
-    }
 
-    if (valueLink) {
-      valueLink.requestChange(e.target.value);
-    } else if (onChange) {
-      onChange(e, key, payload);
+      if (valueLink) {
+        valueLink.requestChange(e.target.value);
+      } else if (onChange) {
+        onChange(e, key, payload);
+      }
+
+      this._onMenuRequestClose();
     }
 
     this.setState({
