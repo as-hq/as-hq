@@ -15,6 +15,7 @@ setup(name='AS',
                         'pandas', \
                         'wget', \
                         'statistics', \
+                        'scipy', \
                         'ipython==4.0.0', \
                         'zmq', \
                         'colour', \
