@@ -6,6 +6,7 @@ import errno
 import os
 import signal
 import subprocess
+from time import gmtime, strftime
 
 # This script will try to evaluate in all languages. If it fails in any way, it will trigger a 
 # redeploy. It's meant to be run from the root directory, with two arguments: 
@@ -113,19 +114,46 @@ def get_response(ws):
 #---------------------------------------------------------------------------------------------------
 # Handle failure
 
-def handle_failure():
-  if server_type == "stable":
-    subprocess.call(
-      ["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], 
-      shell = True)
-  if server_type == "master":
-    subprocess.call(
-      ["curl -s http://builds.alphasheets.com/job/master-deploy/build"],
-      shell = True)
-  slack_msg = "\"mayday mayday " + server_type + " down\""
+# Return false or the ith element of a list
+def get_bool(lst, i):
+  try:
+    return lst[i]
+  except Exception as e:
+    return False
+
+# On a failure, just notify Slack
+def handle_failure(test_successes):
+  # if server_type == "stable":
+  #   subprocess.call(
+  #     ["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], 
+  #     shell = True)
+  # if server_type == "master":
+  #   subprocess.call(
+  #     ["curl -s http://builds.alphasheets.com/job/master-deploy/build"],
+  #     shell = True)
+  pwt("Handling failure")
+  slack_msg1 = "\"mayday mayday " + server_type + " down. "
+  slack_msg2 = "Excel test passed: " + str(get_bool(test_successes, 0)) + ". "
+  slack_msg3 = "Python test passed: " + str(get_bool(test_successes, 1)) + ". "
+  slack_msg4 = "R test passed: " + str(get_bool(test_successes, 2)) + ".\""
+  slack_msg = slack_msg1 + slack_msg2 + slack_msg3 + slack_msg4
   slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
   subprocess.call(["cd scripts"], shell = True)
   subprocess.call([slack_cmd], shell = True)
+
+def handle_ws_down():
+  slack_msg = "\"Websocket connection to " +  server_type + " may have failed.\""
+  slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
+  subprocess.call(["cd scripts"], shell = True)
+  subprocess.call([slack_cmd], shell = True)
+
+#---------------------------------------------------------------------------------------------------
+# Printing with time
+
+def pwt(s):
+  time = strftime("%Y-%m-%d %H:%M:%S") 
+  msg = "[" + time + "] " + s 
+  print msg
 
 #---------------------------------------------------------------------------------------------------
 # Main communication/testing methods
@@ -144,27 +172,36 @@ def test_lang(ws, lang, sheetId):
 @timeout(50, os.strerror(errno.ETIMEDOUT))
 def test():
   try:
+    print "================================================================"
     ws = websocket.create_connection(address)
+    pwt("Created ws connection")
     ws.send(login_message())
+    pwt("Sent login message")
     sheetId = get_sheet_id(get_response(ws))
-    print ("Got sheet id: " + sheetId)
-    test_success = True
+    pwt("Got sheet id: " + sheetId)
+    test_successes = []
     for lang in languages:
-      success = test_lang(ws, lang, sheetId)
-      print ("Test for " + lang + " was success? " + str(success))
-      if not success:
-        test_success = False
-        break
-      clear(ws, sheetId)
-    if not test_success:
-      handle_failure()
+      try:
+        success = test_lang(ws, lang, sheetId)
+      except Exception as e:
+        success = False
+      pwt("Test for " + lang + " was success? " + str(success))
+      test_successes.append(success)
+    if not all(test_successes):
+      handle_failure(test_successes)
+    pwt("About to close ws in try block")
     ws.close()
+    pwt("Closed ws in try block")
   except Exception as e:
-    print e
-    handle_failure()
     try:
+      pwt("Exception: " + str(e))
+      handle_failure(test_successes)
+      pwt("Handled failure after exception")
+      pwt("About to close ws in except block")
       ws.close()
+      pwt("Closed ws in except block")
     except Exception as e:
-      pass
+      pwt("Error: " + str(e))
+      handle_ws_down()
 
 test()
