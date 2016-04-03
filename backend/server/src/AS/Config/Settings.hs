@@ -1,3 +1,9 @@
+-- these optimizations prevent global variable configuration in 
+-- Config/Settings.hs due to CSE and floating let's
+-- http://stackoverflow.com/questions/19371636/am-i-abusing-unsafeperformio (second answer)
+{-# OPTIONS_GHC -fno-cse -fno-full-laziness #-}
+                        
+
 module AS.Config.Settings where
 
 import AS.Prelude
