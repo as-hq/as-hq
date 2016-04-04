@@ -19,7 +19,8 @@ from traitlets import Instance, Type
 
 from .compiler import ASCompiler
 from .displayhook import ASDisplayHook
-from .ast_transformers import wrap_serialize
+from .serialize import wrap_serialize
+from .safe_eval import SafeEvalVisitor, exec_timed
 
 # Error thrown when user tries to use IPython magics in Python
 class CannotRunIPythonMagicsInsideAlphaSheets(Exception):
@@ -64,6 +65,7 @@ class ASExecutionResult(object):
 class ASShell(InteractiveShell):
 
   displayhook_class = Type(ASDisplayHook)
+  ast_visitors = [ SafeEvalVisitor() ]
 
 #-----------------------------------------------------------------------------
 #  Startup initialization
@@ -211,9 +213,13 @@ class ASShell(InteractiveShell):
     if store_history:
         result.execution_count = self.execution_count
 
-    def error_before_exec(value):
-        result.error_before_exec = value
-        result.display.append(self.get_formatted_traceback())
+    def error_before_exec(exc, truncated=False):
+        result.error_before_exec = exc
+        if truncated:
+            msg = repr(exc) + ': ' + str(exc)
+            result.display.append(msg)
+        else:
+            result.display.append(self.get_formatted_traceback())
         return result
 
     self.events.trigger('pre_execute')
@@ -285,11 +291,14 @@ class ASShell(InteractiveShell):
             # Apply AST transformations
             try:
                 code_ast = self.transform_ast(code_ast)
+                self.check_ast(code_ast)
             except InputRejected as e:
                 self.showtraceback()
                 if store_history:
                     self.execution_count += 1
                 return error_before_exec(e)
+            except Exception as e:
+                return error_before_exec(e, True)
 
             # Execute the user code
             interactivity = "none" if silent else self.ast_node_interactivity
@@ -376,7 +385,7 @@ class ASShell(InteractiveShell):
         # and is a copy of the sheet namespace if running in isolated mode.
         target_ns = copy.copy(self.sheet_nss[sheet_id]) if isolated else self.sheet_nss[sheet_id] 
         def exec_function(code_obj):
-            exec code_obj in target_ns
+            exec_timed(code_obj, target_ns)
 
         for i, node in enumerate(to_run_exec):
             mod = ast.Module([node])
@@ -484,6 +493,13 @@ class ASShell(InteractiveShell):
     else:
         outflag = 0
     return outflag
+
+  def check_ast(self, node):
+    """Apply the AST checks in self.ast_visitors.
+    Visitors are expected to raise exceptions when
+    AST errors exist."""
+    for visitor in self.ast_visitors:
+        visitor.visit(node)
 
 #-----------------------------------------------------------------------------
 #  IO handling

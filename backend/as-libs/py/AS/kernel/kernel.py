@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os
 import sys
 import zmq
 import json
@@ -9,6 +10,10 @@ import traceback
 import ctypes
 import shortid
 import random
+import subprocess
+import re
+from time import sleep
+from datetime import datetime
 
 from .shell import ASShell
 from  AS.errors import TimeoutException
@@ -16,8 +21,10 @@ from  AS.errors import TimeoutException
 from IPython.core.pylabtools import import_pylab
 
 NUM_WORKERS         = 50
-NUM_WORKERS_LIMIT   = 300
+NUM_WORKERS_LIMIT   = 200
 LOAD_RESPONSE_DELTA = 5
+
+WORKER_REGISTRATION_TIMEOUT = 3.0
 
 # ZMQ message delimiter
 EMPTY = b""
@@ -49,25 +56,39 @@ class ASKernel(object):
     self.context = zmq.Context()
     self.workers = {} # Map WorkerId Worker
     self.num_workers = num_workers
+    self.any_workers_registered = False
 
   def init_shell(self):
     init_ns = self.get_initial_ns()
     self.shell = ASShell(user_ns=init_ns)
 
   def get_initial_ns(self):
-    import matplotlib
-    matplotlib.use('Agg')
-    from AS.stdlib import *
-    from AS.kernel.serialize import * # this is imported for serialization code injection
-    from AS.functions.openExcel import *
-    import matplotlib._pylab_helpers
-    import matplotlib.pyplot as plt
-    import cPickle
-    import base64
-    ns = locals()
+    imports = '''
+import matplotlib
+matplotlib.use('Agg')
+from AS.stdlib import *
+from AS.kernel.serialize import * # this is imported for serialization code injection
+from AS.functions.openExcel import *
+import matplotlib._pylab_helpers
+import matplotlib.pyplot as plt
+import cPickle
+import base64
+'''
+    ns = {}
+    exec imports in ns
     return ns
 
   def listen(self, address='tcp://*:20000'):
+    # kill programs bound to this port before starting
+    self.kill_port(address.split(':')[-1])
+
+    def signal_handler(signum, frame):
+      print('ZMQ caught SIGINT: ' + repr(frame), file=sys.__stdout__)
+
+    # the zmq poller device (below) sometime spuriously receives a 
+    # SIGINT despite no action from the user; the workaround is to 
+    # discard all SIGINTS for now. #8020
+    signal.signal(signal.SIGINT, signal_handler)
 
     self.url_client = address
     self.url_worker = "inproc://workers"
@@ -101,6 +122,14 @@ class ASKernel(object):
       worker = self.install_worker(worker_id)
     print('CREATED ' + str(self.num_workers) + ' WORKERS.', file=sys.__stdout__)
 
+    def checkAndDie():
+      if not self.any_workers_registered:
+        print('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL', file=sys.__stdout__)
+        os.system('kill %d' % os.getpid())
+
+    t = threading.Timer(WORKER_REGISTRATION_TIMEOUT, checkAndDie)
+    t.start()
+
     # main server loop
     while True:
       # poll for messages; if there are any in the queue, process them. 
@@ -132,16 +161,13 @@ class ASKernel(object):
 
           assert empty == EMPTY
 
-          # print('ROUTING TO WORKER: ' + selected_worker_addr, file=sys.__stdout__)
           # route client request to the selected worker
           backend.send_multipart([selected_worker_addr, EMPTY, client_addr, EMPTY, request])
 
 
       # poll for messages sent from workers
       if (backend in events and events[backend] == zmq.POLLIN):
-        # [worker_addr, one_empty, client_addr, two_empty, reply] = backend.recv_multipart()
         message = backend.recv_multipart()
-        # print('BACKEND POLL MSG: ' + repr(message), file=sys.__stdout__)
 
         # If 'READY' message, register the network ID of a ready worker
         # invariant: an unregistered worker is never assigned work.
@@ -149,6 +175,7 @@ class ASKernel(object):
           network_id = message[0]
           worker_id = message[4]
           print('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id, file=sys.__stdout__)
+          self.any_workers_registered = True
           self.workers[worker_id].network_id = network_id
 
         # Else, route reply back to client.
@@ -157,7 +184,7 @@ class ASKernel(object):
           reply = message[4]
           frontend.send_multipart([client_addr, EMPTY, reply])
           print('SENT REPLY TO CLIENT', file=sys.__stdout__)
-    
+
     # clean up when finished
     self.close(frontend, backend)
 
@@ -229,7 +256,7 @@ class ASKernel(object):
       try:
         reply_msg = self.process_message(client_msg, worker_id)
         # print("FINISHED PROCESSING MESSAGE, SENDING BACK", file=sys.__stdout__)
-        print("Worker " + worker_id + " finished, sending message")
+        print("Worker " + worker_id + " finished, sending message", file=sys.__stdout__)
         socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
 
       except KeyboardInterrupt: 
@@ -242,6 +269,7 @@ class ASKernel(object):
           socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
         except: 
           pass
+        traceback.print_exc()
 
   def process_message(self, msg, worker_id):
   # messages are handled in an exactly isomorphic way with the KernelRequest/KernelReply 
@@ -294,8 +322,7 @@ class ASKernel(object):
     return reply
 
   def close(self, frontend, backend):
-    # forwards KeyboardInterrupt to a signal zmq will listen to
-    signal.signal(signal.SIGINT, signal.SIG_DFL);
+    print('Normal kernel exit.', file=sys.__stdout__)
 
     # wait for devices to finish polling
     time.sleep(1)
@@ -311,3 +338,18 @@ class ASKernel(object):
     frontend.close()
     backend.close()
     self.context.term()
+
+  def kill_port(self, port):
+    popen = subprocess.Popen(['netstat', '-lpn'],
+                             shell=False,
+                             stdout=subprocess.PIPE)
+    (data, err) = popen.communicate()
+
+    pattern = "^tcp.*((?:{0})).* (?P<pid>[0-9]*)/.*$"
+    pattern = pattern.format(')|(?:'.join([str(port)]))
+    prog = re.compile(pattern)
+    for line in data.split('\n'):
+        match = re.match(prog, line)
+        if match:
+            pid = match.group('pid')
+            subprocess.call(['kill', '-9', pid])

@@ -85,7 +85,7 @@ import LoginActions from '../actions/ASLoginActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 
-import request from 'superagent';
+const request: any = require('superagent');
 import pws from '../AS/PWSInstance';
 
 
