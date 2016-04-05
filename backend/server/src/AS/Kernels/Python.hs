@@ -5,6 +5,7 @@ import GHC.Generics
 import Data.Maybe (fromJust)
 import Data.Aeson 
 import Data.Aeson.Types (Parser)
+import Data.List (findIndex, intercalate)
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Text as T
 import Control.Exception (catch, SomeException)
@@ -152,13 +153,33 @@ evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> EvalCode -> EitherTE
 evaluateWithScope _ _ _ "" = return emptyResult
 evaluateWithScope scope mid sid code = do
   (EvaluateReply v err disp) <- sendMessage $ EvaluateRequest scope mid sid code
+  let cleanedDisp = cleanDisplay <$> disp
   case v of 
     Nothing -> case err of 
-      Just e -> return $ EvalResult (CellValue $ ValueError e "") disp
-      Nothing -> return $ EvalResult (CellValue NoValue) disp
+      Just e -> return $ EvalResult (CellValue $ ValueError e "") cleanedDisp
+      Nothing -> return $ EvalResult (CellValue NoValue) cleanedDisp
     Just v -> do
       cval <- hoistEither $ R.parseValue Python (BC.pack v)
-      return $ EvalResult cval disp
+      return $ EvalResult cval cleanedDisp
+
+-- | Cleans out error messages that the Python kernel adds to the cell output. Example: 
+-- before cleaning: http://puu.sh/o1hQF/e64250da19.png
+-- after cleaning: http://puu.sh/o1hQC/9d721cbfca.png
+-- 
+-- Note: the more correct way of doing this is to override the iPython kernel's error 
+-- reporting settings. This code appears to cover most of the cases though. 
+cleanDisplay :: String -> String
+cleanDisplay cellDisplay = cellDisplay'
+  where 
+    lines = T.lines $ T.pack cellDisplay
+    mErrStart = findIndex (T.isInfixOf "Traceback (most recent call last)") lines
+    mErrEnd = findIndex (T.isInfixOf "<alphasheets-input-") lines
+    lines' = case (mErrStart, mErrEnd) of 
+      (Just errStart, Just errEnd) -> if errStart < errEnd 
+        then [l | (l, i) <- zip lines [0,1..], i < errStart || i >= errEnd]
+        else lines
+      _ -> lines 
+    cellDisplay' = T.unpack . T.unlines $ lines' 
 
 sendMessage :: KernelRequest -> EitherTExec KernelReply
 sendMessage msg = do
