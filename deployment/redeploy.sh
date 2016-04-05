@@ -21,7 +21,7 @@ cd pylib
 python setup.py develop
 cd ../pykernel
 tmux kill-session -t "pykernel"
-tmux new -s "pykernel" -d "export PATH=\"/root/anaconda2/bin:$PATH\"; python server.py"
+tmux new -s "pykernel" -d "export PATH=\"/root/anaconda2/bin:$PATH\"; ./server.sh"
 cd ../
 
 # rkernel
