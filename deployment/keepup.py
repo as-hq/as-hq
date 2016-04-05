@@ -121,29 +121,48 @@ def get_bool(lst, i):
   except Exception as e:
     return False
 
-# On a failure, just notify Slack
+# On a failure, just notify Slack and bring up relevant microservices
 def handle_failure(test_successes):
-  # if server_type == "stable":
-  #   subprocess.call(
-  #     ["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], 
-  #     shell = True)
-  # if server_type == "master":
-  #   subprocess.call(
-  #     ["curl -s http://builds.alphasheets.com/job/master-deploy/build"],
-  #     shell = True)
+
+  if server_type == "stable":
+    if not get_bool(test_successes, 0):
+      subprocess.call(
+        ["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], 
+        shell = True)
+    elif not get_bool(test_successes, 1):
+      subprocess.call(['tmux kill-session -t demo_python_kernel'], shell = True)
+      subprocess.call(["cd backend/pykernel; tmux new -s demo_python_kernel -d 'python server.py'"], shell = True)
+    elif not get_bool(test_successes, 2):
+      subprocess.call(['tmux kill-session -t demo_rkernel'], shell = True)
+      subprocess.call(['cd scripts; tmux new -s demo_rkernel -d ./start_rkernel.sh'], shell = True)
+  
+  elif server_type == "master":
+    print "here"
+    if not get_bool(test_successes, 0):
+      print "excel"
+      subprocess.call(["curl -s http://builds.alphasheets.com/job/master-deploy/build"], shell = True)
+    elif not get_bool(test_successes, 1):
+      print "python"
+      subprocess.call(["tmux kill-session -t pykernel"], shell = True)
+      subprocess.call(["cd backend/pykernel; tmux new -s pykernel -d 'export PATH=\"/root/anaconda2/bin:$PATH\"; ./server.sh'"], shell = True)
+    elif not get_bool(test_successes, 2):
+      print "r"
+      subprocess.call(["tmux kill-session -t rkernel"], shell = True)
+      subprocess.call(["cd backend/server; tmux new -s rkernel -d ./rkernel-exe"], shell = True)
+
+
   pwt("Handling failure")
   slack_msg1 = "\"mayday mayday " + server_type + " down. "
   slack_msg2 = "Excel test passed: " + str(get_bool(test_successes, 0)) + ". "
   slack_msg3 = "Python test passed: " + str(get_bool(test_successes, 1)) + ". "
   slack_msg4 = "R test passed: " + str(get_bool(test_successes, 2)) + ".\""
   slack_msg = slack_msg1 + slack_msg2 + slack_msg3 + slack_msg4
-  slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
-  subprocess.call(["cd scripts"], shell = True)
-  subprocess.call([slack_cmd], shell = True)
+  slack_cmd = "bash send-slack.sh " + slack_msg + " @riteshr plumbus-bot"
+  subprocess.call(["cd scripts; " + slack_cmd], shell = True)
 
 def handle_ws_down():
   slack_msg = "\"Websocket connection to " +  server_type + " may have failed.\""
-  slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
+  slack_cmd = "bash send-slack.sh " + slack_msg + " @riteshr plumbus-bot"
   subprocess.call(["cd scripts"], shell = True)
   subprocess.call([slack_cmd], shell = True)
 
