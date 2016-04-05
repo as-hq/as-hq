@@ -132,8 +132,9 @@ class ExpressionStore extends ReduceStore<State> {
 
         return state.merge({
           isEditing: true,
-          expression: initialText
-        }).set('selection', initialSelection);
+          expression: initialText,
+          selection: initialSelection
+        }); 
       }
 
       case 'REFERENCE_TOGGLED': {

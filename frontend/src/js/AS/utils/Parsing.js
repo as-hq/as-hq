@@ -68,6 +68,8 @@ const Parsing = {
     return Parsing.lines(exp).filter(nonEmpty);
   },
 
+  // Checks whether a string represents code, which happens if and only if the 
+  // last line begins with a =. 
   expressionIsCode(exp: string): boolean {
     const lines = Parsing.nonEmptyLines(exp);
     if (lines.length > 0) {
