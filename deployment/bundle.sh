@@ -113,7 +113,7 @@ cp backend/graph-database/server build/graph/
 
 # pykernel
 cp -r backend/as-libs/py build/pylib
-cp -r backend/pykernel build/pykernel
+cp -r backend/pykernel/* build/pykernel/
 
 # Make a static directory inside of the build/server for images + file input handler
 cd build/server
