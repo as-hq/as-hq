@@ -126,29 +126,25 @@ def handle_failure(test_successes):
 
   if server_type == "stable":
     if not get_bool(test_successes, 0):
-      subprocess.call(
-        ["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], 
-        shell = True)
-    elif not get_bool(test_successes, 1):
+      subprocess.call(["curl -s http://stable.alphasheets.com:10000/job/stable-deploy/build"], shell = True)
+      return
+    if not get_bool(test_successes, 1):
       subprocess.call(['tmux kill-session -t demo_python_kernel'], shell = True)
       subprocess.call(["cd backend/pykernel; tmux new -s demo_python_kernel -d 'python server.py'"], shell = True)
-    elif not get_bool(test_successes, 2):
+    if not get_bool(test_successes, 2):
       subprocess.call(['tmux kill-session -t demo_rkernel'], shell = True)
       subprocess.call(['cd scripts; tmux new -s demo_rkernel -d ./start_rkernel.sh'], shell = True)
   
   elif server_type == "master":
-    print "here"
     if not get_bool(test_successes, 0):
-      print "excel"
       subprocess.call(["curl -s http://builds.alphasheets.com/job/master-deploy/build"], shell = True)
-    elif not get_bool(test_successes, 1):
-      print "python"
+      return 
+    if not get_bool(test_successes, 1):
       subprocess.call(["tmux kill-session -t pykernel"], shell = True)
       subprocess.call(["cd backend/pykernel; tmux new -s pykernel -d 'export PATH=\"/root/anaconda2/bin:$PATH\"; ./server.sh'"], shell = True)
-    elif not get_bool(test_successes, 2):
-      print "r"
+    if not get_bool(test_successes, 2):
       subprocess.call(["tmux kill-session -t rkernel"], shell = True)
-      subprocess.call(["cd backend/server; tmux new -s rkernel -d ./rkernel-exe"], shell = True)
+      subprocess.call(["cd backend/server; tmux new -s rkernel -d './rkernel-exe'"], shell = True)
 
 
   pwt("Handling failure")
@@ -157,12 +153,12 @@ def handle_failure(test_successes):
   slack_msg3 = "Python test passed: " + str(get_bool(test_successes, 1)) + ". "
   slack_msg4 = "R test passed: " + str(get_bool(test_successes, 2)) + ".\""
   slack_msg = slack_msg1 + slack_msg2 + slack_msg3 + slack_msg4
-  slack_cmd = "bash send-slack.sh " + slack_msg + " @riteshr plumbus-bot"
+  slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
   subprocess.call(["cd scripts; " + slack_cmd], shell = True)
 
 def handle_ws_down():
   slack_msg = "\"Websocket connection to " +  server_type + " may have failed.\""
-  slack_cmd = "bash send-slack.sh " + slack_msg + " @riteshr plumbus-bot"
+  slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
   subprocess.call(["cd scripts"], shell = True)
   subprocess.call([slack_cmd], shell = True)
 
@@ -186,6 +182,7 @@ def clear(ws, sheetId):
 def test_lang(ws, lang, sheetId):
   ws.send(eval_message(lang, sheetId))
   result =  get_response(ws)
+  print ("\t Response: " + result)
   return is_correct_eval_result(result)
 
 @timeout(50, os.strerror(errno.ETIMEDOUT))
@@ -210,6 +207,8 @@ def test():
       handle_failure(test_successes)
     pwt("About to close ws in try block")
     ws.close()
+    # It seems like this isn't synchronous, so running a bunch of these quickly in succession may
+    # not work as expected.
     pwt("Closed ws in try block")
   except Exception as e:
     try:
