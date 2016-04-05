@@ -130,11 +130,14 @@ class ExpressionStore extends ReduceStore<State> {
         const {initialText} = action;
         const initialSelection = U.String.getInitialSelectionForText(initialText);
 
+        // Merge` is deep, so `selection` being an naked object and not a class,
+        // will get turned into an immutable Map, necessitating a bunch of ugly
+        // `toJS()`/`fromJS()` conversions. The correct thing to do here is make
+        // `EditorSelection` a class.
         return state.merge({
           isEditing: true,
-          expression: initialText,
-          selection: initialSelection
-        }); 
+          expression: initialText
+        }).set('selection', initialSelection);
       }
 
       case 'REFERENCE_TOGGLED': {
@@ -284,9 +287,14 @@ function tryInsertingRef(state: State, gridSelection: ASSelection): State {
       backwards: false
     };
 
+
+    // Merge` is deep, so `selection` being an naked object and not a class,
+    // will get turned into an immutable Map, necessitating a bunch of ugly
+    // `toJS()`/`fromJS()` conversions. The correct thing to do here is make
+    // `EditorSelection` a class.
     return state.merge({ expression: newExpression,
                          isInsertingRef: true })
-                .set('selection', newSelection); // Immutable tries to turn this into a Map otherwise.. TODO EditorSelection should be a class
+                .set('selection', newSelection);
 
   } else {
     const { origin } = gridSelection;
