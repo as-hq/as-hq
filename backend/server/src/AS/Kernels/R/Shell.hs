@@ -103,8 +103,7 @@ trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
 prepareExpression :: EvalScope -> FilePath -> EvalCode -> EvalCode
 prepareExpression scope imagePath code = 
   let code' = "\npng(" ++ show imagePath ++ ")" ++ 
-              "\nresult = eval(parse(text=" ++ show code ++ "))"  ++ 
-              "\ndev.off()" ++ 
+              "\nresult = tryCatch(eval(parse(text=" ++ show code ++ ")), finally = { dev.off() } )" ++ 
               "\nresult"
   in case scope of 
     Cell -> isolateCodeScope code'
