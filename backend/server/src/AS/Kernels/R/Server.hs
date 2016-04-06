@@ -22,18 +22,21 @@ import System.ZMQ4.Monadic
 import Safe (headMay)
 import Control.Lens
 import Control.Concurrent
+import Control.Monad.IO.Class (MonadIO)
 import qualified Control.Concurrent.Async as Async
-import Control.Monad
-import Control.Monad.IO.Class
 
 import qualified Language.R.Instance as R
 import Language.R.QQ
 
-url_workers = "inproc://myworkers"
-load_response_delta = 5
-empty = ""
+import System.Posix.Signals
+import System.Directory (createDirectoryIfMissing)
 
-puts x = liftIO $ putStrLn x 
+url_workers         = "inproc://myworkers"
+
+-- the number of additional workers created when high load is detected
+load_response_delta = 5
+empty               = ""
+log_dir            = "./logs/"
 
 idGen :: MonadIO m => m B.ByteString
 idGen = pack <$> liftIO getUniqueId
@@ -41,17 +44,34 @@ idGen = pack <$> liftIO getUniqueId
 -- | main server loop. REQUIRES THAT R HAS ALREADY BEEN INITIALIZED.
 runServer :: Addr -> Int -> IO ()
 runServer url_clients numInitialWorkers = do
+
+  -- initialize logging
+  createDirectoryIfMissing True log_dir
+  logFile <- (log_dir ++) <$> getTime
+  logHandle <- openFile logFile AppendMode 
+
+  -- state
   shell <- newShell
-  state <- newMVar (initialState shell)
+  state <- newMVar $ emptyState shell logHandle
   initialize state
 
+  -- close log cleanly upon Ctrl+C
+  let sigintHandler = do
+          putStrLn "EXITED NORMALLY"
+          flushLog state
+          closeLog state
+          raiseSignal sigTERM
+  seq (installHandler sigINT (Catch sigintHandler) Nothing) (return ())
+
   runZMQ $ do
-    puts "Starting workers..."
+    puts state "Starting workers..."
    
     replicateM_ numInitialWorkers $ 
       installWorker state =<< idGen
 
-    puts $ "Server listening on " ++ url_clients
+    puts state $ "Server listening on " ++ url_clients
+
+    flushLog state
 
     frontend <- socket Router
     bind frontend url_clients
@@ -62,6 +82,8 @@ runServer url_clients numInitialWorkers = do
       [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, Sock frontend [In] Nothing]
       processBackend state (backend, frontend) evtsB
       processFrontend state (frontend, backend) evtsF
+
+
 
 -- | initialize namespaces with header values
 initialize :: MVar State -> IO ()
@@ -109,14 +131,16 @@ processBackend state (backend, frontend) evts
       then liftIO $ do
         let netid = msg !! 0
         let wid = msg !! 4
-        putStrLn $ "WORKER REGISTERED: " ++ show wid
+        puts state $ "WORKER REGISTERED: " ++ show wid
         registerWorker state wid netid
       -- route reply back to client
       else do
         let clientAddr = msg !! 2
         let reply = msg !! 4
-        liftIO $ getTime >>= \t -> puts ("==== SENT BACK REPLY ==== " ++  t)
+        putsTimed state "==== SENT BACK REPLY ==== "
         sendMulti frontend $ fromList [clientAddr, "", reply]
+
+        flushLog state
   | otherwise = return ()
 
 -- | Handle client activity on frontend
@@ -127,7 +151,7 @@ processFrontend  state (frontend, backend) evts
     if isNothing worker
       -- scale up if no available workers
       then do
-        puts "HIGH LOAD, SCALING UP"
+        puts state "HIGH LOAD, SCALING UP"
         replicateM_ load_response_delta $
           installWorker state =<< idGen
       -- else, route client request to worker
@@ -161,7 +185,7 @@ runWorker state wid = do
     -- blocks here until the worker is registered 
     -- (due to invariant: unregistered worker never assigned work)
     [clientAddr, "", msg] <- receiveMulti sock
-    liftIO $ getTime >>= \t -> puts ("==== WORKER RECEIVED MESSAGE ==== " ++  t)
+    putsTimed state $ "==== WORKER " ++ unpack wid ++ " RECEIVED MESSAGE ==== "
 
     let req = Serial.decode msg
     let mid = case req of 
@@ -172,9 +196,19 @@ runWorker state wid = do
     liftIO $ setWorkerStatus state wid (Busy mid)
 
     rep <- case req of 
-      Right myReq -> processMessage state myReq
-      Left err    -> return $ GenericErrorReply err
+      Right myReq -> do
+        putsTimed state $ "Processing request: " ++ show myReq
+        processMessage state myReq
+      Left err    -> do
+        putsTimed state "Could not decode request"
+        return $ GenericErrorReply err
     sendMulti sock $ fromList [clientAddr, "", Serial.encode rep]
+
+-- Build up logs in buffer during work, then flush to file during each 
+-- worker's dead zone (the period between having finished work and becoming 
+-- non-idle). This is a tradeoff between increasing evaluation time and 
+-- increasing the number of workers, favoring the latter.
+    flushLog state
 
     -- reset idle status. 
     liftIO $ setWorkerStatus state wid Idle

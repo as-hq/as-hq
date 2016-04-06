@@ -9,7 +9,6 @@ import AS.Prelude
 import AS.Types.Locations
 import AS.Types.Cell
 
-import GHC.Generics
 import Data.Aeson
 import Data.SafeCopy
 import Control.Lens hiding ((.=))

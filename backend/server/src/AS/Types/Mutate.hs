@@ -8,7 +8,6 @@ import Data.Aeson
 
 import Data.SafeCopy
 
-import GHC.Generics
 
 -- | MutateTypeNew and PairMutate are type constructors with parameters,
 -- since this will make certain functions in Mutate (such as coreMutate)

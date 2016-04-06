@@ -5,7 +5,6 @@ module AS.Types.Selection (Selection, activeIndex, indicesInFiniteSelection, sel
 import AS.Prelude
 
 import AS.Types.Locations
-import GHC.Generics
 import Data.Aeson hiding (Success)
 import Data.SafeCopy
 

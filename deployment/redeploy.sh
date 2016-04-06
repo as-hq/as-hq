@@ -25,11 +25,12 @@ tmux new -s "pykernel" -d "export PATH=\"/root/anaconda2/bin:$PATH\"; ./server.s
 cd ../
 
 # rkernel
-cd server
+cd rkernel
 tmux kill-session -t "rkernel"
 tmux new -s "rkernel" -d "./rkernel-exe"
 
 # backend
+cd ../server
 tmux kill-session -t "backend"
 tmux new -s "backend" -d "./alphasheets-exe"
 

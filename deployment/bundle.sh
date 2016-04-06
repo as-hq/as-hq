@@ -97,8 +97,10 @@ else
   stack build 
 fi
 cd ../..
+mkdir build/server
+mkdir build/rkernel
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server/
-cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/rkernel-exe build/server/
+cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/rkernel-exe build/rkernel/
 
 # backend environments are all the same, because they run on docker
 cp backend/Environment_$BRANCH.json build/Environment.json
@@ -118,7 +120,6 @@ cp -r backend/pykernel/* build/pykernel/
 # Make a static directory inside of the build/server for images + file input handler
 cd build/server
 mkdir static
-cd ../..
 
 # Python executables for file-input-handler
 # Copy all executables needed into the build/server/static folder

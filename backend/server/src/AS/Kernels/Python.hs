@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
 module AS.Kernels.Python where
 
-import GHC.Generics
 import Data.Maybe (fromJust)
 import Data.Aeson 
 import Data.Aeson.Types (Parser)

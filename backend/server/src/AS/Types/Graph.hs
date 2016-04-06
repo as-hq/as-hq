@@ -16,7 +16,6 @@ import Debug.Trace
 import Data.List.Split (splitOn)
 import qualified Data.Text as T 
 import qualified Data.List as L
-import GHC.Generics
 import Data.SafeCopy
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)

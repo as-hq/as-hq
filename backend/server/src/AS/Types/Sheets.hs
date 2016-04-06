@@ -10,7 +10,6 @@ import Data.SafeCopy
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
-import GHC.Generics
 import Data.Text
 import Data.SafeCopy
 

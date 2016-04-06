@@ -154,7 +154,6 @@ let refreshDialogShown: boolean = false;
 */
 
 if (Constants.isRemote && !Constants.noRouter) {
-  // $FlowFixMe
   request
     .get(Constants.ROUTER_URL)
     .end((err, res) => {

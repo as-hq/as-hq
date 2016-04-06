@@ -32,9 +32,7 @@ import System.FilePath.Posix ((</>))
 import System.Directory (createDirectoryIfMissing)
 import System.Posix.Signals
 import Control.Exception
-import Control.Monad (forever, when, unless, void)
 import Control.Concurrent
-import Control.Monad.IO.Class (liftIO)
 import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)

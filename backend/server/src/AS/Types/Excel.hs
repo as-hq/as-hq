@@ -34,7 +34,6 @@ import Database.Redis (Connection)
 import Control.Lens hiding ((.=), index, Context)
 import Control.Lens.TH
 import Control.Monad.Trans.Either
-import GHC.Generics
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel Location Parsing

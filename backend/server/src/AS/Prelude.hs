@@ -4,6 +4,9 @@
 module AS.Prelude 
   ( module PreludeMinus
   , module Data.Data
+  , module GHC.Generics
+  , module System.IO
+  , module Control.Monad
   , error
   , undefined
   , valAt
@@ -19,11 +22,13 @@ module AS.Prelude
   , modifyMVar_'
   , catchAny
   , handleAny
+  , liftIO
+  , showConstructor
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
 
-import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined)
+import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined, log)
 import qualified Prelude as P
 import Data.Data
 
@@ -36,6 +41,11 @@ import Text.Read (readEither)
 
 import qualified Data.Map as M
 import Control.Applicative
+
+import System.IO
+import GHC.Generics hiding (Prefix, Infix, Fixity, R)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad
 
 -------------------------------------------------------------------------------------------------------------------------
 -- error with locations
@@ -152,3 +162,6 @@ catchAny m f = catch m onExc
 -- | a version of handle that never swallows asynchronous exceptions.
 handleAny :: (SomeException -> IO a) -> IO a -> IO a
 handleAny h f = catchAny f h
+
+showConstructor :: (Data a) => a -> String
+showConstructor = showConstr . toConstr

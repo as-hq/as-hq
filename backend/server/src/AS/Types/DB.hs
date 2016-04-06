@@ -8,7 +8,6 @@ import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
 import Data.ByteString (ByteString)
 import Data.SafeCopy
-import GHC.Generics
 import Control.Monad
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)

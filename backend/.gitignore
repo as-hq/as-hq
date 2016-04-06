@@ -14,6 +14,8 @@ server/Index*
 server/*.pid
 
 server/logs/*
+pykernel/logs/*
+
 server/server_log
 server/client_messages
 

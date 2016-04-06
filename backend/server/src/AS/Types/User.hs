@@ -8,7 +8,6 @@ import AS.Types.Sheets
 import AS.ASJSON
 import Data.Set
 
-import GHC.Generics
 import Data.Text hiding (any)
 import Data.SafeCopy
 

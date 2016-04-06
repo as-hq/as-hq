@@ -3,8 +3,6 @@
 
 module AS.Types.Infinites where
 
-import GHC.Generics
-
 import AS.Prelude hiding (isInfinite)
 import Prelude hiding (isInfinite)
 import Control.Lens hiding ((.=))

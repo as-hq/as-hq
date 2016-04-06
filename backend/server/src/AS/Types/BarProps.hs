@@ -4,7 +4,6 @@ import AS.Prelude
 
 import AS.ASJSON
 
-import GHC.Generics
 import Data.Aeson
 import qualified Data.Map as M
 

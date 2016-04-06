@@ -9,7 +9,6 @@ import AS.Config.Constants
 
 import AS.Types.Cell
 
-import GHC.Generics
 import Control.Lens
 import Control.Lens.TH
 import Data.SafeCopy

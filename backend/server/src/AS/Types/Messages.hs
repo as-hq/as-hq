@@ -1,6 +1,5 @@
 module AS.Types.Messages where
 
-import GHC.Generics
 import Data.Aeson
 import Data.Aeson.Types (defaultOptions)
 import Data.SafeCopy
@@ -215,4 +214,4 @@ makeErrorMessage mid e = ClientMessage mid $ ShowFailureMessage $ generateErrorM
 --        ToggleProp _ _ -> "ToggleProp"
 --        Decouple       -> "Decouple"
 getServerActionType :: ServerAction -> String
-getServerActionType = show . toConstr
+getServerActionType = showConstructor

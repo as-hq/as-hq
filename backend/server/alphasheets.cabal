@@ -156,6 +156,7 @@ library
                      , attoparsec-expr
                      , scientific
                      , async
+                     , unix
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

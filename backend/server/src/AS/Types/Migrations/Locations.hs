@@ -2,7 +2,6 @@
 
 module AS.Types.Migrations.Locations where
 
-import GHC.Generics
 import Data.SafeCopy
 
 -- 1/22/16 migration of Coord.

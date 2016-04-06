@@ -12,13 +12,11 @@ import AS.Types.BarProps
 import AS.Types.Updates
 import AS.Types.Locations
 
-import GHC.Generics
 import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Data.Maybe
 import Data.SafeCopy
 import Control.Applicative
-import Control.Monad (liftM, ap)
 
 -- NORM: never expand this type; always modify it using the records. (So we don't confuse 
 -- before and after accidentally.)

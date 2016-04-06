@@ -12,7 +12,6 @@ import AS.Prelude
 import AS.Types.Values
 import AS.ASJSON
 
-import GHC.Generics
 import Data.Aeson
 import Data.SafeCopy
 import Data.Maybe

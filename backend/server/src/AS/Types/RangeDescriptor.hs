@@ -2,7 +2,6 @@
 
 module AS.Types.RangeDescriptor where 
 
-import GHC.Generics
 import Data.SafeCopy
 import qualified Data.Map as M
 

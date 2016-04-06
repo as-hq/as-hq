@@ -10,7 +10,6 @@ import AS.ASJSON
 import AS.Types.Locations
 import AS.Types.User
 
-import GHC.Generics
 -- memory
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)

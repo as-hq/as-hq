@@ -4,7 +4,6 @@ module AS.Types.Updates where
 
 import AS.Prelude
 
-import GHC.Generics
 import Control.Applicative (liftA2)
 import Data.Aeson.Types
 import Data.List as L

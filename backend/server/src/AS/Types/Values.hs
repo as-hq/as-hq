@@ -6,7 +6,6 @@ import AS.Prelude
 import AS.ASJSON
 
 import AS.Types.Locations (Dimensions(..), int)
-import GHC.Generics
 import Control.DeepSeq
 import Control.Lens
 import Control.DeepSeq.Generics (genericRnf)

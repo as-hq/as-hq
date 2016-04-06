@@ -19,7 +19,6 @@ import AS.Types.Formats
 import AS.Types.Updates
 import AS.Types.Values
 
-import GHC.Generics
 import Data.Aeson
 import Data.List
 import Data.SafeCopy

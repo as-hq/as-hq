@@ -6,7 +6,6 @@ import Data.Time.Clock.POSIX
 import Text.Printf
 import Crypto.Hash.SHA1
 import Network.HTTP.Conduit
-import GHC.Generics
 import Data.Aeson
 import Control.Lens
 import Control.Monad

@@ -20,6 +20,7 @@ import Control.Concurrent
 import System.Directory (getCurrentDirectory)
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
+import qualified Data.Text as T
 
 import qualified Data.Vector.SEXP as SV
 import Foreign.C.String (peekCString)
@@ -72,7 +73,7 @@ runBlock state code scope sid = do
 
   let onException :: SomeException -> IO EvalResult
       onException e = do
-        putStrLn ("runBlock ERROR: " ++ show e) 
+        puts state $ "runBlock ERROR: " ++ show e
         return $ EvalResult 
           (CellValue (ValueError (show e) "R error"))
           (Just $ "Runtime error: " ++ (show e))
@@ -122,6 +123,7 @@ installEnv state sid = do
     let newEnv = R.cast R.SEnv newEnvUnformed
     R.preserveObject newEnv -- preserve across all gc sweeps (for multithreaded access)
     modifyMVar_' state $ return . (& shell.environments %~ M.insert sid (R.unsexp newEnv))
+    puts state $ "Created new environment for sheet: " ++ T.unpack sid
 
 -- TODO stacktraces (fill in the second argument of EvalResult)
 execR :: R m (R.SomeSEXP m) -> R m EvalResult

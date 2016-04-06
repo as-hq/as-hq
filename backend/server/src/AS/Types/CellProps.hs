@@ -30,7 +30,6 @@ import AS.Types.User
 import AS.Types.Formats
 import AS.ASJSON
 
-import GHC.Generics
 import Data.Aeson
 import Data.SafeCopy
 

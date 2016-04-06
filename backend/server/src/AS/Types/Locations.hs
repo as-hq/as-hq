@@ -18,7 +18,6 @@ import AS.Types.Infinites
 
 import AS.Types.Sheets
 
-import GHC.Generics
 import Data.Aeson
 import Data.Hashable
 import Data.SafeCopy

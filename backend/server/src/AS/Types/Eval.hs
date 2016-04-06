@@ -7,7 +7,6 @@ module AS.Types.Eval
   ) where
 
 import AS.Prelude
-import GHC.Generics
 import Control.Lens hiding (index)
 import Control.Applicative ((<$>), (<*>))
 import Control.DeepSeq

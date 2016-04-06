@@ -12,8 +12,6 @@ import AS.Types.Bar
 import AS.Types.RangeDescriptor
 import AS.Types.User
 
-import GHC.Generics
-
 import Data.List
 import qualified Data.Text as T
 import Data.SafeCopy

@@ -22,7 +22,9 @@ from IPython.core.pylabtools import import_pylab
 
 NUM_WORKERS         = 50
 NUM_WORKERS_LIMIT   = 200
+# the number of additional workers created when high load is detected
 LOAD_RESPONSE_DELTA = 5
+LOG_DIR             = "./logs/"
 
 WORKER_REGISTRATION_TIMEOUT = 3.0
 
@@ -33,6 +35,22 @@ sid = shortid.ShortId()
 def id_gen():
   return sid.generate()
 
+#  Initialize logging
+if not os.path.exists(LOG_DIR):
+  os.makedirs(LOG_DIR)
+logFile = LOG_DIR + datetime.utcnow().isoformat() + '.txt'
+log = open(logFile, 'a')
+
+# print/log utility functions
+def puts(msg):
+  print(msg, file=sys.__stdout__)
+  log.write(repr(msg) + '\n')
+
+def putsTimed(msg):
+  msg_ = msg + ' [' + datetime.utcnow().isoformat() + ']'
+  puts(msg_)
+
+# stoppable thread subclass
 class ASThread(threading.Thread):
 
   def set_id(self, worker_id):
@@ -50,6 +68,7 @@ class ASThread(threading.Thread):
   def is_working(self):
     return self.working
 
+# kernel
 class ASKernel(object):
   def __init__(self, num_workers=NUM_WORKERS):
     self.init_shell()
@@ -83,7 +102,7 @@ import base64
     self.kill_port(address.split(':')[-1])
 
     def signal_handler(signum, frame):
-      print('ZMQ caught SIGINT: ' + repr(frame), file=sys.__stdout__)
+      puts('ZMQ caught SIGINT')
 
     # the zmq poller device (below) sometime spuriously receives a 
     # SIGINT despite no action from the user; the workaround is to 
@@ -102,7 +121,7 @@ import base64
 # ------>                                 ^                                    ---> worker n 
 #                                  (load balancing)                                          
 
-    print('\nKernel listening at address:', self.url_client, '\n', file=sys.__stdout__)
+    puts('Kernel listening at address: ' + self.url_client)
 
     # bind addresses
     frontend = self.context.socket(zmq.ROUTER)
@@ -120,11 +139,12 @@ import base64
     for _ in range(self.num_workers):
       worker_id = id_gen()
       worker = self.install_worker(worker_id)
-    print('CREATED ' + str(self.num_workers) + ' WORKERS.', file=sys.__stdout__)
+    puts('CREATED ' + str(self.num_workers) + ' WORKERS.')
 
     def checkAndDie():
       if not self.any_workers_registered:
-        print('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL', file=sys.__stdout__)
+        puts('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL')
+        log.close()
         os.system('kill %d' % os.getpid())
 
     t = threading.Timer(WORKER_REGISTRATION_TIMEOUT, checkAndDie)
@@ -149,7 +169,7 @@ import base64
               new_worker_id = id_gen()
               self.install_worker(new_worker_id)
             self.num_workers += LOAD_RESPONSE_DELTA
-            print("SCALED UP: " + str(self.num_workers) + " workers", file=sys.__stdout__)
+            puts("SCALED UP: " + str(self.num_workers) + " workers")
 
         elif (selected_worker_addr == 'UNREGISTERED'):
           continue        
@@ -174,7 +194,7 @@ import base64
         if (message[2] == 'READY'):
           network_id = message[0]
           worker_id = message[4]
-          print('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id, file=sys.__stdout__)
+          puts('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id)
           self.any_workers_registered = True
           self.workers[worker_id].network_id = network_id
 
@@ -183,7 +203,6 @@ import base64
           client_addr = message[2]
           reply = message[4]
           frontend.send_multipart([client_addr, EMPTY, reply])
-          print('SENT REPLY TO CLIENT', file=sys.__stdout__)
 
     # clean up when finished
     self.close(frontend, backend)
@@ -221,7 +240,7 @@ import base64
     ##  Halts all threads working on a given message_id as follows:
     # - terminate 'myself'
     # - replace 'myself' in the thread pool with a new worker
-    print("HALTING MESSAGE: " + message_id, file=sys.__stdout__)
+    puts("HALTING MESSAGE: " + message_id)
 
     for worker in self.workers.values():
       if worker.workingMessage == message_id:
@@ -232,7 +251,6 @@ import base64
     socket = self.context.socket(zmq.REQ)
     socket.connect(self.url_worker)
     socket.identity = worker_id.encode('ascii')
-    # print('WORKER INITIALIZE W ID: ' + socket.identity + ' ' + repr(socket.__dict__))
     socket.send_multipart(['READY', EMPTY, worker_id])
 
     while True:
@@ -251,12 +269,12 @@ import base64
         message_id = None
       self.workers[worker_id].set_working_status(True, message_id)
 
-      print('processing', client_msg['type'], "on thread", worker_id, file=sys.__stdout__)
+      putsTimed ('worker ' + worker_id + ' PROCESSING')
+      puts(repr(client_msg))
 
       try:
         reply_msg = self.process_message(client_msg, worker_id)
-        # print("FINISHED PROCESSING MESSAGE, SENDING BACK", file=sys.__stdout__)
-        print("Worker " + worker_id + " finished, sending message", file=sys.__stdout__)
+        putsTimed("worker " + worker_id + " FINISHED, sending message")
         socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
 
       except KeyboardInterrupt: 
@@ -265,11 +283,17 @@ import base64
       except Exception as e:
         try: 
           reply_msg = {'type': 'generic_error', 'error': repr(e)}
-          print("Worker " + worker_id + " error: " + repr(e), file=sys.__stdout__)
+          puts("Worker " + worker_id + " error: " + repr(e))
           socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
         except: 
           pass
         traceback.print_exc()
+        
+# Build up logs in buffer during work, then flush to file during each 
+# worker's dead zone (the period between having finished work and becoming 
+# non-idle). This is a tradeoff between increasing evaluation time and 
+# increasing the number of workers, favoring the latter.
+      log.flush()
 
   def process_message(self, msg, worker_id):
   # messages are handled in an exactly isomorphic way with the KernelRequest/KernelReply 
@@ -288,9 +312,8 @@ import base64
     elif msg['type'] == 'evaluate_format':
       result = self.shell.run_raw(msg['code'], msg['sheet_id'])
 
-      # result.result can be any python datatype; we assume any call to "run_raw"
-      # expects a string in response. So, invoke repr.
       if result.result:
+        # evaluate_format's reply type is string
         result.result = repr(result.result) 
       return self.exec_result_to_msg(result, msg)
 
@@ -322,8 +345,9 @@ import base64
     return reply
 
   def close(self, frontend, backend):
-    print('Normal kernel exit.', file=sys.__stdout__)
+    puts('Normal kernel exit.')
 
+    log.close()
     # wait for devices to finish polling
     time.sleep(1)
 
