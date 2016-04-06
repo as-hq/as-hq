@@ -55,12 +55,12 @@ outInf lang = case lang of
 outBool :: ASLanguage -> Bool -> String
 outBool lang val = case val of 
   True -> case lang of 
-    R     -> "true"
+    R     -> "TRUE"
     Python-> "True"
     SQL   -> "True"
     Excel -> "True"
   False -> case lang of
-    R     -> "false"
+    R     -> "FALSE"
     Python-> "False"
     SQL   -> "False"
     Excel -> "False"

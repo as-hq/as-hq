@@ -1235,6 +1235,23 @@ describe('backend', () => {
           ]);
         });
 
+        it ('reads boolean values correctly', (done) => {
+          _do([
+            r('A1', '=TRUE'),
+            r('B1', '=A1'),
+            shouldBe('B1', valueB(true)),
+            exec(done)
+          ]);
+        });
+
+        it ('treats functions in outputs as nulls', (done) => {
+          _do([
+            r('A1', '=function(x) { return(x+1) }'),
+            shouldBe('A1', noValue()), 
+            exec(done)
+          ]);
+        });
+
         it ('plots shit', (done) => {
           _do([
             r('A1','=qplot(x=\'x\',y=\'y\',data=data.frame(c(1,2)))'),

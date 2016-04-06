@@ -152,15 +152,16 @@ possiblyOverrideWithImage imageName (EvalResult cv disp) = do
 castSEXP :: R.SomeSEXP m -> R m CompositeValue
 castSEXP origValue@(R.SomeSEXP x) = case x of
   (hexp -> H.Nil)       -> return $ CellValue NoValue
-  (hexp -> H.Real v)    -> return . rdVector $ map fromReal $ SV.toList v
-  (hexp -> H.Int v)     -> return . rdVector $ map (ValueI . fromIntegral) $ SV.toList v
-  (hexp -> H.Logical v) -> return . rdVector $ map fromLogical $ SV.toList v
+  (hexp -> H.Real v)    -> return . rdVector . map fromReal $ SV.toList v
+  (hexp -> H.Int v)     -> return . rdVector . map (ValueI . fromIntegral) $ SV.toList v
+  (hexp -> H.Logical v) -> return . rdVector . map fromLogical $ SV.toList v
   (hexp -> H.Char v)    -> return $ CellValue (castString v)
-  (hexp -> H.String v)  -> return . rdVector $ map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
+  (hexp -> H.String v)  -> return . rdVector . map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'') -> castSEXP $ R.SomeSEXP s
   -- (hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] 
   -- ^ this case only fires on pairlists, due to HaskellR issue #214
   (hexp -> H.Special i)    -> return $ CellValue (ValueI $ fromIntegral i)
+  (hexp -> H.Closure _ _ _) -> return $ CellValue NoValue -- we don't want to display functions to user
   (hexp -> H.DotDotDot s)  -> castSEXP $ R.SomeSEXP s
   (hexp -> H.Vector len v) -> castVector origValue v
   (hexp -> H.Builtin i)    -> return $ CellValue (ValueI $ fromIntegral i)
