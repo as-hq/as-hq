@@ -56,46 +56,23 @@ current_year = 2016
 
 pythonHeaderDefaultText :: String
 pythonHeaderDefaultText = unlines [
-  "# This is the Python global code editor. ", 
   "# Any functions and variables defined here ", 
   "# can be referenced within any Python cell. ",
-  "# ",
-  "# Try uncommenting the below lines (select", 
-  "# lines 8-11 and press Ctrl+/):",
-  "#",  
-  "# def foo(x):",
-  "#   return x ** 2",
-  "# ",
-  "# bar = 3",
-  "# ",
-  "# Then press the \"Evaluate\" button at the",
-  "# top of this editor, and evaluate",
-  "# foo(bar) in some cell with the language",
-  "# set to Python. ",
-  "# ",
-  "# You can also see code outputs by ",
-  "# evaluating the header. Uncomment the ",
-  "# below lines and press evaluate: ",
-  "# ",
-  "# print \"Printed text!\"",
-  "# 3 ** 2 + 1" ]
+  "",
+  "def callMe(x):", 
+  "  return x + 1",
+  "",  
+  "referenceMe = 10"
+  ]
 
 rHeaderDefaultText :: String
 rHeaderDefaultText = unlines [ 
-  "# This is the R global code editor. Any ",
-  "# functions and variables defined here can ",
-  "# be referenced within any R cell. ",
-  "# ",
-  "# Try uncommenting the below lines (select",
-  "# lines 8-12 and press Ctrl+/):",
-  "# ",
-  "# foo <- function(x) {",
-  "#   return(x**2)",
-  "# }",
-  "# ",
-  "# bar <- 4",
-  "# ",
-  "# Then press the \"Evaluate\" button at the",
-  "# top of this editor, and evaluate",
-  "# foo(bar) in some cell with the language",
-  "# set to R. " ]
+  "# Any functions and variables defined here ",
+  "# can be referenced within any R cell. ",
+  "",
+  "callMe <- function(x) {",
+  "  return(x+2)",
+  "}",
+  "",
+  "referenceMe <- 4"
+  ]
