@@ -48,8 +48,6 @@ import AS.Types.Sheets
 import AS.Kernels.Internal
 import AS.Kernels.R.Types
 
-type VarSymbol = String
-
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
@@ -69,7 +67,7 @@ runBlock state code scope sid = do
   cwd <- S.getSetting S.appDirectory
   uid <- getUniqueId
   let imageName = uid ++ ".png"
-  let imagePath = cwd ++ "/static/images/" ++ imageName
+  let imagePath = cwd ++ S.images_dir ++ imageName
 
   let onException :: SomeException -> IO EvalResult
       onException e = do

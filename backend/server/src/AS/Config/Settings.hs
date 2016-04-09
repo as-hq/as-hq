@@ -109,7 +109,7 @@ google_token_verify_url = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_tok
 google_client_id :: String
 google_client_id = "347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com"
 
-images_dir = "static/images/"
+images_dir = "../server/static/images/"
 eval_dir   = "eval_files/"
 env_path   = ".." </> "Environment.json"
 log_dir    = "logs/"
@@ -131,7 +131,7 @@ initializeSettings = do
   setNumCapabilities . (-1 +) =<< getNumProcessors
 
   appSettings <- getRuntimeSettings 
-  appDir <- getCurrentDirectory
+  appDir <- getCurrentDirectory <++> return "/"
 
   writeIORef appDirectory appDir
   writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
