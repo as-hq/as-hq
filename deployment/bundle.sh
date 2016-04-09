@@ -16,18 +16,23 @@
 
 USE_SUDO=false
 PUSH_REMOTE=false
+ENV_FILE=false
 
 while [[ $# -gt 0 ]]; do
   opt="$1"
   shift;
   case "$opt" in
-    "-b"|"--branch"     ) BRANCH="$1"; shift;;
+    "-b"|"--branch"     ) BRANCH="$1"; ENV_FILE="$1"; shift;;
     "-p"|"--push"       ) PUSH_REMOTE=true; shift;;
     "-s"|"--sudo"       ) USE_SUDO=true; shift;;
+    "-e"|"--environment") ENV_FILE="$1"; shift;;
     *                   ) echo "ERROR: Invalid option: \""$opt"\"" >&2
                           exit 1;;
   esac
 done
+
+echo "Using environment: $ENV_FILE"
+echo "Committing to branch: $BRANCH"
 
 if [ -z "$BRANCH" ]; then
   echo "branch required. use -b BRANCH_NAME."
@@ -47,17 +52,12 @@ else
 fi
 
 ## prepare destination, match the current directory structure of codebase
-echo "preparing directories..."
 rm -rf build ../build
 mkdir build
 cd build
 git init
 git remote add origin git@github.com:ooblahman/alphasheets-builds.git
-# preserve the branch history
-git fetch -a
-git checkout "$BRANCH"
-rm -rf *
-mkdir frontend server graph pykernel
+git checkout -b "$BRANCH"
 
 # back to root directory
 cd ..
@@ -66,7 +66,7 @@ cd ..
 echo "building..."
 cd frontend
 # Copy the correct environment file into the default one read by gulp while building
-cp src/js/Environment_$BRANCH.js src/js/Environment.js
+cp src/js/Environment_$ENV_FILE.js src/js/Environment.js
 if $USE_SUDO; then
   sudo npm install 
   sudo bower install --allow-root
@@ -77,11 +77,11 @@ else
   gulp prod-build
 fi
 cd ..
-cp -r frontend/dist/* build/frontend/
+cp -r frontend/dist build/frontend
 echo "frontend build finished."
 
 # frontend environments
-cp frontend/src/js/Environment*.js build/frontend
+cp frontend/src/js/Environment*.js build/frontend/
 
 # Install up-to-date Python libraries
 cd backend/as-libs/py
@@ -103,7 +103,7 @@ cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheet
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/rkernel-exe build/rkernel/
 
 # backend environments are all the same, because they run on docker
-cp backend/Environment_$BRANCH.json build/Environment.json
+cp backend/Environment_$ENV_FILE.json build/Environment.json
 cp backend/email_whitelist.txt build/
 echo "backend build finished."
 
@@ -111,15 +111,16 @@ echo "backend build finished."
 cd backend/graph-database
 g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -lpthread -std=c++11 
 cd ../../
+mkdir build/graph
 cp backend/graph-database/server build/graph/
 
 # pykernel
 cp -r backend/as-libs/py build/pylib
+mkdir build/pykernel
 cp -r backend/pykernel/* build/pykernel/
 
 # Make a static directory inside of the build/server for images + file input handler
-cd build/server
-mkdir static
+mkdir build/server/static
 
 # Python executables for file-input-handler
 # Copy all executables needed into the build/server/static folder
@@ -131,33 +132,21 @@ cd backend/server/static
 rm -rf dist build file-input-handler.spec
 cd ../../..
 
-# ## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
-# ###### deployment materials
-# # # copy deployment materials
-# # cp -r deployment build/
-# # # build router
-# # pyinstaller router.py
-# # rm router.spec
-# # rm router.py
-# # mv dist/router ./
-# # rm -rf dist
-# # rm -rf build
-# # cd ..
-
 # Copy the deployment folder into the builds folder
 cp -r deployment build/
+
+cd build
+NOW=$(date +"%c")
+git add --force -A .
+git commit -m "automated build: $NOW"
 
 ## push to remote
 if $PUSH_REMOTE; then
   echo "pushing to remote branch: $BRANCH"
-  NOW=$(date +"%c")
-  cd build
-  git add --force -A .
-  git commit -m "automated build: $NOW"
-  git push origin "$BRANCH"
-  cd ..
+  git push --force origin "$BRANCH"
 fi
 
+cd ..
+
 # Remove the created builds folder from the root directory
-cp -r build ../
-rm -rf build
+mv build ../
