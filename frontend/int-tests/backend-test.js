@@ -216,6 +216,14 @@ describe('backend', () => {
           ]);
         });
 
+        it ('should put an error in a cell when referenced in Excel', (done) => {
+          _do([
+            excel('A1', '=!{10, B1}'),
+            shouldBeError('A1'),
+            exec(done)
+          ]);
+        });
+
         it ('should preserve dependencies', (done) => {
           _do([
             python('A1', '=random.random()'),

@@ -482,6 +482,7 @@ refToEntity context (ERef (l@(RangeRef r))) = do
      else Right $ EntityMatrix $ EMatrix ((getFiniteWidth l)^.int) ((getFiniteHeight l)^.int) $ V.fromList $ catMaybes vals
 
 refToEntity _ (ERef (PointerRef _)) = Left $ REF $ "Can't convert pointer to entity"
+refToEntity _ (ERef (TemplateRef _)) = Left $ REF $ "Template references not supported in Excel"
 
 replace :: (M.Map ERef EEntity) -> EResult -> EResult
 replace mp r@(Right (EntityRef ref)) = case (M.lookup ref mp) of
