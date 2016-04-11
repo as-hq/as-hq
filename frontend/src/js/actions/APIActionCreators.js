@@ -13,6 +13,7 @@ import HeaderStore from '../stores/ASHeaderStore';
 import SheetStore from '../stores/ASSheetStateStore';
 
 let lastEval = 0;
+let lastHeaderEval = 0;
 
 export default {
   evaluate(offset: Offset, providedExpression?: string) {
@@ -33,7 +34,9 @@ export default {
 
   evaluateActiveHeader() { 
     const curTime = new Date().getTime();
-    if (curTime - lastEval >= Constants.EVAL_RATE_LIMIT) {
+    if (curTime - lastHeaderEval >= Constants.EVAL_RATE_LIMIT) {
+      lastHeaderEval = curTime; 
+      
       NotificationActions.addNotification({
         title: 'Evaluated!',
         level: 'success',
