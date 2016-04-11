@@ -15,6 +15,7 @@ import ReactDOM from 'react-dom';
 import EvalHeader from './EvalHeader.jsx';
 import Focusable from '../transforms/Focusable.jsx';
 
+import APIActions from '../../actions/APIActionCreators';
 import FocusActions from '../../actions/ASFocusActionCreators';
 import HeaderActions from '../../actions/ASHeaderActionCreators';
 import HeaderStore from '../../stores/ASHeaderStore';
@@ -70,19 +71,10 @@ class EvalHeaderController extends React.Component {
             HeaderActions.setLanguage(newLanguage);
           }
         }}
-        onEvaluate={() => this._onEvaluate(expression, language)}
+        onEvaluate={() => APIActions.evaluateActiveHeader()}
         onMouseEnter={() => FocusActions.hover(name)}
       />
     );
-  }
-
-  _onEvaluate(expression: string, language: ASLanguage) {
-    NotificationActions.addNotification({
-      title: evaluateMessage,
-      level: 'success',
-      autoDismiss: 1
-    });
-    API.evaluateHeader(expression, language);
   }
 
   _addEventListener(type: string, cb: Callback) {

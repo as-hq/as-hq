@@ -3,11 +3,13 @@
 import type { Offset } from '../types/Eval';
 
 import API from './ASApiActionCreators';
+import NotificationActions from './ASNotificationActionCreators';
 import Constants from '../Constants';
 import Dispatcher from '../Dispatcher';
 
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
+import HeaderStore from '../stores/ASHeaderStore';
 import SheetStore from '../stores/ASSheetStateStore';
 
 let lastEval = 0;
@@ -26,6 +28,20 @@ export default {
         offset
       });
       API.evaluate(origin, expression, language);
+    }
+  },
+
+  evaluateActiveHeader() { 
+    const curTime = new Date().getTime();
+    if (curTime - lastEval >= Constants.EVAL_RATE_LIMIT) {
+      NotificationActions.addNotification({
+        title: 'Evaluated!',
+        level: 'success',
+        autoDismiss: 1
+      });
+      const expression = HeaderStore.getCurrentExpression();
+      const language = HeaderStore.getCurrentLanguage();
+      API.evaluateHeader(expression, language);
     }
   },
 

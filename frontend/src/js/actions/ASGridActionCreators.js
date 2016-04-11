@@ -13,8 +13,10 @@ import KeyUtils from '../AS/utils/Key';
 import ASIndex from '../classes/ASIndex';
 
 import API from './ASApiActionCreators';
+import APIActions from './APIActionCreators';
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
+import HeaderStore from '../stores/ASHeaderStore';
 import { actions as Shortcuts } from '../AS/Shortcuts';
 import ExpressionActions from './ASExpressionActionCreators';
 
@@ -40,6 +42,15 @@ const GridActions = {
       shouldScroll:
         (shouldScroll === undefined) ? true : shouldScroll
     });
+
+    // Ideally, the logic for this should be placed in a clickaway for EvalHeaderController. 
+    // Unfortunately, no easy clickways work at the moment, so this is our 80/20. (Alex 4/10)
+    // ADDITIONALLY, this should eventually save all the unevaluated headers rather
+    // than just any active unevaluated headers... probably. 
+    // #needsrefactor 
+    if (HeaderStore.isDirty()) { 
+      APIActions.evaluateActiveHeader(); 
+    }
   },
 
   scrollBy(offset: Offset) {

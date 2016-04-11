@@ -358,14 +358,7 @@ function installAllShortcuts() {
 
   // header shortcuts -------------------------------------------------------------------------------
   install('header', 'save', 'Ctrl+S', (wildcard: string) => {
-    NotificationActions.addNotification({
-      title: 'Evaluated!',
-      level: 'success',
-      autoDismiss: 1
-    });
-    const expression = HeaderStore.getCurrentExpression();
-    const language = HeaderStore.getCurrentLanguage();
-    API.evaluateHeader(expression, language);
+    APIActions.evaluateActiveHeader(); 
   });
 
   // top level shortcuts -------------------------------------------------------------------------------
