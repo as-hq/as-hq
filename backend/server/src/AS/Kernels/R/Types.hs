@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds, ExistentialQuantification, RankNTypes #-}
+
 module AS.Kernels.R.Types where
 
 import AS.Prelude
@@ -21,43 +22,54 @@ import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Client types
 
 data EvalScope = Header | Cell deriving (Show, Generic, Data)
 data KernelRequest = 
-    EvaluateRequest { scope :: EvalScope, evalMessageId :: MessageId, envSheetId :: ASSheetId, code :: String } 
+    EvaluateRequest { scope :: EvalScope, 
+                      evalMessageId :: MessageId, 
+                      envSheetId :: ASSheetId, 
+                      code :: String } 
   | ClearRequest ASSheetId
   | HaltMessageRequest MessageId
+  | PokeRequest MessageId
   deriving (Show, Generic, Data)
 
 data KernelReply = 
     EvaluateReply EvalResult
   | GenericSuccessReply
   | GenericErrorReply String
+  | StillProcessingReply
   deriving (Show, Generic)
 
 deriveSafeCopy 1 'base ''EvalScope
 deriveSafeCopy 1 'base ''KernelRequest
 deriveSafeCopy 1 'base ''KernelReply
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Server types 
 
 type Addr = String
 type WorkerId = B.ByteString
 type NetworkId = B.ByteString
 
-data Worker = Worker {_workerId :: WorkerId, _networkId :: Maybe NetworkId, _thread :: Async (), _status :: WorkerStatus}
+data Worker = Worker {_workerId :: WorkerId, 
+                      _networkId :: Maybe NetworkId, 
+                      _thread :: Async (), 
+                      _status :: WorkerStatus}
 data WorkerStatus = 
     Unregistered
   | Idle
   | Busy (Maybe MessageId)
   deriving (Ord, Eq)
 
-data State = State {_workers :: M.Map WorkerId Worker, _numWorkers :: Int, _shell :: Shell, _log :: Handle}
+data State = State {_workers :: M.Map WorkerId Worker, 
+                    _numWorkers :: Int, 
+                    _shell :: Shell,
+                     _log :: (Maybe Handle)}
 
-emptyState :: Shell -> Handle -> State
+emptyState :: Shell -> Maybe Handle -> State
 emptyState s l = State M.empty 0 s l 
 
 -- A map of pointers to R environments. There is one environment per sheet.
@@ -69,23 +81,28 @@ makeLenses ''Shell
 
 instance NFData Shell where rnf x = seq x ()
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Helper functions
 
+logging_on         = False
+
 closeLog :: (MonadIO m) => MVar State -> m ()
-closeLog st = liftIO $ readMVar st >>= \st_ -> hClose (st_^.log)
+closeLog st = liftIO $ readMVar st >>= \st_ -> hClose ($fromJust $ st_^.log)
 
 flushLog :: (MonadIO m) => MVar State -> m ()
-flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush (st_^.log)
+flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush ($fromJust $ st_^.log)
 
 puts :: (MonadIO m) => MVar State -> String -> m ()
 puts st x = liftIO $ do
-  _st <- readMVar st
   putStrLn x 
-  hPutStrLn (_st^.log) x
+  when logging_on $ do
+    _st <- readMVar st
+    hPutStrLn ($fromJust $ _st^.log) x
 
 putsTimed :: (MonadIO m) => MVar State -> String -> m ()
 putsTimed st x = liftIO $ do
   t <- getTime
   let x' = x ++ " [" ++ t ++ "]"
   puts st x'
+
+--------------------------------------------------------------------------------

@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module AS.Kernels.R.Client where
 
 import AS.Prelude
@@ -20,17 +22,27 @@ import Control.Monad.Trans.Either
 import Control.Applicative
 import Control.Lens
 
--- #some code duplication with the python kernel here.
--- on second thought, this may not be avoidable right now (anand 3/21)
+--------------------------------------------------------------------------------
+-- Initialization 
 
 initialize :: Redis.Connection -> IO ()
 initialize conn = do
-  -- run all the headers in db to initialize the sheet namespaces
+  -- Run all the headers in db to initialize the sheet namespaces
   headers <- getAllHeaders conn R
-  mapM_ 
-    (\h -> runEitherT $ 
-      evaluateHeader initialize_message_id (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) 
-    headers
+  forM_ headers $ \h -> do 
+    let sid  = h^.evalHeaderSheetId
+    let expr = h^.evalHeaderExpr
+    runEitherT $ evaluateHeader initialize_message_id sid expr
+
+--------------------------------------------------------------------------------
+-- Top level evaluation functions
+
+evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> 
+                     EvalCode -> EitherTExec EvalResult
+evaluateWithScope _ _ _ "" = return emptyResult
+evaluateWithScope scope mid sid code = do
+  (EvaluateReply r) <- handleZMQ $ EvaluateRequest scope mid sid code
+  return r
 
 evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell
@@ -39,25 +51,70 @@ evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 haltMessage :: MessageId -> IO ()
-haltMessage = sendMessage_ . HaltMessageRequest
+haltMessage = handleZMQ_ . HaltMessageRequest
 
 clear :: ASSheetId -> IO ()
-clear = sendMessage_ . ClearRequest
+clear = handleZMQ_ . ClearRequest
 
------------------------------------------------------------------------------------------------------------------------------
--- Helpers
+--------------------------------------------------------------------------------
+-- ZMQ message receiving
 
-evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateWithScope _ _ _ "" = return emptyResult
-evaluateWithScope scope mid sid code = do
-  sendMessage (EvaluateRequest scope mid sid code) >>= \(EvaluateReply r) -> return r
+poke_max :: Int
+poke_max = 5
 
-sendMessage :: KernelRequest -> EitherTExec KernelReply
-sendMessage msg = do
+resend_max :: Int
+resend_max = 5
+
+-- | Keep polling for a response from the kernel. If it's still processing a 
+-- reply, then keep polling. If we're not getting responses, then give up after
+-- a few poll cycles (given by poke_threshold) and resend the message. Finally
+-- give up if a few resends still yields nothing. Returns the decoded response.
+getResponse :: MessageId -> -- id of message
+               ZMQ z () -> -- ZMQ action to do if poke_max is reached
+               Socket z Dealer -> -- client
+               ZMQ z (Either String KernelReply)
+getResponse mid f = getResponse' f 0 0 True
+  where
+    getResponse' :: ZMQ z () -> -- resend action
+                    Int -> -- number of resends so far
+                    Int -> -- number of poll cycles so far
+                    Bool -> -- be lenient; still processing reply
+                    Socket z Dealer -> -- client
+                    ZMQ z (Either String KernelReply)
+    getResponse' action resends cycles lenient client = do
+      -- The poll timeout (ms) should have the property that a poke can get back
+      -- within the timeout.
+      [evts] <- poll 2000 [Sock client [In] Nothing]
+      if (In `elem` evts) 
+        then do 
+          reply <- Serial.decode <$> receive client
+          liftIO $ putStrLn $ "REPLY " ++ show reply
+          case reply of
+            (Right StillProcessingReply) -> 
+              getResponse' action resends (cycles + 1) True client
+            otherMessage -> return otherMessage
+        else do 
+          if resends > resend_max
+            then return $ Right $ GenericErrorReply "R Kernel down!"
+            else do
+              if cycles > poke_max && not lenient 
+                then do 
+                  action >> getResponse' action (resends + 1) 0 True client 
+                else do
+                  send' client [] $ Serial.encodeLazy (PokeRequest mid)
+                  getResponse' action resends (cycles + 1) False client
+
+--------------------------------------------------------------------------------
+-- ZMQ message connecting and processing
+
+-- | Connect as a client, send the KernelRequest and get a KernelReply using ZMQ
+-- protocols.
+handleZMQ :: KernelRequest -> EitherTExec KernelReply
+handleZMQ msg@(EvaluateRequest _ mid _ _) = do
   resp <- liftIO $ runZMQ $ do
-    reqSocket <- connectToKernel
-    send' reqSocket [] $ Serial.encodeLazy msg
-    Serial.decode <$> receive reqSocket
+    dealer <- connectToKernel
+    send' dealer [] $ Serial.encodeLazy msg
+    getResponse mid (send' dealer [] $ Serial.encodeLazy msg) dealer
   case resp of 
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"
@@ -65,16 +122,20 @@ sendMessage msg = do
     Right (GenericErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
-sendMessage_ :: KernelRequest -> IO ()
-sendMessage_ msg = runZMQ $ do
-  reqSocket <- connectToKernel  
-  send' reqSocket [] $ Serial.encodeLazy msg
+-- | Connect to the kernel as a client and send the kernel a message as a 
+-- new client, without expecting a response.
+handleZMQ_ :: KernelRequest -> IO ()
+handleZMQ_ msg = runZMQ $ do
+  client <- connectToKernel  
+  send' client [] $ Serial.encodeLazy msg
   return ()
 
-connectToKernel :: ZMQ z (Socket z Req)
+-- | Makes and returns a dealer socket connected to rkernelAddress_client.
+connectToKernel :: ZMQ z (Socket z Dealer)
 connectToKernel = do
   addr <- liftIO $ getSetting rkernelAddress_client
-  reqSocket <- socket Req 
-  connect reqSocket addr
-  return reqSocket
+  client <- socket Dealer 
+  connect client addr
+  return client
 
+--------------------------------------------------------------------------------
