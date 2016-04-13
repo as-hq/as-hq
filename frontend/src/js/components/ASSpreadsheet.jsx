@@ -175,6 +175,8 @@ class ASSpreadsheet extends React.Component {
       window.addEventListener('focus', () => {
         this._grid.repaint();
       });
+      // due to asynchronous grid mount, refresh all store-obtained properties
+      this.$storeLinks.forEach(({listener}) => listener());
     });
 
     document.addEventListener('grid-repaint', () => {
