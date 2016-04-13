@@ -33,7 +33,7 @@ data KernelRequest =
                       code :: String } 
   | ClearRequest ASSheetId
   | HaltMessageRequest MessageId
-  | PokeRequest MessageId
+  | GetStatusRequest MessageId
   deriving (Show, Generic, Data)
 
 data KernelReply = 
@@ -57,7 +57,7 @@ type NetworkId = B.ByteString
 data Worker = Worker {_workerId :: WorkerId, 
                       _networkId :: Maybe NetworkId, 
                       _thread :: Async (), 
-                      _status :: WorkerStatus}
+                      _status :: WorkerStatus }
 data WorkerStatus = 
     Unregistered
   | Idle

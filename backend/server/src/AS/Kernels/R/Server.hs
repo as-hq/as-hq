@@ -194,7 +194,7 @@ processBackend state (backend, frontend) evts = when (In `elem` evts) $ do
 -- network id, the client address, and the decoded request. 
 --
 -- This does decoding twice currently; once here and again in runWorker. If this
--- becomes a speed problem, all we really need is isPokeRequest.
+-- becomes a speed problem, all we really need is isGetStatusRequest.
 processFrontend :: (Receiver r, Sender r, Sender s) => 
                    MVar State -> -- shared state
                    (Socket z r, Socket z s) -> -- frontend, backend sockets
@@ -203,7 +203,8 @@ processFrontend :: (Receiver r, Sender r, Sender s) =>
 processFrontend  state (frontend, backend) evts = when (In `elem` evts) $ do
   [clientAddr, req] <- receiveMulti frontend
   case Serial.decode req of
-    Right (PokeRequest mid) -> handlePokeRequest state mid frontend clientAddr
+    Right (GetStatusRequest mid) -> 
+      handleGetStatusRequest state mid frontend clientAddr
     otherMessage    -> do
       worker <- liftIO $ getAvailableWorker state
       if isNothing worker
@@ -220,7 +221,8 @@ processFrontend  state (frontend, backend) evts = when (In `elem` evts) $ do
               -- Invariant: if the worker is Idle, it has a valid Network ID
               sendMulti backend $ fromList [ $fromJust (w^.networkId)
                                            , empty, clientAddr
-                                           , empty, req]
+                                           , empty, req
+                                           ]
 
 --------------------------------------------------------------------------------
 -- Process messages
@@ -229,13 +231,13 @@ processFrontend  state (frontend, backend) evts = when (In `elem` evts) $ do
 -- worker is busy on that message. If so, we send [clientAddr, stillUpdating]
 -- to the frontend router, which will send [stillUpdating] to the client at
 -- clientAddr. Else, we do nothing.
-handlePokeRequest :: (Sender s) => 
-                     MVar State -> -- shared state
-                     MessageId -> -- message id requested
-                     Socket z s -> -- frontend socket
-                     B.ByteString -> -- client address
-                     ZMQ z ()
-handlePokeRequest st mid frontend clientAddr = do 
+handleGetStatusRequest :: (Sender s) => 
+                          MVar State -> -- shared state
+                          MessageId -> -- message id requested
+                          Socket z s -> -- frontend socket
+                          NetworkId -> -- client address
+                          ZMQ z ()
+handleGetStatusRequest st mid frontend clientAddr = do 
   putsTimed st $ "POKE REQUEST " ++ (T.unpack mid)
   state <- liftIO $ readMVar st
   let ws = M.filter (\w -> w^.status == Busy (Just mid)) (state^.workers)
@@ -281,7 +283,7 @@ initialize state = do
 -- Running the server
 
 serverLoop :: Socket z Router -> Socket z Router -> MVar State ->  ZMQ z ()
-serverLoop frontend backend state = MC.catch 
+serverLoop frontend backend state = catchAny
   (forever $ do 
     [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, 
                                  Sock frontend [In] Nothing]
@@ -289,7 +291,7 @@ serverLoop frontend backend state = MC.catch
     processFrontend state (frontend, backend) evtsF
   ) 
   (\e -> do 
-    liftIO $ puts state $ "ERROR: " ++ (show (e :: SomeException))
+    puts state $ "ERROR: " ++ (show (e :: SomeException))
     serverLoop frontend backend state
   )
 

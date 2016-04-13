@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 
 module AS.Kernels.R.Client where
 
@@ -41,7 +41,7 @@ evaluateWithScope :: EvalScope -> MessageId -> ASSheetId ->
                      EvalCode -> EitherTExec EvalResult
 evaluateWithScope _ _ _ "" = return emptyResult
 evaluateWithScope scope mid sid code = do
-  (EvaluateReply r) <- handleZMQ $ EvaluateRequest scope mid sid code
+  (EvaluateReply r) <- runRequest $ EvaluateRequest scope mid sid code
   return r
 
 evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
@@ -51,70 +51,75 @@ evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 haltMessage :: MessageId -> IO ()
-haltMessage = handleZMQ_ . HaltMessageRequest
+haltMessage = runRequest_ . HaltMessageRequest
 
 clear :: ASSheetId -> IO ()
-clear = handleZMQ_ . ClearRequest
+clear = runRequest_ . ClearRequest
 
 --------------------------------------------------------------------------------
 -- ZMQ message receiving
 
-poke_max :: Int
 poke_max = 5
-
-resend_max :: Int
 resend_max = 5
+poll_timeout = fromIntegral 2000
 
 -- | Keep polling for a response from the kernel. If it's still processing a 
 -- reply, then keep polling. If we're not getting responses, then give up after
 -- a few poll cycles (given by poke_threshold) and resend the message. Finally
 -- give up if a few resends still yields nothing. Returns the decoded response.
-getResponse :: MessageId -> -- id of message
-               ZMQ z () -> -- ZMQ action to do if poke_max is reached
+--
+-- There are messages with and without message id's, and those without message
+-- id's have no poke action.
+getResponse :: Maybe MessageId -> -- id of message
+               ZMQ z () -> -- ZMQ send action
                Socket z Dealer -> -- client
                ZMQ z (Either String KernelReply)
-getResponse mid f = getResponse' f 0 0 True
-  where
-    getResponse' :: ZMQ z () -> -- resend action
-                    Int -> -- number of resends so far
-                    Int -> -- number of poll cycles so far
-                    Bool -> -- be lenient; still processing reply
-                    Socket z Dealer -> -- client
-                    ZMQ z (Either String KernelReply)
-    getResponse' action resends cycles lenient client = do
-      -- The poll timeout (ms) should have the property that a poke can get back
-      -- within the timeout.
-      [evts] <- poll 2000 [Sock client [In] Nothing]
-      if (In `elem` evts) 
-        then do 
-          reply <- Serial.decode <$> receive client
-          liftIO $ putStrLn $ "REPLY " ++ show reply
-          case reply of
-            (Right StillProcessingReply) -> 
-              getResponse' action resends (cycles + 1) True client
-            otherMessage -> return otherMessage
-        else do 
-          if resends > resend_max
-            then return $ Right $ GenericErrorReply "R Kernel down!"
+getResponse (Just mid) f client = do 
+  let pk = send' client [] $ Serial.encodeLazy (GetStatusRequest mid)
+  f >> getResponse' f pk 0 0 True client
+getResponse Nothing f client = f >> getResponse' f (return ()) 0 0 True client
+
+
+getResponse' :: ZMQ z () -> -- resend action
+                ZMQ z () -> -- poke action
+                Int -> -- number of resends so far
+                Int -> -- number of poll cycles so far
+                Bool -> -- be lenient; still processing reply
+                Socket z Dealer -> -- client
+                ZMQ z (Either String KernelReply)
+getResponse' rsAct pkAct resends cycles lenient client = do
+  -- The poll timeout (ms) should have the property that a poke can get back
+  -- within the timeout.
+  [evts] <- poll poll_timeout [Sock client [In] Nothing]
+  if In `elem` evts
+    then do 
+      reply <- Serial.decode <$> receive client
+      case reply of
+        (Right StillProcessingReply) -> 
+          getResponse' rsAct pkAct resends (cycles + 1) True client
+        otherMessage -> return otherMessage
+    else do 
+      if resends > resend_max
+        then return $ Right $ GenericErrorReply "R Kernel down!"
+        else do
+          if cycles > poke_max && not lenient 
+            then do 
+              rsAct
+              getResponse' rsAct pkAct (resends + 1) 0 True client 
             else do
-              if cycles > poke_max && not lenient 
-                then do 
-                  action >> getResponse' action (resends + 1) 0 True client 
-                else do
-                  send' client [] $ Serial.encodeLazy (PokeRequest mid)
-                  getResponse' action resends (cycles + 1) False client
+              pkAct
+              getResponse' rsAct pkAct resends (cycles + 1) False client
 
 --------------------------------------------------------------------------------
 -- ZMQ message connecting and processing
 
 -- | Connect as a client, send the KernelRequest and get a KernelReply using ZMQ
 -- protocols.
-handleZMQ :: KernelRequest -> EitherTExec KernelReply
-handleZMQ msg@(EvaluateRequest _ mid _ _) = do
+runRequest :: KernelRequest -> EitherTExec KernelReply
+runRequest msg@(EvaluateRequest _ mid _ _) = do
   resp <- liftIO $ runZMQ $ do
     dealer <- connectToKernel
-    send' dealer [] $ Serial.encodeLazy msg
-    getResponse mid (send' dealer [] $ Serial.encodeLazy msg) dealer
+    getResponse (Just mid) (send' dealer [] $ Serial.encodeLazy msg) dealer
   case resp of 
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"
@@ -122,13 +127,24 @@ handleZMQ msg@(EvaluateRequest _ mid _ _) = do
     Right (GenericErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
+-- | Helper to get message ids
+getMessageId :: KernelRequest -> Maybe MessageId
+getMessageId (EvaluateRequest _ mid _ _) = Just mid
+getMessageId (ClearRequest _) = Nothing
+getMessageId (HaltMessageRequest mid) = Just mid
+getMessageId (GetStatusRequest mid) = Just mid
+
 -- | Connect to the kernel as a client and send the kernel a message as a 
--- new client, without expecting a response.
-handleZMQ_ :: KernelRequest -> IO ()
-handleZMQ_ msg = runZMQ $ do
-  client <- connectToKernel  
-  send' client [] $ Serial.encodeLazy msg
-  return ()
+-- new client, without returning a response. Still attempt persistence.
+runRequest_ :: KernelRequest -> IO ()
+runRequest_ msg = void $ do
+  resp <- runZMQ $ do 
+    let maybeMid = getMessageId msg
+    dealer <- connectToKernel
+    getResponse maybeMid (send' dealer [] $ Serial.encodeLazy msg) dealer
+  case resp of
+    Right (GenericErrorReply e) -> $error e
+    otherwise -> return ()
 
 -- | Makes and returns a dealer socket connected to rkernelAddress_client.
 connectToKernel :: ZMQ z (Socket z Dealer)
