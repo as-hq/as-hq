@@ -24,6 +24,8 @@ NUM_WORKERS         = 50
 NUM_WORKERS_LIMIT   = 200
 # the number of additional workers created when high load is detected
 LOAD_RESPONSE_DELTA = 5
+
+LOGGING_ON          = True
 LOG_DIR             = "./logs/"
 
 WORKER_REGISTRATION_TIMEOUT = 3.0
@@ -35,16 +37,18 @@ sid = shortid.ShortId()
 def id_gen():
   return sid.generate()
 
-#  Initialize logging
-if not os.path.exists(LOG_DIR):
-  os.makedirs(LOG_DIR)
-logFile = LOG_DIR + datetime.utcnow().isoformat() + '.txt'
-log = open(logFile, 'a')
+if LOGGING_ON:
+  #  Initialize logging
+  if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+  logFile = LOG_DIR + "[pykernel]" + datetime.utcnow().isoformat() + '.txt'
+  log = open(logFile, 'a')
 
 # print/log utility functions
 def puts(msg):
   print(msg, file=sys.__stdout__)
-  log.write(repr(msg) + '\n')
+  if LOGGING_ON:
+    log.write(repr(msg) + '\n')
 
 def putsTimed(msg):
   msg_ = msg + ' [' + datetime.utcnow().isoformat() + ']'
@@ -98,16 +102,8 @@ import base64
     return ns
 
   def listen(self, address='tcp://*:20000'):
-    # kill programs bound to this port before starting
-    self.kill_port(address.split(':')[-1])
-
-    def signal_handler(signum, frame):
-      puts('ZMQ caught SIGINT')
-
-    # the zmq poller device (below) sometime spuriously receives a 
-    # SIGINT despite no action from the user; the workaround is to 
-    # discard all SIGINTS for now. #8020
-    signal.signal(signal.SIGINT, signal_handler)
+    # respond to pkill
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
     self.url_client = address
     self.url_worker = "inproc://workers"
@@ -144,7 +140,8 @@ import base64
     def checkAndDie():
       if not self.any_workers_registered:
         puts('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL')
-        log.close()
+        if LOGGING_ON:
+          log.close()
         os.system('kill %d' % os.getpid())
 
     t = threading.Timer(WORKER_REGISTRATION_TIMEOUT, checkAndDie)
@@ -152,57 +149,68 @@ import base64
 
     # main server loop
     while True:
-      # poll for messages; if there are any in the queue, process them. 
-      # polls are non-blocking.
-      events = dict(poller.poll())
+      try:
+        # poll for messages; if there are any in the queue, process them. 
+        # polls are non-blocking.
+        events = dict(poller.poll())
 
-      # poll for messages sent from clients
-      if (frontend in events and events[frontend] == zmq.POLLIN):
+        # poll for messages sent from clients
+        if (frontend in events and events[frontend] == zmq.POLLIN and self.any_workers_registered):
 
-        # check if we can do work before promising to serve a request
-        selected_worker_addr = self.get_available_worker_address()
+          # check if we can do work before promising to serve a request
+          selected_worker_addr = self.get_available_worker_address()
 
-        # all workers engaged; scale up.
-        if (selected_worker_addr is None):
-          if (self.num_workers < NUM_WORKERS_LIMIT):
-            for _ in range(LOAD_RESPONSE_DELTA):
-              new_worker_id = id_gen()
-              self.install_worker(new_worker_id)
-            self.num_workers += LOAD_RESPONSE_DELTA
-            puts("SCALED UP: " + str(self.num_workers) + " workers")
+          # all workers engaged; scale up.
+          if (selected_worker_addr is None):
+            if (self.num_workers < NUM_WORKERS_LIMIT):
+              for _ in range(LOAD_RESPONSE_DELTA):
+                new_worker_id = id_gen()
+                self.install_worker(new_worker_id)
+              self.num_workers += LOAD_RESPONSE_DELTA
+              puts("SCALED UP: " + str(self.num_workers) + " workers")
 
-        elif (selected_worker_addr == 'UNREGISTERED'):
-          continue        
+          elif (selected_worker_addr == 'UNREGISTERED'):
+            puts("Got frontend events, but no registered workers are available yet.")     
 
-        else:
-          # Claim the next client request, route to worker
-          # If a client uses socket.send(request), the multi-part received message is [address][empty frame][request]
-          [client_addr, empty, request] = frontend.recv_multipart()
+          else:
+            # Claim the next client request, route to worker
+            # If a client uses socket.send(request), the multi-part received message is [address][empty frame][request]
+            [client_addr, empty, request] = frontend.recv_multipart()
 
-          assert empty == EMPTY
+            assert empty == EMPTY
 
-          # route client request to the selected worker
-          backend.send_multipart([selected_worker_addr, EMPTY, client_addr, EMPTY, request])
+            # route client request to the selected worker
+            backend.send_multipart([selected_worker_addr, EMPTY, client_addr, EMPTY, request])
 
 
-      # poll for messages sent from workers
-      if (backend in events and events[backend] == zmq.POLLIN):
-        message = backend.recv_multipart()
+        # poll for messages sent from workers
+        if (backend in events and events[backend] == zmq.POLLIN):
+          message = backend.recv_multipart()
 
-        # If 'READY' message, register the network ID of a ready worker
-        # invariant: an unregistered worker is never assigned work.
-        if (message[2] == 'READY'):
-          network_id = message[0]
-          worker_id = message[4]
-          puts('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id)
-          self.any_workers_registered = True
-          self.workers[worker_id].network_id = network_id
+          # If 'READY' message, register the network ID of a ready worker
+          # invariant: an unregistered worker is never assigned work.
+          if (message[2] == 'READY'):
+            network_id = message[0]
+            worker_id = message[4]
+            puts('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id)
+            self.any_workers_registered = True
+            self.workers[worker_id].network_id = network_id
 
-        # Else, route reply back to client.
-        else:
-          client_addr = message[2]
-          reply = message[4]
-          frontend.send_multipart([client_addr, EMPTY, reply])
+          # Else, route reply back to client.
+          else:
+            client_addr = message[2]
+            reply = message[4]
+            frontend.send_multipart([client_addr, EMPTY, reply])
+
+      except KeyboardInterrupt:
+        # The zmq poller sometime spuriously receives a SIGINT despite no action from the user.
+        # The workaround for now is to discard keyboardinterrupts.
+        puts("KeyboardInterrupt!")
+        continue
+
+      except Exception as e:
+        puts("poll loop got exception: " + repr(e))
+        continue
 
     # clean up when finished
     self.close(frontend, backend)
@@ -212,7 +220,6 @@ import base64
     self.workers[worker_id] = worker
     worker.set_id(worker_id)
     worker.set_working_status(False)
-    worker.daemon = True # signal that all worker threads should quit when the main thread dies
     worker.start()
 
   # return: Maybe (Either 'UNREGISTERED' NetworkId)
@@ -258,7 +265,6 @@ import base64
       self.workers[worker_id].set_working_status(False)
 
       client_addr, empty, request = socket.recv_multipart()
-      # print('WORKER ' + worker_id + ' RECEIVED REQUEST:' + repr(request) + ", addr: " + client_addr, file=sys.__stdout__)
       assert empty == EMPTY
       client_msg = json.loads(request)
 
@@ -269,7 +275,7 @@ import base64
         message_id = None
       self.workers[worker_id].set_working_status(True, message_id)
 
-      putsTimed ('worker ' + worker_id + ' PROCESSING')
+      putsTimed('worker ' + worker_id + ' PROCESSING')
       puts(repr(client_msg))
 
       try:
@@ -286,6 +292,7 @@ import base64
           puts("Worker " + worker_id + " error: " + repr(e))
           socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
         except: 
+          traceback.print_exc()
           pass
         traceback.print_exc()
         
@@ -293,7 +300,8 @@ import base64
 # worker's dead zone (the period between having finished work and becoming 
 # non-idle). This is a tradeoff between increasing evaluation time and 
 # increasing the number of workers, favoring the latter.
-      log.flush()
+      if LOGGING_ON:
+        log.flush()
 
   def process_message(self, msg, worker_id):
   # messages are handled in an exactly isomorphic way with the KernelRequest/KernelReply 
@@ -347,7 +355,8 @@ import base64
   def close(self, frontend, backend):
     puts('Normal kernel exit.')
 
-    log.close()
+    if LOGGING_ON:
+      log.close()
     # wait for devices to finish polling
     time.sleep(1)
 
