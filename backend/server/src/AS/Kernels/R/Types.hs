@@ -22,6 +22,11 @@ import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
 
 -----------------------------------------------------------------------------------------------------------------------------
+-- Settings
+
+logging_on         = True
+
+-----------------------------------------------------------------------------------------------------------------------------
 -- Client types
 
 data EvalScope = Header | Cell deriving (Show, Generic, Data)
@@ -55,9 +60,13 @@ data WorkerStatus =
   | Busy (Maybe MessageId)
   deriving (Ord, Eq)
 
-data State = State {_workers :: M.Map WorkerId Worker, _numWorkers :: Int, _shell :: Shell, _log :: Handle}
+data State = State 
+  { _workers :: M.Map WorkerId Worker
+  , _numWorkers :: Int
+  , _shell :: Shell
+  , _log :: Maybe Handle}
 
-emptyState :: Shell -> Handle -> State
+emptyState :: Shell -> Maybe Handle -> State
 emptyState s l = State M.empty 0 s l 
 
 -- A map of pointers to R environments. There is one environment per sheet.
@@ -73,16 +82,17 @@ instance NFData Shell where rnf x = seq x ()
 -- Helper functions
 
 closeLog :: (MonadIO m) => MVar State -> m ()
-closeLog st = liftIO $ readMVar st >>= \st_ -> hClose (st_^.log)
+closeLog st = liftIO $ readMVar st >>= \st_ -> hClose ($fromJust $ st_^.log)
 
 flushLog :: (MonadIO m) => MVar State -> m ()
-flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush (st_^.log)
+flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush ($fromJust $ st_^.log)
 
 puts :: (MonadIO m) => MVar State -> String -> m ()
 puts st x = liftIO $ do
-  _st <- readMVar st
   putStrLn x 
-  hPutStrLn (_st^.log) x
+  when logging_on $ do
+    _st <- readMVar st
+    hPutStrLn ($fromJust $ _st^.log) x
 
 putsTimed :: (MonadIO m) => MVar State -> String -> m ()
 putsTimed st x = liftIO $ do

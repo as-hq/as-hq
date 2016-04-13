@@ -46,20 +46,28 @@ runServer :: Addr -> Int -> IO ()
 runServer url_clients numInitialWorkers = do
 
   -- initialize logging
-  createDirectoryIfMissing True log_dir
-  logFile <- (log_dir ++) <$> getTime
-  logHandle <- openFile logFile AppendMode 
+  logHandle <- if logging_on
+    then do 
+      createDirectoryIfMissing True log_dir
+      logFile <- ((log_dir ++ "[rkernel]") ++) <$> getTime
+      Just <$> openFile logFile AppendMode 
+    else return Nothing
 
   -- state
   shell <- newShell
   state <- newMVar $ emptyState shell logHandle
-  initialize state
+
+  -- r kernel will NOT initialize itself, because the main 
+  -- backend server is responsible for this and we shouldn't double-initialize.
+  -- (for now). anand 4/18
+  --initialize state
 
   -- close log cleanly upon Ctrl+C
   let sigintHandler = do
           putStrLn "EXITED NORMALLY"
-          flushLog state
-          closeLog state
+          when logging_on $ do
+            flushLog state
+            closeLog state
           raiseSignal sigTERM
   seq (installHandler sigINT (Catch sigintHandler) Nothing) (return ())
 
@@ -71,7 +79,7 @@ runServer url_clients numInitialWorkers = do
 
     puts state $ "Server listening on " ++ url_clients
 
-    flushLog state
+    when logging_on $ flushLog state
 
     frontend <- socket Router
     bind frontend url_clients
@@ -132,6 +140,7 @@ processBackend state (backend, frontend) evts
         let netid = msg !! 0
         let wid = msg !! 4
         puts state $ "WORKER REGISTERED: " ++ show wid
+        when logging_on $ flushLog state
         registerWorker state wid netid
       -- route reply back to client
       else do
@@ -140,7 +149,7 @@ processBackend state (backend, frontend) evts
         putsTimed state "==== SENT BACK REPLY ==== "
         sendMulti frontend $ fromList [clientAddr, "", reply]
 
-        flushLog state
+        when logging_on $ flushLog state
   | otherwise = return ()
 
 -- | Handle client activity on frontend
@@ -208,7 +217,7 @@ runWorker state wid = do
 -- worker's dead zone (the period between having finished work and becoming 
 -- non-idle). This is a tradeoff between increasing evaluation time and 
 -- increasing the number of workers, favoring the latter.
-    flushLog state
+    when logging_on $ flushLog state
 
     -- reset idle status. 
     liftIO $ setWorkerStatus state wid Idle
