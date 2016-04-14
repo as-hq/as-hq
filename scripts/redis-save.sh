@@ -8,7 +8,7 @@ REDIS_DUMP_FILE_PREFIX=/var/redis
 S3_BUCKET=s3://redis.alphasheets.com
 RP=REDIS_PASSWORD_THAT_WONT_BE_PUSHED_TO_GIT
 
-declare -a PORTS=("6379" "6380" "6381")
+declare -a PORTS=("6379")
 set -e
 
 for i in "${PORTS[@]}"
