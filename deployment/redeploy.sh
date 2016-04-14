@@ -17,7 +17,9 @@ git fetch origin master
 git reset --hard FETCH_HEAD
 git clean -d -fx ""
 
-export PATH=\"/root/anaconda2/bin:$PATH\"; 
+# Not needed as long as we're not using pyinstaller on the python kernel.
+# (anand 4/14)
+# export PATH=\"/root/anaconda2/bin:$PATH\"; 
 
 ## redeploy backend services
 # graph
