@@ -32,6 +32,7 @@ window.expstore = require('./stores/ASExpressionStore');
 window.u = require('./AS/Util');
 window.ex = require('./classes/ASExcelRef');
 window.login = require('./stores/ASLoginStore');
+window.loginactions = require('./actions/ASLoginActionCreators');
 window.conf = require('./stores/ASConfigurationStore');
 window.gridstore = require('./stores/ASGridStore');
 window.sheet = require('./stores/ASSheetStateStore');

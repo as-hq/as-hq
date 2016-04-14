@@ -19,13 +19,14 @@ import dispatcher from '../Dispatcher';
 import shortid from 'shortid';
 import _ from 'lodash';
 
-type LoginState = Immutable.Record$Class;
+type LoginState = any;
 const LoginRecord = Immutable.Record({
   userId: null,
   loggedIn: false,
   token: null,
   callbacks: [],
-  isPublicLogin: false
+  isPublicLogin: false,
+  reloginAttempts: 0
 });
 
 class LoginStore extends ReduceStore<LoginState> {
@@ -45,17 +46,13 @@ class LoginStore extends ReduceStore<LoginState> {
         const {userId} = action;
         console.warn('Login success, got userId: ', userId);
         window.isLoggedIn = true;
-        return state.merge({userId, loggedIn: true});
+        return state.merge({userId, loggedIn: true, reloginAttempts: 0});
       }
 
       case 'LOGIN_FAILURE': {
-        if (state.loggedIn) {
-          window.isLoggedIn = false;
-          return state.set('loggedIn', false);
-        } else {
-          this.__emitChange();
-          break;
-        }
+        window.isLoggedIn = false;
+        return state.set('loggedIn', false)
+                    .update('reloginAttempts', n => n + 1);
       }
 
       case 'LOGIN_CALLBACK_REGISTERED': {
@@ -101,8 +98,13 @@ class LoginStore extends ReduceStore<LoginState> {
   getCallbacks(): Array<Callback> {
     return this.getState().callbacks;
   }
+
+  reloginAttemptsExceeded(): boolean {
+    return this.getState().reloginAttempts > maxReloginAttempts;
+  }
 }
 
+const maxReloginAttempts = 5;
 const devs = ['ritesh@alphasheets.com', 'alex@alphasheets.com', 'anand@alphasheets.com', 'michael@alphasheets.com'];
 
 export default new LoginStore(dispatcher);

@@ -17,13 +17,19 @@ export default {
   },
 
   relogin() {
-    if (API.isTesting) {
-      API_test.login();
-    } else if (LoginStore.isPublicLogin()) {
-      API.loginPublicly();
+    if (LoginStore.reloginAttemptsExceeded()) {
+      if (confirm('Your session has disconnected. Would you like to refresh?')) {
+        window.location.reload(true);
+      }
     } else {
-      const token = LoginStore.getToken();
-      API.login(token);
+      if (API.isTesting) {
+        API_test.login();
+      } else if (LoginStore.isPublicLogin()) {
+        API.loginPublicly();
+      } else {
+        const token = LoginStore.getToken();
+        API.login(token);
+      }
     }
   },
 
