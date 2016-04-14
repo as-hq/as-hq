@@ -137,7 +137,9 @@ getLogger = $fromJust <$> getSetting logger
 -- !!!!!!MUST BE CALLED UPON APP START!!!!!!
 initializeSettings :: IO ()
 initializeSettings = do
-  setNumCapabilities . (-1 +) =<< getNumProcessors
+  procs <- (max 1 . (-1 +)  <$> getNumProcessors)
+  setNumCapabilities procs
+  putStrLn $ "[INFO] using # cores : " ++ show procs
 
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory <++> return "/"
