@@ -18,6 +18,13 @@ apt-get install build-essential
 apt-get install tcl8.5
 apt-get install nginx
 apt-get install tmux
+apt-get install pkg-config
+apt-get install libfreetype libpng
+apt-get install python-all-dev 
+apt-get install libpng-dev 
+apt-get install zlib1g-dev 
+apt-get install libfreetype6-dev 
+apt-get install python-dev
 
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
@@ -52,8 +59,8 @@ service redis_6379 restart
 # nginx
 cd nginx
 cp nginx.conf /etc/nginx/nginx.conf
-rm /etc/nginx/sites-enabled/*
-cp sites-enabled/* /etc/nginx/sites-enabled/*
+rm -rf /etc/nginx/sites-enabled
+cp -r sites-enabled /etc/nginx/
 service nginx restart
 
 # authorize build server to login 
