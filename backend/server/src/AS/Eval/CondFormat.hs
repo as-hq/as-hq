@@ -15,7 +15,7 @@ import AS.Types.Network
 import AS.Types.Shift
 import AS.Types.Excel hiding (dbConn)
 
-import AS.Kernels.Python
+import AS.Kernels.Python.Client
 
 import AS.Eval.Core
 import AS.Parsing.Substitutions

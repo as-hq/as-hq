@@ -46,6 +46,9 @@ import System.IO
 import GHC.Generics hiding (Prefix, Infix, Fixity, R)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad
+import qualified Control.Monad.Catch as MC
+import Control.Monad.IO.Class
+
 
 -------------------------------------------------------------------------------------------------------------------------
 -- error with locations
@@ -148,13 +151,17 @@ filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
 modifyMVar_' :: MVar a -> (a -> IO a) -> IO ()
 modifyMVar_' s f = modifyMVar s $ \s' -> (,()) <$> f s'
 
--- | a version of catch that never swallows asynchronous exceptions.
-catchAny :: IO a -> (SomeException -> IO a) -> IO a
-catchAny m f = catch m onExc
+-- | A version of catch that never swallows asynchronous exceptions. Works
+-- not only for IO.
+catchAny :: (MC.MonadCatch m, MonadIO m) => 
+            m a -> -- initial IO/monadic action
+            (SomeException -> m a) -> -- error IO/monadic action
+            m a
+catchAny m f = MC.catch m onExc
   where
     onExc e
         | shouldCatch e = f e
-        | otherwise = throwIO e
+        | otherwise = throw e
     shouldCatch e
         | Just (_ :: AsyncException) <- fromException e = False
         | otherwise = True
