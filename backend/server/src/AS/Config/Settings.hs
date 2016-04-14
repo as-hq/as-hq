@@ -39,7 +39,8 @@ data AppSettings = AppSettings  { _backendWsAddress :: String
                                 , _redisHost :: String
                                 , _redisPassword :: Maybe BC.ByteString
                                 , _shouldWriteToConsole :: Bool
-                                , _shouldWriteToSlack :: Bool}
+                                , _shouldWriteToSlack :: Bool
+                                , _diagnosticsPort :: Int}
                                 deriving (Show)
 
 -- default values represent what should happen on localhost; the Environment.json values *should* 
@@ -57,6 +58,7 @@ instance FromJSON AppSettings where
     redisPassword <- v .:? "redisPassword"
     shouldWriteToConsole <- v .: "shouldWriteToConsole"
     shouldWriteToSlack <- v .: "shouldWriteToSlack"
+    diagnosticsPort <- v .: "diagnosticsPort"
     return $ AppSettings 
               wsAddr 
               wsPort 
@@ -69,6 +71,7 @@ instance FromJSON AppSettings where
               (BC.pack <$> redisPassword) 
               shouldWriteToConsole 
               shouldWriteToSlack
+              diagnosticsPort
   parseJSON _ = $error "expected environment to be an object"
 
 makeLenses ''AppSettings
@@ -145,6 +148,7 @@ initializeSettings = do
   writeIORef dbHost (appSettings^.redisHost)
   writeIORef dbPort (appSettings^.redisPort)
   writeIORef dbPassword (appSettings^.redisPassword)
+  writeIORef ekgPort (appSettings^.diagnosticsPort)
 
   putStrLn . ("[CONFIG] appDirectory : " ++) . show =<< getSetting appDirectory
   putStrLn . ("[CONFIG] shouldLogSlack : " ++) . show =<< getSetting shouldLogSlack
@@ -158,43 +162,47 @@ initializeSettings = do
   putStrLn . ("[CONFIG] dbHost : " ++) . show =<< getSetting dbHost
   putStrLn . ("[CONFIG] dbPort : " ++) . show =<< getSetting dbPort
   putStrLn . ("[CONFIG] dbPassword : " ++) . show =<< getSetting dbPassword 
+  putStrLn . ("[CONFIG] diagnosticsPort : " ++) . show =<< getSetting ekgPort 
   return ()
 
 appDirectory :: IORef String
-appDirectory = declareGlobal "string"
+appDirectory = declareGlobal "SETTING_NOT_INITIALIZED"
 
 shouldLogSlack :: IORef Bool
-shouldLogSlack = declareGlobal True
+shouldLogSlack = declareGlobal False
 
 shouldLogConsole :: IORef Bool
-shouldLogConsole = declareGlobal True
+shouldLogConsole = declareGlobal False
 
 graphAddress :: IORef String
-graphAddress = declareGlobal "string"
+graphAddress = declareGlobal "SETTING_NOT_INITIALIZED"
 
 pykernelAddress :: IORef String
-pykernelAddress = declareGlobal "string"
+pykernelAddress = declareGlobal "SETTING_NOT_INITIALIZED"
 
 rkernelAddress_server :: IORef String
-rkernelAddress_server  = declareGlobal "string"
+rkernelAddress_server  = declareGlobal "SETTING_NOT_INITIALIZED"
 
 rkernelAddress_client :: IORef String
-rkernelAddress_client  = declareGlobal "string"
+rkernelAddress_client  = declareGlobal "SETTING_NOT_INITIALIZED"
 
 serverHost :: IORef String
-serverHost = declareGlobal "string"
+serverHost = declareGlobal "SETTING_NOT_INITIALIZED"
 
 serverPort :: IORef Int
-serverPort = declareGlobal 666
+serverPort = declareGlobal (-1)
 
 dbHost :: IORef String
-dbHost = declareGlobal "string"
+dbHost = declareGlobal "SETTING_NOT_INITIALIZED"
 
 dbPort :: IORef Int
-dbPort = declareGlobal 666
+dbPort = declareGlobal (-1)
 
 dbPassword :: IORef (Maybe BC.ByteString)
 dbPassword = declareGlobal Nothing
+
+ekgPort :: IORef Int
+ekgPort = declareGlobal (-1)
 
 --------------------------------------------------------------------------------------
 -- private helpers

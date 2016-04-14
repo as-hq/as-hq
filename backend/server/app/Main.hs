@@ -38,7 +38,8 @@ import Control.Lens hiding ((.=))
 import Data.Aeson hiding (Success)
 import Data.Maybe hiding (fromJust)
 import qualified Data.Text as T
-import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.List.Split (chunksOf)
@@ -55,6 +56,8 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.Wai.Application.Static as Static
+
+import System.Remote.Monitoring as Monitor
 
 import Language.R.Instance as R
 
@@ -92,6 +95,10 @@ initApp = do
   -- init kernels
   KP.initialize conn
   KR.initialize conn
+  -- start diagnostics server
+  host <- getSetting serverHost
+  port <- getSetting ekgPort
+  Monitor.forkServer (BC.pack host) port
   return state
 
 -- |  for debugging. Only called if isDebug is true.
@@ -126,7 +133,7 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     staticApp :: Wai.Application
     staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
-handleFirstMessage ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
+handleFirstMessage ::  MVar ServerState -> WS.Connection -> BL.ByteString -> IO ()
 handleFirstMessage state wsConn msg =
   case (decode msg :: Maybe LoginMessage) of
     Just (Login auth) -> do -- first message must be user auth
