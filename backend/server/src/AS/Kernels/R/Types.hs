@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds, ExistentialQuantification, RankNTypes #-}
+
 module AS.Kernels.R.Types where
 
 import AS.Prelude
@@ -21,39 +22,47 @@ import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Settings
 
-logging_on         = True
+logging_on         = False
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Client types
 
 data EvalScope = Header | Cell deriving (Show, Generic, Data)
 data KernelRequest = 
-    EvaluateRequest { scope :: EvalScope, evalMessageId :: MessageId, envSheetId :: ASSheetId, code :: String } 
+    EvaluateRequest { scope :: EvalScope, 
+                      evalMessageId :: MessageId, 
+                      envSheetId :: ASSheetId, 
+                      code :: String } 
   | ClearRequest ASSheetId
   | HaltMessageRequest MessageId
+  | GetStatusRequest MessageId
   deriving (Show, Generic, Data)
 
 data KernelReply = 
     EvaluateReply EvalResult
   | GenericSuccessReply
   | GenericErrorReply String
-  deriving (Show, Generic)
+  | StillProcessingReply
+  deriving (Show, Generic, Eq)
 
 deriveSafeCopy 1 'base ''EvalScope
 deriveSafeCopy 1 'base ''KernelRequest
 deriveSafeCopy 1 'base ''KernelReply
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Server types 
 
 type Addr = String
 type WorkerId = B.ByteString
 type NetworkId = B.ByteString
 
-data Worker = Worker {_workerId :: WorkerId, _networkId :: Maybe NetworkId, _thread :: Async (), _status :: WorkerStatus}
+data Worker = Worker {_workerId :: WorkerId, 
+                      _networkId :: Maybe NetworkId, 
+                      _thread :: Async (), 
+                      _status :: WorkerStatus }
 data WorkerStatus = 
     Unregistered
   | Idle
@@ -78,7 +87,7 @@ makeLenses ''Shell
 
 instance NFData Shell where rnf x = seq x ()
 
------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Helper functions
 
 closeLog :: (MonadIO m) => MVar State -> m ()
@@ -99,3 +108,5 @@ putsTimed st x = liftIO $ do
   t <- getTime
   let x' = x ++ " [" ++ t ++ "]"
   puts st x'
+
+--------------------------------------------------------------------------------

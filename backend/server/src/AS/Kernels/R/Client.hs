@@ -1,10 +1,14 @@
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
+
 module AS.Kernels.R.Client where
 
-import AS.Prelude
-import AS.Serialize as Serial
-import AS.Config.Settings
-import AS.Config.Constants
-import AS.DB.API (getAllHeaders)
+import qualified Database.Redis as Redis
+import System.ZMQ4.Monadic
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+import Control.Applicative
+import Control.Lens
+import Database.Redis (Connection)
 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
@@ -13,24 +17,34 @@ import AS.Types.Network
 import AS.Types.Messages
 import AS.Kernels.R.Types
 
-import qualified Database.Redis as Redis
-import System.ZMQ4.Monadic
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-import Control.Applicative
-import Control.Lens
+import AS.Prelude
+import AS.Serialize as Serial
+import AS.Config.Settings
+import AS.Config.Constants
+import AS.DB.API (getAllHeaders)
+import AS.Kernels.Internal
 
--- #some code duplication with the python kernel here.
--- on second thought, this may not be avoidable right now (anand 3/21)
+--------------------------------------------------------------------------------
+-- Initialization 
 
-initialize :: Redis.Connection -> IO ()
+initialize :: Connection -> IO ()
 initialize conn = do
-  -- run all the headers in db to initialize the sheet namespaces
+  -- Run all the headers in db to initialize the sheet namespaces
   headers <- getAllHeaders conn R
-  mapM_ 
-    (\h -> runEitherT $ 
-      evaluateHeader initialize_message_id (h^.evalHeaderSheetId) (h^.evalHeaderExpr)) 
-    headers
+  forM_ headers $ \h -> do 
+    let sid  = h^.evalHeaderSheetId
+    let expr = h^.evalHeaderExpr
+    runEitherT $ evaluateHeader initialize_message_id sid expr
+
+--------------------------------------------------------------------------------
+-- Top level evaluation functions
+
+evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> 
+                     EvalCode -> EitherTExec EvalResult
+evaluateWithScope _ _ _ "" = return emptyResult
+evaluateWithScope scope mid sid code = do
+  (EvaluateReply r) <- runRequest $ EvaluateRequest scope mid sid code
+  return r
 
 evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell
@@ -39,25 +53,27 @@ evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 haltMessage :: MessageId -> IO ()
-haltMessage = sendMessage_ . HaltMessageRequest
+haltMessage = runRequest_ . HaltMessageRequest
 
 clear :: ASSheetId -> IO ()
-clear = sendMessage_ . ClearRequest
+clear = runRequest_ . ClearRequest
 
------------------------------------------------------------------------------------------------------------------------------
--- Helpers
+--------------------------------------------------------------------------------
+-- ZMQ run requests
 
-evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateWithScope _ _ _ "" = return emptyResult
-evaluateWithScope scope mid sid code = do
-  sendMessage (EvaluateRequest scope mid sid code) >>= \(EvaluateReply r) -> return r
-
-sendMessage :: KernelRequest -> EitherTExec KernelReply
-sendMessage msg = do
+-- | Connect as a client, send the KernelRequest and get a KernelReply using ZMQ
+-- protocols. 
+runRequest :: KernelRequest -> EitherTExec KernelReply
+runRequest msg = do
   resp <- liftIO $ runZMQ $ do
-    reqSocket <- connectToKernel
-    send' reqSocket [] $ Serial.encodeLazy msg
-    Serial.decode <$> receive reqSocket
+    addr <- liftIO $ getSetting rkernelAddress_client
+    dealer <- connectToKernel addr
+    let mMid =  getMessageId msg
+    let send = send' dealer [] $ Serial.encodeLazy msg
+    let poke = getPoke msg dealer
+    let defErr = GenericErrorReply "R Kernel Down!"
+    let isStill = (==) StillProcessingReply
+    getResponse mMid send poke isStill defErr Serial.decode dealer
   case resp of 
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"
@@ -65,16 +81,28 @@ sendMessage msg = do
     Right (GenericErrorReply e) -> left $ KernelError e 
     Right r -> return r
 
-sendMessage_ :: KernelRequest -> IO ()
-sendMessage_ msg = runZMQ $ do
-  reqSocket <- connectToKernel  
-  send' reqSocket [] $ Serial.encodeLazy msg
-  return ()
+-- | Connect to the kernel as a client and send the kernel a message as a 
+-- new client, without returning a response. Still attempt persistence.
+runRequest_ :: KernelRequest -> IO ()
+runRequest_ msg = void $ do
+  resp <- runEitherT $ runRequest msg
+  case resp of
+    Right (GenericErrorReply e) -> $error e
+    otherwise -> return ()
 
-connectToKernel :: ZMQ z (Socket z Req)
-connectToKernel = do
-  addr <- liftIO $ getSetting rkernelAddress_client
-  reqSocket <- socket Req 
-  connect reqSocket addr
-  return reqSocket
+-- | Given the request and the client, return the poke action to test if
+--  the message sent to the kernel is still being processed. 
+getPoke ::  KernelRequest -> Socket z Dealer -> ZMQ z ()
+getPoke req dealer = case getMessageId req of
+  Just mid -> send' dealer [] $ Serial.encodeLazy (GetStatusRequest mid)
+  _ -> return ()
+
+-- | Helper to get message ids
+getMessageId :: KernelRequest -> Maybe MessageId
+getMessageId (EvaluateRequest _ mid _ _) = Just mid
+getMessageId (ClearRequest _) = Nothing
+getMessageId (HaltMessageRequest mid) = Just mid
+getMessageId (GetStatusRequest mid) = Just mid
+
+--------------------------------------------------------------------------------
 

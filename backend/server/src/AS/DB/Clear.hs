@@ -12,7 +12,7 @@ import AS.Config.Settings
 import AS.DB.Graph as G
 import AS.Prelude
 import AS.Types.Network 
-import AS.Kernels.Python as KP
+import AS.Kernels.Python.Client as KP
 import AS.Types.DB
 import AS.Types.Sheets
 

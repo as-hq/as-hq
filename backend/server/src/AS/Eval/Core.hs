@@ -33,10 +33,9 @@ import AS.Types.Graph
 import AS.Types.Network
 import AS.Types.Messages (MessageId)
 
-import AS.Kernels.Python as KP
+import AS.Kernels.Python.Client as KP
 import AS.Kernels.R.Client as KR
 import AS.Kernels.Excel.Eval as KE
-import AS.Kernels.OCaml as KO
 import AS.Dispatch.Expanding as DE
 import AS.Eval.ColRangeHelpers
 import AS.Parsing.Read

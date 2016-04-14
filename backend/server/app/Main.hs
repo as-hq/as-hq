@@ -23,7 +23,7 @@ import AS.DB.Users
 import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
-import qualified AS.Kernels.Python as KP
+import qualified AS.Kernels.Python.Client as KP
 import qualified AS.Kernels.R.Client as KR
 
 import AS.Async

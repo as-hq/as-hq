@@ -12,7 +12,7 @@ import AS.Types.Network
 import AS.Dispatch.Core
 import AS.Eval.Core (evaluateHeader)
 
-import qualified AS.Kernels.Python as Python
+import qualified AS.Kernels.Python.Client as Python
 import qualified AS.Kernels.R.Client as R
 
 import AS.DB.API

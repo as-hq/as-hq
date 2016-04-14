@@ -26,7 +26,8 @@ import AS.Parsing.Common as C
 import AS.Types.Graph (read2)
 import AS.Types.RangeDescriptor (JSON)
 import Data.Maybe (mapMaybe)
-import qualified AS.Kernels.Python as KP
+import qualified AS.Kernels.Python.Client as KP
+import qualified AS.Kernels.Python.Types as KT
 import Data.Attoparsec.ByteString
 import qualified Data.ByteString.Char8 as BC
 -- end custom parse
@@ -80,7 +81,7 @@ handleExport uc state sid = do
 -- Timchu, 2/15/16.
 evaluateExcelSheet :: MessageId -> ASSheetId -> EvalCode -> EitherTExec [ASCell]
 evaluateExcelSheet mid sid code = do
-  (KP.EvaluateReply val err disp) <- KP.sendMessage $ KP.EvaluateRequest KP.Cell mid sid code
+  (KT.EvaluateReply val err disp) <- KP.runRequest $ KT.EvaluateRequest KT.Cell mid sid code
   let maybeCells = do
                 jsonString <- val 
                 jsonBlob <- case parseOnly (json Python) (BC.pack jsonString) of

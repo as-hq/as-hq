@@ -55,8 +55,8 @@ library
                        AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Lib
                        AS.Kernels.Excel.Util
-                       AS.Kernels.Python
-                       AS.Kernels.OCaml
+                       AS.Kernels.Python.Types
+                       AS.Kernels.Python.Client
                        AS.Kernels.Internal
                        AS.Kernels.R.Types
                        AS.Kernels.R.Client
@@ -157,6 +157,7 @@ library
                      , scientific
                      , async
                      , unix
+                     , exceptions
   default-language:    Haskell2010
   default-extensions:  QuasiQuotes
                        FlexibleContexts

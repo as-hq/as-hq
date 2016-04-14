@@ -20,18 +20,23 @@ from  AS.errors import TimeoutException
 
 from IPython.core.pylabtools import import_pylab
 
+#-------------------------------------------------------------------------------
+# Constants
+
 NUM_WORKERS         = 50
 NUM_WORKERS_LIMIT   = 200
-# the number of additional workers created when high load is detected
-LOAD_RESPONSE_DELTA = 5
-
 LOGGING_ON          = True
 LOG_DIR             = "./logs/"
-
 WORKER_REGISTRATION_TIMEOUT = 3.0
 
 # ZMQ message delimiter
 EMPTY = b""
+
+# the number of additional workers created when high load is detected
+LOAD_RESPONSE_DELTA = 5
+
+#-------------------------------------------------------------------------------
+# Helpers
 
 sid = shortid.ShortId()
 def id_gen():
@@ -44,7 +49,7 @@ if LOGGING_ON:
   logFile = LOG_DIR + "[pykernel]" + datetime.utcnow().isoformat() + '.txt'
   log = open(logFile, 'a')
 
-# print/log utility functions
+# Print/log utility functions
 def puts(msg):
   print(msg, file=sys.__stdout__)
   if LOGGING_ON:
@@ -53,6 +58,9 @@ def puts(msg):
 def putsTimed(msg):
   msg_ = msg + ' [' + datetime.utcnow().isoformat() + ']'
   puts(msg_)
+
+#-------------------------------------------------------------------------------
+# Worker class
 
 # stoppable thread subclass
 class ASThread(threading.Thread):
@@ -63,7 +71,10 @@ class ASThread(threading.Thread):
   # a workaround to actually kill threads
   # exc_obj is the class of the exception raised in the target thread
   def terminate(self, exc_obj):
-    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(self.ident), ctypes.py_object(exc_obj))
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+      ctypes.c_long(self.ident), 
+      ctypes.py_object(exc_obj)
+    )
 
   def set_working_status(self, is_working, message_id=None): # status: boolean
     self.working = is_working
@@ -72,7 +83,19 @@ class ASThread(threading.Thread):
   def is_working(self):
     return self.working
 
-# kernel
+#-------------------------------------------------------------------------------
+# Kernel class
+
+
+# the kernel topology:
+# 
+# [async requests]                                                  [workers]  
+#                                                                     
+# ------>                                                         ---> worker 1 
+# ------>  Router  <---> Poller <---> Router                      ---> worker 2 
+# ------>                                ^                        ---> worker n 
+#                                  (load balancing)                                          
+
 class ASKernel(object):
   def __init__(self, num_workers=NUM_WORKERS):
     self.init_shell()
@@ -85,21 +108,83 @@ class ASKernel(object):
     init_ns = self.get_initial_ns()
     self.shell = ASShell(user_ns=init_ns)
 
+  # Initial imports. We import AS.kernel.serialize for serialization 
+  # code injection
   def get_initial_ns(self):
     imports = '''
 import matplotlib
 matplotlib.use('Agg')
 from AS.stdlib import *
-from AS.kernel.serialize import * # this is imported for serialization code injection
+from AS.kernel.serialize import * 
 from AS.functions.openExcel import *
 import matplotlib._pylab_helpers
 import matplotlib.pyplot as plt
 import cPickle
 import base64
-'''
+    '''
     ns = {}
     exec imports in ns
     return ns
+
+  def processFrontend(self, frontend, backend, events):
+    # poll for messages sent from clients
+    goodEvents = frontend in events and events[frontend] == zmq.POLLIN
+    if (goodEvents and self.any_workers_registered):
+      [client_addr, req] = frontend.recv_multipart()
+      msg = json.loads(req)
+      if msg['type'] == 'get_status':
+        message_id = msg['message_id']
+        self.handle_get_status_request(message_id, frontend, client_addr)
+      else:
+        # check if we can do work before promising to serve a request
+        selected_worker_addr = self.get_available_worker_address()
+
+        # all workers engaged; scale up.
+        if (selected_worker_addr is None):
+          if (self.num_workers < NUM_WORKERS_LIMIT):
+            for _ in range(LOAD_RESPONSE_DELTA):
+              new_worker_id = id_gen()
+              self.install_worker(new_worker_id)
+            self.num_workers += LOAD_RESPONSE_DELTA
+            puts("SCALED UP: " + str(self.num_workers) + " workers")
+
+        elif (selected_worker_addr == 'UNREGISTERED'):
+          puts("Got frontend events, but no registered workers are available.")     
+
+        else:
+          # route client request to the selected worker
+          backend.send_multipart([
+            selected_worker_addr, 
+            EMPTY, client_addr, 
+            EMPTY, req
+          ])
+
+  def processBackend(self, frontend, backend, events):
+    # poll for messages sent from workers
+    if (backend in events and events[backend] == zmq.POLLIN):
+      message = backend.recv_multipart()
+
+      # If 'READY' message, register the network ID of a ready worker
+      # invariant: an unregistered worker is never assigned work.
+      if (message[2] == 'READY'):
+        nid = message[0]
+        wid = message[4]
+        puts('REGISTERED WORKER worker_id: ' + wid + ', network_id: ' + nid)
+        self.any_workers_registered = True
+        self.workers[wid].network_id = nid
+
+      # Else, route reply back to client.
+      else:
+        client_addr = message[2]
+        reply = message[4]
+        frontend.send_multipart([client_addr, reply])
+
+  def checkAndDie(self):
+    if not self.any_workers_registered:
+      puts('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL')
+      if LOGGING_ON:
+        log.close()
+      os.system('kill %d' % os.getpid())
 
   def listen(self, address='tcp://*:20000'):
     # respond to pkill
@@ -107,15 +192,6 @@ import base64
 
     self.url_client = address
     self.url_worker = "inproc://workers"
-
-# the kernel topology:
-# 
-# [async requests]                                                                [workers]  
-#                                                                     
-# ------>                                                                      ---> worker 1 
-# ------>  Router (tcp://*:20000) <---> Poller <---> Router (inproc://workers) ---> worker 2 
-# ------>                                 ^                                    ---> worker n 
-#                                  (load balancing)                                          
 
     puts('Kernel listening at address: ' + self.url_client)
 
@@ -137,81 +213,24 @@ import base64
       worker = self.install_worker(worker_id)
     puts('CREATED ' + str(self.num_workers) + ' WORKERS.')
 
-    def checkAndDie():
-      if not self.any_workers_registered:
-        puts('WORKERS NOT REGISTERED IN TIME; DESTROYING KERNEL')
-        if LOGGING_ON:
-          log.close()
-        os.system('kill %d' % os.getpid())
-
-    t = threading.Timer(WORKER_REGISTRATION_TIMEOUT, checkAndDie)
+    t = threading.Timer(WORKER_REGISTRATION_TIMEOUT, self.checkAndDie)
     t.start()
 
     # main server loop
     while True:
       try:
-        # poll for messages; if there are any in the queue, process them. 
-        # polls are non-blocking.
         events = dict(poller.poll())
-
-        # poll for messages sent from clients
-        if (frontend in events and events[frontend] == zmq.POLLIN and self.any_workers_registered):
-
-          # check if we can do work before promising to serve a request
-          selected_worker_addr = self.get_available_worker_address()
-
-          # all workers engaged; scale up.
-          if (selected_worker_addr is None):
-            if (self.num_workers < NUM_WORKERS_LIMIT):
-              for _ in range(LOAD_RESPONSE_DELTA):
-                new_worker_id = id_gen()
-                self.install_worker(new_worker_id)
-              self.num_workers += LOAD_RESPONSE_DELTA
-              puts("SCALED UP: " + str(self.num_workers) + " workers")
-
-          elif (selected_worker_addr == 'UNREGISTERED'):
-            puts("Got frontend events, but no registered workers are available yet.")     
-
-          else:
-            # Claim the next client request, route to worker
-            # If a client uses socket.send(request), the multi-part received message is [address][empty frame][request]
-            [client_addr, empty, request] = frontend.recv_multipart()
-
-            assert empty == EMPTY
-
-            # route client request to the selected worker
-            backend.send_multipart([selected_worker_addr, EMPTY, client_addr, EMPTY, request])
-
-
-        # poll for messages sent from workers
-        if (backend in events and events[backend] == zmq.POLLIN):
-          message = backend.recv_multipart()
-
-          # If 'READY' message, register the network ID of a ready worker
-          # invariant: an unregistered worker is never assigned work.
-          if (message[2] == 'READY'):
-            network_id = message[0]
-            worker_id = message[4]
-            puts('REGISTERED WORKER worker_id: ' + worker_id + ', network_id: ' + network_id)
-            self.any_workers_registered = True
-            self.workers[worker_id].network_id = network_id
-
-          # Else, route reply back to client.
-          else:
-            client_addr = message[2]
-            reply = message[4]
-            frontend.send_multipart([client_addr, EMPTY, reply])
-
+        self.processFrontend(frontend, backend, events)
+        self.processBackend(frontend, backend, events)
       except KeyboardInterrupt:
-        # The zmq poller sometime spuriously receives a SIGINT despite no action from the user.
+        # The zmq poller sometime spuriously receives a SIGINT 
+        # despite no action from the user.
         # The workaround for now is to discard keyboardinterrupts.
         puts("KeyboardInterrupt!")
         continue
-
       except Exception as e:
         puts("poll loop got exception: " + repr(e))
         continue
-
     # clean up when finished
     self.close(frontend, backend)
 
@@ -242,6 +261,15 @@ import base64
       idx = (idx + 1) % self.num_workers
       isFirstIter = False
     return None
+
+  def handle_get_status_request(self, message_id, frontend, addr):
+    puts("POKE REQUEST: " + message_id)
+    isWorking = lambda mid, w: w.working and w.workingMessage == mid
+    workers = filter(lambda w: isWorking(message_id, w), self.workers.values())
+    if len(workers) > 0:
+      puts("STILL PROCESSING REPLY")
+      resp = {'type': 'still_processing'}
+      frontend.send_multipart([addr, json.dumps(resp)])
 
   def halt_message(self, message_id):
     ##  Halts all threads working on a given message_id as follows:
@@ -282,10 +310,8 @@ import base64
         reply_msg = self.process_message(client_msg, worker_id)
         putsTimed("worker " + worker_id + " FINISHED, sending message")
         socket.send_multipart([client_addr, EMPTY, json.dumps(reply_msg)])
-
       except KeyboardInterrupt: 
         raise
-
       except Exception as e:
         try: 
           reply_msg = {'type': 'generic_error', 'error': repr(e)}
@@ -296,16 +322,16 @@ import base64
           pass
         traceback.print_exc()
         
-# Build up logs in buffer during work, then flush to file during each 
-# worker's dead zone (the period between having finished work and becoming 
-# non-idle). This is a tradeoff between increasing evaluation time and 
-# increasing the number of workers, favoring the latter.
+      # Build up logs in buffer during work, then flush to file during each 
+      # worker's dead zone (the period between having finished work and becoming 
+      # non-idle). This is a tradeoff between increasing evaluation time and 
+      # increasing the number of workers, favoring the latter.
       if LOGGING_ON:
         log.flush()
 
   def process_message(self, msg, worker_id):
-  # messages are handled in an exactly isomorphic way with the KernelRequest/KernelReply 
-  # types in AS/Kernels/Python.hs in backend. 
+  # messages are handled in an exactly isomorphic way with the 
+  # KernelRequest/KernelReply types in AS/Kernels/Python.hs in backend. 
 
     if msg['type'] == 'evaluate':
       result = None
@@ -319,7 +345,6 @@ import base64
 
     elif msg['type'] == 'evaluate_format':
       result = self.shell.run_raw(msg['code'], msg['sheet_id'])
-
       if result.result:
         # evaluate_format's reply type is string
         result.result = repr(result.result) 
@@ -354,19 +379,16 @@ import base64
 
   def close(self, frontend, backend):
     puts('Normal kernel exit.')
-
     if LOGGING_ON:
       log.close()
     # wait for devices to finish polling
     time.sleep(1)
-
     # terminate the threads
     try: 
       self.workers = [t.join(1) for t in self.workers if t.isAlive()]
     except KeyboardInterrupt:
       for t in self.workers:
         t.terminate(TimeoutException)
-
     # close the bound devices, and terminate the context.
     frontend.close()
     backend.close()
