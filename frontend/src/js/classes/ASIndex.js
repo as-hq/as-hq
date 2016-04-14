@@ -69,11 +69,11 @@ export default class ASIndex {
   }
 
   static fromNaked(naked: NakedIndex, sheetId?: ?string): ASIndex {
-    sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    const sid = sheetId || SheetStateStore.getCurrentSheetId();
     return new ASIndex({
       tag: 'index',
       index: naked,
-      sheetId: sheetId
+      sheetId: sid
     });
   }
 

@@ -81,7 +81,6 @@ class Login extends React.Component {
   }
 
   _onLoginSubmit(user: any) {
-    console.log("on login submit");
     this.setState({isLoggingIn: true});
 
     pws.whenReady(() => {

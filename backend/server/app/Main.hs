@@ -124,17 +124,15 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     wsApp pendingConn = do
       conn <- WS.acceptRequest pendingConn 
       putsConsole "Client connected!"
-      -- fork a heartbeat thread, to immediately signal to the client that the connection is alive
-      forkHeartbeat conn heartbeat_interval
       msg <- WS.receiveData conn -- waits until it receives data
       when (isDebug && shouldPreprocess) $ preprocess conn state
-      handleFirstMessage state conn msg
+      handshakeAndStart state conn msg
     staticApp :: Wai.Application
     staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
-handleFirstMessage ::  MVar ServerState -> WS.Connection -> BL.ByteString -> IO ()
-handleFirstMessage state wsConn msg =
-  case (decode msg :: Maybe LoginMessage) of
+handshakeAndStart ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
+handshakeAndStart state wsConn msg =
+  case (decode msg :: Maybe FirstMessage) of
     Just (Login auth) -> do -- first message must be user auth
       putsObj "got auth:" auth
       authResult <- US.authenticateUser auth
@@ -154,11 +152,14 @@ handleFirstMessage state wsConn msg =
           let defaultSid = windowSheetId . view userWindow $ userClient
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
           sendMessage successMsg wsConn
-          catch (initClient userClient state) (handleRuntimeException userClient state)
+          catchAny 
+            (engageClient userClient state) 
+            (handleRuntimeException userClient state)
         Left authErr -> do
           puts $ "Authentication error: " ++ authErr
           let failMsg = ClientMessage auth_message_id $ AuthFailure authErr
           sendMessage failMsg wsConn
+    Just StartHeartbeat -> heartbeat wsConn heartbeat_interval
     _ -> do -- first message is neither
       putsObj "First message not a login message, received: " msg
       sendMessage (failureMessage initialization_failure_message_id "Cannot connect") wsConn -- failure messages are not associated with any send message id.
@@ -184,9 +185,10 @@ preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4
   --      modifyMVar_ state (return . addClient mockUc)
   --    processMessage mockUc state ($read msg)
 
-initClient :: (Client c) => c -> MVar ServerState -> IO ()
-initClient client state = do
-  modifyMVar_ state (return . addClient client) -- add client to state
+engageClient :: (Client c) => c -> MVar ServerState -> IO ()
+engageClient client state = do
+  liftIO $ modifyMVar_ state (return . addClient client) -- add client to state
+  printWithTime "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects

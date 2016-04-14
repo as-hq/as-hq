@@ -148,34 +148,42 @@ function rejectCallbacks(msg: ClientMessage) {
 
 let refreshDialogShown: boolean = false;
 
+
 /**************************************************************************************************************************/
 /*
   Initialize remote URL.
 */
 
-if (Constants.isRemote && !Constants.noRouter) {
-  request
-    .get(Constants.ROUTER_URL)
-    .end((err, res) => {
-      if (!! res && res.status == 200) {
-        const { host, fileinput_port, backend_port, static_port } = JSON.parse(res.text);
-        Constants.REMOTE_HOST = host;
-        Constants.BACKEND_WS_PORT = backend_port;
-        Constants.BACKEND_IMPORT_PORT = fileinput_port;
-        Constants.BACKEND_STATIC_PORT = static_port;
+function initConnection() {
+  if (Constants.isRemote && !Constants.noRouter) {
+    const host = Constants.getRandomHost();
+    console.warn('Contacting host', host, 'for connection parameters...');
+    request
+      .get(Constants.getRouterUrl(host))
+      .end((err, res) => {
+        if (!! res && res.status == 200) {
+          const { name, filePort, backendPort, staticPort } = JSON.parse(res.text);
+          Constants.REMOTE_HOST = host;
+          Constants.CONTAINER_ID = name;
+          Constants.BACKEND_WS_PORT = backendPort;
+          Constants.BACKEND_IMPORT_PORT = filePort;
+          Constants.BACKEND_STATIC_PORT = staticPort;
 
-        console.log('GOT CONNECTION PARAMS: ', fileinput_port, backend_port, static_port);
-
-        const url = Constants.getBackendUrl('ws', backend_port);
-        pws.begin(url);
-      } else {
-        throw new Error('Did not receive valid response from router!');
-      }
-    });
-} else {
-  const url = Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT);
-  pws.begin(url);
+          const url = Constants.getBackendUrl('ws', backendPort);
+          pws.begin(url);
+        } else {
+          console._error(`Did not receive valid response from router at ${host}; trying other hosts.`);
+          Constants.hosts.splice(Constants.hosts.indexOf(host), 1);
+          initConnection();
+        }
+      });
+  } else {
+    const url = Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT);
+    pws.begin(url);
+  }
 }
+
+initConnection();
 
 /**************************************************************************************************************************/
 /*
@@ -394,10 +402,13 @@ const API_test = {
   login() {
     console.log('about to login');
     const msg = {
-      tag: 'TestAuth',
-      contents: []
+      tag: 'Login',
+      contents: {
+        tag: 'TestAuth',
+        contents: []
+      }
     };
-    API.send(msg);
+    pws.send(msg, true);
     setCallbacks('auth_message_id');
   }
 };
@@ -406,21 +417,6 @@ const API = {
   // #needsrefactor a stateful variable indicating whether or not the app is being tested.
   // this exists to slightly fork logic when necessary during testing. e.g. see ASCellStore.
   isTesting: false,
-
-  send(msg: any) {
-    pws.waitForConnection((innerClient: WebSocket) => {
-      console.warn('sending message');
-      innerClient.send(JSON.stringify(msg));
-    });
-  },
-
-  // Used instead of the above for replaying messages without additional JSON.stringify
-  // #needsrefactor DRY
-  sendMsg(msg: any) {
-    pws.waitForConnection((innerClient: WebSocket) => {
-      innerClient.send(msg);
-    });
-  },
 
   sendMessageWithAction(action: any) {
     const messageId = shortid.generate();
@@ -431,24 +427,30 @@ const API = {
 
     ProgressActions.markSent(msg);
     setCallbacks(msg.messageId);
-    API.send(msg);
+    pws.send(msg);
   },
 
   // TODO (anand) for now, this function only accepts Google OAuth id tokens
   login(idToken: string) {
     const msg = {
-      tag: 'GoogleAuth',
-      idToken
+      tag: 'Login',
+      contents: {
+        tag: 'GoogleAuth',
+        idToken
+      }
     };
-    API.send(msg);
+    pws.send(msg, true);
   },
 
   loginPublicly() {
     const msg = {
-      tag: 'PublicAuth',
-      contents: []
+      tag: 'Login',
+      contents: {
+        tag: 'PublicAuth',
+        contents: []
+      }
     };
-    API.send(msg);
+    pws.send(msg, true);
   },
 
   /**************************************************************************************************************************/
@@ -1000,6 +1002,10 @@ const API = {
       contents: []
     };
     API.sendMessageWithAction(msg);
+  },
+
+  logAction(msg: string) {
+    pws.send(msg);
   },
 
   /**************************************************************************************************************************/

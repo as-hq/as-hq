@@ -14,7 +14,7 @@ import API from '../actions/ASApiActionCreators';
 import Dispatcher from '../Dispatcher';
 
 export default class LogViewer extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: {};
   state: {};
 
@@ -27,7 +27,7 @@ export default class LogViewer extends React.Component {
       onlyAPICalls: false
     };
   }
- 
+
   // When this component is in the DOM, tell backend to stop logging actions/messages
   componentDidMount() {
     LogStore.addListener(this._listener);
@@ -46,14 +46,13 @@ export default class LogViewer extends React.Component {
   }
 
   // Tell all stores to reset themselves and clear the current sheet
-  // Called before replaying 
+  // Called before replaying
   _reset() {
     // TODO: this is asynchronous, and we may want to wait for it to get back before proceeding
     API.clearSheet();
   }
 
   // To replay until a given point, just dispatch actions or send API messages until we get to that point
-  // We use API.sendMsg which doesn't have another JSON.stringify
   _replayUntil(index: number) {
     this._reset();
     for (var i = 0; i <= index; i++) {
@@ -64,7 +63,7 @@ export default class LogViewer extends React.Component {
         Dispatcher.dispatch(action);
       } else {
         console.log('Sending API debug message:', JSON.parse(log.logMsg));
-        API.sendMsg(log.logMsg);
+        API.logAction(log.logMsg);
       }
     }
   }
@@ -119,8 +118,8 @@ export default class LogViewer extends React.Component {
           users.map((user) => {
             return (
               <Card style={{width: '100%', marginTop: '5px'}}>
-                <CardHeader 
-                  title={user} 
+                <CardHeader
+                  title={user}
                   subtitle={"User"}
                   style={{border: '2px solid black'}}
                   avatar="http://lorempixel.com/100/100/nature/"
@@ -131,9 +130,9 @@ export default class LogViewer extends React.Component {
                     {
                       sessions.get(user).map((session, index) => {
                         return (
-                          <ListItem 
-                            key={index} 
-                            leftAvatar={<Avatar backgroundColor={Colors.yellow600}>A</Avatar>} 
+                          <ListItem
+                            key={index}
+                            leftAvatar={<Avatar backgroundColor={Colors.yellow600}>A</Avatar>}
                             secondaryText={session.seshId}
                             onTouchTap={() => this._onSessionSelect(user, session.seshId)}>
                             {session.seshTime}
@@ -153,20 +152,20 @@ export default class LogViewer extends React.Component {
 
   renderSessionLogs() {
     const logs = this._getDisplayedLogs();
-    const goBackButton = 
-      <RaisedButton 
-        label="View all sessions again" 
+    const goBackButton =
+      <RaisedButton
+        label="View all sessions again"
         style={{marginTop: '5px', marginLeft: '37%', width: '25%'}}
         onTouchTap={() => this._onDisplayAllSessions()} />;
-    const flags = logs.size > 0 ? 
-      [<RaisedButton 
-        label="Replay Entire Session" 
+    const flags = logs.size > 0 ?
+      [<RaisedButton
+        label="Replay Entire Session"
         style={{marginTop: '5px', marginLeft: '37%', width: '25%'}}
         onTouchTap={() => this._replayEntire()} />,
-      <Checkbox 
-        label="Only display API calls to Haskell backend" 
+      <Checkbox
+        label="Only display API calls to Haskell backend"
         style={{marginTop: '5px', marginLeft: '37%', width: '25%'}}
-        checked={this.state.onlyAPICalls} 
+        checked={this.state.onlyAPICalls}
         onCheck={() => this._toggleOnlyAPICalls()} />,
       goBackButton] : [goBackButton];
     return (
@@ -178,9 +177,9 @@ export default class LogViewer extends React.Component {
               {
                 logs.map((ld, index) => {
                   return (
-                    <ListItem 
-                      key={index} 
-                      leftAvatar={<Avatar backgroundColor={this._getBackgroundColor(ld)}>A</Avatar>} 
+                    <ListItem
+                      key={index}
+                      leftAvatar={<Avatar backgroundColor={this._getBackgroundColor(ld)}>A</Avatar>}
                       secondaryText={ld.logMsg}>
                       {this._getDescription(ld)}
                       <div style={{ float: 'right' }}>
@@ -194,11 +193,11 @@ export default class LogViewer extends React.Component {
           </CardText>
         </Card>
       </div>
-    ); 
+    );
   }
 
   render() {
-   return this.state.displayAllSessions ? this.renderSessionInfo() : this.renderSessionLogs(); 
+   return this.state.displayAllSessions ? this.renderSessionInfo() : this.renderSessionLogs();
   }
 
 }

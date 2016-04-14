@@ -34,13 +34,10 @@ timeout seconds onTimeout onSuccess f = do
 --------------------------------------------------------------------------------------------------------------
 -- Heartbeat
 
-forkHeartbeat :: WS.Connection -> Milliseconds -> IO ()
-forkHeartbeat conn interval = void $ forkIO (go `catch` dieSilently)
+heartbeat :: WS.Connection -> Milliseconds -> IO ()
+heartbeat conn interval = go `catchAny` (const $ return ())
   where
     go = do
       threadDelay (interval * 1000)
       WS.sendTextData conn ("PING" :: T.Text)
       go
-    dieSilently e = case fromException e of 
-      Just asyncErr -> void $ throwIO (asyncErr :: AsyncException)
-      Nothing       -> return ()

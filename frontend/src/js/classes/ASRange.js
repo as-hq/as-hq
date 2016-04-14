@@ -122,7 +122,7 @@ export default class ASRange {
     return new ASSelection({
       origin: this.tl.obj().index,
       range: this.obj().range
-    });
+    }, this.sheetId);
   }
 
   changeSheet(sheetId: string): ASRange {

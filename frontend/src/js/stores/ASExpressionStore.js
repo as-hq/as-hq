@@ -64,7 +64,8 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'LOGIN_SUCCESS': {
-        return state.set('textboxPosition', ASIndex.fromNaked({col: 1, row: 1}));
+        const {sheetId} = action;
+        return state.set('textboxPosition', ASIndex.fromNaked({col: 1, row: 1}, sheetId));
       }
 
       case 'FOCUSED': {

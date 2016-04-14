@@ -39,8 +39,8 @@ export default class ASSelection {
     );
   }
 
-  static defaultSelection(): ASSelection {
-    return ASIndex.fromNaked({ row: 1, col: 1}).toSelection();
+  static defaultSelection(sheetId?: string): ASSelection {
+    return ASIndex.fromNaked({ row: 1, col: 1}, sheetId).toSelection();
   }
 
   static fromPayload(payload: PayloadSelection): ASSelection {

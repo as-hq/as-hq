@@ -28,7 +28,10 @@ import AS.Types.User
 type MessageId = T.Text
 type SessionId = T.Text
 
-data LoginMessage = Login AuthStrategy deriving (Show, Read, Generic)
+data FirstMessage = 
+    Login AuthStrategy 
+  | StartHeartbeat 
+  deriving (Show, Read, Generic)
 
 data AuthStrategy = 
     GoogleAuth { idToken :: T.Text }
@@ -174,7 +177,7 @@ asToJSON ''LogData
 asToJSON ''LogSource
 asToJSON ''SessionData
 
-asFromJSON ''LoginMessage
+asFromJSON ''FirstMessage
 asFromJSON ''AuthStrategy
 asFromJSON ''LogSource
 

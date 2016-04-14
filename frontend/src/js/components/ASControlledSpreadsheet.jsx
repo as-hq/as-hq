@@ -49,7 +49,6 @@ const ASControlledSpreadsheet = HOPurify({
       },
 
       setValue({component, value: scroll}) {
-        console.warn('set scroll:', scroll);
         component._scrollTo(scroll);
       }
     }

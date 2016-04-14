@@ -39,16 +39,20 @@ class GridStore extends ReduceStore<State> {
   reduce(state: State, action: ASAction): State {
     switch(action._type) {
       case 'LOGIN_SUCCESS': {
-        // wait for the sheetId to be established upon login
-        this.getDispatcher().waitFor([SheetStateStore.dispatcherIndex]);
+        const {sheetId} = action;
 
-        return new StateRecord({
-          activeSelection: ASSelection.defaultSelection(),
-          lastActiveSelection: ASSelection.defaultSelection(),
-          scroll: ASPoint.defaultPoint(),
-          width: 30,
-          height: 20
-        });
+        if (state.activeSelection === null) {
+          return new StateRecord({
+            activeSelection: ASSelection.defaultSelection(sheetId),
+            lastActiveSelection: ASSelection.defaultSelection(sheetId),
+            scroll: ASPoint.defaultPoint(),
+            width: 30,
+            height: 20
+          });
+        } else {
+          return state.update('activeSelection', s => s.changeSheet(sheetId))
+                      .update('lastActiveSelection', s => s.changeSheet(sheetId));
+        }
       }
 
       case 'START_EDITING':

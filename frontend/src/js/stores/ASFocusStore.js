@@ -84,7 +84,6 @@ class FocusStore extends ReduceStore<State> {
       }
 
       case 'START_EDITING': {
-        console.warn('start editing!');
         return setFocus(state, 'textbox')
               .set('textboxHasFullFocus', action.textboxHasFullFocus);
       }

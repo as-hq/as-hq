@@ -21,13 +21,11 @@ export function log(action: ASAction) {
       serverAction: msg,
       messageId
     };
-    pws.waitForConnection((innerClient: WebSocket) => {
-      innerClient.send(JSON.stringify(serverMsg));
-    });
+    pws.send(serverMsg);
   }
 }
 
-// do not log these actions.s
+// do not log these actions.
 const nonLoggedActions = [
   'SET_CONNECTING_STATE',
   'LOGIN_ATTEMPT',
