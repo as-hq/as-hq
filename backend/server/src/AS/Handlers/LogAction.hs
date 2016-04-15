@@ -6,8 +6,8 @@ import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 as BC (unpack)
 
 import AS.Prelude
-import AS.Types.Messages
 import AS.Types.Network
+import AS.Types.Messages
 import AS.Types.DB
 
 import qualified AS.DB.Users as DU

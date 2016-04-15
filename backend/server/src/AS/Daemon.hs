@@ -73,9 +73,7 @@ createDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
 createDaemon state s loc msg = $undefined
 -- not supported right now (anand 3/7) 
 --do -- msg is the message that the daemon will send to the server regularly
-  --putStrLn $ "POTENTIALLY CREATING A daemon"
   --let name = getDaemonName loc
-  --putStrLn $ "NAME: " ++ (show name)
   --running <- isRunning name
   --if (running)
   --  then return ()
@@ -87,7 +85,6 @@ createDaemon state s loc msg = $undefined
   --      WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
   --        U.sendMessage initMsg conn
   --        regularlyReEval s loc msg conn -- is an eval message on the cell
-  --    putStrLn $ "DONE WITH createDaemon"
 
 regularlyReEval :: Stream -> ASIndex -> ServerMessage -> WS.Connection -> IO ()
 regularlyReEval (Stream src x) loc msg conn = forever $ do 

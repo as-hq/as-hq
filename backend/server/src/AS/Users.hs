@@ -12,6 +12,7 @@ import qualified Network.WebSockets as WS
 
 import AS.Prelude
 import AS.Util
+import AS.Logging
 import AS.Config.Settings (google_token_verify_url, google_client_id, getWhitelistedUsers)
 import AS.Types.User hiding (userId)
 import AS.Types.Network 
@@ -25,7 +26,7 @@ import Control.Exception
 authenticateUser :: AuthStrategy -> IO (Either String ASUserId)
 authenticateUser strat = case strat of 
   GoogleAuth token -> handleAny onException $ do
-    putStrLn $ "Received user id token: " ++ (T.unpack token)
+    putsObj "Received user id token: " token
     r <- get $ google_token_verify_url ++ (T.unpack token)
     let appClientId = r ^? responseBody . key "aud"
     case appClientId of 

@@ -1,6 +1,7 @@
 module AS.Handlers.Import where
 
 import AS.Prelude
+import AS.Logging
 
 import AS.Config.Constants (import_message_id)
 import AS.DB.Clear as DC
@@ -123,7 +124,7 @@ handleCSVImport mid uc state ind lang fileName = do
   let src = userCommitSource uc
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
   case decoded of 
-    Left e -> void (putStrLn e)
+    Left e -> void (putsError src $ "Could not decode CSV: " ++ e)
     Right csv -> do 
       -- Create cells, taking offset, lang, and parsing into account
       let indices = imap2D (\dx dy -> $fromJust $ shiftByOffsetWithBoundsCheck (Offset dx dy) ind) csv

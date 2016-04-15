@@ -1,95 +1,166 @@
-module AS.Logging where
+module AS.Logging 
+  ( puts
+  , putsObj
+  , putsError
+  , putsBugReport
+  , putsSheet
+  , putsConsole
+  , runLogger
+  , closeLog
+  , getTime
+  , whenLogging
+  ) where
 
 import AS.Prelude
 import AS.Types.Eval
 import AS.Types.Commits
 import AS.Types.Graph
+import AS.Types.Logging
 import AS.Config.Settings as S
 
+import System.Directory
+import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Aeson
 import Control.Monad.Trans.Class (lift)
 import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
 import Control.Monad (when, void)
+import Control.Lens hiding ((.=))
+
+import Control.Monad.State
+import Control.Concurrent
+import Control.Concurrent.Chan
 
 import qualified Network.Wreq as Wreq
 
-truncateLength :: Int
-truncateLength = 400
+-----------------------------------------------------------------------------------------------------------------------------
+-- Exposed API
+-- | All logging functions respect the `backendLogsOn` setting 
+-- | unless otherwise specified.
+
+-- | Writes to the console and main logfile with a timestamp. 
+puts :: (MonadIO m) => String -> m ()
+puts = liftIO . whenLogging . sendToLogger . Log MainLog
+
+-- | Writes to the console only. 
+putsConsole :: (MonadIO m) => String -> m ()
+putsConsole = liftIO . sendToLogger . Log MainLog
+
+-- | Use this function only when absolutely necessary; `show` is computed on the main thread
+putsObj :: (Show a, MonadIO m) => String -> a -> m ()
+putsObj msg obj = puts $ "{" ++ msg ++ "}\n" ++ show obj
+
+-- | Writes to the console and error logfile with a timestamp. 
+-- | Does not respect the `backendLogsOn` setting.
+putsError :: (MonadIO m) => CommitSource -> String -> m ()
+putsError src x = liftIO $ do
+  let x' = "[ERROR]: " ++ x
+  puts x'
+  putsSheet (srcSheetId src) x'
+  sendToLogger $ Log (ErrorLog src) x
+
+-- | Writes to the console and bugreport logfile with a timestamp. 
+-- | Does not respect the `backendLogsOn` setting.
+putsBugReport :: (MonadIO m) => CommitSource -> String -> m ()
+putsBugReport src x = liftIO $ whenLogging $ do
+  let x' = "[BugReport]: " ++ x
+  puts x'
+  putsSheet (srcSheetId src) x'
+  sendToLogger $ Log (BugLog src) x
+
+-- | Writes to the console and sheet logfile with a timestamp. 
+putsSheet :: (MonadIO m) => ASSheetId -> String -> m ()
+putsSheet sid x = liftIO $ whenLogging $ 
+  sendToLogger $ Log (SheetLog sid) x
+
+-- | Logger loop
+runLogger :: IO ()
+runLogger = do
+  t <- getTime
+  let rootDir = server_logs_dir ++ t ++ "/"
+  createDirectoryIfMissing True rootDir
+  log <- getLogger
+  putStrLn "Started logger."
+  evalStateT (go rootDir log) newLoggerState
+  where 
+    go :: FilePath -> Logger -> StateT LoggerState IO ()
+    go rootDir log = do
+      msg <- liftIO $ readChan log
+      st <- get
+      case msg of 
+        Log ConsoleLog txt -> do
+          liftIO . putStrLn $ truncated txt
+          go rootDir log 
+        Log src txt -> do case src `M.lookup` (st^.handles) of 
+                            Nothing -> initLog rootDir src >>= 
+                                          \h -> liftIO (writeLog h src txt)
+                            Just h  -> liftIO (writeLog h src txt)
+                          go rootDir log
+        CloseLog -> liftIO $ mapM_ hClose $ 
+                      M.elems (st^.handles)
+
+
+closeLog :: (MonadIO m) => m ()
+closeLog = liftIO $ sendToLogger CloseLog
+
+-----------------------------------------------------------------------------------------------------------------------------
+-- Logger
+
+whenLogging :: IO () -> IO ()
+whenLogging f = do
+  doIt <- getSetting backendLogsOn
+  when doIt f
+
+sendToLogger :: LogMessage -> IO ()
+sendToLogger msg = do
+  log <- getLogger
+  writeChan log msg
+
+initLog :: FilePath -> LogSource -> StateT LoggerState IO Handle
+initLog rootDir src = do
+  handle <- liftIO $ openFile (getLogPath rootDir src) AppendMode
+  modify (& handles %~ M.insert src handle)
+  return handle
+
+getLogPath :: FilePath -> LogSource -> FilePath
+getLogPath rootDir src = rootDir ++ case src of 
+  MainLog            -> "[main]"
+  SheetLog sid       -> "[sheet]" ++ T.unpack sid
+  ErrorLog commitSrc -> "[errors]" ++ show commitSrc
+  BugLog commitSrc   -> "[bugreports]" ++ show commitSrc
+  ConsoleLog         -> $error "invariant violation: no log file for ConsoleLog"
+
+writeLog :: Handle -> LogSource -> String -> IO ()
+writeLog h src x = do
+  t <- getTime
+  let ts = "[" ++ t ++ "]"
+  putStrLn ts
+  putStrLn $ truncated x
+  hPutStrLn h ts
+  hPutStrLn h x 
+  hFlush h 
+  case src of 
+    ErrorLog _ -> logSlack x
+    BugLog _   -> logSlack x
+    _ -> return ()
+
+newLoggerState :: LoggerState
+newLoggerState = LoggerState { _handles = M.empty }
+
+-----------------------------------------------------------------------------------------------------------------------------
+-- Utils
 
 truncated :: String -> String
-truncated str
-  | length str < truncateLength = str 
-  | otherwise = (take truncateLength str) ++ ("... [Truncated]")
+truncated = take log_truncate_length
 
 -- Gets date in format 2015-12-02 20:44:24.515
 getTime :: IO String
 getTime = getCurrentTime >>= (return . (take 23) . show)
 
--- | Gets date in format 2015-12-02
-getDate :: IO String
-getDate = getCurrentTime >>= (return . (take 10) . show)
-
-appendFile' :: String -> String -> IO ()
-appendFile' fname msg = catchAny (appendFile fname msg) (\e -> void . return $ (e :: SomeException))
-
-printWithTime :: String -> IO ()
-printWithTime msg = do
-  proceed <- S.getSetting S.shouldLogConsole 
-  when proceed $ printWithTimeForced msg
-
-printWithTimeForced :: String -> IO ()
-printWithTimeForced str = do
-  time <- getTime
-  date <- getDate
-  let disp = "[" ++ time ++ "] " ++ str
-  putStrLn ((truncated disp) ++ "\n")
-
-printWithTimeT :: String -> EitherTExec ()
-printWithTimeT = lift . printWithTime
-
-writeToASLog :: String -> String -> IO ()
-writeToASLog logRootName msg = do
-  date <- getDate
-  let logPath = S.log_dir ++ logRootName ++ date
-  appendFile' logPath ('\n':msg)
-
-writeToASLogWithMetadata :: String -> String -> CommitSource -> IO ()
-writeToASLogWithMetadata logRootName msg (CommitSource sid uid) = do
-  time <- getTime
-  let sid' = T.unpack sid
-      uid' = T.unpack uid
-      logMsg = msg ++ '\n':sid' ++ '\n':uid' ++ '\n':'#':time
-  writeToASLog logRootName logMsg
-
-serverLogsRoot :: String
-serverLogsRoot = "server_log_"
-
-logServerMessage :: String -> CommitSource -> IO ()
-logServerMessage msg src = do 
-  -- master log
-  writeToASLogWithMetadata serverLogsRoot msg src
-  -- log for just the sheet
-  writeToASLogWithMetadata (serverLogsRoot ++ T.unpack (srcSheetId src)) msg src
-
-logBugReport :: String -> CommitSource -> IO ()
-logBugReport bugReport src = writeToASLogWithMetadata "bug_reports" ('#':bugReport) src
-
-logError :: String -> CommitSource -> IO ()
-logError err (CommitSource sid uid) = do 
-  time <- getTime
-  let sid' = T.unpack sid
-      uid' = T.unpack uid
-      logMsg = "#ERROR: " ++ err ++ '\n':'#':sid' ++ ',':uid' ++ "\n#" ++ time
-  writeToASLog serverLogsRoot logMsg
-  writeToASLog (serverLogsRoot ++ sid') logMsg
-  logSlack logMsg
-  printWithTime logMsg
-
 logSlack :: String -> IO ()
-logSlack msg = do
-  appShouldLog <- S.getSetting S.shouldLogSlack
+logSlack msg = forkIO_ $ do
+  appShouldLog <- getSetting slackLogsOn
   let shouldIgnore = msg `elem` S.ignoredErrorMessages
   when (appShouldLog && not shouldIgnore) $ void $ Wreq.post webhookUrl payload
   where
@@ -102,28 +173,3 @@ logSlack msg = do
           "color" .= ("danger" :: String)
         , "text" .= msg
       ]]]
-
-printObj :: (Show a) => String -> a -> IO ()
-printObj msg a = do
-  proceed <- S.getSetting S.shouldLogConsole
-  when proceed $ printObjForced msg a
-
-printObjForced :: (Show a) => String -> a -> IO ()
-printObjForced disp obj = printWithTimeForced (disp ++ ": " ++ (show $ seq () obj))
--- the seq is necessary so that the object gets evaluated before the time does in printWithTime. 
-
-printList2 :: (Show2 a) => String -> [a] -> IO ()
-printList2 disp l = printWithTime (disp ++ ": " ++ (show $ map show2 $ seq () l))
-
-printObjT :: (Show a) => String -> a -> EitherTExec () 
-printObjT disp obj = lift (printObj disp obj)
-
-printListT2 :: (Show2 a) => String -> [a] -> EitherTExec ()
-printListT2 disp l = lift $ printList2 disp l
-
--- | For debugging purposes
-printDebug :: (Show a) => String -> a -> IO ()
-printDebug name obj = putStrLn ("\n\nDEBUG\n============================================================\n" ++ name ++ ": " ++ (show $ seq () obj) ++ "\n============================================================\n\n")
-
-printDebugT :: (Show a) => String -> a -> EitherTExec ()
-printDebugT name obj = lift (printDebug name obj)

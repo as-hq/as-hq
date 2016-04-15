@@ -39,12 +39,10 @@ handleMutateSheet mid uc state mutateType = do
       conn = state^.dbConn
   -- update cells 
   oldCells <- DB.getCellsInSheet conn (userSheetId uc)
---   printObj "OLD CELLS: " oldCells
   let newCells = map (cellMutate mutateType) oldCells
       (oldCells', newCells') = keepUnequal $ zip oldCells newCells
       blankedCells = blankCellsAt $ mapCellLocation oldCells'
       updatedCells = mergeCells newCells' blankedCells -- eval blanks at the old cell locations, re-eval at new locs
---  printObj "NEW CELLS: " newCells
   -- update barProps
   oldBars <- DB.getBarsInSheet conn sid
   let newBars = map (barMutate mutateType) oldBars

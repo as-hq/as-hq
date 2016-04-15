@@ -24,6 +24,7 @@ module AS.Prelude
   , handleAny
   , liftIO
   , showConstructor
+  , forkIO_
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -172,3 +173,6 @@ handleAny h f = catchAny f h
 
 showConstructor :: (Data a) => a -> String
 showConstructor = showConstr . toConstr
+
+forkIO_ :: IO () -> IO ()
+forkIO_ = void . forkIO

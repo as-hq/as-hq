@@ -69,7 +69,6 @@ referenceToCompositeValue state _ ctx (PointerRef p) _ = do
           let indices = finiteRangeKeyToIndices rKey
               cells  = map ((ctx^.virtualCellsMap) M.!) indices
               fatCell = FatCell cells descriptor
-          printObj "REF TO COMPOSITE DESCRIPTOR: " descriptor
           return $ DE.recomposeCompositeValue fatCell
 -- #NeedsRefactor: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
 referenceToCompositeValue _ _ ctx (RangeRef r) _

@@ -1,6 +1,7 @@
 module AS.Handlers.Eval where
 
 import AS.Prelude
+import AS.Logging
 import AS.Types.Cell
 import AS.Types.Messages
 import AS.Types.User hiding (userId)
@@ -89,9 +90,9 @@ handleSetLanguagesInRange mid uc state lang rng = do
 handleTimeout :: MessageId -> State -> IO ()
 handleTimeout mid state = 
   modifyState_ state $ \curState -> do
-    putStrLn $ "Killing message ID: " ++ (T.unpack mid)
+    putsObj "Killing message ID: " mid
     case M.lookup mid (curState^.threads) of 
-      Just tid -> putStrLn ("killed thread: " ++ (show tid)) >> killThread tid
+      Just tid -> putsObj "killed thread: " tid >> killThread tid
       _ -> return ()
     Python.haltMessage mid
     R.haltMessage mid

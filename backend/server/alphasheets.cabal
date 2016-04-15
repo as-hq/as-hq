@@ -69,6 +69,7 @@ library
                        AS.Parsing.Excel
                        AS.Parsing.Substitutions
                        AS.Reply
+                       AS.Types.Logging
                        AS.Types.Bar
                        AS.Types.BarProps
                        AS.Types.Cell

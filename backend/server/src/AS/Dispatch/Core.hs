@@ -95,14 +95,12 @@ runDispatchCycle state mid cs descSetting src updateTransform = do
   let conn = state^.dbConn
   rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
   errOrUpdate <- runEitherT $ do
-    printWithTimeT $ "about to start dispatch"
     let initialEvalMap = M.fromList $ zip (mapCellLocation roots) roots
         initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
     ctxAfterDispatch <- dispatch state mid roots initialContext descSetting
-    printWithTimeT "finished dispatch"
     let transformedCtx = ctxAfterDispatch & updateAfterEval %~ updateTransform -- #lenses
 
     finalCells <- EE.evalEndware state mid src transformedCtx evalChain
@@ -125,24 +123,17 @@ runDispatchCycle state mid cs descSetting src updateTransform = do
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
 dispatch :: ServerState -> MessageId -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
-dispatch state _ [] context _ = printWithTimeT "empty dispatch" >> return context
+dispatch state _ [] context _ = return context
 dispatch state mid roots oldContext descSetting = do
   let conn = state^.dbConn
-  printObjT "STARTING DISPATCH CYCLE WITH CELLS" roots
-  printWithTimeT $ "Settings: Descendants: " ++ (show descSetting)
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
   G.setCellsAncestors roots
   descLocs       <- getEvalLocs state roots descSetting
-  printObjT "Got eval locations" descLocs
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
   cellsToEval    <- getCellsToEval conn oldContext descLocs
-  printObjT "Got cells to evaluate" cellsToEval
   ancLocs        <- G.getImmediateAncestors $ indicesToAncestryRequestInput descLocs
-  printObjT "Got ancestor locs" ancLocs
   -- The initial lookup cache has the ancestors of all descendants
   modifiedContext <- getModifiedContext conn ancLocs oldContext
-  printWithTimeT "Created initial context"  -- ++ (show modifiedContext)
-  printWithTimeT "Starting eval chain"
   evalChainWithException state mid cellsToEval modifiedContext -- start with current cells, then go through descendants
 
 
@@ -205,8 +196,10 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 evalChainWithException :: ServerState -> MessageId -> [ASCell] -> EvalTransform
 evalChainWithException state mid cells ctx = 
   let whenCaught e = do
-        printObjForced "Runtime exception caught" (e :: SomeException)
-        logSlack $ show e
+        let src = CommitSource  { srcSheetId = ($head cells)^.cellLocation.locSheetId
+                                , srcUserId = "unknown_user"
+                                }
+        putsError src $ "Runtime exception caught" ++ show (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
     result <- liftIO $ catchAny (runEitherT $ evalChain state mid cells ctx) whenCaught
@@ -226,11 +219,10 @@ shouldEvalCell ctx c = isEvaluable c && not hasCoupledCounterpartInMap
       Just c' -> isCoupled c' && (not $ isFatCellHead c')
 
 evalChain :: ServerState -> MessageId -> [ASCell] -> EvalTransform
-evalChain _ mid [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChain _ _ [] ctx = return ctx
 evalChain state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
   if shouldEvalCell ctx c
     then do 
-      -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
       evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
       newContext <- contextInsert state mid c evalResult ctx
       evalChain state mid cs newContext
@@ -239,11 +231,10 @@ evalChain state mid (c@(Cell loc xp val ps rk disp):cs) ctx =
 -- Evaluate a bunch of cells without calling dispatch again, just update the context
 -- Used in sampling
 evalChainWithoutPropagation :: ServerState -> MessageId -> [ASCell] -> EvalTransform
-evalChainWithoutPropagation _ _ [] ctx = printWithTimeT "empty evalchain" >> return ctx
+evalChainWithoutPropagation _ _ [] ctx = return ctx
 evalChainWithoutPropagation state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
   if shouldEvalCell ctx c
     then do 
-      -- printWithTimeT $ "running eval chain with cells: " ++ (show (c:cs))
       evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
       newContext <- contextInsertWithoutPropagation state c evalResult ctx
       evalChainWithoutPropagation state mid cs newContext
@@ -292,8 +283,6 @@ delPrevFatCellFromContext conn c@(Cell idx xp _ _ rk _) ctx = case rk of
       let indices = finiteRangeKeyToIndices key
           blankCells = map blankCellAt indices
           descriptor = virtualRangeDescriptorAt ctx key
-      printWithTimeT $ "REMOVED DESCRIPTOR IN DELETE PREVIOUS FAT CELL: " ++ (show descriptor)
-      printWithTimeT $ "BLANK CELLS: " ++ (show blankCells)          
       -- Remove the descriptor from context, and then add the blank cells to the list of added cells. This must be done
       -- so that the blanked out cells make it into the commit (ie so that the context is correct up to now). If anything
       -- replaces these blanked out cells, they will be merged in by a future contextInsert.
@@ -317,7 +306,6 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
   let newlybeforeVals = case maybeFatCell of
                           Nothing -> getFatCellIntersections ctx (Left [idx])
                           Just (FatCell _ descriptor) -> getFatCellIntersections ctx (Right [descriptorKey descriptor])
-  printObjT "GOT DECOUPLED DESCRIPTORS" newlybeforeVals
   -- The locations we have to decouple can be constructed from the range keys
   -- Then, given the locs, we get the cells that we have to decouple from the DB and then change their expressions
   -- to be decoupled (by using the value of the cell)
@@ -340,8 +328,6 @@ contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
   let conn  = state^.dbConn
       cv    = result^.resultValue
       disp  = result^.resultDisplay 
-  printWithTimeT $ "running context insert with old cell " ++ (show c)
-  printWithTimeT $ "the context insert has value " ++ (show cv)
   let maybeFatCell = DE.decomposeCompositeValue c cv
   -- Get the new cells created by eval, with formatting as well, and add them into the context
   let newCellsFromEval = case maybeFatCell of
@@ -353,14 +339,11 @@ contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
   (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c ctx 
   (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
   let ctxWithEvalCells = addCellsToContext newCellsFromEval ctxWithDecoupledCells
-  printWithTimeT $ "DECOUPLED CELLS" ++ (show decoupledCells)
   -- Wrap up and dispatch
   case maybeFatCell of
     Nothing -> do 
-      printWithTimeT "\nrunning decouple transform"
       dispatch state mid decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
-      printWithTimeT "\nrunning expanded cells transform"
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map (flip $valAt $ ctxWithEvalCells^.virtualCellsMap) inds

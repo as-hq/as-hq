@@ -157,7 +157,6 @@ applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du 
   mapM_ (setDescriptor conn)    (du^.newVals)
   deleteCondFormattingRules conn sid $ cfru^.oldKeys
   setCondFormattingRules conn sid $ cfru^.newVals
-  printObj "applied update to database" u
 
 pushCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 pushCommit conn src c = runRedis conn $ do

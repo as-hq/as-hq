@@ -74,29 +74,16 @@ handleUpdateWindow mid uc state w = sendToOriginal uc $ ClientMessage mid NoActi
 -- from getting lost and doesn't require us to manually reset the server.
 badCellsHandler :: ServerState -> ASUserClient -> SomeException -> IO ()
 badCellsHandler state uc e = do
-  logError ("Error while fetching cells: " ++ (show e)) (userCommitSource uc)
-  printWithTime "Undoing last commit"
-  DT.undo (state^.dbConn) (userCommitSource uc)
+  let src = userCommitSource uc
+  putsError src $ "Error while fetching cells: " ++ (show e)
+  DT.undo (state^.dbConn) src
+  puts "Reverted last commit."
   return ()
 
 handleGet :: MessageId -> ASUserClient -> ServerState -> [ASIndex] -> IO ()
 handleGet mid uc state locs = do
   mcells <- DB.getCells (state^.dbConn) locs
   sendToOriginal uc $ ClientMessage mid $ PassCellsToTest $ catMaybes mcells
--- handleGet uc state (PayloadList Sheets) = do
---   curState <- readState state
---   ss <- DB.getAllSheets (dbConn curState)
---   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadSS ss)
--- handleGet uc state (PayloadList Workbooks) = do
---   curState <- readState state
---   ws <- DB.getAllWorkbooks (dbConn curState)
---   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWBS ws)
--- handleGet uc state (PayloadList WorkbookSheets) = do
---   curState <- readState state
---   wss <- DB.getAllWorkbookSheets (dbConn curState)
---   printWithTime $ "getting all workbooks: "  ++ (show wss)
---   sendToOriginal uc $ ClientMessage UpdateSheet Success (PayloadWorkbookSheets wss)
--- Will uncomment when we're actually using this code; in the meantime let's not bother to maintain it. (12/28)
 
 handleIsCoupled :: MessageId -> ASUserClient -> ServerState -> ASIndex -> IO ()
 handleIsCoupled mid uc state loc = do 
@@ -113,7 +100,6 @@ handleClear mid client state sid = do
 handleUndo :: MessageId -> ASUserClient -> ServerState -> IO ()
 handleUndo mid uc state = do
   let conn = state^.dbConn
-  printWithTime "right before commit"
   commit <- DT.undo conn (userCommitSource uc)
   let errOrUpdate = maybe (Left TooFarBack) (Right . sheetUpdateFromCommit . flipCommit) commit
   broadcastErrOrUpdate mid state uc errOrUpdate
@@ -137,7 +123,6 @@ handleRepeat :: MessageId -> ASUserClient -> ServerState -> Selection -> IO ()
 handleRepeat mid uc state selection = return () -- do
   -- let conn = state^.dbConn
   -- ServerMessage lastAction lastPayload <- DB.getLastMessage conn (userCommitSource uc)
-  -- printObj "Got last thing for repeat: " (lastAction, lastPayload)
   -- case lastAction of
   --   Evaluate -> do
   --     let PayloadCL ((Cell l e v ts):[]) = lastPayload

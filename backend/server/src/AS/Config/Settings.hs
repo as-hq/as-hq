@@ -8,6 +8,7 @@ module AS.Config.Settings where
 
 import AS.Prelude
 import AS.Types.Network
+import AS.Types.Logging
 import AS.Types.Cell
 import AS.Types.User 
 
@@ -24,54 +25,46 @@ import qualified Data.ByteString.Char8 as BC
 import Control.Exception
 import Control.Lens hiding ((.=))
 
+import Control.Concurrent.Chan
+
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 
 --------------------------------------------------------------------------------------
 -- Types
 
-data AppSettings = AppSettings  { _backendWsAddress :: String
-                                , _backendWsPort :: Int
-                                , _graphDbAddress :: String
-                                , _pyKernelAddress :: String
-                                , _rKernelAddress_server :: String
-                                , _rKernelAddress_client :: String
-                                , _redisPort :: Int
-                                , _redisHost :: String
-                                , _redisPassword :: Maybe BC.ByteString
-                                , _shouldWriteToConsole :: Bool
-                                , _shouldWriteToSlack :: Bool
-                                , _diagnosticsPort :: Int}
+data AppSettings = AppSettings  { _backendWsAddress' :: String
+                                , _backendWsPort' :: Int
+                                , _graphDbAddress' :: String
+                                , _pyKernelAddress' :: String
+                                , _rKernelAddress_server' :: String
+                                , _rKernelAddress_client' :: String
+                                , _redisPort' :: Int
+                                , _redisHost' :: String
+                                , _redisPassword' :: Maybe BC.ByteString
+                                , _backendLogsOn' :: Bool
+                                , _rkernelLogsOn' :: Bool
+                                , _slackLogsOn' :: Bool
+                                , _diagnosticsPort' :: Int}
                                 deriving (Show)
 
 -- default values represent what should happen on localhost; the Environment.json values *should* 
 -- all be set remotely. 
 instance FromJSON AppSettings where
-  parseJSON (Object v) = do
-    wsAddr <- v .: "backendWsAddress"
-    wsPort <- v .: "backendWsPort"
-    graphAddr <- v .: "graphDbAddress_haskell"
-    pyAddr <- v .: "pyKernelAddress_haskell"
-    rAddr_server <- v .: "rKernelAddress_server"
-    rAddr_client <- v .: "rKernelAddress_client"
-    redisPort <- v .: "redisPort"
-    redisHost <- v .: "redisHost"
-    redisPassword <- v .:? "redisPassword"
-    shouldWriteToConsole <- v .: "shouldWriteToConsole"
-    shouldWriteToSlack <- v .: "shouldWriteToSlack"
-    diagnosticsPort <- v .: "diagnosticsPort"
-    return $ AppSettings 
-              wsAddr 
-              wsPort 
-              graphAddr 
-              pyAddr 
-              rAddr_server
-              rAddr_client
-              redisPort 
-              redisHost 
-              (BC.pack <$> redisPassword) 
-              shouldWriteToConsole 
-              shouldWriteToSlack
-              diagnosticsPort
+  parseJSON (Object v) = AppSettings 
+    <$> v .: "backendWsAddress"
+    <*> v .: "backendWsPort"
+    <*> v .: "graphDbAddress_haskell"
+    <*> v .: "pyKernelAddress_haskell"
+    <*> v .: "rKernelAddress_server"
+    <*> v .: "rKernelAddress_client"
+    <*> v .: "redisPort"
+    <*> v .: "redisHost"
+    <*> ((\x -> BC.pack <$> x) <$> (v .:? "redisPassword"))
+    <*> v .: "backendLogsOn"
+    <*> v .: "rkernelLogsOn"
+    <*> v .: "slackLogsOn"
+    <*> v .: "diagnosticsPort"
+
   parseJSON _ = $error "expected environment to be an object"
 
 makeLenses ''AppSettings
@@ -106,27 +99,40 @@ heartbeat_interval = 1000
 process_message_timeout :: Int
 process_message_timeout = 3 -- seconds
 
+log_truncate_length :: Int
+log_truncate_length = 400
+
 google_token_verify_url :: String
 google_token_verify_url = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token="
 
 google_client_id :: String
 google_client_id = "347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com"
 
-images_dir = "../server/static/images/"
-eval_dir   = "eval_files/"
-env_path   = ".." </> "Environment.json"
-log_dir    = "logs/"
-static_dir = "static/"
-whitelist_path = ".." </> "email_whitelist.txt"
+-- #needsrefactor should move to Environment.hs, or something
+shouldPreprocess :: Bool
+shouldPreprocess = False
 
+images_dir      = "../server/static/images/"
+eval_dir        = "eval_files/"
+env_path        = ".." </> "Environment.json"
+server_logs_dir = "./server_logs/"
+rkernel_logs_dir = "./rkernel_logs/"
+static_dir      = "static/"
+whitelist_path  = ".." </> "email_whitelist.txt"
 
 --------------------------------------------------------------------------------------
 -- configuration-dependent parameters
 
 alphaMain a = initializeSettings >> a
 
+writeSetting :: IORef a -> a -> IO ()
+writeSetting = writeIORef
+
 getSetting :: IORef a -> IO a
 getSetting = readIORef
+
+getLogger :: IO Logger
+getLogger = $fromJust <$> getSetting logger
 
 -- !!!!!!MUST BE CALLED UPON APP START!!!!!!
 initializeSettings :: IO ()
@@ -136,23 +142,29 @@ initializeSettings = do
   appSettings <- getRuntimeSettings 
   appDir <- getCurrentDirectory <++> return "/"
 
-  writeIORef appDirectory appDir
-  writeIORef shouldLogSlack (appSettings^.shouldWriteToSlack)
-  writeIORef shouldLogConsole (appSettings^.shouldWriteToConsole)
-  writeIORef graphAddress (appSettings^.graphDbAddress)
-  writeIORef pykernelAddress (appSettings^.pyKernelAddress)
-  writeIORef rkernelAddress_server (appSettings^.rKernelAddress_server)
-  writeIORef rkernelAddress_client (appSettings^.rKernelAddress_client)
-  writeIORef serverHost (appSettings^.backendWsAddress)
-  writeIORef serverPort (appSettings^.backendWsPort)
-  writeIORef dbHost (appSettings^.redisHost)
-  writeIORef dbPort (appSettings^.redisPort)
-  writeIORef dbPassword (appSettings^.redisPassword)
-  writeIORef ekgPort (appSettings^.diagnosticsPort)
+  writeSetting appDirectory appDir
+  writeSetting slackLogsOn (appSettings^.slackLogsOn')
+  writeSetting backendLogsOn (appSettings^.backendLogsOn')
+  writeSetting rkernelLogsOn (appSettings^.rkernelLogsOn')
+  writeSetting graphAddress (appSettings^.graphDbAddress')
+  writeSetting pykernelAddress (appSettings^.pyKernelAddress')
+  writeSetting rkernelAddress_server (appSettings^.rKernelAddress_server')
+  writeSetting rkernelAddress_client (appSettings^.rKernelAddress_client')
+  writeSetting serverHost (appSettings^.backendWsAddress')
+  writeSetting serverPort (appSettings^.backendWsPort')
+  writeSetting dbHost (appSettings^.redisHost')
+  writeSetting dbPort (appSettings^.redisPort')
+  writeSetting dbPassword (appSettings^.redisPassword')
+  writeSetting ekgPort (appSettings^.diagnosticsPort')
+
+  -- init logger
+  chan <- newChan
+  writeSetting logger (Just chan) 
 
   putStrLn . ("[CONFIG] appDirectory : " ++) . show =<< getSetting appDirectory
-  putStrLn . ("[CONFIG] shouldLogSlack : " ++) . show =<< getSetting shouldLogSlack
-  putStrLn . ("[CONFIG] shouldLogConsole : " ++) . show =<< getSetting shouldLogConsole
+  putStrLn . ("[CONFIG] slackLogsOn : " ++) . show =<< getSetting slackLogsOn
+  putStrLn . ("[CONFIG] backendLogsOn : " ++) . show =<< getSetting backendLogsOn
+  putStrLn . ("[CONFIG] rkernelLogsOn : " ++) . show =<< getSetting rkernelLogsOn
   putStrLn . ("[CONFIG] graphAddress : " ++) . show =<< getSetting graphAddress
   putStrLn . ("[CONFIG] pykernelAddress : " ++) . show=<< getSetting pykernelAddress
   putStrLn . ("[CONFIG] rkernelAddress_server : " ++) . show =<< getSetting rkernelAddress_server
@@ -168,11 +180,14 @@ initializeSettings = do
 appDirectory :: IORef String
 appDirectory = declareGlobal "SETTING_NOT_INITIALIZED"
 
-shouldLogSlack :: IORef Bool
-shouldLogSlack = declareGlobal False
+slackLogsOn :: IORef Bool
+slackLogsOn = declareGlobal False
 
-shouldLogConsole :: IORef Bool
-shouldLogConsole = declareGlobal False
+backendLogsOn :: IORef Bool
+backendLogsOn = declareGlobal False
+
+rkernelLogsOn :: IORef Bool
+rkernelLogsOn = declareGlobal False
 
 graphAddress :: IORef String
 graphAddress = declareGlobal "SETTING_NOT_INITIALIZED"
@@ -204,11 +219,14 @@ dbPassword = declareGlobal Nothing
 ekgPort :: IORef Int
 ekgPort = declareGlobal (-1)
 
+logger :: IORef (Maybe Logger)
+logger = declareGlobal Nothing
+
 --------------------------------------------------------------------------------------
 -- private helpers
 
-{-# NOINLINE declareGlobal #-}
 declareGlobal :: a -> IORef a
+{-# NOINLINE declareGlobal #-}
 declareGlobal x = unsafePerformIO $ newIORef x
 
 getRuntimeSettings :: IO AppSettings

@@ -3,6 +3,7 @@
 module AS.Kernels.R.Types where
 
 import AS.Prelude
+import AS.Config.Settings
 import AS.Logging (getTime)
 import Data.SafeCopy
 import qualified Data.Map as M
@@ -21,11 +22,6 @@ import Control.Memory.Region
 import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
-
---------------------------------------------------------------------------------
--- Settings
-
-logging_on         = False
 
 --------------------------------------------------------------------------------
 -- Client types
@@ -99,7 +95,8 @@ flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush ($fromJust $ st_^.log)
 puts :: (MonadIO m) => MVar State -> String -> m ()
 puts st x = liftIO $ do
   putStrLn x 
-  when logging_on $ do
+  doIt <- getSetting rkernelLogsOn
+  when doIt $ do
     _st <- readMVar st
     hPutStrLn ($fromJust $ _st^.log) x
 

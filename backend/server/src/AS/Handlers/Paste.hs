@@ -31,7 +31,6 @@ import Control.Lens
 
 handleCopy :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
 handleCopy mid uc state from to = do
-  putStrLn $ "IN HANDLE COPY"
   toCells <- getCopyCells (state^.dbConn) from to
   errOrUpdate <- runDispatchCycle state mid toCells DescendantsWithParent (userCommitSource uc) id
   broadcastErrOrUpdate mid state uc errOrUpdate

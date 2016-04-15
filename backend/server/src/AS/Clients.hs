@@ -9,6 +9,7 @@ import Control.Lens hiding ((.=))
 import AS.Prelude
 import AS.Types.Network 
 import AS.Types.Cell
+import AS.Types.Commits
 import AS.Types.Messages hiding (userId)
 import AS.Types.Eval
 import AS.Types.DB hiding (Clear, UserType)
@@ -36,16 +37,11 @@ import AS.Logging
 -- ASUserClient is a client
 
 shouldLogMessage :: ServerMessage -> Bool
-shouldLogMessage (ServerMessage _ (UpdateWindow _)) = False
-shouldLogMessage (ServerMessage _ (OpenSheet _)) = False
-shouldLogMessage _ = True
-
--- Whether to print the reception of the message on the console or not. 
--- Do not show logging messages, as they are distracting and happen on every frontend action
-shouldPrintMessage :: ServerMessage -> Bool
-shouldPrintMessage (ServerMessage _ (LogAction _)) = False
-shouldPrintMessage (ServerMessage _ (GetSessionLogs _)) = False
-shouldPrintMessage _ = False -- True
+shouldLogMessage msg = case msg of 
+  ServerMessage _ (UpdateWindow _)    -> False
+  ServerMessage _ (LogAction _)       -> False
+  ServerMessage _ (GetSessionLogs _)  -> False
+  _ -> True
 
 instance Client ASUserClient where
   clientType _ = UserType
@@ -59,15 +55,15 @@ instance Client ASUserClient where
     | uc `elem` (s^.userClients) = s & userClients %~ (L.delete uc)
     | otherwise = s
   lookupClient uc s = $fromJust $ L.find (== uc) (s^.userClients)
+  clientCommitSource = userCommitSource
   handleServerMessage user state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
-    when (shouldLogMessage message) $ logServerMessage (show message) (userCommitSource user)
-    when (shouldPrintMessage message) $ do 
-      putStrLn "=========================================================="
-      printObjForced "Server received message" message
+    when (shouldLogMessage message) $ do
+      puts "=========================================================="
+      putsSheet (srcSheetId . clientCommitSource $ user) (show message)
     curState <- readState state
-    storeLastMessage (curState^.dbConn) message (userCommitSource user)
+    storeLastMessage (curState^.dbConn) message (clientCommitSource user)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
     let mid = serverMessageId message 
@@ -136,6 +132,7 @@ instance Client ASDaemonClient where
     | dc `elem` (s^.daemonClients) = s & daemonClients %~ (L.delete dc)
     | otherwise = s
   lookupClient dc s = $fromJust $ L.find (== dc) (s^.daemonClients)
+  clientCommitSource = daemonCommitSource
   handleServerMessage daemon mstate message = case (serverAction message) of
     Evaluate xpsAndIndices -> do
       state <- readState mstate

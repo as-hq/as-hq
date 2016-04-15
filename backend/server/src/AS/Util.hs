@@ -34,7 +34,7 @@ testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emp
 sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
-  printObjForced "SENT REPLY" msg
+  puts "SENT REPLY" 
 
 -- | Generates a random number
 getUniqueId :: IO String

@@ -36,13 +36,10 @@ import Control.Concurrent
 import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)
-import Data.Maybe hiding (fromJust)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Char8 as BC
-import qualified Data.List as L
 import qualified Data.Map as M
-import Data.List.Split (chunksOf)
 import Data.String (fromString)
 
 import Data.FileEmbed (embedDir)
@@ -66,35 +63,38 @@ import Language.R.Instance as R
 
 main :: IO ()
 main = alphaMain $ R.withEmbeddedR R.defaultConfig $ do
-  _ <- installHandler sigPIPE Ignore Nothing
-  -- initializations
-  putStrLn "STARTING APP"
+  installHandler sigPIPE Ignore Nothing `seq` return ()
   state <- initApp
+  -- initializations
   curState <- readMVar state
   when isDebug $ initDebug state
 
-  putStrLn "\n\nRecomputing DAG..."
+  putsConsole "Recomputing DAG..."
   G.recomputeAllDAGs (curState^.dbConn)
-  putStrLn "Done."
+  putsConsole "Done."
 
   port <- S.getSetting S.serverPort
-  putStrLn $ "server started on port " ++ show port
+  putsConsole $ "Server started on port " ++ show port
   runServer state
-  putStrLn "DONE WITH MAIN"
+
+  putsConsole "Server exited."
+  closeLog
 
 initApp :: IO (MVar ServerState)
 initApp = do
+  -- init logging
+  forkIO_ runLogger
   -- init paths
   appDir <- S.getSetting S.appDirectory
-  createDirectoryIfMissing True (appDir </> S.log_dir)
   createDirectoryIfMissing True (appDir </> S.images_dir)
-  putStrLn "Created log and image directories if they didn't already exist"
+  putsConsole "Created image directories if they didn't already exist"
   -- init state
   conn <- DI.connectRedis
   state <- newMVar $ emptyServerState conn
   -- init kernels
-  KP.initialize conn
-  KR.initialize conn
+  putsConsole "initializing kernels..."
+  KP.initialize conn >> putsConsole "Python done."
+  KR.initialize conn >> putsConsole "R done."
   -- start diagnostics server
   host <- getSetting serverHost
   port <- getSetting ekgPort
@@ -104,9 +104,8 @@ initApp = do
 -- |  for debugging. Only called if isDebug is true.
 initDebug :: MVar ServerState -> IO ()
 initDebug _ = do
-  putStrLn "\n\nEvaluating debug statements..."
-  putStrLn "Done."
-  return ()
+  putsConsole "Evaluating debug statements..."
+  putsConsole "Done."
 
 runServer :: MVar ServerState -> IO ()
 runServer mstate = do
@@ -124,7 +123,7 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     wsApp :: WS.ServerApp
     wsApp pendingConn = do
       conn <- WS.acceptRequest pendingConn 
-      printWithTime "Client connected!"
+      putsConsole "Client connected!"
       -- fork a heartbeat thread, to immediately signal to the client that the connection is alive
       forkHeartbeat conn heartbeat_interval
       msg <- WS.receiveData conn -- waits until it receives data
@@ -137,7 +136,7 @@ handleFirstMessage ::  MVar ServerState -> WS.Connection -> BL.ByteString -> IO 
 handleFirstMessage state wsConn msg =
   case (decode msg :: Maybe LoginMessage) of
     Just (Login auth) -> do -- first message must be user auth
-      putStrLn $ "got auth!:" ++ (show auth)
+      putsObj "got auth:" auth
       authResult <- US.authenticateUser auth
       case authResult of 
         Right uid -> do
@@ -157,64 +156,59 @@ handleFirstMessage state wsConn msg =
           sendMessage successMsg wsConn
           catch (initClient userClient state) (handleRuntimeException userClient state)
         Left authErr -> do
-          putStrLn $ "Authentication error: " ++ authErr
+          puts $ "Authentication error: " ++ authErr
           let failMsg = ClientMessage auth_message_id $ AuthFailure authErr
           sendMessage failMsg wsConn
     _ -> do -- first message is neither
-      putStrLn $ "First message not a login message, received: " ++ (show msg)
+      putsObj "First message not a login message, received: " msg
       sendMessage (failureMessage initialization_failure_message_id "Cannot connect") wsConn -- failure messages are not associated with any send message id.
-
--- #needsrefactor should move to Environment.hs, or something
-shouldPreprocess :: Bool
-shouldPreprocess = False
 
 -- | For debugging purposes. Reads in a list of ServerMessages from a file and processes them, as though
 -- sent from a frontend. 
 preprocess :: WS.Connection -> MVar ServerState -> IO () 
-preprocess conn state = do
-  -- prepare the preprocessing
-  fileContents <- AS.Prelude.readFile (S.log_dir ++ "client_messages")
-  let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
-      nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && $head l /= '#') fileLinesWithNumbers
+preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4/13)
+  --do
+  ---- prepare the preprocessing
+  --fileContents <- AS.Prelude.readFile (S.log_dir ++ "client_messages")
+  --let fileLinesWithNumbers = zip (L.lines fileContents) [1..]
+  --    nonemptyNumberedFileLines =  filter (\(l, _) -> (l /= "") && $head l /= '#') fileLinesWithNumbers
 
-  mapM_ (\[(msg,i), (sid, _), (uid, _)] -> do 
-    putStrLn ("PROCESSING LINE " ++ show i ++ ": " ++ msg ++ "\n" ++ sid ++ "\n" ++ uid)
-    let win = Window (T.pack sid) (-1, -1) (-1, -1)
-        uid' = T.pack uid
-        -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
-        mockUc = UserClient uid' conn win uid'
-    curState <- readMVar state
-    when (isNothing $ US.getUserClientBySessionId uid' curState) $ 
-      liftIO $ modifyMVar_ state (return . addClient mockUc)
-    processMessage mockUc state ($read msg)
-    putStrLn "\n\n\n\nFINISHED PROCESSING MESSAGE\n\n\n\n") (chunksOf 3 nonemptyNumberedFileLines)
-  putStrLn "\n\nFinished preprocessing."
+  --forM_ (chunksOf 3 nonemptyNumberedFileLines) $ 
+  --  \[(msg,i), (sid, _), (uid, _)] -> do 
+  --    let win = Window (T.pack sid) (-1, -1) (-1, -1)
+  --        uid' = T.pack uid
+  --        -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
+  --        mockUc = UserClient uid' conn win uid'
+  --    curState <- readMVar state
+  --    when (isNothing $ US.getUserClientBySessionId uid' curState) $ 
+  --      modifyMVar_ state (return . addClient mockUc)
+  --    processMessage mockUc state ($read msg)
 
 initClient :: (Client c) => c -> MVar ServerState -> IO ()
 initClient client state = do
-  liftIO $ modifyMVar_ state (return . addClient client) -- add client to state
-  printWithTime "Client initialized!"
+  modifyMVar_ state (return . addClient client) -- add client to state
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
 talk :: (Client c) => c -> MVar ServerState -> IO ()
 talk client state = forever $ do
-  putStrLn . ("=== MAIN THREAD RELEASED ====" ++) =<< getTime
   dmsg <- WS.receiveDataMessage (clientConn client)
-  putStrLn . ("=== RECEIVE MESSAGE ====" ++) =<< getTime
+  putsConsole "=== RECEIVE MESSAGE ===="
   case dmsg of 
     WS.Binary b -> handleImportBinary client (State state) b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processAsyncWithTimeout client state m
-      Left s -> printWithTimeForced ("SERVER ERROR: unable to decode message " 
-                               ++ show msg
-                               ++ "\n\n due to parse error: " 
-                               ++ s)
+      Left s -> 
+        putsError (clientCommitSource client) ("SERVER ERROR: unable to decode message " 
+                                              ++ show msg
+                                              ++ "\n\n due to parse error: " 
+                                              ++ s)
 
 -- Only show relevant messages (not logAction, which clutters stdout)
-showGoodMessages :: ServerMessage -> IO ()
-showGoodMessages (ServerMessage _ (LogAction _)) = return ()
-showGoodMessages msg = printObjForced "RECEIVED MESSAGE: " msg
+putsServerMessage :: ServerMessage -> IO ()
+putsServerMessage msg = case msg of 
+  ServerMessage _ (LogAction _) -> return ()
+  m -> putsObj "Received message" m
 
 -- this functions runs an IO action in a forked thread, adds some thread bookkeeping to the server state, and 
 -- removes this bookkeeping upon success. Upon timeout, send an "AskTimeout" message to the client. The 
@@ -224,10 +218,10 @@ processAsyncWithTimeout :: (Client c) => c -> MVar ServerState -> ServerMessage 
 processAsyncWithTimeout c state msg = case clientType c of 
   UserType -> do
     successLock <- newEmptyMVar 
-    tid <- timeoutAsync successLock (\_ -> do
-      showGoodMessages msg
+    tid <- timeoutAsync successLock $ \_ -> do
+      putsServerMessage msg
       processMessage c state msg
-      putStrLn . ("=== FINISH PROCESSING ====" ++) =<< getTime)
+      putsConsole "=== FINISHED PROCESSING MESSAGE ====" 
     modifyMVar_' state $ \curState -> 
       return $ curState & threads %~ (M.insert mid tid)
     putMVar successLock ()
@@ -252,8 +246,8 @@ handleRuntimeException user state e = do
   let logMsg = displayException e
   putStrLn logMsg
   -- don't log CloseRequest exceptions.
-  unless (logMsg `elem` ignoredErrorMessages) $ logError logMsg (userCommitSource user)
-  -- settings <- view appSettings <$> readMVar state
+  unless (logMsg `elem` ignoredErrorMessages) $ 
+    putsError (userCommitSource user) logMsg 
   purgeZombies state
   runServer state
 
@@ -270,9 +264,9 @@ purgeZombies state = do
 -- There's gotta be a cleaner way to do this... but for some reason even typecasting 
 -- (\e -> onDisconnect uc state) :: (SomeException -> IO()) didn't work...
 onDisconnect' :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
-onDisconnect' user state _ = do 
-  onDisconnect user state
-  printWithTime "ZOMBIE KILLED!! [mgao machine gun sounds]\n"
+onDisconnect' c state _ = do 
+  onDisconnect c state
+  putsError (clientCommitSource c) "ZOMBIE KILLED!!"
 
 processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
 processMessage oldClient mstate message = do
@@ -284,6 +278,6 @@ processMessage oldClient mstate message = do
     else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn newClient)
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
-onDisconnect user state = do
-  printWithTime "Client disconnected"
-  liftIO $ modifyMVar_' state (return . removeClient user) -- remove client from server
+onDisconnect c state = do
+  putsConsole $ "Client disconnected: " ++ T.unpack (ownerName c)
+  liftIO $ modifyMVar_' state (return . removeClient c) -- remove client from server

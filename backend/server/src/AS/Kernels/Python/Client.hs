@@ -16,6 +16,7 @@ import qualified Data.List.Utils as LU
 import Database.Redis (Connection)
 
 import AS.Prelude
+import AS.Logging
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval
 import AS.Types.EvalHeader
@@ -95,12 +96,12 @@ evaluateSql mid sid code = do
 testCell :: ASSheetId -> EvalCode -> IO ()
 testCell sid code = do 
   evalledCell <- runEitherT $ evaluate sid test_message_id code
-  printObj "Test evaluate python cell: " evalledCell
+  putsObj "Test evaluate python cell: " evalledCell
 
 testHeader :: ASSheetId -> EvalCode -> IO ()
 testHeader sid code = do 
   evalledHeader <- runEitherT $ evaluateHeader sid test_message_id code
-  printObj "Test evaluate python header: " evalledHeader
+  putsObj "Test evaluate python header: " evalledHeader
 
 formatSqlCode :: EvalCode -> IO EvalCode
 formatSqlCode code = do

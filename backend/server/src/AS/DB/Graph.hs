@@ -44,7 +44,6 @@ import Control.Monad.Trans.Either
 setCellsAncestors :: [ASCell] -> EitherTExec ()
 setCellsAncestors cells = do
   setRelations relations 
-  printObjT "Set cell ancestors" relations
   where
     depSets = map getAncestorsForCell cells
     relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
@@ -82,7 +81,6 @@ execGraphQuery msg = do
     reqSocket <- socket Req
     connect reqSocket addr
     send' reqSocket [] msg  -- using lazy bytestring send function
-    liftIO $ printObj "sent message to graph db" msg
     receiveMulti reqSocket
 
 -- Given the graph reply as a list of ByteStrings, case on the last part (status) and possibly throw an error

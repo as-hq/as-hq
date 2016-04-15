@@ -68,12 +68,12 @@ runRequest msg = do
   resp <- liftIO $ runZMQ $ do
     addr <- liftIO $ getSetting rkernelAddress_client
     dealer <- connectToKernel addr
-    let mMid =  getMessageId msg
-    let send = send' dealer [] $ Serial.encodeLazy msg
-    let poke = getPoke msg dealer
-    let defErr = GenericErrorReply "R Kernel Down!"
-    let isStill = (==) StillProcessingReply
-    getResponse mMid send poke isStill defErr Serial.decode dealer
+    let mid       =  getMessageId msg
+    let send      = send' dealer [] $ Serial.encodeLazy msg
+    let statusReq = produceStatusRequest msg dealer
+    let defErr    = GenericErrorReply "R Kernel Down!"
+    let isStill   = (==) StillProcessingReply
+    getResponse mid send statusReq isStill defErr Serial.decode dealer
   case resp of 
     Left e -> left $ KernelError e
     -- this is a top-level kernel error that should throw a "left"
@@ -90,10 +90,10 @@ runRequest_ msg = void $ do
     Right (GenericErrorReply e) -> $error e
     otherwise -> return ()
 
--- | Given the request and the client, return the poke action to test if
+-- | Given the request and the client, return the statusReq action to test if
 --  the message sent to the kernel is still being processed. 
-getPoke ::  KernelRequest -> Socket z Dealer -> ZMQ z ()
-getPoke req dealer = case getMessageId req of
+produceStatusRequest ::  KernelRequest -> Socket z Dealer -> ZMQ z ()
+produceStatusRequest req dealer = case getMessageId req of
   Just mid -> send' dealer [] $ Serial.encodeLazy (GetStatusRequest mid)
   _ -> return ()
 

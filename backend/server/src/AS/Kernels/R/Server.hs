@@ -4,6 +4,7 @@
 module AS.Kernels.R.Server where
 
 import AS.Prelude
+import AS.Config.Settings
 
 import AS.Serialize as Serial
 import AS.Kernels.R.Types
@@ -46,7 +47,6 @@ load_response_delta = 5
 
 empty               = ""
 ready               = "READY"
-log_dir             = "./logs/"
 url_workers         = "inproc://myworkers"
 
 --------------------------------------------------------------------------------
@@ -54,6 +54,84 @@ url_workers         = "inproc://myworkers"
 
 idGen :: MonadIO m => m B.ByteString
 idGen = pack <$> liftIO getUniqueId
+
+--------------------------------------------------------------------------------
+-- Server initialization
+
+-- | Initialize namespaces with header values.
+initialize :: MVar State -> IO ()
+initialize state = do
+  dbConn <- connectRedis
+  headers <- getAllHeaders dbConn R
+  forM_ headers $ \header -> 
+    let code = header^.evalHeaderExpr
+        sid = header^.evalHeaderSheetId
+    in runBlock state code Header sid
+
+--------------------------------------------------------------------------------
+-- Running the server
+
+serverLoop :: Socket z Router -> Socket z Router -> MVar State -> Bool -> ZMQ z ()
+serverLoop frontend backend state logsOn = catchAny
+  (forever $ do 
+    [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, 
+                                 Sock frontend [In] Nothing]
+    processBackend  state (backend, frontend) evtsB logsOn
+    processFrontend state (frontend, backend) evtsF logsOn
+  ) 
+  (\e -> do 
+    puts state $ "ERROR: " ++ (show (e :: SomeException))
+    serverLoop frontend backend state logsOn
+  )
+
+-- | Main server loop. Caveat: requires that R has already been initialized.
+runServer :: Addr -> Int -> IO ()
+runServer url_clients numInitialWorkers = do
+   -- Initialize logging
+  logsOn <- getSetting rkernelLogsOn 
+  logHandle <- if logsOn
+    then do 
+      createDirectoryIfMissing True rkernel_logs_dir
+      logFile <- ((rkernel_logs_dir ++ "[rkernel]") ++) <$> getTime
+      Just <$> openFile logFile AppendMode 
+    else return Nothing
+
+  -- Initialize state
+  shell <- newShell
+  state <- newMVar $ emptyState shell logHandle
+  
+  -- r kernel will NOT initialize itself, because the main 
+  -- backend server is responsible for this and we shouldn't double-initialize.
+  -- (for now). anand 4/18
+  -- initialize state
+
+  -- Close log cleanly upon Ctrl+C
+  let sigintHandler = do
+          putStrLn "Exited normally."
+          when logsOn $ do
+            flushLog state
+            closeLog state
+          raiseSignal sigTERM
+  seq (installHandler sigINT (Catch sigintHandler) Nothing) (return ())
+
+  runZMQ $ do
+    puts state "Starting workers..."
+   
+    replicateM_ numInitialWorkers $ 
+      installWorker state =<< idGen
+
+    puts state $ "Server listening on " ++ url_clients
+    when logsOn $ flushLog state
+
+    frontend <- socket Router
+    bind frontend url_clients
+    backend <- socket Router
+    bind backend url_workers
+
+    serverLoop frontend backend state logsOn 
+
+    puts state "Kernel exited."
+
 
 --------------------------------------------------------------------------------
 -- Worker initialization
@@ -116,6 +194,8 @@ runWorker state wid = do
   connect sock url_workers
   sendMulti sock $ fromList [ready, empty, wid]
 
+  logsOn <- liftIO $ getSetting rkernelLogsOn
+
   forever $ do
     -- blocks here until the worker is registered 
     -- (due to invariant: unregistered worker never assigned work)
@@ -134,16 +214,17 @@ runWorker state wid = do
       Right myReq -> do
         putsTimed state $ "Processing request: " ++ show myReq
         processMessage state myReq
-      Left err    -> do
+      Left err -> do
         putsTimed state "Could not decode request"
         return $ GenericErrorReply err
+
     sendMulti sock $ fromList [clientAddr, empty, Serial.encode rep]
 
     -- Build up logs in buffer during work, then flush to file during each 
     -- worker's dead zone (the period between having finished work and becoming 
     -- non-idle). This is a tradeoff between increasing evaluation time and 
     -- increasing the number of workers, favoring the latter.
-    when logging_on $ flushLog state
+    when logsOn $ flushLog state
 
     -- Reset idle status
     liftIO $ setWorkerStatus state wid Idle
@@ -165,21 +246,22 @@ processBackend :: (Receiver r, Sender s) =>
                   MVar State -> -- shared worker state
                   (Socket z r, Socket z s) -> -- backend, frontend sockets
                   [Event] -> -- polled events
+                  Bool -> -- whether logs are enabled
                   ZMQ z ()
-processBackend state (backend, frontend) evts = when (In `elem` evts) $ do
+processBackend state (backend, frontend) evts logsOn = when (In `elem` evts) $ do
   msg <- receiveMulti backend
   if (msg !! 2 == ready) 
     then liftIO $ do
       let netid = msg !! 0
       let wid = msg !! 4
-      puts state $ "WORKER REGISTERED: " ++ show wid
       registerWorker state wid netid
+      puts state $ "WORKER REGISTERED: " ++ show wid
     else do
       let clientAddr = msg !! 2
       let reply = msg !! 4
       putsTimed state "==== SENT BACK REPLY ==== "
       sendMulti frontend $ fromList [clientAddr, reply]
-      when logging_on $ flushLog state
+      when logsOn $ flushLog state
 
 --------------------------------------------------------------------------------
 -- Process frontend router events
@@ -199,61 +281,57 @@ processFrontend :: (Receiver r, Sender r, Sender s) =>
                    MVar State -> -- shared state
                    (Socket z r, Socket z s) -> -- frontend, backend sockets
                    [Event] -> -- polled events
+                   Bool -> -- whether logs are enabled
                    ZMQ z ()
-processFrontend  state (frontend, backend) evts = when (In `elem` evts) $ do
-  [clientAddr, req] <- receiveMulti frontend
-  case Serial.decode req of
-    Right (GetStatusRequest mid) -> 
-      handleGetStatusRequest state mid frontend clientAddr
-    otherMessage    -> do
-      worker <- liftIO $ getAvailableWorker state
-      if isNothing worker
-        then do
-          puts state "HIGH LOAD, SCALING UP"
-          replicateM_ load_response_delta $
-            installWorker state =<< idGen
-          processFrontend state (frontend, backend) evts
-        else 
-          let w = $fromJust worker
-          in if (w^.status) == Unregistered
-            then return ()
-            else do
-              -- Invariant: if the worker is Idle, it has a valid Network ID
-              sendMulti backend $ fromList [ $fromJust (w^.networkId)
-                                           , empty, clientAddr
-                                           , empty, req
-                                           ]
+processFrontend  state (frontend, backend) evts logsOn = 
+  when (In `elem` evts) $ do
+    worker <- liftIO $ getAvailableWorker state
+    if isNothing worker
+      -- scale up if no available workers
+      then do
+        puts state "HIGH LOAD, SCALING UP"
+        replicateM_ load_response_delta $
+          installWorker state =<< idGen
+      -- else, route client request to available worker
+      else 
+        let w = $fromJust worker
+        in if (w^.status) == Unregistered
+          then return ()
+          else do
+            [clientAddr, req] <- receiveMulti frontend
+            -- Invariant: if the worker is Idle, it has a valid Network ID
+            sendMulti backend $ fromList [ $fromJust (w^.networkId)
+                                         , empty, clientAddr
+                                         , empty, req
+                                         ]
 
 --------------------------------------------------------------------------------
 -- Process messages
+
+
+processMessage :: MVar State -> KernelRequest -> ZMQ z KernelReply
+processMessage state req = case req of 
+  EvaluateRequest scope _ sid code -> 
+    EvaluateReply <$> liftIO (runBlock state code scope sid)
+  ClearRequest sid -> 
+    liftIO (clear state sid) >> return GenericSuccessReply
+  HaltMessageRequest mid -> 
+    haltMessage state mid >> return GenericSuccessReply
+  GetStatusRequest mid -> 
+    liftIO $ getMessageStatus state mid
 
 -- | When the client pokes us for the status of a MessageId, we see if any 
 -- worker is busy on that message. If so, we send [clientAddr, stillUpdating]
 -- to the frontend router, which will send [stillUpdating] to the client at
 -- clientAddr. Else, we do nothing.
-handleGetStatusRequest :: (Sender s) => 
-                          MVar State -> -- shared state
-                          MessageId -> -- message id requested
-                          Socket z s -> -- frontend socket
-                          NetworkId -> -- client address
-                          ZMQ z ()
-handleGetStatusRequest st mid frontend clientAddr = do 
+getMessageStatus :: MVar State -> MessageId -> IO KernelReply
+getMessageStatus st mid = do 
   putsTimed st $ "POKE REQUEST " ++ (T.unpack mid)
-  state <- liftIO $ readMVar st
+  state <- readMVar st
   let ws = M.filter (\w -> w^.status == Busy (Just mid)) (state^.workers)
-  when (not $ null ws) $ do 
-    putsTimed st "STILL PROCESSING REPLY"
-    let still = Serial.encode StillProcessingReply
-    sendMulti frontend $ fromList [clientAddr, still]
-
-processMessage :: MVar State -> KernelRequest -> ZMQ z KernelReply
-processMessage state req = case req of 
-  EvaluateRequest scope _ sid code  -> 
-    EvaluateReply <$> liftIO (runBlock state code scope sid)
-  ClearRequest sid                  -> 
-    liftIO (clear state sid) >> return GenericSuccessReply
-  HaltMessageRequest mid            -> 
-    haltMessage state mid >> return GenericSuccessReply
+  return $ if null ws 
+    then GenericErrorReply "not working on that message"
+    else StillProcessingReply
 
 -- | Halt work on a message. Kills all workers working on a particular message, 
 -- and replaces them with new ones.
@@ -266,79 +344,3 @@ haltMessage state mid = do
     installWorker state (worker^.workerId)
     liftIO $ Async.cancel (worker^.thread)
 
---------------------------------------------------------------------------------
--- Server initialization
-
--- | Initialize namespaces with header values.
-initialize :: MVar State -> IO ()
-initialize state = do
-  dbConn <- connectRedis
-  headers <- getAllHeaders dbConn R
-  forM_ headers $ \header -> 
-    let code = header^.evalHeaderExpr
-        sid = header^.evalHeaderSheetId
-    in runBlock state code Header sid
-
---------------------------------------------------------------------------------
--- Running the server
-
-serverLoop :: Socket z Router -> Socket z Router -> MVar State ->  ZMQ z ()
-serverLoop frontend backend state = catchAny
-  (forever $ do 
-    [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, 
-                                 Sock frontend [In] Nothing]
-    processBackend  state (backend, frontend) evtsB
-    processFrontend state (frontend, backend) evtsF
-  ) 
-  (\e -> do 
-    puts state $ "ERROR: " ++ (show (e :: SomeException))
-    serverLoop frontend backend state
-  )
-
--- | Main server loop. Caveat: requires that R has already been initialized.
-runServer :: Addr -> Int -> IO ()
-runServer url_clients numInitialWorkers = do
-   -- Initialize logging
-  logHandle <- if logging_on
-    then do 
-      createDirectoryIfMissing True log_dir
-      logFile <- ((log_dir ++ "[rkernel]") ++) <$> getTime
-      Just <$> openFile logFile AppendMode 
-    else return Nothing
-
-  -- Initialize state
-  shell <- newShell
-  state <- newMVar $ emptyState shell logHandle
-  
-  -- r kernel will NOT initialize itself, because the main 
-  -- backend server is responsible for this and we shouldn't double-initialize.
-  -- (for now). anand 4/18
-  -- initialize state
-
-  -- Close log cleanly upon Ctrl+C
-  let sigintHandler = do
-          putStrLn "EXITED NORMALLY"
-          when logging_on $ do
-            flushLog state
-            closeLog state
-          raiseSignal sigTERM
-  seq (installHandler sigINT (Catch sigintHandler) Nothing) (return ())
-
-  runZMQ $ do
-    puts state "Starting workers..."
-   
-    replicateM_ numInitialWorkers $ 
-      installWorker state =<< idGen
-
-    puts state $ "Server listening on " ++ url_clients
-
-    when logging_on $ flushLog state
-
-    frontend <- socket Router
-    bind frontend url_clients
-    backend <- socket Router
-    bind backend url_workers
-
-    serverLoop frontend backend state
-
---------------------------------------------------------------------------------

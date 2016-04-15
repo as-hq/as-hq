@@ -146,7 +146,7 @@ createTask key id title desc = do
 -- and then send an ack back to frontend
 handleBugReport :: ASUserClient -> ServerState -> String -> IO ()
 handleBugReport uc state title = do
-  logBugReport title $ userCommitSource uc
+  putsBugReport (userCommitSource uc) title
   connectResp <- conduitConnect
   case connectResp of 
     Nothing -> return ()

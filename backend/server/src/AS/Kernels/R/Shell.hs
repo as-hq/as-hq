@@ -39,7 +39,6 @@ import Control.Memory.Region
 
 import AS.Prelude
 import AS.Config.Settings as S
-import AS.Logging
 import AS.Util 
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Eval

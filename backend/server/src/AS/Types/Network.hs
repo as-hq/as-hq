@@ -8,7 +8,7 @@ import AS.Prelude
 import AS.Types.Sheets 
 import AS.Types.Locations
 import AS.Types.Commits
-import AS.Types.Messages
+import AS.Types.Messages hiding (LogSource)
 import AS.Types.User
 import AS.Types.Window
 
@@ -27,8 +27,21 @@ import Data.UUID (toString)
 import Control.Lens hiding ((.=))
 import Control.Concurrent (MVar, ThreadId, newMVar, modifyMVar_, takeMVar, readMVar, putMVar, newEmptyMVar)
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- User client
 
--- Deals with server and client stuff
+data ASUserClient = UserClient { _userId :: ASUserId, _userConn :: WS.Connection, _userWindow :: ASWindow, _userSessionId :: SessionId } -- userSessionID uniquely identifies a user client
+makeLenses ''ASUserClient
+
+instance Eq ASUserClient where
+  c1 == c2 = (c1^.userSessionId) == (c2^.userSessionId)
+
+userSheetId :: ASUserClient -> ASSheetId
+userSheetId (UserClient _ _ (Window sid _ _) _) = sid
+
+userCommitSource :: ASUserClient -> CommitSource
+userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Daemons
@@ -62,16 +75,24 @@ modifyState_ (State m) = modifyMVar_ m
 
 type ThreadMap = M.Map MessageId ThreadId 
 
-data ServerState = ServerState { _userClients :: [ASUserClient]
-                          , _daemonClients :: [ASDaemonClient]
-                          , _dbConn :: R.Connection
-                          , _threads :: ThreadMap
-                          , _isDebuggingLog :: Bool} 
--- #needsrefactor rename isDebuggingLog to stopLoggingMessages or something. The idea is that in "dev debug"
--- mode, you shouldn't be logging replays. 
+data ServerState = ServerState 
+  { _userClients :: [ASUserClient]
+  , _daemonClients :: [ASDaemonClient]
+  , _dbConn :: R.Connection
+  , _threads :: ThreadMap
+  , _isDebuggingLog :: Bool
+  } 
+makeLenses ''ServerState
+
 
 emptyServerState :: R.Connection -> ServerState
-emptyServerState conn = ServerState [] [] conn M.empty False 
+emptyServerState conn = ServerState 
+  { _userClients = [] 
+  , _daemonClients = [] 
+  , _dbConn = conn 
+  , _threads = M.empty
+  , _isDebuggingLog = False
+  } 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
@@ -85,6 +106,7 @@ class Client c where
   removeClient :: c -> ServerState -> ServerState
   lookupClient :: c -> ServerState -> c
   handleServerMessage :: c -> State -> ServerMessage -> IO ()
+  clientCommitSource :: c -> CommitSource
 
 -- the actual implementations of these in UserClient and DaemonClient will appear in Client.hs
 
@@ -93,19 +115,3 @@ type Milliseconds = Int
 
 data ClientType = UserType | DaemonType
 
-----------------------------------------------------------------------------------------------------------------------------------------------
--- User client
-
-data ASUserClient = UserClient { _userId :: ASUserId, _userConn :: WS.Connection, _userWindow :: ASWindow, _userSessionId :: SessionId } -- userSessionID uniquely identifies a user client
-makeLenses ''ASUserClient
-
-instance Eq ASUserClient where
-  c1 == c2 = (c1^.userSessionId) == (c2^.userSessionId)
-
-userSheetId :: ASUserClient -> ASSheetId
-userSheetId (UserClient _ _ (Window sid _ _) _) = sid
-
-userCommitSource :: ASUserClient -> CommitSource
-userCommitSource (UserClient uid _ (Window sid _ _) _) = CommitSource sid uid
-
-makeLenses ''ServerState

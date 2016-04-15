@@ -55,7 +55,6 @@ import qualified AS.DB.Graph as G
 evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression 
                  -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
 evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
-  printWithTimeT "Starting eval code"
   let conn = state^.dbConn
   -- Function from ExRef to string for interpolation
   let replaceFunc ref = lookUpRef state mid lang ctx (exRefToASRef sid ref) f
