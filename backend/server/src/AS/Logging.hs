@@ -140,10 +140,11 @@ writeLog h src x = do
   hPutStrLn h ts
   hPutStrLn h x 
   hFlush h 
-  case src of 
-    ErrorLog _ -> logSlack x
-    BugLog _   -> logSlack x
-    _ -> return ()
+  when (slackable x) $ 
+    case src of 
+      ErrorLog _ -> logSlack x
+      BugLog _   -> logSlack x
+      _ -> return ()
 
 newLoggerState :: LoggerState
 newLoggerState = LoggerState { _handles = M.empty }
@@ -157,6 +158,15 @@ truncated = take log_truncate_length
 -- Gets date in format 2015-12-02 20:44:24.515
 getTime :: IO String
 getTime = getCurrentTime >>= (return . (take 23) . show)
+
+slackable :: String -> Bool
+slackable x = not . any same $ map (zip x) unslackable
+  where 
+    same = all (\(x,y) -> x == y)
+    unslackable :: [String]
+    unslackable =  
+      [ "SERVER ERROR: unable to decode message"
+      ]
 
 logSlack :: String -> IO ()
 logSlack msg = forkIO_ $ do
