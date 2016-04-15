@@ -12,19 +12,30 @@
 
 # Run this script from the directory it lives in.
 
+THIS_DIR=`CWD`
+
 ###### Install dependencies ######
+mkdir ~/.alphasheets-dependencies
+cd ~/.alphasheets-dependencies
+
 apt-get update
-apt-get install build-essential
-apt-get install tcl8.5
-apt-get install nginx
-apt-get install tmux
-apt-get install pkg-config
-apt-get install libfreetype libpng
-apt-get install python-all-dev 
-apt-get install libpng-dev 
-apt-get install zlib1g-dev 
-apt-get install libfreetype6-dev 
-apt-get install python-dev
+
+apt-get install -y  libboost-all-dev \
+                    libzmq3-dev \
+                    libtool \
+                    pkg-config \
+                    build-essential \
+                    autoconf \
+                    automake \ 
+                    python-all-dev \
+                    libpng-dev \
+                    zlib1g-dev \
+                    libfreetype6-dev \
+                    python-dev 
+
+apt-get install -y  tcl8.5 \
+                    nginx \
+                    tmux
 
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
@@ -37,13 +48,50 @@ make install
 
 cd utils
 ./install_server.sh
+cd ../..
 
 # pip
-cd ../..
 curl -O https://bootstrap.pypa.io/get-pip.py
 python get-pip.py
+pip install six
+
+# libsodium
+git clone git://github.com/jedisct1/libsodium.git
+cd libsodium 
+./autogen.sh
+./configure
+make check
+make install
+ldconfig
+cd ..
+
+# zmq
+git clone https://github.com/zeromq/zeromq4-1
+cd zeromq4-1
+./autogen.sh
+./configure
+make check
+make install
+ldconfig
+cd ..
+
+# R 
+echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list
+gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9
+gpg -a --export E084DAB9 | sudo apt-key add -
+apt-get update
+apt-get -y install r-base
+
+# R packages
+echo "r <- getOption('repos'); r['CRAN'] <- 'http://cran.us.r-project.org'; options(repos = r);" > ~/.Rprofile
+Rscript -e "install.packages('rjson')"
+Rscript -e "install.packages('ggplot2')"
+Rscript -e "install.packages('party')"
+Rscript -e "install.packages('jpeg')"
 
 ###### Write configurations ######
+
+cd $THIS_DIR
 
 # ssh
 cd config
