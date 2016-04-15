@@ -85,6 +85,11 @@ Rscript -e "install.packages('ggplot2')"
 Rscript -e "install.packages('party')"
 Rscript -e "install.packages('jpeg')"
 
+# anand's amazing git aliases
+cd ~
+rm .gitconfig
+curl -o .gitconfig http://puu.sh/ojAFc/72c819717a.gitconfig
+
 ###### Write configurations ######
 
 cd $THIS_DIR
