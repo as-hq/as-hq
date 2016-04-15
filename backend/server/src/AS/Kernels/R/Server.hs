@@ -136,16 +136,6 @@ runServer url_clients numInitialWorkers = do
 --------------------------------------------------------------------------------
 -- Worker initialization
 
--- | initialize namespaces with header values
-initialize :: MVar State -> IO ()
-initialize state = do
-  dbConn <- connectRedis
-  headers <- getAllHeaders dbConn R
-  forM_ headers $ \header -> 
-    let code = header^.evalHeaderExpr
-        sid = header^.evalHeaderSheetId
-    in runBlock state code Header sid
-
 -- | Create and install a worker. Its status is 'Unregistered' until it 
 -- sends a registration message.
 installWorker :: MVar State -> WorkerId -> ZMQ z ()

@@ -130,7 +130,7 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     staticApp :: Wai.Application
     staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
-handshakeAndStart ::  MVar ServerState -> WS.Connection -> B.ByteString -> IO ()
+handshakeAndStart ::  MVar ServerState -> WS.Connection -> BL.ByteString -> IO ()
 handshakeAndStart state wsConn msg =
   case (decode msg :: Maybe FirstMessage) of
     Just (Login auth) -> do -- first message must be user auth
@@ -188,7 +188,7 @@ preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4
 engageClient :: (Client c) => c -> MVar ServerState -> IO ()
 engageClient client state = do
   liftIO $ modifyMVar_ state (return . addClient client) -- add client to state
-  printWithTime "Client initialized!"
+  puts "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
