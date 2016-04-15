@@ -33,7 +33,7 @@ cd pylib
 python setup.py develop
 cd ../pykernel
 tmux kill-session -t "pykernel"
-tmux new -s "pykernel" -d "export PATH=\"/root/anaconda2/bin:$PATH\"; ./server.sh"
+tmux new -s "pykernel" -d "python server.py"
 cd ../
 
 # rkernel
@@ -57,6 +57,7 @@ tmux new -s "static" -d "python -m SimpleHTTPServer"
 cd ../..
 
 # replace & reload frontend
+mkdir /www/
 rm -rf /www/alphasheets
 cp -r frontend /www/alphasheets
 nginx -s reload

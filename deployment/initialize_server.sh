@@ -12,7 +12,7 @@
 
 # Run this script from the directory it lives in.
 
-THIS_DIR=`CWD`
+THIS_DIR=`cwd`
 
 ###### Install dependencies ######
 mkdir ~/.alphasheets-dependencies
@@ -20,22 +20,18 @@ cd ~/.alphasheets-dependencies
 
 apt-get update
 
-apt-get install -y  libboost-all-dev \
-                    libzmq3-dev \
-                    libtool \
-                    pkg-config \
-                    build-essential \
-                    autoconf \
-                    automake \ 
-                    python-all-dev \
-                    libpng-dev \
-                    zlib1g-dev \
-                    libfreetype6-dev \
-                    python-dev 
-
-apt-get install -y  tcl8.5 \
-                    nginx \
-                    tmux
+apt-get -y install libtool 
+apt-get -y install libboost-all-dev 
+apt-get -y install libzmq3-dev 
+apt-get -y install pkg-config 
+apt-get -y install build-essential 
+apt-get -y install autoconf 
+apt-get -y install automake  
+apt-get -y install python-all-dev 
+apt-get -y install libpng-dev 
+apt-get -y install zlib1g-dev 
+apt-get -y install libfreetype6-dev 
+apt-get -y install python-dev 
 
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
@@ -102,7 +98,7 @@ service ssh restart
 cp redis/redis_6379 /etc/init.d/
 cp redis/6379.conf /etc/redis/
 update-rc.d redis_6379 defaults
-service redis_6379 restart
+service redis_6379 start
 
 # nginx
 cd nginx
