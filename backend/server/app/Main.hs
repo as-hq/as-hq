@@ -114,6 +114,7 @@ runServer mstate = do
   Warp.runSettings
     (Warp.setHost (fromString host)
       . Warp.setPort port
+      . Warp.setTimeout server_timeout
       $ Warp.defaultSettings)
     $ application mstate
 

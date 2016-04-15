@@ -96,8 +96,11 @@ headerLangs = [Python, R]
 heartbeat_interval :: Milliseconds
 heartbeat_interval = 1000
 
-process_message_timeout :: Int
-process_message_timeout = 3 -- seconds
+server_timeout :: Seconds
+server_timeout = 10000
+
+process_message_timeout :: Seconds
+process_message_timeout = 3
 
 log_truncate_length :: Int
 log_truncate_length = 400
