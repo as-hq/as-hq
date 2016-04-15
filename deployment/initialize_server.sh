@@ -12,7 +12,7 @@
 
 # Run this script from the directory it lives in.
 
-THIS_DIR=`cwd`
+THIS_DIR=`pwd`
 
 ###### Install dependencies ######
 mkdir ~/.alphasheets-dependencies
