@@ -7,6 +7,7 @@ import Data.UUID.V4 (nextRandom)
 import Data.UUID (toString)
 import Data.Aeson
 import Debug.Trace 
+import qualified Data.Text as T
 import qualified Data.Map as M
 import qualified Data.ByteString.Lazy as BL
 import qualified Network.WebSockets as WS
@@ -16,6 +17,7 @@ import AS.Prelude
 import AS.Logging
 import AS.Types.Cell
 import AS.Types.Network
+import AS.Types.Messages
 import AS.Types.CellProps (emptyProps)
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -31,10 +33,10 @@ testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emp
 -------------------------------------------------------------------------------------------------------------------------
 -- Misc
 
-sendMessage :: (ToJSON a, Show a) => a -> WS.Connection -> IO ()
+sendMessage :: ClientMessage -> WS.Connection -> IO ()
 sendMessage msg conn = do
   WS.sendTextData conn (encode msg)
-  puts "SENT REPLY" 
+  puts $ "SENT REPLY TO " ++ T.unpack (clientMessageId msg)
 
 -- | Generates a random number
 getUniqueId :: IO String

@@ -69,27 +69,9 @@ possiblyCreateDaemon state owner cell =
 -- | Creates a streaming daemon to regularly update the cell at a location. 
 -- Does so by creating client that talks to server, pinging it with the regularity 
 -- specified by the user. 
+-- not supported right now (anand 3/7) 
 createDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
 createDaemon state s loc msg = $undefined
--- not supported right now (anand 3/7) 
---do -- msg is the message that the daemon will send to the server regularly
-  --let name = getDaemonName loc
-  --running <- isRunning name
-  --if (running)
-  --  then return ()
-  --  else do 
-  --    runDetached (Just name) def $ do 
-  --      let daemonId = T.pack $ getDaemonName loc
-  --          initMsg = ServerMessage daemon_message_id $ InitializeDaemon daemonId loc
-  --          settings = state^.appSettings
-  --      WS.runClient (settings^.backendWsAddress) (settings^.backendWsPort) "/" $ \conn -> do 
-  --        U.sendMessage initMsg conn
-  --        regularlyReEval s loc msg conn -- is an eval message on the cell
-
-regularlyReEval :: Stream -> ASIndex -> ServerMessage -> WS.Connection -> IO ()
-regularlyReEval (Stream src x) loc msg conn = forever $ do 
-  U.sendMessage msg conn
-  threadDelay (1000*x) -- microseconds to milliseconds
 
 removeDaemon :: ASIndex -> ServerState -> IO ()
 removeDaemon loc state = do 
