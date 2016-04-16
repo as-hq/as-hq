@@ -38,6 +38,8 @@ apt-get -y install mysql-server
 apt-get -y install mysql-client-core-5.5
 apt-get -y install libmysqlclient-dev
 
+apt-get -y install s3cmd
+
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
 tar xzf redis-stable.tar.gz
@@ -56,6 +58,7 @@ curl -O https://bootstrap.pypa.io/get-pip.py
 python get-pip.py
 pip install extern
 pip install six
+pip install websocket-client
 
 # libsodium
 git clone git://github.com/jedisct1/libsodium.git
@@ -95,6 +98,9 @@ Rscript -e "install.packages('jpeg')"
 cd ~
 rm .gitconfig
 curl -o .gitconfig http://puu.sh/ojAFc/72c819717a.gitconfig
+
+# S3 config for backups
+curl -o .s3cfg http://puu.sh/ojPxI/2e874ee3a0.s3cfg
 
 ###### Write configurations ######
 
