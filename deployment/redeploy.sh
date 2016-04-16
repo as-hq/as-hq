@@ -1,27 +1,34 @@
 #!/bin/bash
 
-## DEPRECATING UNTIL ROUTER SETUP IS NEEDED (anand 3/13)
-# # rebuild docker image
-# cd container
-# ./docker_build.sh
+# This script redeploys the build from a particular branch
+# Run this script where it is located.
 
-# # redeploy backend instances
-# curl -H "Content-Type: application/json" -X POST \
-#      -d '{"action":"redeploy_all"}' http://localhost:10000
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  shift;
+  case "$opt" in
+    "-b"|"--branch"     ) BRANCH="$1"; shift;;
+    *                   ) echo "ERROR: Invalid option: \""$opt"\"" >&2
+                          exit 1;;
+  esac
+done
 
-# ASSUMES THIS SCRIPT IS RUN FROM deployment/
-cd ..
+echo "Using branch: $BRANCH"
+
+if [ -z "$BRANCH" ]; then
+  echo "branch required. use -b BRANCH_NAME."
+  exit 1;
+fi
+
 
 # update repo
-git fetch origin master
+cd ..
+git fetch origin "$BRANCH"
 git reset --hard FETCH_HEAD
 git clean -d -fx ""
 
-# Not needed as long as we're not using pyinstaller on the python kernel.
-# (anand 4/14)
-# export PATH=\"/root/anaconda2/bin:$PATH\"; 
-
 ## redeploy backend services
+
 # graph
 cd graph
 tmux kill-session -t "graphdb"
@@ -40,6 +47,9 @@ cd ../
 cd rkernel
 tmux kill-session -t "rkernel"
 tmux new -s "rkernel" -d "./rkernel-exe"
+
+#  wait for kernels to come up
+sleep 10
 
 # backend
 cd ../server
