@@ -4,7 +4,7 @@
 # It assumes a Redis file directory like the one on the server
 # It also uses Amazon S3 configuration already set up on the server
 
-REDIS_DUMP_FILE_PREFIX=/var/redis
+REDIS_DUMP_FILE_PREFIX=/var/lib/redis
 S3_BUCKET=s3://redis.alphasheets.com
 RP=REDIS_PASSWORD_THAT_WONT_BE_PUSHED_TO_GIT
 
