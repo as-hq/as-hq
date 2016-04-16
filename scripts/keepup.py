@@ -6,6 +6,7 @@ import errno
 import os
 import signal
 import subprocess
+import shortid
 from time import gmtime, strftime
 
 # This script will try to evaluate in all languages. If it fails in any way, it will trigger a 
@@ -19,6 +20,11 @@ from time import gmtime, strftime
 languages = ["Excel", "Python", "R"]
 server_type = sys.argv[1]
 address = sys.argv[2]
+
+sid = shortid.ShortId();
+
+def id_gen():
+  return sid.generate()
 
 #---------------------------------------------------------------------------------------------------
 # Timeout errors
@@ -46,8 +52,11 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
 
 def login_message():
   msg = {
-    "tag": "TestAuth",
-    "contents": []
+    "tag": "Login", 
+    "contents": {
+      "tag": "TestAuth",
+      "contents": []
+    }
   }
   return json.dumps(msg)
 
@@ -57,7 +66,7 @@ def clear_message(sheetId):
       "tag": "ClearSheetServer",
       "contents": sheetId
     },
-    "messageId": "41z040DRx"
+    "messageId": id_gen()
   }
   return json.dumps(msg)
 
@@ -81,7 +90,7 @@ def eval_message(language, sheetId):
         }
       }]
     },
-    "messageId":"4kE3UXCDRg"
+    "messageId": id_gen()
   }
   return json.dumps(msg)
 
@@ -159,7 +168,6 @@ def handle_failure(test_successes):
 def handle_ws_down():
   slack_msg = "\"Websocket connection to " +  server_type + " may have failed.\""
   slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
-  subprocess.call(["cd scripts"], shell = True)
   subprocess.call([slack_cmd], shell = True)
 
 #---------------------------------------------------------------------------------------------------
