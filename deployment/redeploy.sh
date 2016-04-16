@@ -56,6 +56,12 @@ tmux kill-session -t "static"
 tmux new -s "static" -d "python -m SimpleHTTPServer"
 cd ../..
 
+# keepup scripts
+cd scripts
+tmux kill-session -t "keepup"
+tmux new -s "keepup" -d "./keepup.sh"
+cd ..
+
 # replace & reload frontend
 mkdir /www/
 rm -rf /www/alphasheets

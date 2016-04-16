@@ -134,6 +134,7 @@ cd ../../..
 
 # Copy the deployment folder into the builds folder
 cp -r deployment build/
+cp -r scripts build/
 
 cd build
 NOW=$(date +"%c")

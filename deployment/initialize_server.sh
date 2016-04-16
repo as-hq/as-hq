@@ -32,6 +32,11 @@ apt-get -y install libpng-dev
 apt-get -y install zlib1g-dev 
 apt-get -y install libfreetype6-dev 
 apt-get -y install python-dev 
+apt-get -y install python-setuptools 
+
+apt-get -y install mysql-server
+apt-get -y install mysql-client-core-5.5
+apt-get -y install libmysqlclient-dev
 
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
@@ -49,6 +54,7 @@ cd ../..
 # pip
 curl -O https://bootstrap.pypa.io/get-pip.py
 python get-pip.py
+pip install extern
 pip install six
 
 # libsodium
@@ -100,6 +106,7 @@ cp sshd_config /etc/ssh/sshd_config
 service ssh restart
 
 # redis
+service redis_6379 stop
 cp redis/redis_6379 /etc/init.d/
 cp redis/6379.conf /etc/redis/
 update-rc.d redis_6379 defaults
