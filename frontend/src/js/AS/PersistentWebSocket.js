@@ -180,7 +180,6 @@ class PersistentWebSocket {
     } else {
       this._callbackQueue.push(cb);
     }
-    console.log('send queue: ', this._callbackQueue);
   }
 
   close() {
@@ -194,9 +193,7 @@ class PersistentWebSocket {
 
   _canFlushQueue(): boolean {
     const {readyState, OPEN} = this._client;
-    return
-        (! this._isDisconnected)
-        && (readyState === OPEN)
+    return (readyState === OPEN)
         && (this._timeoutCounter < HEARTBEAT_TIMEOUT);
   }
 
@@ -229,7 +226,6 @@ class PersistentWebSocket {
   _tryFlushingQueue() {
     while (this._callbackQueue.length > 0 && this._canFlushQueue()) {
       const cb = this._callbackQueue.shift();
-      console.log('flushing callback in queue: ', q);
       cb(this._client);
     }
   }
