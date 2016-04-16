@@ -25,7 +25,6 @@ fi
 cd ..
 git fetch origin "$BRANCH"
 git reset --hard FETCH_HEAD
-git clean -d -fx ""
 
 ## redeploy backend services
 
