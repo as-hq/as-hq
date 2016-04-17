@@ -24,7 +24,7 @@ import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
 import qualified AS.Kernels.Python.Client as KP
-import qualified AS.Kernels.R.Client as KR
+--import qualified AS.Kernels.R.Client as KR
 
 import AS.Async
 
@@ -94,7 +94,9 @@ initApp = do
   -- init kernels
   putsConsole "initializing kernels..."
   KP.initialize conn >> putsConsole "Python done."
-  KR.initialize conn >> putsConsole "R done."
+  -- this is a double-initialization, since R auto-initializes for now.
+  --KR.initialize conn >> 
+  putsConsole "R done."
   -- start diagnostics server
   host <- getSetting serverHost
   port <- getSetting ekgPort

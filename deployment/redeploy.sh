@@ -28,10 +28,12 @@ git reset --hard FETCH_HEAD
 
 ## redeploy backend services
 
+cp scripts/persistent.sh /usr/local/bin/
+
 # graph
 cd graph
 tmux kill-session -t "graphdb"
-tmux new -s "graphdb" -d "./server"
+tmux new -s "graphdb" -d "persistent.sh \"./server\""
 cd ../
 
 # pykernel
@@ -45,7 +47,7 @@ cd ../
 # rkernel
 cd rkernel
 tmux kill-session -t "rkernel"
-tmux new -s "rkernel" -d "./rkernel-exe"
+tmux new -s "rkernel" -d "persistent.sh \"./rkernel-exe\""
 
 #  wait for kernels to come up
 sleep 10
@@ -53,7 +55,7 @@ sleep 10
 # backend
 cd ../server
 tmux kill-session -t "backend"
-tmux new -s "backend" -d "./alphasheets-exe"
+tmux new -s "backend" -d "persistent.sh \"./alphasheets-exe\""
 
 # fileinput
 cd static

@@ -99,11 +99,7 @@ runServer url_clients numInitialWorkers = do
   -- Initialize state
   shell <- newShell
   state <- newMVar $ emptyState shell logHandle
-  
-  -- r kernel will NOT initialize itself, because the main 
-  -- backend server is responsible for this and we shouldn't double-initialize.
-  -- (for now). anand 4/18
-  -- initialize state
+  initialize state
 
   -- Close log cleanly upon Ctrl+C
   let sigintHandler = do
