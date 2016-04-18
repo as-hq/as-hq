@@ -73,10 +73,10 @@ runBlock state code scope sid = do
         puts state $ "runBlock ERROR: " ++ show e
         return $ EvalResult 
           (CellValue (ValueError (show e) "R error"))
-          (Just $ "Runtime error: " ++ (show e))
+          (Just $ show e)
 
   handleAny onException $ 
-    possiblyOverrideWithImage imageName =<< (
+    possiblyOverrideWithImage imageName =<< do
       R.runRegion $ do
         when (M.notMember sid (curState^.shell.environments)) $ 
           installEnv state sid
@@ -85,7 +85,6 @@ runBlock state code scope sid = do
         let againstEnv :: SEXP a 'R.Env
             againstEnv = R.sexp $ (curState^.shell.environments) M.! sid
         execR [r| eval(parse(text=runCode_hs), envir=againstEnv_hs) |]
-    )
 
 clear :: MVar State -> ASSheetId -> IO ()
 clear state sid = runRegion $ installEnv state sid
@@ -99,12 +98,21 @@ trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
 
 prepareExpression :: EvalScope -> FilePath -> EvalCode -> EvalCode
 prepareExpression scope imagePath code = 
-  let code' = "\npng(" ++ show imagePath ++ ")" ++ 
-              "\nresult = tryCatch(eval(parse(text=" ++ show code ++ ")), finally = { dev.off() } )" ++ 
-              "\nresult"
-  in case scope of 
-    Cell -> isolateCodeScope code'
-    Header -> code'
+  case scope of 
+    Cell    -> isolateCodeScope code'
+    Header  -> code'
+  where 
+    code' = unlines
+      [ "png(" ++ show imagePath ++ ")"
+      , "f <- file(open = \"w+\", blocking = FALSE)"
+      , "sink(file=f, append=TRUE, type=c(\"output\"))"
+      , "result <- list()"
+      , "result$value <- tryCatch(eval(parse(text=" ++ show code ++ ")), finally = { dev.off() } )"
+      , "result$display <- readLines(f)"
+      , "sink()"
+      , "close(f)"
+      , "result"
+      ]
       
 isolateCodeScope :: EvalCode -> EvalCode 
 isolateCodeScope code = "(function() {" ++ code ++ "})()"
@@ -121,9 +129,23 @@ installEnv state sid = do
     modifyMVar_' state $ return . (& shell.environments %~ M.insert sid (R.unsexp newEnv))
     puts state $ "Created new environment for sheet: " ++ T.unpack sid
 
--- TODO stacktraces (fill in the second argument of EvalResult)
 execR :: R m (R.SomeSEXP m) -> R m EvalResult
-execR ex = ex >>= castR >>= (\cv -> return $ EvalResult cv Nothing)
+execR ex = do
+  result <- ex
+  value <- castR =<< [r| result_hs$value |]
+  disp <- castR =<< [r| result_hs$display |]
+  return $ case disp of 
+    -- for multiple printed lines, readLines() returns a string vector
+    Expanding (VList (A d)) -> EvalResult value d'
+      where 
+        d' = case d of 
+          [] -> Nothing
+          ds -> Just . unlines $ map fromValueS ds
+        fromValueS (ValueS s) = s
+    -- for a single printed line, readLines() returns a char vector
+    CellValue (ValueS s) -> EvalResult value (Just s)
+    -- all else (e.g. Nil) should be ignored 
+    _ -> EvalResult value Nothing
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Casting helpers
@@ -156,7 +178,7 @@ castSEXP origValue@(R.SomeSEXP x) = case x of
   (hexp -> H.String v)  -> return . rdVector . map (\(hexp -> H.Char c) -> castString c) $ SV.toList v
   (hexp -> H.Symbol s s' s'') -> castSEXP $ R.SomeSEXP s
   -- (hexp -> H.List car cdr tag) -> return . concat =<< mapM castSEXP [car, cdr, tag] 
-  -- ^ this case only fires on pairlists, due to HaskellR issue #214
+  -- ^ this case only fires on pairlists, as described in HaskellR issue #214
   (hexp -> H.Special i)    -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.Closure _ _ _) -> return $ CellValue NoValue -- we don't want to display functions to user
   (hexp -> H.DotDotDot s)  -> castSEXP $ R.SomeSEXP s

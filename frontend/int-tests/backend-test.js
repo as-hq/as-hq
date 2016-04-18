@@ -4325,6 +4325,17 @@ describe('backend', () => {
       });
     });
 
+    describe('stdout', () => {
+      // TODO exec-api should have a `shouldHaveOutput` function
+      it ('lets you print in r', (done) => {
+        _do([
+          r('A1', '=print(10); print(100); 20'), // should not error in any way
+          shouldBe('A1', valueI(20)),
+          exec(done)
+        ]);
+      });
+    });
+
     describe('websockets reliability', () => {
       beforeAll(() => {
         API.setUITestMode();
