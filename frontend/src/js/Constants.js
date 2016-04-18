@@ -34,6 +34,7 @@ const Constants = Object.assign({
     return Constants.isRemote ? Constants.REMOTE_HOST : 'localhost:8080';
   },
 
+  REMOTE_HOST: window.location.hostname, // unless otherwise assigned
   BACKEND_WS_PORT: '5000',
   BACKEND_STATIC_PORT: '8000',
   BACKEND_IMPORT_PORT: '9000',
