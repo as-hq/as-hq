@@ -113,7 +113,8 @@ unallowed_imports = [
     'ast',
     'inspect',
     'compiler',
-    'time'
+    'time',
+    'glob'
 ]
 
 # verify validity of restrictions.
