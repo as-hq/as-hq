@@ -802,6 +802,31 @@ describe('backend', () => {
           ]);
         });
 
+        it ('doesn"t screw up after evaluating empty shrink list', (done) => {
+          _do([
+            python('A1', '3'),
+            python('B1', '=range(A1)'),
+            shouldBe('B3', valueI(2)),
+            python('A1', '0'),
+            shouldBe('B1', noValue()),
+            python('B2', '=1+1'),
+            shouldBe('B2', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it ('evaluates empty 2D lists to None', (done) => {
+          _do([
+            python('A1', '3'),
+            python('A2', '=repr(B1)'),
+            python('B1', '=[range(A1) for _ in range(A1)]'),
+            shouldBe('A2', valueS('0')),
+            python('A1', '0'),
+            shouldBe('A2', valueS('None')),
+            exec(done)
+          ]);
+        });
+
         describe('IPython disabling', () => {
 
           it ('should not allow IPython magics', (done) => {
@@ -833,22 +858,22 @@ describe('backend', () => {
             it ('includes a working transpose function', (done) => {
               _do([
                 python('A1', '1'), python('A2', '2'), python('B1', '3'), python('B2', '4'),
-                python('A3', '=transpose(A1:A2)'), 
+                python('A3', '=transpose(A1:A2)'),
                 shouldBe('B3', valueI(2)),
-                python('A4', '=transpose(A1:B1)'), 
-                shouldBe('A5', valueI(3)), 
+                python('A4', '=transpose(A1:B1)'),
+                shouldBe('A5', valueI(3)),
                 python('A8', '=transpose([1,2,3])'),
-                shouldBe('C8', valueI(3)), 
+                shouldBe('C8', valueI(3)),
                 python('A9', '=transpose([[1,2],[3,4]])'),
                 shouldBe('B9', valueI(3)),
                 exec(done)
               ]);
-            }); 
+            });
 
             it ('includes a working flatten function', (done) => {
               _do([
                 python('A1', '1'), python('A2', '2'), python('B1', '3'), python('B2', '4'),
-                python('A3', '=flatten(A1:B2)'), 
+                python('A3', '=flatten(A1:B2)'),
                 shouldBe('A3', valueI(1)),
                 shouldBe('A4', valueI(3)),
                 shouldBe('A5', valueI(2)),
@@ -859,12 +884,12 @@ describe('backend', () => {
 
             it ('includes a working remove_nones function', (done) => {
               _do([
-                python('A1', '1'), 
-                python('A3', '=remove_nones(flatten(A1:B2))'), 
+                python('A1', '1'),
+                python('A3', '=remove_nones(flatten(A1:B2))'),
                 shouldBeNothing('A4'),
                 exec(done)
               ]);
-            }); 
+            });
           });
 
           describe('ASIterable', () => {
@@ -1255,7 +1280,7 @@ describe('backend', () => {
         it ('treats functions in outputs as nulls', (done) => {
           _do([
             r('A1', '=function(x) { return(x+1) }'),
-            shouldBe('A1', noValue()), 
+            shouldBe('A1', noValue()),
             exec(done)
           ]);
         });
@@ -1656,7 +1681,7 @@ describe('backend', () => {
           _do([
             excel('A1', '1/1/1900'),
             shouldBe('A1', valueD(0)),
-            
+
             excel('A2', '1/1/1901'),
             shouldBe('A2', valueD(365)),
             exec(done)

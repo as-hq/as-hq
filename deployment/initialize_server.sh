@@ -39,6 +39,7 @@ apt-get -y install mysql-client-core-5.5
 apt-get -y install libmysqlclient-dev
 
 apt-get -y install s3cmd
+apt-get -y install nginx
 
 # redis
 wget http://download.redis.io/releases/redis-stable.tar.gz
