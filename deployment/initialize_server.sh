@@ -59,6 +59,7 @@ python get-pip.py
 pip install extern
 pip install six
 pip install websocket-client
+pip install numpy
 
 # libsodium
 git clone git://github.com/jedisct1/libsodium.git
@@ -99,8 +100,8 @@ cd ~
 rm .gitconfig
 curl -o .gitconfig http://puu.sh/ojAFc/72c819717a.gitconfig
 
-# S3 config for backups
-curl -o .s3cfg http://puu.sh/ojPxI/2e874ee3a0.s3cfg
+# S3 config for backups (uncomment for servers that need backup)
+# curl -o .s3cfg http://puu.sh/ojPxI/2e874ee3a0.s3cfg
 
 ###### Write configurations ######
 
