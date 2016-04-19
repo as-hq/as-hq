@@ -7,7 +7,8 @@ import type {
 
 import type {
   Callback,
-  Dict
+  Dict,
+  FileExportType
 } from '../types/Base';
 
 import type {
@@ -21,7 +22,7 @@ import type {
   VAlign,
   HAlign,
   VAlignType,
-  HAlignType
+  HAlignType,
 } from '../types/Eval';
 
 import type {
@@ -38,7 +39,7 @@ import type {
   ToggleProp,
   Evaluate,
   EvalHeader,
-  EvalInstruction
+  EvalInstruction,
 } from '../types/Messages';
 
 import type {
@@ -90,6 +91,9 @@ import pws from '../AS/PWSInstance';
 
 
 /**************************************************************************************************************************/
+/*
+  API State. #needsrefactor.
+*/
 
 const { ActionTypes } = Constants;
 
@@ -148,6 +152,8 @@ function rejectCallbacks(msg: ClientMessage) {
 
 let refreshDialogShown: boolean = false;
 
+// read whenever websockets receives binary data
+const lastExportedFileType: ?FileExportType = null;
 
 /**************************************************************************************************************************/
 /*
@@ -207,11 +213,25 @@ pws.whenReady(() => {
 
   pws.onmessage = (event: MessageEvent) => {
     if (event.data instanceof Blob) {
-      logDebug("Received binary data from server.");
-      let fName = SheetStateStore.getCurrentSheetId() + ".as";
-      // #anand event.data typecasts to Blob, because we already checked the instance above
-      // and flow doesn't understand that event.data is type DOMString | Blob | ...
-      let f = U.File.blobToFile(((event.data: any): Blob), fName);
+      console.warn("Received binary data from server.");
+      invariant(lastExportedFileType, 'File received without having sent a request!');
+
+      let ext;
+      switch(lastExportedFileType) {
+        case 'Excel':
+          ext = '.xlsx';
+          break;
+        case 'AlphaSheets':
+          ext = '.as';
+          break;
+        default:
+          ext = '.unknown'
+          break;
+      }
+
+      const fname = SheetStateStore.getCurrentSheetTitle() + ext;
+      // flow doesn't understand that event.data is type DOMString | Blob | ...
+      const f = U.File.blobToFile(((event.data: any): Blob), fname);
       U.File.promptSave(f);
 
       return;
@@ -461,11 +481,22 @@ const API = {
     pws.close();
   },
 
-  export(sheetId: string) {
-    let msg = {
-      tag: "Export",
-      contents: sheetId
-    };
+  export(sheetId: string, etype: FileExportType) {
+    let msg;
+    switch(etype) {
+      case 'Excel':
+        msg = {
+          tag: 'ExportToExcel',
+          contents: sheetId,
+        };
+        break;
+      default:
+        msg = {
+          tag: "Export",
+          contents: sheetId
+        };
+        break;
+    }
     API.sendMessageWithAction(msg);
   },
 
