@@ -63,6 +63,7 @@ import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
+import {logSlack} from '../AS/Logger';
 
 import U from '../AS/Util';
 
@@ -369,6 +370,9 @@ pws.whenReady(() => {
       case 'AuthSuccess':
         const {authUserId, defaultSheetId} = action;
         LoginActions.onLoginSuccess(authUserId, defaultSheetId);
+        if (Constants.isRemote) {
+          logSlack(SheetStateStore.getSheetLink(false), '#userlogins');
+        }
         break;
       case 'AuthFailure':
         const {failureReason} = action;
