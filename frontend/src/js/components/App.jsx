@@ -94,7 +94,9 @@ class App extends React.Component {
       { store: ModalStore }
     ]);
     LogStore.addListener(this._logListener);
-    this._configListener = ConfigStore.addListener(() => this.forceUpdate());
+    this._configListener = ConfigStore.addListener(() => 
+      // Wait 200 ms before opening a new pane
+      setTimeout(() => this.forceUpdate(), 200));
 
     // TODO (anand) what does this do?
     window.addEventListener('contextmenu', (evt) => {
