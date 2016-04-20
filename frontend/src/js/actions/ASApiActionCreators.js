@@ -370,7 +370,9 @@ pws.whenReady(() => {
       case 'AuthSuccess':
         const {authUserId, defaultSheetId} = action;
         LoginActions.onLoginSuccess(authUserId, defaultSheetId);
-        if (Constants.isRemote) {
+        const host = Constants.getFrontendHost();
+        // Log a login success to slack if it's remote and not master
+        if (Constants.isRemote && host !== 'master.alphasheets.com') {
           logSlack(SheetStateStore.getSheetLink(false), '#userlogins');
         }
         break;
