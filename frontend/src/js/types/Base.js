@@ -12,8 +12,3 @@ export type Lens<S, T> = {
 };
 
 export type IntervalId = number;
-
-export type FileExportType =
-    'Excel'
-  | 'AlphaSheets'
-  ;

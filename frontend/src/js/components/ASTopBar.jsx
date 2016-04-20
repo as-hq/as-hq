@@ -209,16 +209,9 @@ export default class ASTopBar extends React.Component {
             }),
 
             simple({
-              title: 'Export to Excel',
-              callback() {
-                API.export(SheetStateStore.getCurrentSheetId(), 'Excel');
-              }
-            }),
-
-            simple({
               title: 'Save',
               callback() {
-                API.export(SheetStateStore.getCurrentSheetId(), 'AlphaSheets');
+                API.export(SheetStateStore.getCurrentSheetId());
               }
             }),
 
