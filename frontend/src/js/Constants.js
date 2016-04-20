@@ -64,8 +64,8 @@ const Constants = Object.assign({
   numCols: 26,
   numRows: 1000,
 
-  numVisibleCols: 38,
-  numVisibleRows: 31,
+  defaultGridWidth: 30,
+  defaultGridHeight: 20,
 
   numDecimalDigitsToShow: 10,
 

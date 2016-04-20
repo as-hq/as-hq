@@ -4,6 +4,8 @@ import type { ASAction } from '../types/Actions';
 import type { NakedRange } from '../types/Eval';
 import type { Dimensions } from '../types/Hypergrid';
 
+import Constants from '../Constants';
+
 // $FlowFixMe
 import { ReduceStore } from 'flux/utils';
 import Immutable from 'immutable';
@@ -27,8 +29,6 @@ const StateRecord = Immutable.Record({
   lastActiveSelection: null,
   // the top-left visible index on the grid.
   scroll: null,
-  width: null,
-  height: null
 });
 
 class GridStore extends ReduceStore<State> {
@@ -46,8 +46,6 @@ class GridStore extends ReduceStore<State> {
             activeSelection: ASSelection.defaultSelection(sheetId),
             lastActiveSelection: ASSelection.defaultSelection(sheetId),
             scroll: ASPoint.defaultPoint(),
-            width: 30,
-            height: 20
           });
         } else {
           return state.update('activeSelection', s => s.changeSheet(sheetId))
@@ -72,11 +70,6 @@ class GridStore extends ReduceStore<State> {
       case 'CHANGED_SHEET': {
         const {sheetId} = action;
         return state.update('activeSelection', sel => sel.changeSheet(sheetId));
-      }
-
-      case 'GRID_DIMENSIONS_CHANGED': {
-        const {width, height} = action;
-        return state.merge({width, height});
       }
 
       case 'GRID_SCROLL_CHANGED': {
@@ -125,14 +118,25 @@ class GridStore extends ReduceStore<State> {
   }
 
   getDimensions(): Dimensions {
-    const {width, height} = this.getState();
-    return {width, height};
+    return getDimensions();
   }
 
   isVisible(idx: ASIndex): boolean {
     return this.getViewingWindow().contains(idx);
   }
 
+}
+
+function getDimensions(): Dimensions {
+  if (window.getGridDimensions) {
+    return window.getGridDimensions();
+  }
+  // Hypergrid is not yet mounted when the page first loads,
+  // yet we need to make a first selection.
+  // Provide default dimensions in this case.
+  // (this is basically only applicable during login and first mount).
+  // #needsrefactor.
+  return {width: Constants.defaultGridWidth, height: Constants.defaultGridHeight};
 }
 
 function setActiveSelection(
@@ -157,7 +161,8 @@ function setActiveSelection(
 }
 
 function getViewingWindow(state: State): NakedRange {
-  const {scroll: {x, y}, width, height} = state;
+  const {scroll: {x, y}} = state;
+  const {width, height} = getDimensions();
   return {
     tl: {col: x, row: y},
     br: {col: x + width, row: y + height}
