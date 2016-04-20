@@ -156,9 +156,11 @@ nestedList lang = parseList lang $ json lang
 list :: ASLanguage -> Parser Collection
 list lang = 
       (A <$> (array value))
-  <|> (M <$> (array $ array value))
-  where array = parseList lang
-        value = asValue lang
+  <|> (M <$> (array row))
+  where array    = parseList lang
+        value    = asValue lang
+        row      = array value <|> (toList <$> value)
+        toList x = [x] 
 
 -----------------------------------------------------------------------------------------------------------------------
 -- Top level parsers

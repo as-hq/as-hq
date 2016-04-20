@@ -68,6 +68,9 @@ def shouldShowImage(val):
 def isImageInScope():
   return len(mpl.Gcf.get_all_fig_managers()) > 0 # #incomplete: is only correct for one user.
 
+def getDimensions(val):
+  return np.array(val, dtype=object).ndim
+
 # Note: this function converts all empty lists to None, in order to be consistent
 # with cell-expanding behavior of nonempty lists (the empty list literally takes
 # up 0 cells). Specifically it prevents creation of 0-length RangeKeys.
@@ -77,7 +80,7 @@ def serialize(val):
   if isinstance(val, list):
     if len(val) == 0:
       return json.dumps(None)
-    elif np.array(val).ndim > 2:
+    elif getDimensions(val) > 2:
       return json.dumps(generalSerialize(val, 'LIST'))
     else: 
       vals = [serializeListElem(e) for e in val]
@@ -146,10 +149,16 @@ def serialize(val):
     except Exception as e:
       return json.dumps(generalSerialize(val, 'GENERIC'))
 
+# There are certain designated datatypes -- e.g. lists -- which expand
+# on the spreadsheet. These datastructures should be _recursively_
+# serialized. This function does that for lists, checking e.g. dimensionality
+# of sublists is <= 1.
 def serializeListElem(val):
   if isinstance(val, list):
     if len(val) == 0:
       return None
+    elif getDimensions(val) > 1:
+      return generalSerialize(val, 'LIST')
     else:
       return [serializeListElem(e) for e in val]
   elif isinstance(val, np.ndarray):
