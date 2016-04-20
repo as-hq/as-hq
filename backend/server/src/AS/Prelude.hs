@@ -25,6 +25,7 @@ module AS.Prelude
   , liftIO
   , showConstructor
   , forkIO_
+  , sequenceWith
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -176,3 +177,6 @@ showConstructor = showConstr . toConstr
 
 forkIO_ :: IO () -> IO ()
 forkIO_ = void . forkIO
+
+sequenceWith :: (Monad m) => (a -> b) -> [m a] -> m [b]
+sequenceWith f = sequence . map (f <$>)

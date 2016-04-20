@@ -305,6 +305,7 @@ export type ServerAction =
   | OpenSheet
   | RenameSheet
   | NewSheet
+  | CloneSheet
   | GetMySheets
   | UpdateWindow
   | Export
@@ -341,6 +342,7 @@ export type ServerActionType =
   | 'OpenSheet'
   | 'RenameSheet'
   | 'NewSheet'
+  | 'CloneSheet'
   | 'GetMySheets'
   | 'UpdateWindow'
   | 'Export'
@@ -397,6 +399,11 @@ export type NewSheet = {
   contents: string;
 };
 
+export type CloneSheet = {
+  tag: "CloneSheet";
+  contents: string;
+};
+
 export type GetMySheets = {
   tag: "GetMySheets";
   contents: Array<any>;
@@ -426,8 +433,8 @@ export type Evaluate = {
 export type EvalHeader = {
   tag: "EvalHeader";
   evalHeaderSheetId: string;
-  evalHeaderLang: ASLanguage; 
-  evalHeaderExpr: string; 
+  evalHeaderLang: ASLanguage;
+  evalHeaderExpr: string;
 };
 
 export type EvaluateHeader = {
@@ -644,6 +651,6 @@ export type LoadImportedCells = {
 export type HandleEvaluatedHeader = {
   tag: "HandleEvaluatedHeader";
   headerContents: EvalHeader;
-  headerResult: HeaderResult; 
-  headerEvaluator: string; 
+  headerResult: HeaderResult;
+  headerEvaluator: string;
 }

@@ -925,6 +925,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  cloneSheet(sheetId: string) {
+    const msg = {
+      tag: "CloneSheet",
+      contents: sheetId
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   renameSheet(renameSheetId: string, newSheetName: string) {
     const msg = {
       tag: 'RenameSheet',

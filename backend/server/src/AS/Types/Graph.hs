@@ -17,6 +17,7 @@ import Data.List.Split (splitOn)
 import qualified Data.Text as T 
 import qualified Data.List as L
 import Data.SafeCopy
+import Control.Lens hiding ((.=))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
@@ -78,21 +79,6 @@ indicesToAncestryRequestInput = map IndexInput
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Delimiters
-----------------------------------------------------------------------------------------------------------------------------------------------
-
-data ExportData = ExportData { exportCells           :: [ASCell]
-                             , exportBars            :: [Bar]
-                             , exportDescriptors     :: [RangeDescriptor]
-                             , exportCondFormatRules :: [CondFormatRule]
-                             , exportHeaders         :: [EvalHeader] } deriving (Show, Read, Eq, Generic)
-
--- #incomplete Assumes the export has at least one cell. 
-exportDataSheetId :: ExportData -> ASSheetId
-exportDataSheetId = (view (cellLocation.locSheetId)) . $head . exportCells
-
-
-----------------------------------------------------------------------------------------------------------------------------------------------
--- Delimiters
 
 msgPartDelimiter = "`" -- TODO: should require real parsing instead of weird char strings
 relationDelimiter = "&"
@@ -111,8 +97,6 @@ splitBy delimiter = foldr f [[]]
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- instances
-
-deriveSafeCopy 1 'base ''ExportData
 
 -- compressed show
 

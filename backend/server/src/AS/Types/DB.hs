@@ -74,6 +74,43 @@ data DBValue =
   | RangeDescriptorValue RangeDescriptor 
   | LogValue LogData
   deriving (Generic, Show)
+
+
+---------------------------------------------------------------------------------------------------------------
+-- Exporting
+
+data ExportData = ExportData { _exportCells           :: [ASCell]
+                             , _exportBars            :: [Bar]
+                             , _exportDescriptors     :: [RangeDescriptor]
+                             , _exportCondFormatRules :: [CondFormatRule]
+                             , _exportHeaders         :: [EvalHeader] } deriving (Show, Read, Eq, Generic)
+
+makeLenses ''ExportData
+deriveSafeCopy 1 'base ''ExportData
+
+-- #incomplete Assumes the export has at least one cell. 
+exportDataSheetId :: ExportData -> ASSheetId
+exportDataSheetId = (view (cellLocation.locSheetId)) . $head . view exportCells
+
+cloneData :: ASSheetId -> ExportData -> ExportData
+cloneData sid ex = 
+    (& exportCells %~ map moveCell)
+  . (& exportBars %~ map moveBar)
+  . (& exportDescriptors %~ map moveDescriptor)
+  . (& exportCondFormatRules %~ map moveRule)
+  . (& exportHeaders %~ map moveHeader)
+  $ ex
+  where
+    moveCell = (& cellLocation.locSheetId .~ sid)
+    moveBar b = b {barIndex = (barIndex b) {barSheetId = sid}}
+    moveDescriptor d = d 
+      { descriptorKey = 
+        let key = descriptorKey d
+        in key {keyIndex = (keyIndex key) & locSheetId .~ sid}
+      }
+    moveRule r = r {cellLocs = map moveRange (cellLocs r)} 
+    moveRange r = r {rangeSheetId = sid}
+    moveHeader = (& evalHeaderSheetId .~ sid)
   
 ---------------------------------------------------------------------------------------------------------------
 -- Conversion from DBValue 

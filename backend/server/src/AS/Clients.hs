@@ -76,6 +76,7 @@ instance Client ASUserClient where
       -- the following 3 actions take the mutable state rather than ServerState because it updates the user's window
       OpenSheet sid               -> handleOpenSheet mid user state sid
       NewSheet sheetName          -> handleNewSheet mid user state sheetName
+      CloneSheet sid              -> handleCloneSheet mid user state sid
       AcquireSheet sid            -> handleAcquireSheet mid user state sid
       GetMySheets                 -> handleGetSheets mid user curState
       -- Close                 -> handleClose user curState payload
