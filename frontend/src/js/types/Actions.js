@@ -339,6 +339,10 @@ export type BottomPaneToggledAction = {
   pane: BottomPaneType;
 };
 
+export type BottomPaneClosedAction = {
+  _type: 'BOTTOM_PANE_CLOSED';
+};
+
 export type RepaintSpreadsheetAction = {
   _type: 'REPAINT_SPREADSHEET';
 };
@@ -434,6 +438,7 @@ export type ASAction =
   | ReferenceToggledAction
   | HeaderToggledAction
   | BottomPaneToggledAction
+  | BottomPaneClosedAction
   | RepaintSpreadsheetAction
   | FindBarVisibilityChangedAction
   | FindModalVisibilityChangedAction

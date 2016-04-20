@@ -147,6 +147,7 @@ function installAllShortcuts() {
 
   install('evalpane', 'esc', 'Esc', (wildcard: string) => {
     ExpressionActions.stopEditing();
+    ConfigActions.closeBottomPane();
   });
 
   install('evalpane', 'find', 'Ctrl+F', (wildcard: string) => {

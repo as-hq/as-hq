@@ -49,6 +49,10 @@ class ConfigurationStore extends ReduceStore<State> {
         );
       }
 
+      case 'BOTTOM_PANE_CLOSED': {
+        return state.set('bottomPane', null);
+      }
+
       case 'HEADER_EVALUATED': {
         if (!HeaderOutputStore.isOutputEmptyInCurrentHeaderLanguage()) {
           return state.set(

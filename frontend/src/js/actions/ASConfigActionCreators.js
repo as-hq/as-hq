@@ -21,6 +21,12 @@ export default {
     });
   },
 
+  closeBottomPane() {
+    Dispatcher.dispatch({
+      _type: 'BOTTOM_PANE_CLOSED'
+    });
+  },
+
   setConnectedState(isConnected: boolean) {
     Dispatcher.dispatch({
       _type: 'SET_CONNECTING_STATE',
