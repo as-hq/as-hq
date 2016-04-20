@@ -10,6 +10,7 @@ import Constants from '../Constants';
 import ASSpreadsheet from '../components/ASSpreadsheet.jsx';
 import CellStore from '../stores/ASCellStore';
 import ASIndex from '../classes/ASIndex';
+import U from '../AS/Util';
 
 import {convert} from './helpers';
 
@@ -28,6 +29,21 @@ const callbacks: Array<InitCallback> = [
   // Keeps the animation, but don't change state = column headers stay same, data stays same
   ({ model }) => {
     model.swapColumns = (src, tar) => {};
+  },
+
+  // Cells as links.
+  ({ model }) => {
+    model.getCursorAt = (x, y) => {
+      if (U.String.isLink(model.getValue(x,y))) {
+        return 'pointer';
+      }
+      return null;
+    };
+  },
+
+  // Disable hover grey-out.
+  ({ model }) => {
+    model.highlightCellOnHover = (isC, isH) => false;
   },
 
   // The underlying hypergrid model will auto-reflect data in CellStore

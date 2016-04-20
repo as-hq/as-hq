@@ -49,7 +49,7 @@ import ExpressionStore from '../stores/ASExpressionStore';
 import FocusActions from '../actions/ASFocusActionCreators';
 
 import U from '../AS/Util';
-let {
+const {
   Conversion: TC,
   Key: KeyUtils,
   Shortcut: ShortcutUtils
