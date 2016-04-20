@@ -187,6 +187,13 @@ export default class ASTopBar extends React.Component {
               }
             }),
 
+            simple({
+              title: 'Clone',
+              callback() {
+                API.cloneSheet(SheetStateStore.getCurrentSheetId());
+              }
+            }),
+
             file({
               title: 'Import CSV',
               callback(files) {

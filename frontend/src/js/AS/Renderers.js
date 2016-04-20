@@ -20,6 +20,7 @@ import CellStore from '../stores/ASCellStore';
 import ProgressStore from '../stores/ASProgressStore';
 
 import RenderU from './utils/Render';
+import U from './Util';
 
 let _renderParams : RenderParams = {
   mode: null, // null mode indicates normal behavior; any other string indicates otherwise
@@ -103,38 +104,26 @@ const Renderers = {
                                                  Renderers.withinSegment(pX, origin.x + extent.x, 0)));
   },
 
-  underline(config: HGRendererConfig, gc: GraphicsContext, text: string, x: number, y: number, thickness: number) {
-    let width = config.getTextWidth(gc, text);
-
-    switch (gc.textAlign) {
-      case 'center':
-          x -= (width / 2);
-          break;
-      case 'right':
-          x -= width;
-          break;
-    }
-
-    //gc.beginPath();
-    gc.lineWidth = thickness;
-    gc.moveTo(x + 0.5, y + 0.5);
-    gc.lineTo(x + Number(width) + 0.5, y + 0.5);
-    // for some reason, flow flips a shit if we don't put Number around width here (Alex 1/30)
-  },
-
   /*************************************************************************************************************************/
   // Renderers
 
   defaultCellRenderer: ({
-    paint(gc: GraphicsContext, x: number, y: number, width: number, height: number, isLink?: boolean) {
-      isLink = isLink || false;
+    paint(
+      gc: GraphicsContext,
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      isLink?: boolean // Note: this argument is actually never used in the hg source (?!), but this is type signature expected by hg.
+    ) {
       var colHEdgeOffset = this.config.properties.cellPadding,
           halignOffset = 0,
           valignOffset = this.config.voffset,
           halign = this.config.halign,
           isColumnHovered = this.config.isColumnHovered,
           isRowHovered = this.config.isRowHovered,
-          val = this.config.value;
+          val = this.config.value,
+          isLink = this.config.isLink;
 
       var leftIcon, rightIcon, centerIcon, ixoffset, iyoffset;
 
@@ -218,9 +207,16 @@ const Renderers = {
 
       if (isColumnHovered && isRowHovered) {
           gc.beginPath();
-          if (isLink) {
+          if (isLink && typeof val === 'string') {
               gc.beginPath();
-              this.underline(this.config, gc, val, x + halignOffset, y + valignOffset + Math.floor(fontMetrics.height / 2), 1);
+              U.Canvas.underline(
+                this.config,
+                gc,
+                val,
+                x + halignOffset,
+                y + valignOffset + Math.floor(fontMetrics.height / 2),
+                1
+              );
               gc.stroke();
               gc.closePath();
           }
@@ -250,10 +246,10 @@ const Renderers = {
   }: HGRendererObject),
 
   getCellRenderer(config: HGRendererConfig): HGRendererObject {
-    let renderer = Renderers.defaultCellRenderer,
-        col = config.x + 1,
-        row = config.y + 1,
-        cell = CellStore.getCell(ASIndex.fromNaked({col: col, row: row}));
+    const col = config.x + 1;
+    const renderer = Renderers.defaultCellRenderer;
+    const row = config.y + 1;
+    const cell = CellStore.getCell(ASIndex.fromNaked({col: col, row: row}));
 
     // tag-based cell styling
     if (cell != null) {

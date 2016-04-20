@@ -81,6 +81,7 @@ data ServerAction =
     InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
   | OpenSheet ASSheetId
   | NewSheet SheetName
+  | CloneSheet ASSheetId
   -- currently used for sharing sheets.
   | AcquireSheet ASSheetId 
   | GetMySheets

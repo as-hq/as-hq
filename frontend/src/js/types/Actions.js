@@ -28,7 +28,7 @@ import type {
 
 import type {
   FocusedElement,
-  BottomPane
+  BottomPaneType
 } from './State';
 
 import type {
@@ -336,7 +336,7 @@ export type HeaderToggledAction = {
 
 export type BottomPaneToggledAction = {
   _type: 'BOTTOM_PANE_TOGGLED';
-  pane: BottomPane;
+  pane: BottomPaneType;
 };
 
 export type RepaintSpreadsheetAction = {
@@ -360,6 +360,10 @@ export type FocusedTextboxFullyAction = {
 export type GridScrollOffsetAction = {
   _type: 'GRID_SCROLL_OFFSET';
   offset: Offset;
+};
+
+export type GridScrollDisabledAction = {
+  _type: 'GRID_SCROLL_DISABLED';
 };
 
 export type HoveredAction = {
@@ -436,5 +440,6 @@ export type ASAction =
   | FocusedTextboxFullyAction
   | HoveredAction
   | GridScrollOffsetAction
+  | GridScrollDisabledAction
   | SheetUpdatedAction
   ;

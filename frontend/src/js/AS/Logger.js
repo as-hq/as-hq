@@ -1,3 +1,5 @@
+import request from 'superagent';
+
 let logLevel = 1;
 
 function arrayize(args) {
@@ -11,6 +13,27 @@ function arrayize(args) {
 function colorize(str) {
   return '%c' + str;
 }
+
+export function logSlack(msg, channel) {
+  const url = "https://hooks.slack.com/services/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";
+  const json = {
+    channel,
+    username: "frontend-slack-bot",
+    icon_emoji: "ghost",
+    attachments: [{
+      color: "#764FA5",
+      text: msg,
+      mrkdwn_in: [msg]
+    }]
+  };
+  const req = request.post(url);
+  req.send(JSON.stringify(json)).end((err, res) => {
+    if (err || !res.ok) {
+      console.error(err);
+    } 
+  });
+}
+
 
 export function logDebug() {
   if (logLevel <= 0) {

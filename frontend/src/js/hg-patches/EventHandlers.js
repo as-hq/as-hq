@@ -34,6 +34,23 @@ const callbacks: Array<InitCallback> = [
   ({ spreadsheet, hg }) => {
     let callbacks = ({
 
+      'fin-click': function(event) {
+        // Cells as links.
+        // wtf javascript...
+        const ctrlKey = event.detail.primitiveEvent.primitiveEvent.detail.primitiveEvent.ctrlKey;
+        const {x, y} = event.detail.gridCell;
+        const val = hg.getBehavior().getValue(x, y);
+
+        // navigate to the link upon ctrl+click of the cell.
+        if (ctrlKey && typeof val === 'string' && U.String.isLink(val)) {
+          window.location.href = (
+            U.String.linkHasProtocol(val) ?
+            val :
+            'http://' + val
+          );
+        }
+      },
+
       'fin-double-click': function (event) {
         // should only fire when double click is inside grid. According to event.detail.gridCell here,
         // the top left grid cell is (0,0) which is different from e.g. the event in model.handleMouseDown.

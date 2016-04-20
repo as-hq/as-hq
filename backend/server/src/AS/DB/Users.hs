@@ -87,4 +87,10 @@ createUser conn uid = do
 setUser :: Connection -> ASUser -> IO ()
 setUser conn user = setV conn (UserKey $ view userId $ user) (UserValue user)
 
-  
+getUserSheets :: Connection -> ASUserId -> IO [ASSheet]
+getUserSheets conn uid = do
+  mu <- lookupUser conn uid
+  case mu of 
+    Just u -> sequenceWith $fromJust $
+      (getSheet conn) `map` (Set.elems $ Set.union (u^.sheetIds) (u^.sharedSheetIds))
+    Nothing -> $error "no user found"

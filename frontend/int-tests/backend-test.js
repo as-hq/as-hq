@@ -827,6 +827,30 @@ describe('backend', () => {
           ]);
         });
 
+        it ('parses weird-dimensional lists fine', (done) => {
+          _do([
+            python('A1', '=[[[1, 2]], [[3]]]'),
+            shouldBeSerialized('A1'),
+            shouldBeSerialized('A2'),
+            python('B1', '=[1, [2,3]]'),
+            shouldBe('B1', valueI(1)),
+            shouldBe('B2', valueI(2)),
+            shouldBe('C2', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        it ('parses weird-dimensional lists fine pt. 2', (done) => {
+          _do([
+            python('A1', '=[1, [[[2]]], [3, 4, 5], [[6, 7]]]'),
+            shouldBe('A1', valueI(1)),
+            shouldBeSerialized('A2'),
+            shouldBe('B3', valueI(4)),
+            shouldBeSerialized('A4'),
+            exec(done)
+          ]);
+        });
+
         describe('IPython disabling', () => {
 
           it ('should not allow IPython magics', (done) => {

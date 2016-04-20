@@ -64,6 +64,7 @@ import {logDebug} from '../AS/Logger';
 
 import Dispatcher from '../Dispatcher';
 import Constants from '../Constants';
+import {logSlack} from '../AS/Logger';
 
 import U from '../AS/Util';
 
@@ -389,6 +390,11 @@ pws.whenReady(() => {
       case 'AuthSuccess':
         const {authUserId, defaultSheetId} = action;
         LoginActions.onLoginSuccess(authUserId, defaultSheetId);
+        const host = Constants.getFrontendHost();
+        // Log a login success to slack if it's remote and not master
+        if (Constants.isRemote && host !== 'master.alphasheets.com') {
+          logSlack(SheetStateStore.getSheetLink(false), '#userlogins');
+        }
         break;
       case 'AuthFailure':
         const {failureReason} = action;
@@ -952,6 +958,14 @@ const API = {
     const msg = {
       tag: "NewSheet",
       contents: sheetName
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  cloneSheet(sheetId: string) {
+    const msg = {
+      tag: "CloneSheet",
+      contents: sheetId
     };
     API.sendMessageWithAction(msg);
   },

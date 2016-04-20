@@ -186,6 +186,9 @@ isPermissibleMessage uid conn _ = return True
 ------------------------------------------------------------------------------------------------------------------------
 -- Sheets 
 
+getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
+getSheet conn sid = getV conn (SheetKey sid) dbValToSheet
+
 getAllSheets :: Connection -> IO [ASSheet]
 getAllSheets conn = do 
   keys <- getS AllSheetsKey dbValToKey conn

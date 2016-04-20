@@ -154,7 +154,7 @@ function setFocus(state: State, focus: FocusedElement): State {
     state.activeFocus;
   const textboxHasFullFocus = (focus === 'textbox') ? state.textboxHasFullFocus : false;
 
-  return new StateRecord({
+  return state.merge({
     activeFocus: focus,
     lastActiveFocus,
     textboxHasFullFocus

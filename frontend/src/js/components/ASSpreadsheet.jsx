@@ -49,7 +49,7 @@ import ExpressionStore from '../stores/ASExpressionStore';
 import FocusActions from '../actions/ASFocusActionCreators';
 
 import U from '../AS/Util';
-let {
+const {
   Conversion: TC,
   Key: KeyUtils,
   Shortcut: ShortcutUtils
@@ -155,23 +155,20 @@ class ASSpreadsheet extends React.Component {
       this._grid.getBehavior().changed()
     );
 
-    this._configStoreListener = ConfigStore.addListener(() => {
-      // setTimeout to circumvent dispatch-in-dispatch.
-      // Technically this should be in store logic, but the grid element
-      // is required in scope to compute the dimensions.
-      setTimeout(() => {
-        const dims = this._getDimensions();
-        GridActions.setDimensions(dims);
-      }, 200);
-      // ^ wait for the component(s) to actually mount upon a view configuration change.
-    });
-
     // apply hypergrid customizations when its canvas is ready.
     document.addEventListener('fin-ready', () => {
       this._initHypergrid();
-      window.onresize = () => {
-        GridActions.setDimensions(this._getDimensions());
-      };
+
+      // GridStore is the source of truth for hypergrid-related parameters,
+      // but Hypergrid itself is not in scope in the store. The current
+      // workaround is to expose this single function in the global scope.
+      // The alternative is to enumerate the set of all cases grid dimensions
+      // might change, then wait for grid to update internal state, then fire a
+      // GRID_RESIZED action. That was the solution we had before, and it sucked.
+      // This method provides correct information all the time, despite being ugly.
+      // #8020.
+      window.getGridDimensions = () => this._getDimensions();
+
       window.addEventListener('focus', () => {
         this._grid.repaint();
       });
@@ -253,10 +250,9 @@ class ASSpreadsheet extends React.Component {
   // Hypergrid initialization
 
   finishColumnResize() {
-    let col = this.resizedColNum;
+    const col = this.resizedColNum;
     if (col != null) {
-      let hg = this._grid,
-          width = hg.getColumnWidth(col);
+      const width = this._grid.getColumnWidth(col);
       API.setColumnWidth(col+1, width);
       // column index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedColNum = null;
@@ -264,10 +260,9 @@ class ASSpreadsheet extends React.Component {
   }
 
   finishRowResize() {
-    let row = this.resizedRowNum;
+    const row = this.resizedRowNum;
     if (row != null) {
-      let hg = this._grid,
-          height = hg.getRowHeight(row);
+      const height = this._grid.getRowHeight(row);
       API.setRowHeight(row+1, height);
       // row index on DB is 1-indexed, while for hypergrid it's 0-indexed.
       this.resizedRowNum = null;
@@ -428,27 +423,12 @@ class ASSpreadsheet extends React.Component {
     }
   }
 
-  // Hypergrid's first paint cycle is non-trivial to detect,
-  // so instead repeatedly query the grid dimensions until they
-  // are established.
-  _initializeDimensions() {
-    setTimeout(() => {
-      const {width, height} = this._getDimensions();
-      if (width === 0 || height === 0) {
-        this._initializeDimensions();
-      } else {
-        GridActions.setDimensions({width, height});
-      }
-    }, 20);
-  }
-
   /*************************************************************************************************************************/
   // Private setters
   // do not call any of these before polymer is ready.
 
   _initHypergrid() {
     hgPatches.forEach((patch) => { patch(this); });
-    this._initializeDimensions();
     GridActions.initialize();
   }
 

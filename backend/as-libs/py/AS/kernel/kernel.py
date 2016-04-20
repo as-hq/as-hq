@@ -177,6 +177,7 @@ import base64
       else:
         client_addr = message[2]
         reply = message[4]
+        # puts('sent back reply: ' + repr(reply))
         frontend.send_multipart([client_addr, reply])
 
   def checkAndDie(self):

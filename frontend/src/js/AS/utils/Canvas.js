@@ -159,5 +159,32 @@ export default {
     }
     gc.fillText(line, x, y);
     return height;
-  }
+  },
+
+  underline(
+    config: HGRendererConfig,
+    gc: GraphicsContext,
+    text: string,
+    x: number,
+    y: number,
+    thickness: number
+  ) {
+    const width = config.getTextWidth(gc, text);
+
+    switch (gc.textAlign) {
+        case 'center':
+            x -= (width / 2);
+            break;
+        case 'right':
+            x -= width;
+            break;
+    }
+
+    //gc.beginPath();
+    gc.lineWidth = thickness;
+    gc.moveTo(x + 0.5, y + 0.5);
+    gc.lineTo(x + Number(width) + 0.5, y + 0.5);
+  },
+
+
 };

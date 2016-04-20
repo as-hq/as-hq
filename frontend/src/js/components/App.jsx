@@ -12,7 +12,7 @@ import type {
   RoutedComponentProps
 } from '../types/Router';
 
-import type { BottomPane } from '../types/State';
+import type { BottomPaneType } from '../types/State';
 import type { StoreToken } from 'flux';
 
 import {logDebug} from '../AS/Logger';
@@ -31,9 +31,7 @@ import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
 import ShortcutHelper from './shortcut-helper/ShortcutHelper.jsx';
 
-import ASErrorPaneController from './bottom-panes/ASErrorPaneController.jsx';
-import ASCellPaneController from './bottom-panes/ASCellPaneController.jsx';
-import ASHeaderPaneController from './bottom-panes/ASHeaderPaneController.jsx';
+import BottomPane from './BottomPane.jsx';
 
 import U from '../AS/Util';
 import * as flex from '../styles/flex';
@@ -131,17 +129,11 @@ class App extends React.Component {
   render(): React.Element {
     const logOpen = LogStore.getIsOpen();
     const isConnected = ConfigStore.isConnected();
-    const bottomPane = ConfigStore.getCurrentBottomPane();
+    const showBottom = ConfigStore.isBottomPaneOpen();
 
     const centerContent = (
       <div style={styles.full}>
         <ASEvaluationPane />
-      </div>
-    );
-
-    const bottomContent = (
-      <div style={styles.full}>
-        { this._getBottomPane(bottomPane) }
       </div>
     );
 
@@ -168,52 +160,25 @@ class App extends React.Component {
 
         <div style={styles.resizable}>
           <ResizablePanel content={centerContent}
-                          sidebar={bottomContent}
-                          sidebarVisible={!! bottomPane}
+                          sidebar={<BottomPane />}
+                          sidebarVisible={showBottom}
                           side="bottom" />
         </div>
 
         <div style={styles.bottomBar} >
           <ASBottomBarController />
         </div>
+
         <ShortcutHelper />
       </div>
     );
 
-    // The log viewer can be open, in which case we get a split view, or closed, in which case the sheet
-    // is the whole page
-    // ::ALEX::
-    // return (
-    //   <div style={{width: '100%', height: '100%'}} >
-    //     {main}
-    //     {logOpen ? <LogViewer /> : null}
-    //   </div>
-    // );
     return (
       <div style={{width: '100%', height: '100%'}} >
         {main}
         {logOpen ? null : null}
       </div>
     );
-  }
-
-
-  _getBottomPane(pane: BottomPane): React.Element {
-    switch(pane) {
-      case 'errors': {
-        // TODO (michael/anand) this component is pretty fucked.
-        return <ASErrorPaneController />;
-      }
-      case 'header_output': {
-        return <ASHeaderPaneController />;
-      }
-      case 'cell_output': {
-        return <ASCellPaneController />;
-      }
-      default: {
-        return <noscript />;
-      }
-    }
   }
 }
 

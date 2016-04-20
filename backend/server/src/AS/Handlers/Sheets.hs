@@ -20,6 +20,7 @@ import AS.Eval.Core
 import AS.Reply
 import AS.DB.API
 import AS.DB.Users
+import AS.DB.Export
 import AS.Users
 import AS.Config.Settings (headerLangs)
 
@@ -58,6 +59,28 @@ handleRenameSheet mid uc state sid sname = do
   let newSheet = sheet {sheetName = sname}
   setV conn (SheetKey sid) (SheetValue newSheet)
   handleGetSheets mid uc state
+
+handleCloneSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
+handleCloneSheet mid uc state sid = do
+  st <- readState state
+  let conn = (st^.dbConn)
+  let uid = uc^.userId
+  names <- Set.fromList . map sheetName 
+    <$> getUserSheets conn uid
+  -- create unique sheet name
+  let cloneName name copyNum =  let cur = name ++ " (" ++ show copyNum ++ ")"
+                            in if cur `Set.member` names
+                              then cloneName name (copyNum + 1)
+                              else cur
+  curName <- sheetName . $fromJust <$> getSheet conn sid
+  newSid <- sheetId <$> createSheet conn uid (cloneName curName 1)
+  modifyUser conn uid (& sheetIds %~ (Set.insert newSid))
+  ex <- cloneData newSid <$> exportSheetData conn sid
+  importSheetData conn ex
+  -- update user sheet records on frontend
+  handleGetSheets mid uc st
+  -- open the cloned sheet
+  handleOpenSheet mid uc state newSid
 
 handleOpenSheet :: MessageId -> ASUserClient -> State -> ASSheetId -> IO ()
 handleOpenSheet mid uc state sid = do 

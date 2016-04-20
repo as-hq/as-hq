@@ -88,6 +88,7 @@ const ASControlledCodeField = HOPurify({
         });
 
         component.editor.on('alphasheets-paste', () => listener());
+        component.editor.on('alphasheets-cut', () => listener());
       },
 
       getValue(component: any) {

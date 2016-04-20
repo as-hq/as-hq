@@ -11,11 +11,14 @@ import type { FocusedElement } from '../types/State';
 // ::ALEX::
 type SyntheticScrollEvent = SyntheticEvent & {wheelDeltaX: number, wheelDeltaY: number};
 
-const ScrollManager = {
+class ScrollManager {
 
-  handleEvent(e: SyntheticScrollEvent) {
-    const focus = FocusStore.getFocus();
-    const hover = FocusStore.getHoveredElement();
+  shouldManageScroll(hover: FocusedElement, focus: FocusedElement): boolean {
+    return (
+      (focus === 'bottompane') ||
+      (focus !== hover && hover !== null)
+    );
+  }
 
   /*
   In general, we want to execute scroll events on the element that's
@@ -27,14 +30,17 @@ const ScrollManager = {
   (4) header
 
   When hover === null, an uncontrolled element is currently hovered,
-  and scrollmanager will do nothing.
+  and ScrollManager will do nothing.
    */
-    if (focus !== hover && hover !== null) {
-      ScrollManager.executeScroll(e, hover);
-    }
-  },
+  handleEvent(e: SyntheticScrollEvent) {
+    const focus = FocusStore.getFocus();
+    const hover = FocusStore.getHoveredElement();
 
-  // ::ALEX::
+    if (this.shouldManageScroll(hover, focus)) {
+      this.executeScroll(e, hover);
+    }
+  }
+
   executeScroll(e: SyntheticScrollEvent, hover: FocusedElement) {
     switch(hover) {
       case 'grid': {
@@ -48,6 +54,13 @@ const ScrollManager = {
         break;
       }
 
+      case 'bottompane': {
+        // hypergrid steals the scroll event from this pane (somehow, despite
+        // focus not being on it), so disable grid scrolling.
+        // grid will auto re-enable scrolling when it detects hover/focus again.
+        GridActions.disableScroll();
+      }
+
       case 'editor':
       case 'textbox':
       case 'header':
@@ -59,4 +72,4 @@ const ScrollManager = {
   }
 }
 
-export default ScrollManager;
+export default new ScrollManager();

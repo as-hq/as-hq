@@ -156,6 +156,10 @@ const Render = {
   },
 
   valueToRenderConfig(config: HGRendererConfig, val: ASValue) {
+    // defaults unless otherwise set
+    config.isLink = false;
+    config.halign = 'center';
+
     switch(val.tag) {
       case "ValueI":
       case "ValueD":
@@ -163,6 +167,12 @@ const Render = {
         break;
       case "ValueS":
         config.halign = 'left';
+        // this is temporary, and in the long-run we actually
+        // want to be checking for the URL prop
+        if (U.String.isLink(val.contents)) {
+          config.isLink = true;
+          config.fgColor = 'blue';
+        }
         break;
       case "ValueImage":
         config.bgColor = Constants.Colors.lavender;
@@ -171,7 +181,6 @@ const Render = {
         config.bgColor = Constants.Colors.powderblue;
         break;
       default:
-        config.halign = 'center';
         break;
     }
   },

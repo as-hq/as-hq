@@ -59,6 +59,7 @@ declare class HGRendererConfig {
   y: number;
   wrap: boolean;
   getTextWidth: (gc: GraphicsContext, text: string) => number;
+  isLink: boolean;
 }
 
 
@@ -99,6 +100,9 @@ declare class HGBehaviorElement extends HTMLElement {
   getRowCount: () => number;
   getValue: () => any;
   getCellEditorAt: (x: number, y: number) => ?HGCellEditorElement;
+  getCursorAt: (x: number, y: number) => ?string;
+
+  highlightCellOnHover: (isColumnHovered: number, isRowHovered: number) => boolean;
 
   onMouseMove: (grid: HGElement, evt: HGMouseEvent) => void;
   onMouseDrag: (grid: HGElement, evt: HGMouseEvent) => void;

@@ -43,13 +43,13 @@ const GridActions = {
         (shouldScroll === undefined) ? true : shouldScroll
     });
 
-    // Ideally, the logic for this should be placed in a clickaway for EvalHeaderController. 
+    // Ideally, the logic for this should be placed in a clickaway for EvalHeaderController.
     // Unfortunately, no easy clickways work at the moment, so this is our 80/20. (Alex 4/10)
     // ADDITIONALLY, this should eventually save all the unevaluated headers rather
-    // than just any active unevaluated headers... probably. 
-    // #needsrefactor 
-    if (HeaderStore.isDirty()) { 
-      APIActions.evaluateActiveHeader(); 
+    // than just any active unevaluated headers... probably.
+    // #needsrefactor
+    if (HeaderStore.isDirty()) {
+      APIActions.evaluateActiveHeader();
     }
   },
 
@@ -67,11 +67,9 @@ const GridActions = {
     });
   },
 
-  setDimensions({width, height}: Dimensions) {
+  disableScroll() {
     Dispatcher.dispatch({
-      _type: 'GRID_DIMENSIONS_CHANGED',
-      width,
-      height
+      _type: 'GRID_SCROLL_DISABLED',
     });
   },
 

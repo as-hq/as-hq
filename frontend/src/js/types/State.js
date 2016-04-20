@@ -17,9 +17,9 @@ import type {
   Bar
 } from './Bar';
 
-export type FocusedElement = 'grid' | 'textbox' | 'editor' | 'header';
+export type FocusedElement = 'grid' | 'textbox' | 'editor' | 'header' | 'bottompane';
 
-export type BottomPane = 'header_output' | 'errors' | 'cell_output';
+export type BottomPaneType = 'header_output' | 'errors' | 'cell_output' | 'no_pane';
 
 export type ASClientWindow = {
   window: ASRange;
