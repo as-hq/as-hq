@@ -18,7 +18,7 @@ type ASOutputPaneProps = {
 };
 
 export default class ASOutputPane extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: ASOutputPaneProps;
   state: {};
 
@@ -30,7 +30,7 @@ export default class ASOutputPane extends React.Component {
   }
 
   render(): React.Element {
-    let {ansiContent, title} = this.props;
+    const {ansiContent, title} = this.props;
 
     return (
       <div style={styles.root} >

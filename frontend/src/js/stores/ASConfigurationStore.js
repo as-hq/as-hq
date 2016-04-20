@@ -3,7 +3,7 @@
 // This store tracks the current view configurations.
 
 import type { ASAction } from '../types/Actions';
-import type { BottomPane } from '../types/State';
+import type { BottomPaneType } from '../types/State';
 
 import Immutable from 'immutable';
 // $FlowFixMe
@@ -20,7 +20,7 @@ type State = any;
 const StateRecord = Immutable.Record({
   isConnected: true,
   headerOpen: false,
-  bottomPane: null,
+  bottomPane: 'no_pane',
   findBarOpen: false,
   findModalOpen: false,
   sheetLoading: false
@@ -45,7 +45,7 @@ class ConfigurationStore extends ReduceStore<State> {
         const {pane} = action;
         return state.set(
           'bottomPane',
-          (pane !== state.bottomPane) ? pane : null
+          (pane !== state.bottomPane) ? pane : 'no_pane'
         );
       }
 
@@ -91,7 +91,7 @@ class ConfigurationStore extends ReduceStore<State> {
           if (cells.some((cell) => cell != null && cell.hasError())) {
             return state.set('bottomPane', 'errors');
           } else {
-            return state.set('bottomPane', null);
+            return state.set('bottomPane', 'no_pane');
           }
         }
       }
@@ -117,8 +117,12 @@ class ConfigurationStore extends ReduceStore<State> {
     return this.getState().findModalOpen;
   }
 
-  getCurrentBottomPane(): ?BottomPane {
+  getCurrentBottomPane(): BottomPaneType {
     return this.getState().bottomPane;
+  }
+
+  isBottomPaneOpen(): boolean {
+    return this.getCurrentBottomPane() !== 'no_pane';
   }
 
   isSheetLoading(): boolean {

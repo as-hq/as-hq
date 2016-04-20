@@ -67,6 +67,12 @@ const GridActions = {
     });
   },
 
+  disableScroll() {
+    Dispatcher.dispatch({
+      _type: 'GRID_SCROLL_DISABLED',
+    });
+  },
+
   initialize() {
     // XXX (anand) this is a really dumb workaround to the following problem:
     // Hypergrid doesn't let you select A1 as the first selection. Yeah, just that particular cell.

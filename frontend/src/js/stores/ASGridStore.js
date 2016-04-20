@@ -29,6 +29,9 @@ const StateRecord = Immutable.Record({
   lastActiveSelection: null,
   // the top-left visible index on the grid.
   scroll: null,
+  scrollDisabled: false,
+  width: null,
+  height: null
 });
 
 class GridStore extends ReduceStore<State> {
@@ -73,12 +76,28 @@ class GridStore extends ReduceStore<State> {
       }
 
       case 'GRID_SCROLL_CHANGED': {
-        return state.set('scroll', action.scroll);
+        if (state.scrollDisabled) {
+          return state;
+        } else {
+          return state.set('scroll', action.scroll);
+        }
       }
 
       case 'GRID_SCROLL_OFFSET': {
         const {offset} = action;
         return state.update('scroll', s => s.shift(offset));
+      }
+
+      case 'GRID_SCROLL_DISABLED': {
+        return state.set('scrollDisabled', true);
+      }
+
+      case 'HOVERED': {
+        if (action.hover === 'grid') {
+          return state.set('scrollDisabled', false);
+        } else {
+          return state;
+        }
       }
 
       case 'API_EVALUATE': {

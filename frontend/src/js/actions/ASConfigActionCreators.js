@@ -1,6 +1,6 @@
 /* @flow */
 
-import type { BottomPane } from '../types/State';
+import type { BottomPaneType } from '../types/State';
 
 import Dispatcher from '../Dispatcher';
 import API from './ASApiActionCreators';
@@ -14,7 +14,7 @@ export default {
 
   // A slight misnomer. If the pane passed in is active, it toggles it; otherwise, it sets
   // the active pane to the passed in.
-  toggleBottomPane(pane: BottomPane) {
+  toggleBottomPane(pane: BottomPaneType) {
     Dispatcher.dispatch({
       _type: 'BOTTOM_PANE_TOGGLED',
       pane

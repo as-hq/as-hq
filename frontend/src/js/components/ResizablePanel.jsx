@@ -45,8 +45,8 @@ export default class ResizablePanel extends React.Component
     sidebarVisible: false,
     side: 'right'
   };
-  props: ResizablePanelProps; 
-  state: ResizablePanelState; 
+  props: ResizablePanelProps;
+  state: ResizablePanelState;
 
 
   /**********************************************************************************************************************************/
@@ -150,12 +150,10 @@ export default class ResizablePanel extends React.Component
     if (this.props.sidebarVisible) {
       this.setState({dragging: true});
     }
-    this.stopEvent(e);
   }
 
   _onMouseUp(e: SyntheticMouseEvent) {
     this.setState({dragging: false});
-    this.stopEvent(e);
   }
 
   _onMouseMove(e: SyntheticMouseEvent) {
@@ -173,8 +171,8 @@ export default class ResizablePanel extends React.Component
       if (contentSize > config.minSize && contentSize < config.maxSize) {
         this.setState({contentSize: (contentSize + '%')});
       }
+      this.stopEvent(e);
     }
-    this.stopEvent(e);
   }
 
   /**********************************************************************************************************************************/
