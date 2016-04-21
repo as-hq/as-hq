@@ -1,0 +1,8 @@
+*.sw[pon]
+*.o
+*.so
+*.hi
+cabal.sandbox.config
+.cabal-sandbox
+.stack-work
+dist/
