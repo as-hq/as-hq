@@ -7,10 +7,10 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 # Main target
 $(EXEC): $(OBJECTS)
-        $(CC) $(CC_FLAGS) $(OBJECTS) -o $(EXEC)
+	$(CC) $(CC_FLAGS) $(OBJECTS) -o $(EXEC)
 
 %.o: %.cpp
-        $(CC) -c $(CC_FLAGS) $< -o $@
+	$(CC) -c $(CC_FLAGS) $< -o $@
 
 clean:
 	rm -f $(EXEC) $(OBJECTS)
