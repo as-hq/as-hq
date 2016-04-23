@@ -1712,7 +1712,8 @@ describe('backend', () => {
           ]);
         });
 
-        it ('should infer current year when missing', (done) => {
+        // I think the result is False in sheets (Ritesh 4/22)
+        xit ('should infer current year when missing', (done) => {
           _do([
             excel('A1', '1/1'),
             excel('A2', '=A1=1/1/2016'),
@@ -1720,6 +1721,7 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
       });
 
       describe('ocaml', () => {

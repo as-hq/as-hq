@@ -305,9 +305,15 @@ formattedFloat = money <|> percentage <|> date <|> (return <$> PC.float)
 formattedFloatToEValue :: Formatted Double -> EValue
 formattedFloatToEValue (Formatted d f) = EValueNum $ Formatted (EValueD d) f
 
+-- Note: this parser is used in the leaf parser for formulas, 
+-- and things like money and dates should not parse as doubles. For
+-- example, sheets does not like =$5/2. The below parser (numOrBool)
+-- is used for literals, and calls formattedFloat, which is OK (for literals).
+-- In particular, =5/2 should not parse as a date, so using formattedFloat 
+-- directly in this function is wrong.
 excelValue :: Parser Formula
 excelValue = fmap (Basic . Var) $
-      (formattedFloatToEValue <$> formattedFloat)
+      (formattedFloatToEValue <$> (return <$> PC.float))
   <|> ((EValueNum . return . EValueI . fromInteger) <$> PC.integer)
   <|> (EValueB <$> PC.bool)
   <|> (EValueS . C.unpack <$> PC.unescapedString)

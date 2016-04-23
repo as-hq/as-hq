@@ -154,6 +154,8 @@ functions =  M.fromList $
     ("iserror"        , cellType eIsError), -- efuncresult
     ("islogical"      , cellType eIsLogical),
     ("isnumber"       , cellType eIsNumber),
+    ("iseven"         , normalD 1 eIsEven),
+    ("isodd"          , normalD 1 eIsOdd),
 
     --  Excel logical functions
     ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
@@ -182,6 +184,8 @@ functions =  M.fromList $
     ("vlookup"        , FuncDescriptor [1,3,4] [1,3,4] [] [1..argNumLimit] (Just 4) (transform eVlookup)),
 
     -- Excel math and trig functions
+    ("int"            , normalD 1 eInt),
+    ("round"          , normalD 2 eRound),
     ("product"        , vectorD eProduct),
     ("abs"            , normalD 1 eAbs),
     ("exp"            , normalD 1 eExp),
@@ -785,6 +789,22 @@ eIsNumber = typeVerifier "isnumber" isNumeric False
 eIsError :: EFuncResult
 eIsError = typeVerifier "iserror" (const False) True
 
+eIsEven :: EFunc
+eIsEven c e = do
+  num <- getRequired "isEven" 1 e :: ThrowsError EFormattedNumeric
+  let ans = case num^.orig of
+                EValueI i -> even i
+                EValueD d -> even (floor d)
+  valToResult $ EValueB ans
+
+eIsOdd :: EFunc
+eIsOdd c e = do
+  num <- getRequired "isOdd" 1 e :: ThrowsError EFormattedNumeric
+  let ans = case num^.orig of
+                EValueI i -> not $ even i
+                EValueD d -> not $ even (floor d)
+  valToResult $ EValueB ans
+
 -- | Helpers
 isBool :: EEntity -> Bool
 isBool (EntityVal (EValueB _)) = True
@@ -1104,6 +1124,25 @@ oneArgDouble name f c e = do
   let ans = case num^.orig of
                 EValueI i -> f (fromIntegral i)
                 EValueD d -> f d
+  valToResult $ EValueNum $ return $ EValueD ans
+
+-- | Convert to int, by taking floor.
+eInt :: EFunc 
+eInt c e = do 
+  num <- getRequired "int" 1 e :: ThrowsError EFormattedNumeric
+  let ans = case num^.orig of
+                EValueI i -> i
+                EValueD d -> floor d
+  valToResult $ EValueNum $ return $ EValueI ans
+
+eRound :: EFunc 
+eRound c e = do 
+  x <- getRequired "int" 1 e :: ThrowsError EFormattedNumeric
+  n <- getRequired "int" 2 e :: ThrowsError Int
+  let n' = fromIntegral n
+  let ans = case x^.orig of
+                  EValueI i -> (fromInteger $ round $ (fromIntegral i) * (10.0^^n)) / (10.0^^n)
+                  EValueD d -> (fromInteger $ round $ d * (10.0^^n)) / (10.0^^n)
   valToResult $ EValueNum $ return $ EValueD ans
 
 -- | Absolute value
