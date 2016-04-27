@@ -50,7 +50,7 @@ class ConfigurationStore extends ReduceStore<State> {
       }
 
       case 'BOTTOM_PANE_CLOSED': {
-        return state.set('bottomPane', null);
+        return state.set('bottomPane', 'no_pane');
       }
 
       case 'HEADER_EVALUATED': {
