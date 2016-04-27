@@ -1,4 +1,5 @@
 setup.py
+AS/SQL.py
 AS/__init__.py
 AS/errors.py
 AS/formats.py

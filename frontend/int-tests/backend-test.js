@@ -617,6 +617,100 @@ describe('backend', () => {
 
       });
 
+      describe('sql', () => {
+
+        it ('should evaluate given python list', (done) => {
+          _do([
+            python('A1', '=[\'x\',1,2,3]'),
+            sql('B1', '=select * from A1:A4'),
+            shouldBe('C2', valueI(1)),
+            shouldBe('C3', valueI(2)),
+            exec(done)
+          ]);
+        });
+
+        it ('should evaluate given numpy arrays', (done) => {
+          _do([
+            python('A1', 'x'),
+            python('B1', 'y'),
+            python('A2', '=np.array([[1,2],[3,4]])'),
+            sql('C1', '=select * from A1:B3 where y > 3.5'),
+            shouldBe('E1', valueS('y')),
+            shouldBe('E2', valueI(4)),
+            shouldBe('D1', valueS('x')),
+            shouldBe('D2', valueI(3)),
+            exec(done)
+          ]);
+        });
+
+        it ('should evaluate given r dataframes', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            sql('A9', '=select * from @A1 where cyl > 5'),
+            shouldBe('A14', valueS('Valiant')),
+            shouldBe('L14', valueD(1)),
+            exec(done)
+          ]);
+        });
+
+        it ('can do group by', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            sql('A17', '=select am as am, sum(mpg) as mpg_sum from @A1 group by am'),
+            shouldBe('C19', valueD(64.8)),
+            shouldBe('C17', valueS('mpg_sum')),
+            exec(done)
+          ]);
+        });
+
+        it ('can do joins', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            sql('A17', '=select am as am, sum(mpg) as mpg_sum from @A1 group by am'),
+            shouldBe('C19', valueD(64.8)),
+            shouldBe('C17', valueS('mpg_sum')),
+            exec(done)
+          ]);
+        });
+
+        it ('can do somewhat harder joins', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            r('A9', '=tail(mtcars)'),
+            sql('A17', '=select * from @A1 head inner join @A9 tail on head.gear = tail.gear'),
+            shouldBe('B18', valueD(21)),
+            shouldBe('B19', valueD(21)),
+            exec(done)
+          ]);
+        });
+
+        it ('can deal with spaces in col names', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            r('A1', 'car name'),
+            r('B1', 'miles per gallon'),
+            sql('A10', '=select * from A1:L7 where "miles per gallon" < 20'),
+            shouldBeCoupled('A10'),
+            shouldBeCoupled('A11'),
+            shouldBeCoupled('A12'),
+            exec(done)
+          ]);
+        });
+
+        it ('can deal with index references as part of query', (done) => {
+          _do([
+            r('A1', '=head(mtcars)'),
+            sql('A10', '=select * from @A1 where B1 < 20'),
+            shouldBeCoupled('A10'),
+            shouldBeCoupled('A11'),
+            shouldBeCoupled('A12'),
+            exec(done)
+          ]);
+        });
+
+
+      });
+
       describe('python', () => {
         it ('should evaluate at all', (done) => {
           _do([
@@ -1211,29 +1305,6 @@ describe('backend', () => {
               });
             });
           });
-        });
-      });
-
-      // Note: currently existing only for demos. It is likely that SQL will get completely
-      // rewritten in the future, so don't feel bad at all about x-ing out these tests.
-      //
-      // Note #2: shouldBe('E2', valueI(0)) is not working for some reason and I can't figure
-      // out why, so this is x'd out. Just look at  http://puu.sh/mRlDF/3068d88564.png in the meantime.
-      xdescribe('sql', () => {
-        it ('should evaluate at all', (done) => {
-          _do([
-            excel('A1', 'hello'),
-            excel('B1', 'world'),
-            python('A2', '=[[x+2*y for x in range(2)] for y in range(5)]'),
-            sql('D1', 'SELECT hello from A1:B6 LIMIT 4'),
-            shouldBe('E1', valueS('hello')),
-            shouldBe('E2', valueI(0)),
-            shouldBe('E3', valueI(2)),
-            shouldBe('E4', valueI(4)),
-            shouldBe('E5', valueI(6)),
-            shouldBeNothing('E6'),
-            exec(done)
-          ]);
         });
       });
 

@@ -117,6 +117,7 @@ matplotlib.use('Agg')
 from AS.stdlib import *
 from AS.kernel.serialize import * 
 from AS.functions.openExcel import *
+from AS.SQL import *
 import matplotlib._pylab_helpers
 import matplotlib.pyplot as plt
 import cPickle

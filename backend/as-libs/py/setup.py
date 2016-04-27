@@ -19,7 +19,7 @@ setup(name='AS',
                         'ipython==4.0.0', \
                         'zmq', \
                         'colour', \
-                        'pandasql', \
+                        'pysqldf', \
                         'openpyxl', \
                         'shortid'
                         ],

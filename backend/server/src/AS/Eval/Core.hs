@@ -84,8 +84,8 @@ evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = ca
             -- Excel needs current location and un-substituted expression, and needs the formatted 
             -- values for loading the initial entities
           SQL -> do 
-            pythonSqlCode <- lift $ sqlToPythonCode state mid sid ctx nonInterpolatedXp f
-            return <$> KP.evaluateSql mid sid pythonSqlCode
+            code <- lift $ sqlToPythonCode state mid sid ctx nonInterpolatedXp f
+            return <$> KP.evaluateSql mid sid code
           Python -> return <$> KP.evaluate mid sid (interpolatedXp^.expression)
           R -> return <$> KR.evaluate mid sid (interpolatedXp^.expression)
 
@@ -105,34 +105,69 @@ evaluateHeader mid evalHeader =
 -- Interpolation
 
 -- #mustrefactor IO String should be EitherTExec string
-lookUpRef :: ServerState -> MessageId -> ASLanguage -> EvalContext -> ASReference 
-          -> DE.EvalChainFunc -> IO String
-lookUpRef state mid lang context ref f = 
-  showValue lang <$> DE.referenceToCompositeValue state mid context ref f
+lookUpRef :: ServerState 
+          -> MessageId 
+          -> ASLanguage 
+          -> EvalContext 
+          -> ASReference 
+          -> DE.EvalChainFunc 
+          -> IO String
+lookUpRef state mid lang context ref f = showValue lang <$> cv
+  where cv = DE.referenceToCompositeValue state mid context ref f
 
-insertValues :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression 
-             -> DE.EvalChainFunc -> IO EvalCode
-insertValues state mid sheetid ctx xp f = view expression <$> replaceRefsIO replacer xp
-  where replacer ref = lookUpRef state mid (xp^.language) ctx (exRefToASRef sheetid ref) f
+insertValues :: ServerState 
+             -> MessageId 
+             -> ASSheetId 
+             -> EvalContext 
+             -> ASExpression 
+             -> DE.EvalChainFunc 
+             -> IO EvalCode
+insertValues state mid sheetid ctx xp f = view expression <$> replacedXp
+  where 
+    replacedXp = replaceRefsIO replaceFunc xp
+    toASRef = exRefToASRef sheetid
+    replaceFunc ref = lookUpRef state mid (xp^.language) ctx (toASRef ref) f
 
--- | We evaluate SQL expressions by converting them to Python code, and substituting it into 
--- a template file that imports pysql and defines helper functions for SQL.  
--- Note: this can probably be significantly optimized. 
--- TODO clean up SQL mess
-sqlToPythonCode :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression 
-                -> DE.EvalChainFunc -> IO EvalCode
+-- | Converts SQL code to Python code for pandasql. It calls evalSql with 
+-- the arguments of new expression and context. The new expression has ranges
+-- replaced with datasetX, and the context is just a list of stringified 
+-- "range-type" objects (such as dataframes). The evalSql function is imported
+-- in the Python kernel on start.
+sqlToPythonCode :: ServerState 
+                -> MessageId 
+                -> ASSheetId 
+                -> EvalContext 
+                -> ASExpression 
+                -> DE.EvalChainFunc 
+                -> IO EvalCode
 sqlToPythonCode state mid sheetid ctx xp f = do 
   let exRefs = getExcelReferences xp
-      matchedRefs = map (exRefToASRef sheetid) exRefs -- ASReferences found inside xp
-  context <- mapM (\ref -> lookUpRef state mid SQL ctx ref f) matchedRefs
-  let st = ["dataset"++(show i) | i<-[0..((L.length matchedRefs)-1)]]
-      newExp = replaceRefs (\el -> (L.!!) st ($fromJust (L.findIndex (el==) exRefs))) xp
-      contextStmt = "setGlobals(" ++ show context ++ ")\n"
-      evalStmt = "db(\'" ++ (newExp^.expression) ++ "\')"
-  return $ contextStmt ++ evalStmt
+      toASRef = exRefToASRef sheetid
+      tableRefs = map toASRef $ filter refIsSQLTable exRefs 
+  datasetVals <- mapM (\ref -> lookUpRef state mid SQL ctx ref f) tableRefs
+  let showRef ref = if refIsSQLTable ref 
+                      then do 
+                        let i = $fromJust (L.findIndex (ref==) exRefs)
+                        return $ "dataset" ++ show i 
+                      else lookUpRef state mid SQL ctx (toASRef ref) f
+  newExp <- replaceRefsIO showRef xp
+  let query = escape (newExp^.expression)
+  -- print query
+  let evalStmt = "evalSql(\"" ++ query ++ "\", " ++ (show datasetVals) ++ ")"
+  return evalStmt
+
+escape :: String -> String
+escape xs = concatMap f xs 
+  where f '\"' = "\\\""
+        f x     = [x]
 
 ----------------------------------------------------------------------------------------------------
 -- Helpers
+
+refIsSQLTable :: ExRef -> Bool
+refIsSQLTable (ExRangeRef _ _ _) = True 
+refIsSQLTable (ExPointerRef _ _ _) =  True
+refIsSQLTable _ = False
 
 -- | This type represents an eval short-circuit; either we evaluate Right xp, or we just 
 -- short-circuit and interpret Left val as an Excel literal. 
@@ -208,14 +243,13 @@ onRefToIndicesSuccess ctx xp depInds = fmap (const xp) $ sequence $ flip map (zi
       lang = xp^.language
       values = map (maybe NoValue (view cellValue) . (`M.lookup` (ctx^.virtualCellsMap))) depInds
 
--- | Return the same expression if it's OK to pass in NoValue, or the appropriate ValueError.
+-- | Return the same expression if it's OK to pass in NoValue, 
+-- or the appropriate ValueError.
 handleNoValueInLang :: ASExpression -> ASIndex -> Either ASValue ASExpression
 handleNoValueInLang xp@(Expression _ Excel) _   = Right xp
 handleNoValueInLang xp@(Expression _ Python) _   = Right xp
 handleNoValueInLang xp@(Expression _ R) _   = Right xp
-handleNoValueInLang _ cellRef = 
-  Left $ ValueError ("Reference cell " ++ (indexToExcel cellRef) ++ " is empty.") "RefError"
--- TODO: replace (show cellRef) with the actual ref (e.g. C3) corresponding to it
+handleNoValueInLang xp@(Expression _ SQL) _ = Right xp
 
 handleErrorInLang :: ASExpression -> ASValue -> Either ASValue ASExpression
 handleErrorInLang xp@(Expression _ Excel) _  = Right xp

@@ -103,18 +103,18 @@ unallowed_builtins = [
 ]
 
 unallowed_imports = [
-    'os',
-    'sys',
-    'subprocess',
-    'docker',
-    'threading',
-    'multiprocessing',
-    'cStringIO',
-    'ast',
-    'inspect',
-    'compiler',
-    'time',
-    'glob'
+   'os',
+   'sys',
+   'subprocess',
+   'docker',
+   'threading',
+   'multiprocessing',
+   'cStringIO',
+   'ast',
+   'inspect',
+   'compiler',
+   'time',
+   'glob'
 ]
 
 # verify validity of restrictions.
@@ -133,12 +133,12 @@ def is_unallowed_builtin(name):
 
 # In addition to these we deny access to all lowlevel attrs (__xxx__).
 unallowed_attr = [
-    'im_class', 'im_func', 'im_self',
-    'func_code', 'func_defaults', 'func_globals', 'func_name',
-    'tb_frame', 'tb_next',
-    'f_back', 'f_builtins', 'f_code', 'f_exc_traceback',
-    'f_exc_type', 'f_exc_value', 'f_globals', 'f_locals',
-    'exit'
+   'im_class', 'im_func', 'im_self',
+   'func_code', 'func_defaults', 'func_globals', 'func_name',
+   'tb_frame', 'tb_next',
+   'f_back', 'f_builtins', 'f_code', 'f_exc_traceback',
+   'f_exc_type', 'f_exc_value', 'f_globals', 'f_locals',
+   'exit'
     ]
 
 unallowed_attr.extend(unallowed_imports)

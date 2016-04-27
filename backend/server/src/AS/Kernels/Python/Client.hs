@@ -85,10 +85,10 @@ haltMessage = runRequest_ . HaltMessageRequest
 clear :: ASSheetId -> IO ()
 clear = runRequest_ . ClearRequest
 
+-- | SQL code is converted to Python code, so simply evaluating as usual will 
+-- suffice for now.
 evaluateSql :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
-evaluateSql mid sid code = do 
-  code <- liftIO $ formatSqlCode code
-  evaluateWithScope Cell mid sid code
+evaluateSql = evaluateWithScope Cell
 
 --------------------------------------------------------------------------------
 -- General Helpers
@@ -102,11 +102,6 @@ testHeader :: ASSheetId -> EvalCode -> IO ()
 testHeader sid code = do 
   evalledHeader <- runEitherT $ evaluateHeader sid test_message_id code
   putsObj "Test evaluate python header: " evalledHeader
-
-formatSqlCode :: EvalCode -> IO EvalCode
-formatSqlCode code = do
-  template <- readFile $ eval_dir ++ "sql/template.py"
-  return $ LU.replace "#CODE#" code template
 
 --------------------------------------------------------------------------------
 -- Evaluation helpers
