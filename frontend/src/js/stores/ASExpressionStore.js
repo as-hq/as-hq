@@ -87,14 +87,25 @@ class ExpressionStore extends ReduceStore<State> {
 
       case 'EXPRESSION_CHANGED': {
         const {expression} = action;
-        const {currentLanguage} = state;
 
-        highlightAncestors(expression, currentLanguage);
+        if (expression === state.expression) {
+          // sometimes, the expression actually didn't change
+          // this happens when you press the cmd key on macs
+          // in those cases, we don't want to do isInsertingRef: false
+          // basically, Textbox for some reason fires requestChange
+          // so then there is an action fired as well.
 
-        return state.merge({
-          expression,
-          isInsertingRef: false
-        });
+          return state;
+        } else {
+          const {currentLanguage} = state;
+
+          highlightAncestors(expression, currentLanguage);
+
+          return state.merge({
+            expression,
+            isInsertingRef: false
+          });
+        }
       }
 
       case 'LANGUAGE_CHANGED': {
