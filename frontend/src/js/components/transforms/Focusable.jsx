@@ -23,7 +23,7 @@ export default function Focusable(Component: ReactClass, focuser: Focuser): Reac
   const { name, takeFocus, addFocusListener } = focuser;
 
   return class FocusedComponent extends React.Component {
-    static defaultProps = {}; 
+    static defaultProps = {};
     props: any;
     state: {};
 

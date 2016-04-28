@@ -13,9 +13,9 @@ import AS.Types.Window
 
 import AS.Config.Constants
 
-import AS.Clients()
+import AS.Clients() -- #needsrefactor this exists because some other module re-exports AS.Clients
+import AS.Reply
 import AS.Logging
-import AS.Util
 import AS.DB.API as DB
 import AS.DB.Graph as G
 import AS.DB.Internal as DI
@@ -154,18 +154,20 @@ handshakeAndStart state wsConn msg =
               --updateUserSession (userId userClient) (userSessionId userClient)
           let defaultSid = windowSheetId . view userWindow $ userClient
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
-          sendMessage successMsg wsConn
+          sendMessage wsConn successMsg 
           catchAny 
             (engageClient userClient state) 
             (handleRuntimeException userClient state)
         Left authErr -> do
           puts $ "Authentication error: " ++ authErr
           let failMsg = ClientMessage auth_message_id $ AuthFailure authErr
-          sendMessage failMsg wsConn
+          sendMessage wsConn failMsg 
     Just StartHeartbeat -> heartbeat wsConn heartbeat_interval
     _ -> do -- first message is neither
       putsObj "First message not a login message, received: " msg
-      sendMessage (failureMessage initialization_failure_message_id "Cannot connect") wsConn -- failure messages are not associated with any send message id.
+      sendMessage wsConn $ 
+        failureMessage initialization_failure_message_id "Cannot connect"  
+        -- ^ failure messages are not associated with any send message id.
 
 -- | For debugging purposes. Reads in a list of ServerMessages from a file and processes them, as though
 -- sent from a frontend. 
@@ -237,8 +239,8 @@ processAsyncWithTimeout c state msg = case clientType c of
         timeout S.process_message_timeout onTimeout (onSuccess lock) (f ())
       onTimeout = 
         sendMessage 
-          (ClientMessage timeout_message_id $ AskTimeout mid act) 
           (clientConn c)
+          (ClientMessage timeout_message_id $ AskTimeout mid act) 
       onSuccess lock = do
         -- block until the first modifyMVar_ above finishes.
         takeMVar lock
@@ -263,8 +265,9 @@ handleRuntimeException user state e = do
 purgeZombies :: MVar ServerState -> IO ()
 purgeZombies state = do 
   ucs <- view userClients <$> readMVar state
-  mapM_ (\uc -> catch (WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)) 
-                      (onDisconnect' uc state)) ucs
+  forM_ ucs $ \uc -> 
+    handleAny (onDisconnect' uc state) $ 
+      WS.sendTextData (uc^.userConn) ("TEST" :: T.Text) 
 
 -- There's gotta be a cleaner way to do this... but for some reason even typecasting 
 -- (\e -> onDisconnect uc state) :: (SomeException -> IO()) didn't work...
@@ -280,7 +283,8 @@ processMessage oldClient mstate message = do
   isPermissible <- DB.isPermissibleMessage (ownerName newClient) (state^.dbConn) message
   if isPermissible || isDebug
     then handleServerMessage newClient (State mstate) message
-    else sendMessage (failureMessage (serverMessageId message) "Insufficient permissions") (clientConn newClient)
+    else sendMessage (clientConn newClient) $
+      failureMessage (serverMessageId message) "Insufficient permissions" 
 
 onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
 onDisconnect c state = do

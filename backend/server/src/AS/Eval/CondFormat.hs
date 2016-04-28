@@ -14,11 +14,14 @@ import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Shift
 import AS.Types.Excel hiding (dbConn)
+import AS.Types.User hiding (userId)
+import AS.Types.Commits
 
 import AS.Kernels.Python.Client
 
 import AS.Eval.Core
 import AS.Parsing.Substitutions
+import AS.Parsing.References (getDependencies) 
 
 import Data.List
 import qualified Data.Map as M
@@ -30,6 +33,8 @@ import Control.Lens
 import Data.Maybe
 import AS.Logging
 
+import AS.DB.Users (getUserSheets)
+
 
 -- | Conditionally formats the cells based on the set of rules passed in -- all conditional formatting originally
 -- in the cells go away. 
@@ -38,17 +43,26 @@ import AS.Logging
 -- In particular, if this was called through an eval, the values of ASCell should
 -- agree with the values in EvalContext. If not, they should be the most recent values in the DB.
 -- timchu, 12/17/15.
-conditionallyFormatCells :: ServerState -> MessageId -> ASSheetId -> [ASCell] -> [CondFormatRule] -> EvalContext -> EvalChainFunc -> EitherTExec [ASCell]
-conditionallyFormatCells state mid origSid cells rules ctx f = do
+conditionallyFormatCells :: MessageContext -> 
+                            EvalContext -> 
+                            [ASCell] -> 
+                            [CondFormatRule] -> 
+                            EvalChainFunc -> 
+                            EitherTExec [ASCell]
+conditionallyFormatCells msgctx evalctx cells rules f = do
   let cells' = map (cellProps %~ clearCondFormatProps) cells
-      transforms = map (ruleToCellTransform state mid origSid ctx f) rules
+      transforms = map (ruleToCellTransform msgctx evalctx f) rules
       transformsComposed = foldr (>=>) return transforms
   mapM transformsComposed cells'
 
 -- #needsrefactor will eventually have to change ranges to refs in CondFormatRule
 -- Requires that v is the most up to date ASValue at location l whenever this function is called.
-ruleToCellTransform :: ServerState -> MessageId -> ASSheetId -> EvalContext -> EvalChainFunc -> CondFormatRule -> (ASCell -> EitherTExec ASCell)
-ruleToCellTransform state mid sid ctx f (CondFormatRule _ rngs condMapConstructor) c = 
+ruleToCellTransform ::  MessageContext -> 
+                        EvalContext -> 
+                        EvalChainFunc -> 
+                        CondFormatRule -> 
+                        (ASCell -> EitherTExec ASCell)
+ruleToCellTransform msgctx evalctx f (CondFormatRule _ rngs condMapConstructor) c = 
   let l = c^.cellLocation in 
   case find (flip rangeContainsIndex l) rngs of 
     Nothing -> return c
@@ -62,12 +76,12 @@ ruleToCellTransform state mid sid ctx f (CondFormatRule _ rngs condMapConstructo
               case mEvalLoc of 
                 Nothing -> return []
                 Just evalLoc -> do 
-                  let shiftAndEvalExpr = (evaluateBoolExpression state mid evalLoc ctx f) . shiftXp 
+                  let shiftAndEvalExpr = (evaluateBoolExpression msgctx evalctx evalLoc f) . shiftXp 
                   shouldFormat <- checkBoolCond boolCond v shiftAndEvalExpr
                   return $ if shouldFormat then props else []
             LambdaFormatMapConstructor lambdaExpr -> do 
               let shiftedLambdaExpr = shiftXp (Expression lambdaExpr Python)
-              formatResult <- evaluateFormatExpression state mid sid ctx shiftedLambdaExpr v f
+              formatResult <- evaluateFormatExpression msgctx evalctx shiftedLambdaExpr v f
               return $ case formatResult of 
                 FormatSuccess props -> props
                 _                   -> []
@@ -81,23 +95,29 @@ ruleToCellTransform state mid sid ctx f (CondFormatRule _ rngs condMapConstructo
 -- | Takes in a context and an expression, and adds to the context all the cells referenced
 -- in the expression that are not already in the context. This is the context that will be
 -- used to evaluate said expression. 
-updatedContextForEval :: ServerState -> ASSheetId -> EvalContext -> ASExpression -> EitherTExec EvalContext
-updatedContextForEval state sid ctx xp = do
-  let valMap = ctx^.virtualCellsMap
-      deps = getDependencies sid xp 
-      conn = state^.dbConn
+updatedContextForEval :: MessageContext -> EvalContext -> ASExpression -> EitherTExec EvalContext
+updatedContextForEval msgctx evalctx xp = do
+  let valMap = evalctx^.virtualCellsMap
+      conn = msgctx^.dbConnection
+      sid = messageSheetId msgctx
+  sheets <- liftIO $ getUserSheets conn $ msgctx^.userClient.userId
+  let deps = getDependencies sid sheets xp 
   depInds <- concat <$> mapM (refToIndicesInCondFormatting conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
   cells <- lift $ DB.getPossiblyBlankCells conn depIndsToGet
   let valMap' = insertMultiple valMap depIndsToGet cells
-  -- #RoomForImprovement. Can probably use %~ and make this cleaner.
-  return $ ctx & virtualCellsMap .~ valMap'
+  -- #RoomForImprovement. Can prob,ably use %~ and make this cleaner.
+  return $ evalctx & virtualCellsMap .~ valMap'
 
-evaluateBoolExpression :: ServerState -> MessageId -> ASIndex -> EvalContext -> EvalChainFunc -> ASExpression -> EitherTExec ASValue
-evaluateBoolExpression state mid evalLoc ctx f xp@(Expression str lang) = do
-  let sid = evalLoc^.locSheetId
-  ctx' <- updatedContextForEval state sid ctx xp
-  (Formatted (EvalResult res _) _) <- evaluateLanguage state mid evalLoc ctx' xp f
+evaluateBoolExpression :: MessageContext ->
+                          EvalContext -> 
+                          ASIndex -> 
+                          EvalChainFunc -> 
+                          ASExpression -> 
+                          EitherTExec ASValue
+evaluateBoolExpression msgctx evalctx evalLoc f xp@(Expression str lang) = do
+  evalctx' <- updatedContextForEval msgctx evalctx xp
+  (Formatted (EvalResult res _) _) <- evaluateLanguage msgctx evalctx' evalLoc xp f
   case res of
     Expanding expandingValue -> left $ CondFormattingError ("Tried to apply conditional formatting rule" ++ str ++ "but got ExpandingValue error with expandingValue:  " ++ show expandingValue)
     CellValue (ValueError msg _) -> do
@@ -109,9 +129,13 @@ evaluateBoolExpression state mid evalLoc ctx f xp@(Expression str lang) = do
 -- For now we're just shoehorning LambdaConditionExpr into an ASExpression. #expressiontypeclass
 -- 
 -- | Evaluates a Python function that returns a format or an error, rather than an ASValue. 
-evaluateFormatExpression :: ServerState -> MessageId -> ASSheetId -> EvalContext -> ASExpression -> ASValue -> EvalChainFunc -> EitherTExec FormatResult
-evaluateFormatExpression state mid sid ctx lambdaExpr v f = do
-  let conn = state^.dbConn
-  ctx' <- updatedContextForEval state sid ctx lambdaExpr
-  lambdaExpr' <- lift $ insertValues state mid sid ctx' lambdaExpr f
-  evaluateLambdaFormat sid lambdaExpr' v
+evaluateFormatExpression :: MessageContext ->
+                            EvalContext -> 
+                            ASExpression -> 
+                            ASValue -> 
+                            EvalChainFunc -> 
+                            EitherTExec FormatResult
+evaluateFormatExpression msgctx evalctx lambdaExpr v f = do
+  evalctx' <- updatedContextForEval msgctx evalctx lambdaExpr
+  lambdaExpr' <- lift $ insertValues msgctx evalctx' lambdaExpr f
+  evaluateLambdaFormat (messageSheetId msgctx) lambdaExpr' v

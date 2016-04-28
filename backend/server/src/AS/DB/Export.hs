@@ -10,6 +10,7 @@ import AS.Types.DB
 import AS.Types.Network
 import AS.Config.Settings
 import AS.Types.Graph 
+import AS.Types.User
 
 import AS.DB.API as DB
 import AS.DB.Clear as DC
@@ -27,11 +28,11 @@ exportSheetData conn sid = do
   headers <- mapM (DB.getEvalHeader conn sid) headerLangs
   return $ ExportData cells bars descs condFormatRules headers
 
-importSheetData :: Connection -> ExportData -> IO ()
-importSheetData conn (ExportData cells bars descs condFormatRules headers) = do
+importSheetData :: Connection -> ASUserId -> ExportData -> IO ()
+importSheetData conn uid (ExportData cells bars descs condFormatRules headers) = do
   let sid = view (cellLocation.locSheetId) . $head $ cells
   DC.clearSheet conn sid 
-  DT.setCellsPropagated conn cells
+  DT.setCellsPropagated conn uid cells
   mapM_ (DB.setBar conn) bars
   mapM_ (DB.setDescriptor conn) descs
   DB.setCondFormattingRules conn sid condFormatRules

@@ -5,7 +5,7 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages hiding (Delete, Drag)
-import AS.Types.User
+import AS.Types.User (ASUserId)
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
@@ -33,12 +33,12 @@ import Data.Maybe hiding (fromJust)
 import qualified Data.Set as S
 
 
-handleMutateSheet :: MessageId -> ASUserClient -> ServerState -> Mutate -> IO ()
-handleMutateSheet mid uc state mutateType = do
-  let sid = userSheetId uc
-      conn = state^.dbConn
+handleMutateSheet :: MessageContext -> Mutate -> IO ()
+handleMutateSheet msgctx mutateType = do
+  let sid   = messageSheetId msgctx
+      conn  = msgctx^.dbConnection
   -- update cells 
-  oldCells <- DB.getCellsInSheet conn (userSheetId uc)
+  oldCells <- DB.getCellsInSheet conn (messageSheetId msgctx)
   let newCells = map (cellMutate mutateType) oldCells
       (oldCells', newCells') = keepUnequal $ zip oldCells newCells
       blankedCells = blankCellsAt $ mapCellLocation oldCells'
@@ -55,8 +55,8 @@ handleMutateSheet mid uc state mutateType = do
       cfru = updateFromLists newCondFormatRules' $ map condFormatRuleId oldCondFormatRules'
   -- propagate changes
   let updateTransform update = update & barUpdates .~ bu & condFormatRuleUpdate .~ cfru
-  errOrUpdate <- runDispatchCycle state mid updatedCells DescendantsWithParent (userCommitSource uc) updateTransform
-  broadcastErrOrUpdate mid state uc errOrUpdate
+  errOrUpdate <- runDispatchCycle msgctx updatedCells DescendantsWithParent updateTransform
+  broadcastErrOrUpdate msgctx errOrUpdate
 
 keepUnequal :: (Eq a) => [(a, Maybe a)] -> ([a], [a])
 keepUnequal x = (ls1, ls2)

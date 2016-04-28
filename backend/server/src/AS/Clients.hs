@@ -13,6 +13,7 @@ import AS.Types.Commits
 import AS.Types.Messages hiding (userId)
 import AS.Types.Eval
 import AS.Types.DB hiding (Clear, UserType)
+import AS.Types.Window
 
 import AS.Handlers.Mutate
 import AS.Handlers.Delete
@@ -56,65 +57,67 @@ instance Client ASUserClient where
     | otherwise = s
   lookupClient uc s = $fromJust $ L.find (== uc) (s^.userClients)
   clientCommitSource = userCommitSource
-  handleServerMessage user state message = do 
+  handleServerMessage uc state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
     when (shouldLogMessage message) $ do
       puts "=========================================================="
-      putsSheet (srcSheetId . clientCommitSource $ user) (show message)
+      putsSheet (srcSheetId . clientCommitSource $ uc) (show message)
     curState <- readState state
-    storeLastMessage (curState^.dbConn) message (clientCommitSource user)
+    storeLastMessage (curState^.dbConn) message (clientCommitSource uc)
     -- everything commented out here is a thing we are temporarily not supporting, because we only partially implemented them
     -- but don't want to maintain them (Alex 12/28)
     let mid = serverMessageId message 
     -- Log every message sent in the DB to help in replaying/debugging
+    let msgctx = MessageContext { _messageState = state
+                                , _messageId = mid
+                                , _userClient = uc 
+                                , _dbConnection = curState^.dbConn
+                                }
     case serverAction message of
       LogAction _ -> return ()
       GetSessionLogs _ -> return ()
-      otherwise -> handleLogMessage user curState $ A.encode message
+      otherwise -> handleLogMessage msgctx $ A.encode message
     case (serverAction message) of
-      -- the following 3 actions take the mutable state rather than ServerState because it updates the user's window
-      OpenSheet sid               -> handleOpenSheet mid user state sid
-      NewSheet sheetName          -> handleNewSheet mid user state sheetName
-      CloneSheet sid              -> handleCloneSheet mid user state sid
-      AcquireSheet sid            -> handleAcquireSheet mid user state sid
-      GetMySheets                 -> handleGetSheets mid user curState
-      -- Close                 -> handleClose user curState payload
-      UpdateWindow win            -> handleUpdateWindow mid user curState win
-      -- Import                -> handleImport user curState payload
-      Export sid                  -> handleExport user curState sid
-      Evaluate xpsAndIndices      -> handleEval mid user curState xpsAndIndices
-      -- EvaluateRepl          -> handleEvalRepl user payload
-      EvaluateHeader evalHeader   -> handleEvalHeader mid user curState evalHeader
-      Get locs                    -> handleGet mid user curState locs
-      GetIsCoupled loc            -> handleIsCoupled mid user curState loc
-      Delete sel                  -> handleDelete mid user curState sel
-      ClearSheetServer sid        -> handleClear mid user curState sid
-      Undo                        -> handleUndo mid user curState
-      Redo                        -> handleRedo mid user curState
-      Copy from to                -> handleCopy mid user curState from to
-      Cut from to                 -> handleCut mid user curState from to
-      ToggleProp prop rng         -> handleToggleProp mid user curState prop rng
-      SetProp prop rng            -> handleSetProp mid user curState prop rng
-      ChangeDecimalPrecision i rng -> handleChangeDecimalPrecision mid user curState i rng
-      Repeat sel                  -> handleRepeat mid user curState sel
-      BugReport report            -> handleBugReport user curState report
-      -- JumpSelect            -> handleJumpSelect user curState payload
-      MutateSheet mutateType      -> handleMutateSheet mid user curState mutateType
-      Drag selRng dragRng         -> handleDrag mid user curState selRng dragRng
-      Decouple                    -> handleDecouple mid user curState
-      Timeout timeoutMid          -> handleTimeout timeoutMid state
-      UpdateCondFormatRules rs ids-> handleUpdateCondFormatRules mid user curState rs ids
-      GetBar bInd                 -> handleGetBar mid user curState bInd
-      SetBarProp bInd prop        -> handleSetBarProp mid user curState bInd prop
-      ImportCSV ind lang fileName -> handleCSVImport mid user curState ind lang fileName
-      ImportExcel sid fileName    -> handleExcelImport mid user curState sid fileName
-      SetLanguagesInRange lang rng -> handleSetLanguagesInRange mid user curState lang rng
-      LogAction fAction            -> handleLogAction user curState fAction
-      GetSessionLogs logSource     -> handleGetSessionLogs mid user curState logSource
+      -- the following 3 actions take the mutable state rather than ServerState because it updates the uc's window
+      OpenSheet sid               -> handleOpenSheet msgctx sid
+      NewSheet sheetName          -> handleNewSheet msgctx sheetName
+      CloneSheet sid              -> handleCloneSheet msgctx sid
+      AcquireSheet sid            -> handleAcquireSheet msgctx sid
+      DeleteSheet sid             -> handleDeleteSheet msgctx sid
+      GetMySheets                 -> handleGetSheets msgctx
+      UpdateWindow win            -> handleUpdateWindow msgctx win
+      Export sid                  -> handleExport msgctx sid
+      Evaluate xpsAndIndices      -> handleEval msgctx xpsAndIndices
+      EvaluateHeader evalHeader   -> handleEvalHeader msgctx evalHeader
+      Get locs                    -> handleGet msgctx locs
+      GetIsCoupled loc            -> handleIsCoupled msgctx loc
+      Delete sel                  -> handleDelete msgctx sel
+      ClearSheetServer sid        -> handleClear msgctx sid
+      Undo                        -> handleUndo msgctx
+      Redo                        -> handleRedo msgctx
+      Copy from to                -> handleCopy msgctx from to
+      Cut from to                 -> handleCut msgctx from to
+      ToggleProp prop rng         -> handleToggleProp msgctx prop rng
+      SetProp prop rng            -> handleSetProp msgctx prop rng
+      ChangeDecimalPrecision i rng-> handleChangeDecimalPrecision msgctx i rng
+      Repeat sel                  -> handleRepeat msgctx sel
+      BugReport report            -> handleBugReport msgctx report
+      MutateSheet mutateType      -> handleMutateSheet msgctx mutateType
+      Drag selRng dragRng         -> handleDrag msgctx selRng dragRng
+      Decouple                    -> handleDecouple msgctx
+      Timeout timeoutMid          -> handleTimeout (msgctx^.messageState) timeoutMid
+      UpdateCondFormatRules rs ids-> handleUpdateCondFormatRules msgctx rs ids
+      GetBar bInd                 -> handleGetBar msgctx bInd
+      SetBarProp bInd prop        -> handleSetBarProp msgctx bInd prop
+      ImportCSV ind lang fileName -> handleCSVImport msgctx ind lang fileName
+      ImportExcel sid fileName    -> handleExcelImport msgctx sid fileName
+      SetLanguagesInRange lang rng -> handleSetLanguagesInRange msgctx lang rng
+      LogAction fAction            -> handleLogAction msgctx fAction
+      GetSessionLogs logSource     -> handleGetSessionLogs msgctx logSource
       StartDebuggingLog            -> handleStopLoggingActions state
-      GetAllSessions               -> handleGetAllSessions mid user
-      RenameSheet sid sname        -> handleRenameSheet mid user curState sid sname
+      GetAllSessions               -> handleGetAllSessions msgctx
+      RenameSheet sid sname        -> handleRenameSheet msgctx sid sname
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 
@@ -122,31 +125,12 @@ instance Client ASUserClient where
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where
-  clientType _ = DaemonType
-  clientConn = daemonConn
-  sessionId = T.pack . DM.getDaemonName . daemonLoc
-  ownerName = daemonOwner
-  addClient dc s
-    | dc `elem` (s^.daemonClients) = s
-    | otherwise = s & daemonClients %~ (dc :)
-  removeClient dc s
-    | dc `elem` (s^.daemonClients) = s & daemonClients %~ (L.delete dc)
-    | otherwise = s
-  lookupClient dc s = $fromJust $ L.find (== dc) (s^.daemonClients)
-  clientCommitSource = daemonCommitSource
-  handleServerMessage daemon mstate message = case (serverAction message) of
-    Evaluate xpsAndIndices -> do
-      state <- readState mstate
-      handleEval' (serverMessageId message) daemon state xpsAndIndices
-    where 
-      handleEval' :: MessageId -> ASDaemonClient -> ServerState -> [EvalInstruction] -> IO ()
-      handleEval' mid dm state evalInstructions  = do
-        let xps  = map evalXp evalInstructions
-            inds = map evalLoc evalInstructions 
-            conn = state^.dbConn
-        oldProps <- mapM (getPropsAt conn) inds
-        let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
-        errOrUpdate <- runDispatchCycle state mid cells DescendantsWithParent (daemonCommitSource dm) id
-        either (const $ return ()) (broadcastSheetUpdate mid state) errOrUpdate
-      -- difference between this and handleEval being that it can't take back a failure message. 
-      -- yes, code replication, whatever. 
+  clientType = $undefined
+  clientConn = $undefined
+  sessionId = $undefined
+  ownerName = $undefined
+  addClient = $undefined
+  removeClient = $undefined
+  lookupClient = $undefined
+  clientCommitSource = $undefined
+  handleServerMessage = $undefined

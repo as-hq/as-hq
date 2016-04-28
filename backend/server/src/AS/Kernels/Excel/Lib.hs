@@ -47,12 +47,18 @@ import AS.Types.Cell hiding (isBlank)
 import AS.Types.Errors
 import AS.Types.Eval
 import AS.Types.Formats
+import AS.Types.User
+import AS.Types.Commits
 import AS.Util
 
 import AS.Kernels.Excel.Util
 import AS.Kernels.Excel.Compiler
-import AS.Parsing.Excel (refMatch)
 import AS.Eval.ColRangeHelpers (rangeWithCellMapToFiniteRange)
+
+import AS.Parsing.Excel (refMatch)
+import AS.Parsing.References (exRefToASRef)
+
+import Database.Redis (Connection)
 
 data RefMap = RefMap {refMap :: M.Map ERef EEntity, refDim :: (Int, Int)} deriving (Show)
 
@@ -289,7 +295,8 @@ topLeftForMatrix _ r = r
 -- #RoomForImprovement: this is not cleanly written. Ask Ritesh for further
 -- clarification.
 evalBasicFormula :: Context -> BasicFormula -> EitherT EError IO EEntity
-evalBasicFormula context (Ref exIndex) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
+evalBasicFormula context (Ref exIndex) = locToEitherT $ 
+  exRefToASRef (view locSheetId $ curLoc context) (userSheets context) exIndex
 evalBasicFormula c (Var val)   = valToEitherT val
 evalBasicFormula context (Fun f inputFormulas)  = do
   fDescriptor <- hoistEither $ getFunc f
@@ -307,15 +314,17 @@ evalFormula context (ArrayConst basicFormulas) = do
 
 -- #RoomForImprovement: lots of code duplication. Especially in args <- ....
 evalArrayFormula :: Context -> Formula -> EitherT EError IO EEntity
-evalArrayFormula context (Basic (Ref exIndex)) = locToEitherT $ exRefToASRef (view locSheetId (curLoc context)) exIndex
+evalArrayFormula context (Basic (Ref exIndex)) = locToEitherT $ 
+  exRefToASRef (view locSheetId $ curLoc context) (userSheets context) exIndex
 evalArrayFormula _       (Basic (Var val)) = valToEitherT val
 evalArrayFormula context formula@(ArrayConst b) = evalFormula context formula
 evalArrayFormula context basicFormula@(Basic (Fun name formulasPassedIntoFunc)) = do
   fDescriptor <- hoistEither $ getFunc name
   checkNumArgs name (maxNumArgs fDescriptor) (length formulasPassedIntoFunc)
   -- curLoc is always an index (you evaluate from within a cell)
-  let sheetId = shName (IndexRef $ curLoc context)
-  refMap <- hoistEither $ unexpectedRefMap context (getUnexpectedRefs sheetId basicFormula)
+  let sid = view locSheetId $ curLoc context
+  refMap <- hoistEither $ 
+    unexpectedRefMap context (getUnexpectedRefs sid (userSheets context) basicFormula)
   case refMap of
     Just mp -> evalArrayFormula' context mp basicFormula
     Nothing -> do
@@ -371,23 +380,25 @@ scalarizeRef _ _ x = hoistEither $ snd x
 -- | AST Array Formula Evaluation helpers
 
 -- | Extract all unexpected range references out of a (valid) formula
-getUnexpectedRefs :: ASSheetId -> Formula -> [ERef]
-getUnexpectedRefs _ (Basic (Var s)) = []
-getUnexpectedRefs _ (Basic (Ref e)) = []
-getUnexpectedRefs s (ArrayConst b) = concatMap (getUnexpectedRefs s) $ map Basic (concat b)
-getUnexpectedRefs s (Basic (Fun f fs)) = concatMap (getRangeRefs s fDes) enum
+getUnexpectedRefs :: ASSheetId -> [ASSheet] -> Formula -> [ERef]
+getUnexpectedRefs _ _ (Basic (Var s)) = []
+getUnexpectedRefs _ _ (Basic (Ref e)) = []
+getUnexpectedRefs s sheets (ArrayConst b) = concatMap (getUnexpectedRefs s sheets) $ map Basic (concat b)
+getUnexpectedRefs s sheets (Basic (Fun f fs)) = concatMap (getRangeRefs s sheets fDes) enum
   where
     (Right fDes) = getFunc f
     enum = zip [1..argNumLimit] fs
 
 -- | Helper: Given an argument, return the (possible) underlying range refs
-getRangeRefs :: ASSheetId -> FuncDescriptor -> Arg Formula -> [ERef]
-getRangeRefs s fDes (numArg,(Basic (Ref exIndex)))
-  | (elem numArg (mapArgsIfArrayFormula fDes)) = if (isRange (exRefToASRef s exIndex))
-    then [ERef (exRefToASRef s exIndex)]
-    else []
+getRangeRefs :: ASSheetId -> [ASSheet] -> FuncDescriptor -> Arg Formula -> [ERef]
+getRangeRefs s sheets fDes (numArg,(Basic (Ref exIndex)))
+  | (elem numArg (mapArgsIfArrayFormula fDes)) = 
+      let ref = exRefToASRef s sheets exIndex
+      in if isRange ref
+        then [ERef ref]
+        else []
   | otherwise = []
-getRangeRefs s _ (_,f) = getUnexpectedRefs s f
+getRangeRefs s sheets _ (_,f) = getUnexpectedRefs s sheets f
 
 -- #RoomForImrpovement: by timchu. @Ritesh. Comments here would be nice. I don't know what this does.
 -- | Returns a map of replacements for "unexpected" range references
@@ -953,7 +964,7 @@ eIndirect :: EFunc
 eIndirect c e = do
   refString <- getRequired "indirect" 1 e :: ThrowsError String
   a1Bool <- getOptional True "indirect" 2 e :: ThrowsError Bool
-  case (stringToLoc a1Bool (view locSheetId $ curLoc c) refString) of
+  case (stringToLoc (view locSheetId $ curLoc c) (userSheets c) a1Bool refString) of
     Nothing -> Left $ REF "Indirect did not refer to valid reference as first argument"
     Just loc -> return $ EntityRef (ERef loc)
 
@@ -969,11 +980,11 @@ r1c1 sid = do
   return $ IndexRef $ Index sid (makeCoord (Col col) (Row row))
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
-stringToLoc :: Bool -> ASSheetId -> String -> Maybe ASReference
-stringToLoc True sid str = case parseOnly justExcelMatch (C.pack str) of 
-  Right exRef -> Just $ exRefToASRef sid exRef
+stringToLoc :: ASSheetId -> [ASSheet] -> Bool -> String -> Maybe ASReference
+stringToLoc sid sheets True str = case parseOnly justExcelMatch (C.pack str) of 
+  Right exRef -> Just $ exRefToASRef sid sheets exRef
   Left _ -> Nothing 
-stringToLoc False sid str = case parseOnly (r1c1 sid) (C.pack str) of 
+stringToLoc sid _ False str = case parseOnly (r1c1 sid) (C.pack str) of 
   Right asRef -> Just asRef
   Left _ -> Nothing
 
@@ -988,8 +999,8 @@ eOffset c e = do
   let topLeftOfLoc = topLeftLoc loc
       tl = shiftByOffset (Offset (Col cols) (Row rows)) topLeftOfLoc
   let loc' = case (height,width) of
-                (1, 1) -> IndexRef $ Index (shName loc) tl
-                (h,w) -> RangeRef $ makeFiniteRange (shName loc) tl br where
+                (1, 1) -> IndexRef $ Index (refSheetId loc) tl
+                (h,w) -> RangeRef $ makeFiniteRange (refSheetId loc) tl br where
                   br = shiftByOffset (Offset (Col $ w - 1) (Row $ h - 1)) tl
   verifyInBounds loc'
 

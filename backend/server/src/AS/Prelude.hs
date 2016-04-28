@@ -7,6 +7,8 @@ module AS.Prelude
   , module GHC.Generics
   , module System.IO
   , module Control.Monad
+  , module Control.Monad.Trans.Either
+  , module Data.List
   , error
   , undefined
   , valAt
@@ -25,7 +27,11 @@ module AS.Prelude
   , liftIO
   , showConstructor
   , forkIO_
+  , parMapM_
+  , parForM_
+  , runEitherT_
   , sequenceWith
+  , whenLeft
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -33,6 +39,38 @@ module AS.Prelude
 import Prelude as PreludeMinus hiding (head, tail, last, read, error, undefined, log)
 import qualified Prelude as P
 import Data.Data
+import Data.List (
+    splitAt
+  , break
+  , intercalate
+  , isPrefixOf
+  , drop
+  , filter
+  , reverse
+  , replicate
+  , take
+  , sortBy
+  , sort
+  , intersperse
+  , transpose
+  , subsequences
+  , permutations
+  , scanl
+  , scanr
+  , iterate
+  , repeat
+  , cycle
+  , unfoldr
+  , takeWhile
+  , dropWhile
+  , group
+  , inits
+  , tails
+  , zipWith
+  , zip
+  , find
+  , intercalate
+  )
 
 import Control.Concurrent
 import Control.Exception
@@ -50,6 +88,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad
 import qualified Control.Monad.Catch as MC
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Either 
 
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -139,19 +178,7 @@ undefined = appE error [|"Undefined!"|]
 --  Just x -> x
 
 -------------------------------------------------------------------------------------------------------------------------
--- other standard functions we want
-
-nub :: (Eq a, Ord a) => [a] -> [a]
-nub xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
-
-(<++>) a b = (++) <$> a <*> b
-
-filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
-filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
-
--- | a version of modifyMVar_ that strictly computes the new state
-modifyMVar_' :: MVar a -> (a -> IO a) -> IO ()
-modifyMVar_' s f = modifyMVar s $ \s' -> (,()) <$> f s'
+-- error handling
 
 -- | A version of catch that never swallows asynchronous exceptions. Works
 -- not only for IO.
@@ -172,11 +199,41 @@ catchAny m f = MC.catch m onExc
 handleAny :: (SomeException -> IO a) -> IO a -> IO a
 handleAny h f = catchAny f h
 
+-------------------------------------------------------------------------------------------------------------------------
+-- other standard functions we want
+
+nub :: (Eq a, Ord a) => [a] -> [a]
+nub xs = map fst $ M.toList . M.fromList $ zip xs (repeat ())
+
+(<++>) a b = (++) <$> a <*> b
+
+filterBy :: (a -> b) -> (b -> Bool) -> [a] -> [a]
+filterBy f filt l = map snd $ filter (\(fe, _) -> filt fe) $ zip (map f l) l
+
+-- | a version of modifyMVar_ that strictly computes the new state
+modifyMVar_' :: MVar a -> (a -> IO a) -> IO ()
+modifyMVar_' s f = modifyMVar s $ \s' -> (,()) <$> f s'
+
 showConstructor :: (Data a) => a -> String
 showConstructor = showConstr . toConstr
 
-forkIO_ :: IO () -> IO ()
-forkIO_ = void . forkIO
+forkIO_ :: IO a -> IO ()
+forkIO_ = void . forkIO . void
+
+runEitherT_ :: EitherT a IO b -> IO ()
+runEitherT_ = void . runEitherT 
 
 sequenceWith :: (Monad m) => (a -> b) -> [m a] -> m [b]
 sequenceWith f = sequence . map (f <$>)
+
+whenLeft :: (Monad m) => Either a b -> m c -> m ()
+whenLeft x f = when (isLeft x) (void f)
+  where 
+    isLeft (Left _) = True
+    isLeft (Right _) = False
+
+parMapM_ :: (a -> IO ()) -> [a] -> IO ()
+parMapM_ f xs = mapM_ (forkIO_ . f) xs
+
+parForM_ :: [a] -> (a -> IO ()) -> IO ()
+parForM_ = flip parMapM_

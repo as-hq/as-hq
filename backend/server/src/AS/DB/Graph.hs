@@ -21,17 +21,21 @@ import AS.Types.Locations
 import AS.Types.Graph
 import AS.Types.Eval
 import AS.Types.Network
+import AS.Types.User
+import AS.Types.Commits
 
 import AS.Config.Settings as S
+import AS.Logging
+
 import qualified AS.DB.API as DB
 import AS.DB.Internal
-import AS.Logging
-import AS.Parsing.Substitutions (getDependencies)
+import AS.DB.Users (getUserSheets)
+
+import AS.Parsing.References (getDependencies)
 
 import Control.Lens
-import Control.Monad (void)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
+
+import Database.Redis (Connection)
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Ancestors
@@ -41,33 +45,33 @@ import Control.Monad.Trans.Either
 -- added to the graph.)
 -- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
 -- including pointer, range, and index. 
-setCellsAncestors :: [ASCell] -> EitherTExec ()
-setCellsAncestors cells = do
+setCellsAncestors :: Connection -> ASUserId -> [ASCell] -> EitherTExec ()
+setCellsAncestors conn uid cells = do
+  sheets <- liftIO $ getUserSheets conn uid
+  let depSets = map (getAncestorsForCell sheets) cells
+      relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
   setRelations relations 
-  where
-    depSets = map getAncestorsForCell cells
-    relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
 
 -- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. 
 -- However, for a non-fat-cell-head coupled cell, we only want to set an edge from it to the $head of the list 
 -- (for checking circular dependencies).
-getAncestorsForCell :: ASCell -> [ASReference]
-getAncestorsForCell c = if not $ isEvaluable c
+getAncestorsForCell :: [ASSheet] -> ASCell -> [ASReference]
+getAncestorsForCell sheets c = if not $ isEvaluable c
   then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
-  else getDependencies (c^.cellLocation.locSheetId) (c^.cellExpression)
+  else getDependencies (c^.cellLocation.locSheetId) sheets (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
 -- graph DB gets all its ancestors removed. 
-removeAncestorsAt :: [ASIndex] -> EitherTExec ()
-removeAncestorsAt = setCellsAncestors . blankCellsAt
+removeAncestorsAt :: Connection -> [ASIndex] -> EitherTExec ()
+removeAncestorsAt conn = setCellsAncestors conn "" . blankCellsAt
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
 -- introduce errors. 
-setCellsAncestorsForce :: [ASCell] -> IO ()
-setCellsAncestorsForce cells = runEitherT (setCellsAncestors cells) >> return ()
+setCellsAncestorsForce :: Connection -> ASUserId -> [ASCell] -> IO ()
+setCellsAncestorsForce conn uid cells = runEitherT_ (setCellsAncestors conn uid cells) 
 
-removeAncestorsAtForced :: [ASIndex] -> IO ()
-removeAncestorsAtForced locs = runEitherT (removeAncestorsAt locs) >> return ()
+removeAncestorsAtForced :: Connection -> [ASIndex] -> IO ()
+removeAncestorsAtForced conn locs = runEitherT_ (removeAncestorsAt conn locs) 
 
 ------------------------------------------------------------------------------------------------------------------
 -- Basic helper functions
@@ -187,16 +191,18 @@ shouldSetRelationsOfCellWhenRecomputing cell =  maybe True ((== cell^.cellLocati
 
 recomputeAllDAGs :: R.Connection -> IO ()
 recomputeAllDAGs conn = do
-  cells <- filter shouldSetRelationsOfCellWhenRecomputing <$> DB.getAllCells conn
-  clearAllDAGs 
-  setCellsAncestorsForce cells
-  return ()
+  sheets <- DB.getAllSheets conn
+  forM_ sheets $ \s -> 
+    let src = CommitSource (sheetOwner s) (sheetId s)
+    in recomputeSheetDAG conn src
 
-recomputeSheetDAG :: R.Connection -> ASSheetId -> IO ()
-recomputeSheetDAG conn sid = do
+recomputeSheetDAG :: R.Connection -> CommitSource -> IO ()
+recomputeSheetDAG conn src = do
+  let sid = srcSheetId src
+  let uid = srcUserId src
   cells <- filter shouldSetRelationsOfCellWhenRecomputing <$> DB.getCellsInSheet conn sid
   clearSheetDAG sid
-  setCellsAncestorsForce cells
+  setCellsAncestorsForce conn uid cells
   -- Note that clearSheetDAG is usually redundant with setCellsAncestorsForce, since usually
   -- what was previously in the DAG is a subset of all cells in the sheet. There's no guarantee
   -- that's the case though, so it's safe to add it here anyway. 
@@ -211,7 +217,12 @@ clearSheetDAG sid = void . runEitherT $ processWriteRequest (ClearSheetDAG sid)
 
 -- Takes in a list of (index, [list of ancestors of that cell])'s and sets the ancestor relationship in the graph
 -- Note: ASRelation is of type (ASIndex, [ASReference])
+-- #needsrefactor OutOfBounds should return a cell-level error, not throw a left that halts evaluation
 setRelations :: [ASRelation] -> EitherTExec ()
 setRelations [] = return ()
-setRelations rels = processWriteRequest $ SetRelations rels
+setRelations rels = if any isOutOfBounds rels 
+  then left ReferenceOutOfBounds
+  else processWriteRequest $ SetRelations rels
+  where 
+    isOutOfBounds (_, refs) = any (== OutOfBounds) refs
   -- Map Right [] to Right () and keep error messages the same as usual

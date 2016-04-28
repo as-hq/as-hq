@@ -17,7 +17,14 @@ import type {
   Bar
 } from './Bar';
 
-export type FocusedElement = 'grid' | 'textbox' | 'editor' | 'header' | 'bottompane';
+export type FocusedElement =
+    'grid'
+  | 'textbox'
+  | 'editor'
+  | 'header'
+  | 'bottompane'
+  | 'bottombar'
+  ;
 
 export type BottomPaneType = 'header_output' | 'errors' | 'cell_output' | 'no_pane';
 

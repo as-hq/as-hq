@@ -306,6 +306,7 @@ export type ServerAction =
   | RenameSheet
   | NewSheet
   | CloneSheet
+  | DeleteSheet
   | GetMySheets
   | UpdateWindow
   | Export
@@ -343,6 +344,7 @@ export type ServerActionType =
   | 'RenameSheet'
   | 'NewSheet'
   | 'CloneSheet'
+  | 'DeleteSheet'
   | 'GetMySheets'
   | 'UpdateWindow'
   | 'Export'
@@ -401,6 +403,11 @@ export type NewSheet = {
 
 export type CloneSheet = {
   tag: "CloneSheet";
+  contents: string;
+};
+
+export type DeleteSheet = {
+  tag: "DeleteSheet";
   contents: string;
 };
 

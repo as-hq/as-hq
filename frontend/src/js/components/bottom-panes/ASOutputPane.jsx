@@ -95,8 +95,10 @@ const styles = {
   },
 
   contentPane: {
+    position: 'absolute',
     height: `calc(100% - ${topBarHeight}px)`,
-    overflow: 'auto'
+    width: '100%',
+    overflow: 'auto',
   },
 
   outputLine: {

@@ -144,13 +144,14 @@ createTask key id title desc = do
 
 -- | On receiving a bug report, we log the bug report in server logs, make a maniphest task, 
 -- and then send an ack back to frontend
-handleBugReport :: ASUserClient -> ServerState -> String -> IO ()
-handleBugReport uc state title = do
-  putsBugReport (userCommitSource uc) title
+handleBugReport :: MessageContext -> String -> IO ()
+handleBugReport msgctx title = do
+  let uc = msgctx^.userClient
+  putsBugReport (messageCommitSource msgctx) title
   connectResp <- conduitConnect
   case connectResp of 
     Nothing -> return ()
     Just resp -> do 
-      desc <- getDescription uc $ state^.dbConn
+      desc <- getDescription uc $ msgctx^.dbConnection
       createTask (sessionKey $ result resp) (connectionID $ result resp) title desc
   WS.sendTextData (uc^.userConn) ("ACK" :: T.Text)

@@ -173,9 +173,7 @@ class App extends React.Component {
                           side="bottom" />
         </div>
 
-        <div style={styles.bottomBar} >
-          <ASBottomBarController />
-        </div>
+        <ASBottomBarController />
 
         <ShortcutHelper />
       </div>
@@ -190,8 +188,9 @@ class App extends React.Component {
   }
 }
 
-const topBarHeight = 60;
+const topBarHeight = 36;
 const toolbarHeight = 50;
+const bottombarHeight = 30;
 const connectionBarHeight = 24;
 
 const styles = {
@@ -207,11 +206,8 @@ const styles = {
   },
   resizable: {
     height: `calc(100% - ${
-      toolbarHeight + topBarHeight
+      toolbarHeight + topBarHeight + bottombarHeight
     }px)`,
-  },
-  bottomBar: {
-    height: 24,
   },
 };
 

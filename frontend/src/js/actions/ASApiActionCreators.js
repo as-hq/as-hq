@@ -948,6 +948,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  deleteSheet(sheetId: string) {
+    const msg = {
+      tag: 'DeleteSheet',
+      contents: sheetId,
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   getMySheets() {
     const msg = {
       tag: "GetMySheets",

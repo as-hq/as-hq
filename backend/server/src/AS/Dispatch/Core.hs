@@ -22,6 +22,7 @@ import AS.Types.Locations
 import AS.Types.Messages
 import AS.Types.Network
 import AS.Types.Updates
+import AS.Types.User hiding (userId)
 import AS.Logging
 
 import AS.Dispatch.Expanding        as DE
@@ -88,53 +89,54 @@ type PureEvalTransform = EvalContext -> EvalContext
 -- the only information we're really passed in from the cells is the locations and the expressions of
 -- the cells getting evaluated. We pull the rest from the DB.
 -- #lenses
-runDispatchCycle :: ServerState -> MessageId -> [ASCell] -> DescendantsSetting -> CommitSource -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
-runDispatchCycle state mid cs descSetting src updateTransform = do
+runDispatchCycle :: MessageContext -> [ASCell] -> DescendantsSetting -> UpdateTransform -> IO (Either ASExecError SheetUpdate)
+runDispatchCycle msgctx cs descSetting updateTransform = do
   roots <- EM.evalMiddleware cs
   time <- getASTime 
-  let conn = state^.dbConn
-  rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ srcSheetId src
+  let src = messageCommitSource msgctx
+      conn = msgctx^.dbConnection
+  rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ messageSheetId msgctx
   errOrUpdate <- runEitherT $ do
     let initialEvalMap = M.fromList $ zip (mapCellLocation roots) roots
         initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
-    ctxAfterDispatch <- dispatch state mid roots initialContext descSetting
+    ctxAfterDispatch <- dispatch msgctx roots initialContext descSetting
     let transformedCtx = ctxAfterDispatch & updateAfterEval %~ updateTransform -- #lenses
 
-    finalCells <- EE.evalEndware state mid src transformedCtx evalChain
+    finalCells <- EE.evalEndware msgctx transformedCtx evalChain
 
-    let ctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
+    let evalctx = transformedCtx & updateAfterEval.cellUpdates.newVals .~ finalCells
 
-    DT.updateDBWithContext conn src ctx
-    return $ ctx^.updateAfterEval
+    DT.updateDBWithContext conn src evalctx
+    return $ evalctx^.updateAfterEval
   -- DAG may have changed during dispatch; if not committed, reset it. Note that it is *not* 
   -- fully correct to just recompute what's in the current sheet. If we start in sheet A, and 
   -- we updated something in sheet B that caused it to expand and eat up a cell that previously had
   -- a dependency in it, that dependency doesn't get restored by recomputing sheet A. For now though
   -- we aren't worrying about this. 
   -- #incomplete (--Alex 3/1/2016)
-  either (const $ G.recomputeSheetDAG conn (srcSheetId src)) (const $ return ()) errOrUpdate
+  whenLeft errOrUpdate $ G.recomputeSheetDAG conn src
   return errOrUpdate
 
 -- takes an old context, inserts the new values necessary for this round of eval, and evals using the new context.
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
-dispatch :: ServerState -> MessageId -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
-dispatch state _ [] context _ = return context
-dispatch state mid roots oldContext descSetting = do
-  let conn = state^.dbConn
+dispatch :: MessageContext -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
+dispatch _ [] evalctx _ = return evalctx
+dispatch msgctx roots oldEvalCtx descSetting = do
+  let conn = msgctx^.dbConnection
   -- For all the original cells, add the edges in the graph DB; parse + setRelations
-  G.setCellsAncestors roots
-  descLocs       <- getEvalLocs state roots descSetting
+  G.setCellsAncestors conn (msgctx^.userClient.userId) roots
+  descLocs       <- getEvalLocs roots descSetting
   -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval conn oldContext descLocs
+  cellsToEval    <- getCellsToEval conn oldEvalCtx descLocs
   ancLocs        <- G.getImmediateAncestors $ indicesToAncestryRequestInput descLocs
   -- The initial lookup cache has the ancestors of all descendants
-  modifiedContext <- getModifiedContext conn ancLocs oldContext
-  evalChainWithException state mid cellsToEval modifiedContext -- start with current cells, then go through descendants
+  modifiedEvalCtx <- getModifiedContext conn ancLocs oldEvalCtx
+  evalChainWithException msgctx cellsToEval modifiedEvalCtx -- start with current cells, then go through descendants
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -146,8 +148,8 @@ dispatch state mid roots oldContext descSetting = do
 -- dependencies are evaluated first.)
 -- TODO: throw exceptions for permissions/locking
 -- Currently, the graph returns only indices as descendants
-getEvalLocs :: ServerState -> [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
-getEvalLocs state origCells descSetting = getter locs
+getEvalLocs :: [ASCell] -> DescendantsSetting -> EitherTExec [ASIndex]
+getEvalLocs origCells descSetting = getter locs
   where
     locs = mapCellLocation origCells
     getter = case descSetting of 
@@ -193,16 +195,14 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 -- EvalChain
 
 -- A wrapper around evalChain which catches errors
-evalChainWithException :: ServerState -> MessageId -> [ASCell] -> EvalTransform
-evalChainWithException state mid cells ctx = 
+evalChainWithException :: MessageContext -> [ASCell] -> EvalTransform
+evalChainWithException msgctx cells evalctx = 
   let whenCaught e = do
-        let src = CommitSource  { srcSheetId = ($head cells)^.cellLocation.locSheetId
-                                , srcUserId = "unknown_user"
-                                }
-        putsError src $ "Runtime exception caught" ++ show (e :: SomeException)
+        putsError (messageCommitSource msgctx) $ 
+          "Runtime exception caught" ++ show (e :: SomeException)
         return $ Left RuntimeEvalException
   in do
-    result <- liftIO $ catchAny (runEitherT $ evalChain state mid cells ctx) whenCaught
+    result <- liftIO $ catchAny (runEitherT $ evalChain msgctx cells evalctx) whenCaught
     hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
@@ -218,27 +218,27 @@ shouldEvalCell ctx c = isEvaluable c && not hasCoupledCounterpartInMap
       Nothing -> False
       Just c' -> isCoupled c' && (not $ isFatCellHead c')
 
-evalChain :: ServerState -> MessageId -> [ASCell] -> EvalTransform
-evalChain _ _ [] ctx = return ctx
-evalChain state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
-  if shouldEvalCell ctx c
+evalChain :: MessageContext -> [ASCell] -> EvalTransform
+evalChain _ [] ctx = return ctx
+evalChain msgctx (c@(Cell loc xp val ps rk disp):cs) evalctx = 
+  if shouldEvalCell evalctx c
     then do 
-      evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
-      newContext <- contextInsert state mid c evalResult ctx
-      evalChain state mid cs newContext
-    else evalChain state mid cs ctx
+      evalResult <- EC.evaluateLanguage msgctx evalctx loc xp evalChainWithoutPropagation
+      newEvalCtx <- contextInsert msgctx c evalResult evalctx
+      evalChain msgctx cs newEvalCtx
+    else evalChain msgctx cs evalctx
 
 -- Evaluate a bunch of cells without calling dispatch again, just update the context
 -- Used in sampling
-evalChainWithoutPropagation :: ServerState -> MessageId -> [ASCell] -> EvalTransform
-evalChainWithoutPropagation _ _ [] ctx = return ctx
-evalChainWithoutPropagation state mid (c@(Cell loc xp val ps rk disp):cs) ctx = 
-  if shouldEvalCell ctx c
+evalChainWithoutPropagation :: MessageContext -> [ASCell] -> EvalTransform
+evalChainWithoutPropagation _ [] ctx = return ctx
+evalChainWithoutPropagation msgctx (c@(Cell loc xp val ps rk disp):cs) evalctx = 
+  if shouldEvalCell evalctx c
     then do 
-      evalResult <- EC.evaluateLanguage state mid loc ctx xp evalChainWithoutPropagation
-      newContext <- contextInsertWithoutPropagation state c evalResult ctx
-      evalChainWithoutPropagation state mid cs newContext
-    else evalChainWithoutPropagation state mid cs ctx
+      evalResult <- EC.evaluateLanguage msgctx evalctx loc xp evalChainWithoutPropagation
+      newEvalCtx <- contextInsertWithoutPropagation (msgctx^.dbConnection) c evalResult evalctx
+      evalChainWithoutPropagation msgctx cs newEvalCtx
+    else evalChainWithoutPropagation msgctx cs evalctx
 
   ----------------------------------------------------------------------------------------------------------------------------------------------
   -- Context modification
@@ -323,9 +323,9 @@ addCurFatCellToContext conn idx maybeFatCell ctx = do
 -- after all side effects due to insertion have been handled)
 -- if you get here, your cell has already been evaluated, and we're from now on going to call dispatch with ProperDescendants set.
 --  #lens
-contextInsert :: ServerState -> MessageId -> ASCell -> Formatted EvalResult -> EvalTransform
-contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
-  let conn  = state^.dbConn
+contextInsert :: MessageContext -> ASCell -> Formatted EvalResult -> EvalTransform
+contextInsert msgctx c@(Cell idx xp _ ps _ _) (Formatted result f) evalctx = do  
+  let conn  = msgctx^.dbConnection
       cv    = result^.resultValue
       disp  = result^.resultDisplay 
   let maybeFatCell = DE.decomposeCompositeValue c cv
@@ -336,19 +336,19 @@ contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
                               CellValue v = cv
                           Just (FatCell cs _) -> map (formatCell f . set cellDisplay disp) cs
   -- Account for overwriting a fat cell (blanking out), adding a new fat cell (decoupling), and adding eval cells
-  (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c ctx 
+  (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c evalctx 
   (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
   let ctxWithEvalCells = addCellsToContext newCellsFromEval ctxWithDecoupledCells
   -- Wrap up and dispatch
   case maybeFatCell of
     Nothing -> do 
-      dispatch state mid decoupledCells ctxWithEvalCells ProperDescendants
+      dispatch msgctx decoupledCells ctxWithEvalCells ProperDescendants
     Just (FatCell cs descriptor) -> do 
       let blankCells = case blankedIndices of 
                         Nothing -> []
                         Just inds -> map (flip $valAt $ ctxWithEvalCells^.virtualCellsMap) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
-      dispatch state mid dispatchCells ctxWithEvalCells ProperDescendants
+      dispatch msgctx dispatchCells ctxWithEvalCells ProperDescendants
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
       -- Only the $head of the list has an ancestor at this point.
@@ -360,10 +360,9 @@ contextInsert state mid c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do
       -- (2) blanked cells due to fat cell deletion
 
 
-contextInsertWithoutPropagation :: ServerState -> ASCell -> Formatted EvalResult -> EvalTransform
-contextInsertWithoutPropagation state c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
-  let conn  = state^.dbConn
-      cv    = result^.resultValue
+contextInsertWithoutPropagation :: Connection -> ASCell -> Formatted EvalResult -> EvalTransform
+contextInsertWithoutPropagation conn c@(Cell idx xp _ ps _ _) (Formatted result f) ctx = do  
+  let cv    = result^.resultValue
       disp  = result^.resultDisplay 
   let maybeFatCell = DE.decomposeCompositeValue c cv
   let newCellsFromEval = case maybeFatCell of

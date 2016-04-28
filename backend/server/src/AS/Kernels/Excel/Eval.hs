@@ -14,10 +14,13 @@ import AS.Types.Cell
 import AS.Types.Eval
 import AS.Types.Excel
 import AS.Types.Formats
+import AS.Types.User
 
 import AS.Kernels.Excel.Compiler as C
 import AS.Kernels.Excel.Lib as L
 import AS.Kernels.Excel.Util as U
+
+import AS.DB.Users (getUserSheets)
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
@@ -52,9 +55,10 @@ evalExcel s context = do
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 -- Excel doesn't have print statements, so the display value of EvalResult is always Nothing
-evaluate :: Connection -> String -> ASIndex -> CellMap -> EitherTExec (Formatted EvalResult)
-evaluate conn s idx mp =  do
-  let context = Context mp idx conn
-  eResult <- lift $ runEitherT $ evalExcel s context
+evaluate :: Connection -> ASUserId -> String -> ASIndex -> CellMap -> IO (Formatted EvalResult)
+evaluate conn uid s idx mp =  do
+  sheets <- getUserSheets conn uid
+  let context = Context mp idx sheets conn
+  eResult <- runEitherT $ evalExcel s context
   let val = convertEither context eResult
-  right $ EvalResult <$> val <*> return Nothing
+  return $ EvalResult <$> val <*> return Nothing

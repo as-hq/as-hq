@@ -157,16 +157,6 @@ getSubstitutedXpAndReferences f (Expression xp lang) = do
   let finalStr = B.append newStr last
   return $! (Expression (C.unpack finalStr) lang, map nextRef xs)
 
--- | Returns the list of dependencies in ASExpression. 
--- #needsrefactor not all ASReferences are valid references for the graph.
-getDependencies :: ASSheetId -> ASExpression -> [ASReference]
-getDependencies sheetId = map (convertInvalidRef . exRefToASRef sheetId) . getExcelReferences
-  where 
-    convertInvalidRef r = case r of 
-      TemplateRef t -> case t of 
-        SampleExpr _ idx -> IndexRef idx
-      _ -> r
-
 ----------------------------------------------------------------------------------------------------
 -- Copy/paste and Cut/paste
 

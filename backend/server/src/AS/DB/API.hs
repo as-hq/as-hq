@@ -23,7 +23,6 @@ import qualified AS.DB.Internal as DI
 import qualified AS.Serialize as S
 import AS.DB.Internal
 import AS.Util as U
-import AS.Parsing.Substitutions (getDependencies)
 import AS.Logging
 
 import Control.Arrow((&&&))
@@ -207,6 +206,9 @@ setSheet conn sheet = do
   let dbKey = SheetKey $ sheetId sheet
   setV conn dbKey (SheetValue sheet)
   addS conn AllSheetsKey (KeyValue dbKey)
+
+deleteSheet :: Connection -> ASSheetId -> IO ()
+deleteSheet conn sid = multiDel SheetKey conn [sid]
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Repeat handlers

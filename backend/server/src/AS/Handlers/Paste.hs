@@ -4,7 +4,7 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
-import AS.Types.User
+import AS.Types.User (ASUserId)
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
@@ -12,6 +12,7 @@ import AS.Types.Shift
 
 import AS.Parsing.Substitutions
 import AS.Parsing.Excel
+import AS.Parsing.References (exRefToASRef)
 
 import AS.DB.Internal
 import AS.DB.API
@@ -29,25 +30,24 @@ import Database.Redis (Connection)
 import Control.Monad ((>=>))
 import Control.Lens
 
-handleCopy :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
-handleCopy mid uc state from to = do
-  toCells <- getCopyCells (state^.dbConn) from to
-  errOrUpdate <- runDispatchCycle state mid toCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mid state uc errOrUpdate
+handleCopy :: MessageContext -> ASRange -> ASRange -> IO ()
+handleCopy msgctx from to = do
+  toCells <- getCopyCells (msgctx^.dbConnection) from to
+  errOrUpdate <- runDispatchCycle msgctx toCells DescendantsWithParent id
+  broadcastErrOrUpdate msgctx errOrUpdate
 
-handleCut :: MessageId -> ASUserClient -> ServerState -> ASRange -> ASRange -> IO ()
-handleCut mid uc state from to = do
-  newCells <- getCutCells (state^.dbConn) from to
-  errOrUpdate <- runDispatchCycle state mid newCells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mid state uc errOrUpdate
+handleCut :: MessageContext -> ASRange -> ASRange -> IO ()
+handleCut msgctx from to = do
+  newCells <- getCutCells (msgctx^.dbConnection) from to
+  errOrUpdate <- runDispatchCycle msgctx newCells DescendantsWithParent id
+  broadcastErrOrUpdate msgctx errOrUpdate
 
 -- #needsrefactor currently exists for testing purposes only; doesn't require user connection. 
 -- could restructure this in such a way that encapsulation is not broken. 
-performCopy :: ServerState -> MessageId -> ASRange -> ASRange -> CommitSource -> IO (Either ASExecError SheetUpdate)
-performCopy state mid from to cs = do 
-  let conn = state^.dbConn
-  toCells <- getCopyCells conn from to
-  runDispatchCycle state mid toCells DescendantsWithParent cs id
+performCopy :: MessageContext -> ASRange -> ASRange -> IO (Either ASExecError SheetUpdate)
+performCopy msgctx from to = do 
+  toCells <- getCopyCells (msgctx^.dbConnection) from to
+  runDispatchCycle msgctx toCells DescendantsWithParent id
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Copy helpers
@@ -96,7 +96,7 @@ shiftExpressionForCut :: ASRange -> Offset -> ASExpression -> ASExpression
 shiftExpressionForCut from offset xp = xp'
   where 
     fromSid     = rangeSheetId from
-    shouldShift = (rangeContainsRef from) . (exRefToASRef fromSid)
+    shouldShift = (rangeContainsRef from) . (exRefToASRef (rangeSheetId from) []) -- don't need to consider sheets here, because this is a simple rectangle-overlap check.
     shiftFunc   = \ref -> if (shouldShift ref) then (shiftExRefForced offset ref) else ref
     xp'         = replaceRefs (show . shiftFunc) xp
 

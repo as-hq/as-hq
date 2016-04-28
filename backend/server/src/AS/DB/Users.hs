@@ -70,12 +70,14 @@ createUserClient dbConn wsConn uid = do
 lookupUser :: Connection -> ASUserId -> IO (Maybe ASUser)
 lookupUser conn uid = getV conn (UserKey uid) dbValToUser
 
-modifyUser :: Connection -> ASUserId -> (ASUser -> ASUser) -> IO ()
+modifyUser :: Connection -> ASUserId -> (ASUser -> ASUser) -> IO ASUser
 modifyUser conn uid f = do
   user <- lookupUser conn uid
   case user of 
     Nothing -> $error "Cannot modify nonexistent user"
-    Just u -> setUser conn $ f u
+    Just u -> 
+      let u' = f u
+      in setUser conn u' >> return u'
 
 createUser :: Connection -> ASUserId -> IO ASUser
 createUser conn uid = do
@@ -93,4 +95,4 @@ getUserSheets conn uid = do
   case mu of 
     Just u -> sequenceWith $fromJust $
       (getSheet conn) `map` (Set.elems $ Set.union (u^.sheetIds) (u^.sharedSheetIds))
-    Nothing -> $error "no user found"
+    Nothing -> return []

@@ -16,6 +16,7 @@ import AS.Types.Locations
 import AS.Types.DataModification
 import AS.Types.Infinites
 import AS.Types.Sheets
+import AS.Types.User
 
 import Data.List
 
@@ -79,7 +80,7 @@ data ExRange = ExRange {first :: ExIndex, second :: ExtExIndex}
 data ExTemplateExpr = 
   ExSampleExpr {exSamples :: Int, exSampledIndex :: ExIndex} deriving (Eq, Data)
 
-data ExRef   =
+data ExRef =
     ExIndexRef {exIndex :: ExIndex, locSheet :: Maybe SheetName, locWorkbook :: Maybe WorkbookName}
   | ExRangeRef {exRange :: ExRange, rangeSheet :: Maybe SheetName, rangeWorkbook :: Maybe WorkbookName}
   | ExPointerRef {pointerLoc :: ExIndex, pointerSheet :: Maybe SheetName, pointerWorkbook :: Maybe WorkbookName}
@@ -311,7 +312,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: CellMap, curLoc :: ASIndex, dbConn :: Connection}
+data Context = Context {evalMap :: CellMap, curLoc :: ASIndex, userSheets :: [ASSheet], dbConn :: Connection}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity
@@ -499,40 +500,6 @@ removeRefType = fmap _ind
 extExIndexToExtCoord :: ExtExIndex -> ExtendedCoord
 extExIndexToExtCoord exIndex =
   makeExtendedCoord (removeRefType $ exIndex^.extExCol) (removeRefType $ exIndex^.extExRow)
-
--- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
--- ref, unless it's a part of the ExRef)
-exRefToASRef :: ASSheetId -> ExRef -> ASReference
-exRefToASRef sid exRef = case exRef of
-  ExOutOfBounds -> OutOfBounds
-  ExIndexRef exIndex sn wn -> IndexRef $ Index sid' $ exIndexToCoord exIndex
-    where sid' = maybe sid id (sheetIdFromContext sn wn)
-    -- VV probably needs orienting 
-  ExRangeRef (ExRange f s) sn wn -> RangeRef $ Range sid' (tl, br)
-    where
-      sid' = maybe sid id (sheetIdFromContext sn wn)
-      tl = exIndexToCoord f
-      br = extExIndexToExtCoord s
-  ExPointerRef exIndex sn wn -> PointerRef $ Pointer $ Index sid' $ exIndexToCoord exIndex
-    where sid' = maybe sid id (sheetIdFromContext sn wn)
-  ExTemplateRef t sn wn -> case t of 
-    ExSampleExpr n coord -> TemplateRef $ SampleExpr n $ Index sid' $ exIndexToCoord coord
-      where sid' = maybe sid id (sheetIdFromContext sn wn)
-
--- #incomplete we should actually be looking in the db. For now, with the current UX of
--- equating sheet names and sheet id's with the dialog box, 
-sheetIdToSheetName :: ASSheetId -> Maybe SheetName
-sheetIdToSheetName = Just . T.unpack
-
--- #incomplete lol. just returns sheet name from sheet id for now. 
-sheetIdFromContext :: Maybe SheetName -> Maybe WorkbookName -> Maybe ASSheetId
-sheetIdFromContext (Just sn) _ = Just $ T.pack sn
-sheetIdFromContext _ _ = Nothing
-
--- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
--- #lenses
--- TODO: Introduce PossiblyInfiniteRange as a type: is just correct, makes colRange functions  consequence of functions on ranges.
--- Note: Code duplication between this and orientRange.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
 

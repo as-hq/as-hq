@@ -127,10 +127,6 @@ dbLookupBulk conn = (map cellToFormattedVal) . unsafePerformIO . (getCells conn)
 -------------------------------------------------------------------------------------------------------------
 -- | AS Reference utility methods
 
-shName ::  ASReference ->  ASSheetId
-shName (IndexRef (Index s _)) = s
-shName (RangeRef (Range s _)) = s
-
 topLeftLoc :: ASReference -> Coord
 topLeftLoc (IndexRef (Index _ x)) = x
 topLeftLoc (RangeRef (Range _ (a,_))) = a
@@ -178,7 +174,7 @@ matchDimension (ERef r1) (ERef r2) = if topLeft == botRight
     topLeft = topLeftLoc r2
     o = Offset (getFiniteWidth r1 - Col 1) (getFiniteHeight r1 - Row 1)
     botRight = shiftByOffset o topLeft
-    sh = shName r2
+    sh = refSheetId r2
 
 extractRefs :: [EEntity] -> [ERef]
 extractRefs [] = []

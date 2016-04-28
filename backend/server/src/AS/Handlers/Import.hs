@@ -11,7 +11,6 @@ import AS.Types.Cell
 import AS.Types.CellProps as CP
 import AS.Types.Network
 import AS.Types.Messages
-import AS.Types.User
 import AS.Types.Eval
 import AS.Types.Shift
 import AS.Types.Commits
@@ -62,18 +61,18 @@ handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
 handleImportBinary c mstate bin = do
   state <- readState mstate
   case (S.decodeLazy bin :: Either String ExportData) of
-    Left s ->
-      let msg = failureMessage import_message_id $ "could not process binary file, decode error: " ++ s
-      in U.sendMessage msg (clientConn c)
+    Left s -> sendMessage (clientConn c) $
+      ClientMessage import_message_id . ShowFailureMessage $ 
+        "could not process binary file, decode error: " ++ s
     Right exportedData -> do
-      DX.importSheetData (state^.dbConn) exportedData
-      let msg = ClientMessage import_message_id $ AskOpenSheet $ exportDataSheetId exportedData
-      U.sendMessage msg (clientConn c)
+      DX.importSheetData (state^.dbConn) (ownerName c) exportedData
+      sendMessage (clientConn c) $
+        ClientMessage import_message_id $ AskOpenSheet $ exportDataSheetId exportedData
 
-handleExport :: ASUserClient -> ServerState -> ASSheetId -> IO ()
-handleExport uc state sid = do
-  exported <- DX.exportSheetData (state^.dbConn) sid
-  WS.sendBinaryData (uc^.userConn) (S.encodeLazy exported)
+handleExport :: MessageContext -> ASSheetId -> IO ()
+handleExport msgctx exportSid = do
+  exported <- DX.exportSheetData (msgctx^.dbConnection) exportSid
+  WS.sendBinaryData (msgctx^.userClient.userConn) (S.encodeLazy exported)
 
 -- #RoomForImprovement: Timchu. Right now, any error in EvaluateRequest, or in
 -- pattern matching that that to an EvaluateReply, or in Parsing, or in
@@ -97,18 +96,20 @@ excelImportFuncString = "readSheet"
 -- Note: timchu. I don't really like how Handlers have more than just broadcast
 -- and one function. This makes me not able to reuse the functionality of
 -- HandleClear without broadcasting the result.
-handleExcelImport :: MessageId -> ASUserClient -> ServerState -> ASSheetId -> String -> IO ()
-handleExcelImport mid uc state sid fileName = do
+handleExcelImport :: MessageContext -> ASSheetId -> String -> IO ()
+handleExcelImport msgctx sid fileName = do
   let code = excelImportFuncString ++ "('" ++ fileName ++ "')"
-      dConn = state^.dbConn
+      conn = msgctx^.dbConnection
+      uid = msgctx^.userClient.userId
+      mid = msgctx^.messageId
   update <- runEitherT $ do
               cells <- evaluateExcelSheet mid sid code
               -- clears the sheet, sends a message to the frontend.
-              lift $ handleClear mid uc state sid
-              lift $ DB.setCells dConn cells
-              G.setCellsAncestors cells
+              lift $ handleClear msgctx sid
+              lift $ DB.setCells conn cells
+              G.setCellsAncestors conn uid cells
               return $ sheetUpdateFromCells cells
-  broadcastErrOrUpdate mid state uc update
+  broadcastErrOrUpdate msgctx update
 
 -- used for importing arbitrary files 
 -- handleImport :: ASUserClient -> State -> ASPayload -> IO ()
@@ -118,10 +119,10 @@ handleExcelImport mid uc state sid fileName = do
 -- Frontend already put the file in the static folder, and all cells created will have the default language passed in
   
 
-handleCSVImport :: MessageId -> ASUserClient -> ServerState -> ASIndex -> ASLanguage -> String -> IO ()
-handleCSVImport mid uc state ind lang fileName = do 
+handleCSVImport :: MessageContext -> ASIndex -> ASLanguage -> String -> IO ()
+handleCSVImport msgctx ind lang fileName = do 
   csvData <- BL.readFile $ "static/" ++ fileName
-  let src = userCommitSource uc
+  let src = messageCommitSource msgctx
   let decoded = CSV.decode CSV.NoHeader csvData :: Either String (V.Vector (V.Vector String))
   case decoded of 
     Left e -> void (putsError src $ "Could not decode CSV: " ++ e)
@@ -133,9 +134,9 @@ handleCSVImport mid uc state ind lang fileName = do
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
-      DT.updateDBWithCommit (state^.dbConn) src commit
+      DT.updateDBWithCommit (msgctx^.dbConnection) src commit
       -- send list of cells back to frontend
-      broadcastSheetUpdate mid state $ sheetUpdateFromCells cells
+      broadcastSheetUpdate msgctx $ sheetUpdateFromCells cells
 
 -- Map a function over a 2D vector
 map2D :: (a -> b) -> V.Vector (V.Vector a) -> V.Vector (V.Vector b)

@@ -32,6 +32,8 @@ import AS.Types.Formats
 import AS.Types.Graph
 import AS.Types.Network
 import AS.Types.Messages (MessageId)
+import AS.Types.User hiding (userId)
+import AS.Types.Commits
 
 import AS.Kernels.Python.Client as KP
 import AS.Kernels.R.Client as KR
@@ -42,49 +44,62 @@ import AS.Parsing.Read
 import AS.Parsing.Show
 import AS.Parsing.Common
 import AS.Parsing.Substitutions
+import AS.Parsing.References (getDependencies, exRefToASRef)
 import AS.Logging
 import AS.Config.Settings
+
 import qualified AS.DB.API as DB
 import qualified AS.DB.Eval as DE
 import qualified AS.DB.Graph as G
+import AS.DB.Users (getUserSheets)
 
 ----------------------------------------------------------------------------------------------------
 -- Exposed functions
 
 -- #needsrefactor this function can be split into nicer composed parts
-evaluateLanguage :: ServerState -> MessageId -> ASIndex -> EvalContext -> ASExpression 
-                 -> DE.EvalChainFunc -> EitherTExec (Formatted EvalResult)
-evaluateLanguage state mid idx@(Index sid _) ctx xp@(Expression str lang) f = catchEitherT $ do
-  let conn = state^.dbConn
+evaluateLanguage :: MessageContext ->
+                    EvalContext -> 
+                    ASIndex -> 
+                    ASExpression -> 
+                    DE.EvalChainFunc -> 
+                    EitherTExec (Formatted EvalResult)
+evaluateLanguage msgctx evalctx idx xp f = catchEitherT $ do
+  let conn = msgctx^.dbConnection
+  let sid = idx^.locSheetId
+  let uid = msgctx^.userClient.userId
+  let mid = msgctx^.messageId
+  let lang = xp^.language
   -- Function from ExRef to string for interpolation
-  let replaceFunc ref = lookUpRef state mid lang ctx (exRefToASRef sid ref) f
+  sheets <- liftIO $ getUserSheets conn uid
+  let replaceFunc ref = lookUpRef msgctx evalctx lang (exRefToASRef sid sheets ref) f
   case equalsSignsCheck xp of
     Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
     Left (ValueS s) -> do 
       let xp' = Expression s lang 
-      KE.evaluate conn (xp'^.expression) idx (ctx^.virtualCellsMap)
+      liftIO $ KE.evaluate conn uid (xp'^.expression) idx (evalctx^.virtualCellsMap)
     -- If we match something as a literal, just evaluate it in Excel.
     Right xp' -> do
       -- The expression has exactly one = sign. Note that xp' has the stripped =.
       -- Get the new expression after interpolation as well as all of the Excel references in xp
       -- in one parsing fell swoop.
       (interpolatedXp, refs) <- lift $ getSubstitutedXpAndReferences replaceFunc xp'
-      let depRefs = map (exRefToASRef sid) refs
-      let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
+      putsConsole $ "got refs: " ++ show refs
+      let depRefs = map (exRefToASRef sid sheets) refs
+      let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn evalctx) depRefs
       -- Check for potentially bad inputs (NoValue or ValueError) among the arguments passed in. 
-      sc <- bimapEitherT' (Left . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp') depInds
+      sc <- bimapEitherT' (Left . onRefToIndicesFailure) (onRefToIndicesSuccess evalctx xp') depInds
       case sc of 
         Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
         Left (ValueS s) -> do 
           let excelXp = Expression s lang 
-          KE.evaluate conn (excelXp^.expression) idx (ctx^.virtualCellsMap)
+          liftIO $ KE.evaluate conn uid (excelXp^.expression) idx (evalctx^.virtualCellsMap)
         -- If we match something as a literal, just evaluate it in Excel.
         Right nonInterpolatedXp -> case lang of
-          Excel -> KE.evaluate conn (nonInterpolatedXp^.expression) idx (ctx^.virtualCellsMap)
+          Excel -> liftIO $ KE.evaluate conn uid (nonInterpolatedXp^.expression) idx (evalctx^.virtualCellsMap)
             -- Excel needs current location and un-substituted expression, and needs the formatted 
             -- values for loading the initial entities
           SQL -> do 
-            code <- lift $ sqlToPythonCode state mid sid ctx nonInterpolatedXp f
+            code <- lift $ sqlToPythonCode msgctx evalctx nonInterpolatedXp f
             return <$> KP.evaluateSql mid sid code
           Python -> return <$> KP.evaluate mid sid (interpolatedXp^.expression)
           R -> return <$> KR.evaluate mid sid (interpolatedXp^.expression)
@@ -105,51 +120,54 @@ evaluateHeader mid evalHeader =
 -- Interpolation
 
 -- #mustrefactor IO String should be EitherTExec string
-lookUpRef :: ServerState 
-          -> MessageId 
-          -> ASLanguage 
+lookUpRef :: MessageContext
           -> EvalContext 
+          -> ASLanguage 
           -> ASReference 
           -> DE.EvalChainFunc 
           -> IO String
-lookUpRef state mid lang context ref f = showValue lang <$> cv
-  where cv = DE.referenceToCompositeValue state mid context ref f
+lookUpRef msgctx evalctx lang ref f = showValue lang <$> cv
+  where cv = DE.referenceToCompositeValue msgctx evalctx ref f
 
-insertValues :: ServerState 
-             -> MessageId 
-             -> ASSheetId 
+insertValues :: MessageContext
              -> EvalContext 
              -> ASExpression 
              -> DE.EvalChainFunc 
              -> IO EvalCode
-insertValues state mid sheetid ctx xp f = view expression <$> replacedXp
-  where 
-    replacedXp = replaceRefsIO replaceFunc xp
-    toASRef = exRefToASRef sheetid
-    replaceFunc ref = lookUpRef state mid (xp^.language) ctx (toASRef ref) f
+insertValues msgctx evalctx xp f = do
+  let uid   = msgctx^.userClient.userId
+      conn  = msgctx^.dbConnection
+      sid   = messageSheetId msgctx
+  sheets <- getUserSheets conn uid
+  let toASRef = exRefToASRef sid sheets
+      replaceFunc ref = lookUpRef msgctx evalctx (xp^.language) (toASRef ref) f
+  replacedXp <- replaceRefsIO replaceFunc xp
+  return $ replacedXp^.expression
 
 -- | Converts SQL code to Python code for pandasql. It calls evalSql with 
 -- the arguments of new expression and context. The new expression has ranges
 -- replaced with datasetX, and the context is just a list of stringified 
 -- "range-type" objects (such as dataframes). The evalSql function is imported
 -- in the Python kernel on start.
-sqlToPythonCode :: ServerState 
-                -> MessageId 
-                -> ASSheetId 
+sqlToPythonCode :: MessageContext
                 -> EvalContext 
                 -> ASExpression 
                 -> DE.EvalChainFunc 
                 -> IO EvalCode
-sqlToPythonCode state mid sheetid ctx xp f = do 
+sqlToPythonCode msgctx evalctx xp f = do 
+  let conn  = msgctx^.dbConnection
+      sid   = messageSheetId msgctx
+      uid   = msgctx^.userClient.userId
+  sheets <- getUserSheets conn uid
   let exRefs = getExcelReferences xp
-      toASRef = exRefToASRef sheetid
+      toASRef = exRefToASRef sid sheets
       tableRefs = map toASRef $ filter refIsSQLTable exRefs 
-  datasetVals <- mapM (\ref -> lookUpRef state mid SQL ctx ref f) tableRefs
+  datasetVals <- mapM (\ref -> lookUpRef msgctx evalctx SQL ref f) tableRefs
   let showRef ref = if refIsSQLTable ref 
                       then do 
                         let i = $fromJust (L.findIndex (ref==) exRefs)
                         return $ "dataset" ++ show i 
-                      else lookUpRef state mid SQL ctx (toASRef ref) f
+                      else lookUpRef msgctx evalctx SQL (toASRef ref) f
   newExp <- replaceRefsIO showRef xp
   let query = escape (newExp^.expression)
   -- print query
@@ -160,7 +178,6 @@ escape :: String -> String
 escape xs = concatMap f xs 
   where f '\"' = "\\\""
         f x     = [x]
-
 ----------------------------------------------------------------------------------------------------
 -- Helpers
 
@@ -200,27 +217,10 @@ bimapEitherT' f g (EitherT m) = EitherT (fmap h m) where
 
 catchEitherT :: EitherTExec (Formatted EvalResult) -> EitherTExec (Formatted EvalResult)
 catchEitherT a = do
-  result <- liftIO $ catchAny (runEitherT a) whenCaught
-  case result of
-    Left e -> left e
-    Right e -> right e
-    where 
-      whenCaught :: SomeException -> IO (Either ASExecError (Formatted EvalResult))
-      whenCaught e = return . Right $ Formatted (EvalResult cv Nothing) Nothing
-        where cv = CellValue $ ValueError (show e) "StdErr"
-
--- | Checks for potentially bad inputs (NoValue or ValueError) among the arguments passed in. 
--- If no bad inputs, return Nothing. Otherwise, if there are errors that can't be dealt with, 
--- return the appropriate ASValue error.
--- #expressionrefactor
-possiblyShortCircuit :: Connection -> ASSheetId -> EvalContext -> ASExpression 
-                     -> EitherTExec ShortCircuitEval
-possiblyShortCircuit conn sheetid ctx xp = case equalsSignsCheck xp of
-  Right xp' -> do
-    let depRefs = getDependencies sheetid xp' -- :: [ASReference]
-    let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn ctx) depRefs
-    bimapEitherT' (Left . onRefToIndicesFailure) (onRefToIndicesSuccess ctx xp') depInds
-  Left v -> return $ Left v
+  result <- liftIO $ catchAny (runEitherT a) $ \e -> 
+    let cv = CellValue $ ValueError (show e) "StdErr"
+    in return . Right $ Formatted (EvalResult cv Nothing) Nothing
+  hoistEither result 
 
 -- When eval's ref to indices fails, we want the error message to be in the actual cell. 
 -- Possibly short circuit will do this for us, because the evaluateLanguage code bypasses 

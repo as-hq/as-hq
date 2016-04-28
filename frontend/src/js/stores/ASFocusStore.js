@@ -47,6 +47,10 @@ class FocusStore extends ReduceStore<State> {
         }
       }
 
+      case 'FOCUS_RETURNED': {
+        return returnFocus(state);
+      }
+
       case 'HOVERED': {
         return state.set('activeHover', action.hover);
       }

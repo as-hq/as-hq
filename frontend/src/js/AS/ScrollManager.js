@@ -15,7 +15,7 @@ class ScrollManager {
 
   shouldManageScroll(hover: FocusedElement, focus: FocusedElement): boolean {
     return (
-      (focus === 'bottompane') ||
+      couldBeStolen(focus) ||
       (focus !== hover && hover !== null)
     );
   }
@@ -54,11 +54,13 @@ class ScrollManager {
         break;
       }
 
+      case 'bottombar':
       case 'bottompane': {
         // hypergrid steals the scroll event from this pane (somehow, despite
         // focus not being on it), so disable grid scrolling.
         // grid will auto re-enable scrolling when it detects hover/focus again.
         GridActions.disableScroll();
+        break;
       }
 
       case 'editor':
@@ -70,6 +72,13 @@ class ScrollManager {
       }
     }
   }
+}
+
+function couldBeStolen(focus: FocusedElement): boolean {
+  return [
+    'bottompane',
+    'bottombar',
+  ].includes(focus);
 }
 
 export default new ScrollManager();

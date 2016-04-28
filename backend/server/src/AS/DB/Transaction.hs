@@ -9,6 +9,7 @@ import AS.Types.Errors
 import AS.Types.Updates
 import AS.Types.Network
 import AS.Types.Commits
+import AS.Types.User
 
 import qualified AS.DB.Graph as G
 import qualified AS.Serialize as S
@@ -88,19 +89,19 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
 
 -- | Makes sure everything is synced; the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> [ASCell] -> IO ()
-setCellsPropagated conn cells = 
+setCellsPropagated :: Connection -> ASUserId -> [ASCell] -> IO ()
+setCellsPropagated conn uid cells = 
   let roots = filter isEvaluable cells
   in do
     setCells conn cells
-    G.setCellsAncestorsForce roots
+    G.setCellsAncestorsForce conn uid roots
 
 -- | Makes sure everything is synced -- the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of deleting the cells. 
 deleteLocsPropagated :: Connection -> [ASIndex] -> IO ()
 deleteLocsPropagated conn locs = do
   deleteLocs conn locs
-  G.removeAncestorsAtForced locs
+  G.removeAncestorsAtForced conn locs
 
 ----------------------------------------------------------------------------------------------------------------------
 -- Commits
@@ -110,19 +111,19 @@ deleteLocsPropagated conn locs = do
 -- Update the DB so that there's always a source of truth (ie we will initEval undo to all relevant users)
 undo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 undo conn src = do
-  let pushKey = S.encode $ PushCommitKey $ src
-      popKey = S.encode $ PopCommitKey $ src
-      sid = srcSheetId src
+  let pushKey = S.encode . PushCommitKey $ src
+      popKey = S.encode . PopCommitKey $ src
   mCommit <- runRedis conn $ do
     Right commit <- rpoplpush pushKey popKey
     return $ commit >>= S.maybeDecode >>= dbValToCommit
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit . flipCommit) (return . Just)) mCommit
+  maybe (return Nothing) 
+        (liftA2 (>>) (applyUpdateToDBPropagated conn src . sheetUpdateFromCommit . flipCommit) (return . Just)) 
+        mCommit
 
 redo :: Connection -> CommitSource -> IO (Maybe ASCommit)
 redo conn src = do
   let pushKey = S.encode $ PushCommitKey $ src
       popKey = S.encode $ PopCommitKey $ src
-      sid = srcSheetId $ src
   mCommit <- runRedis conn $ do
     Right result <- lpop popKey
     case result of
@@ -130,27 +131,31 @@ redo conn src = do
         rpush pushKey [commit]
         return $ S.maybeDecode commit >>= dbValToCommit
       Nothing -> return Nothing
-  maybe (return Nothing) (liftA2 (>>) (applyUpdateToDBPropagated conn sid . sheetUpdateFromCommit) (return . Just)) mCommit
+  maybe (return Nothing) 
+        (liftA2 (>>) (applyUpdateToDBPropagated conn src . sheetUpdateFromCommit) (return . Just)) 
+        mCommit
 
-applyUpdateToDB :: Connection -> ASSheetId -> SheetUpdate -> IO ()
+applyUpdateToDB :: Connection -> CommitSource -> SheetUpdate -> IO ()
 applyUpdateToDB = applyUpdateToDBMaybePropagated False 
 
-applyUpdateToDBPropagated :: Connection -> ASSheetId -> SheetUpdate -> IO ()
+applyUpdateToDBPropagated :: Connection -> CommitSource -> SheetUpdate -> IO ()
 applyUpdateToDBPropagated = applyUpdateToDBMaybePropagated True
 
 -- internal function 
 -- #needsrefactor sheet id is only used for conditional formatting rules, and should be a part of conditional formatting rules. 
-applyUpdateToDBMaybePropagated :: Bool -> Connection -> ASSheetId -> SheetUpdate -> IO ()
-applyUpdateToDBMaybePropagated shouldPropagate conn sid u@(SheetUpdate cu bu du cfru) = do 
-  let (setCells', deleteLocs') = if shouldPropagate then (setCellsPropagated, deleteLocsPropagated) else (setCells, deleteLocs)
+applyUpdateToDBMaybePropagated :: Bool -> Connection -> CommitSource -> SheetUpdate -> IO ()
+applyUpdateToDBMaybePropagated shouldPropagate conn (CommitSource sid uid) u@(SheetUpdate cu bu du cfru) = do 
+  let (setCells', deleteLocs') = if shouldPropagate 
+                                  then (setCellsPropagated conn uid , deleteLocsPropagated conn) 
+                                  else (setCells conn, deleteLocs conn)
   let deletedLocs = S.fromList $ refsToIndices $ cu^.oldKeys
       overwrittenDeletedLocs = S.map (view cellLocation) $ cu^.newValsSet
       nonOverwrittenBlankLocs = S.toList $ deletedLocs S.\\ overwrittenDeletedLocs
       allUpdatedCells = cu^.newVals ++ blankCellsAt nonOverwrittenBlankLocs
       (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
-  deleteLocs' conn $ (mapCellLocation emptyCells)
-  setCells' conn nonEmptyCells
+  deleteLocs' $ mapCellLocation emptyCells
+  setCells' nonEmptyCells
   mapM_ (deleteBarAt conn)      (bu^.oldKeys)
   mapM_ (setBar conn)           (bu^.newVals)
   mapM_ (deleteDescriptor conn) (du^.oldKeys)
@@ -178,6 +183,6 @@ pushCommitWithDecoupleInfo conn src commitWithInfo =
 -- old values with new ones, as specified in the commit.)
 updateDBWithCommit :: Connection -> CommitSource -> ASCommit -> IO ()
 updateDBWithCommit conn src c = do 
-  applyUpdateToDB conn (srcSheetId src) (sheetUpdateFromCommit c)
+  applyUpdateToDB conn src (sheetUpdateFromCommit c)
   pushCommit conn src c
 

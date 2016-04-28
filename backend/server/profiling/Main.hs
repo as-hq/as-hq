@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, StandaloneDeriving, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, StandaloneDeriving, DeriveGeneric, TemplateHaskell #-}
 module Main where
+import Prelude()
 import AS.Prelude
 import AS.Dispatch.Core
 import AS.Config.Settings as CS
@@ -44,10 +45,11 @@ import Control.Monad.Trans.Either (runEitherT)
 import Control.DeepSeq.Generics (genericRnf)
 import Control.DeepSeq
 import Control.Exception
+import Control.Concurrent.MVar
 
 import AS.Parsing.Substitutions
 import AS.Kernels.Excel.Compiler
-import AS.Types.Excel
+import AS.Types.Excel hiding (dbConn)
 
 deriving instance Generic ServerState
 deriving instance Generic ASUserClient
@@ -86,10 +88,9 @@ testSS = alphaMain $ do
 
 emptyCtx :: EvalContext
 emptyCtx = emptyContext
-eval :: [ASCell] -> EvalContext -> IO (Either ASExecError SheetUpdate)
-eval cells ctx = do
-  ss <- liftIO testSS
-  runDispatchCycle ss "BENCH_ID" cells DescendantsWithParent (CommitSource "BENCH_ID" "BENCH_ID") id
+eval :: MessageContext -> [ASCell] -> EvalContext -> IO (Either ASExecError SheetUpdate)
+eval msgctx cells evalctx = do
+  runDispatchCycle msgctx cells DescendantsWithParent id
 
 mockMessageId :: T.Text 
 mockMessageId = T.pack ""
@@ -109,7 +110,12 @@ main = alphaMain $ do
   -- settings <- CS.getRuntimeSettings
   -- conn <- DI.connectRedis settings
   state <- testSS
-  
+  mstate <- newMVar state
+  let msgctx = MessageContext { _messageState = State mstate
+                              , _messageId = "BENCH_ID"
+                              , _userClient = $undefined -- can't create a userclient here. when necessary, fix this.
+                              , _dbConnection = state^.dbConn
+                              }
   -- let conn = state^.dbConn
   --     graphAddress = state^.appSettings.graphDbAddress
   -- commit <- DT.undo graphAddress conn (CommitSource "BENCH_ID" "BENCH_ID")
@@ -118,7 +124,7 @@ main = alphaMain $ do
   --x <- eval (cells1++cells2) emptyCtx
   let cells2 = testCellsWithExpression (\i -> Expression "=2" Python) 1 [1]
   let cells1 = testCellsWithExpression (\i -> Expression "1111111 + $A$1 + 1111111" Python) 1 [2..10000]
-  x <- eval (cells2 ++ cells1) emptyCtx
+  x <- eval msgctx (cells2 ++ cells1) emptyCtx
   -- x <- eval [(U.testCell & cellExpression .~ Expression "range(10000)" Python)] emptyCtx
   evaluate $ rnf x
   ---- let results = map (getExcelReferences) [Expression "=$A1+A1 + 1111 +$A1" Excel | x <- [1..10000]]

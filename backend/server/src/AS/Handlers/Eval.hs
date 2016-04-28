@@ -34,66 +34,61 @@ import Data.Maybe (catMaybes)
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval handler
 
-handleEval :: MessageId -> ASUserClient -> ServerState -> [EvalInstruction] -> IO ()
-handleEval mid uc state evalInstructions  = do
+handleEval :: MessageContext -> [EvalInstruction] -> IO ()
+handleEval msgctx evalInstructions  = do
   let xps  = map evalXp evalInstructions
       inds = map evalLoc evalInstructions
-      conn = state^.dbConn
+      conn = msgctx^.dbConnection
   oldProps <- mapM (getPropsAt conn) inds
   let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
-  errOrUpdate <- runDispatchCycle state mid cells DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mid state uc errOrUpdate
+  errOrUpdate <- runDispatchCycle msgctx cells DescendantsWithParent id
+  broadcastErrOrUpdate msgctx errOrUpdate
 
--- not maintaining right now (Alex 12/28)
--- handleEvalRepl :: ASUserClient -> ASPayload -> IO ()
--- handleEvalRepl uc (PayloadXp xp) = do
---   let sid = userSheetId uc
---   msg' <- runReplDispatch sid xp
---   sendToOriginal uc msg'
-
-handleEvalHeader :: MessageId -> ASUserClient -> ServerState -> EvalHeader -> IO ()
-handleEvalHeader mid uc state evalHeader = do
-  setEvalHeader (state^.dbConn) evalHeader
+handleEvalHeader :: MessageContext -> EvalHeader -> IO ()
+handleEvalHeader msgctx evalHeader = do
+  let mid = msgctx^.messageId
+      uid = msgctx^.userClient.userId
+  setEvalHeader (msgctx^.dbConnection) evalHeader
   result <- runEitherT $ evaluateHeader mid evalHeader
-  broadcastTo state [evalHeader^.evalHeaderSheetId] $ case result of 
-        Left e -> failureMessage mid $ generateErrorMessage e
+  broadcastActionTo msgctx [evalHeader^.evalHeaderSheetId] $ case result of 
+        Left e -> ShowFailureMessage $ generateErrorMessage e
         Right (EvalResult value display) -> 
           let lang = evalHeader^.evalHeaderLang
               valueStr = showValue lang value
               headerResult = HeaderResult valueStr display
-          in ClientMessage mid (HandleEvaluatedHeader evalHeader headerResult (uc^.userId)) 
+          in HandleEvaluatedHeader evalHeader headerResult uid 
 
 -- The user has said OK to the decoupling
 -- We've stored the changed range keys and the last commit, which need to be used to modify DB
-handleDecouple :: MessageId -> ASUserClient -> ServerState -> IO ()
-handleDecouple mid uc state = do 
-  let conn = state^.dbConn
-      src = userCommitSource uc
+handleDecouple :: MessageContext -> IO ()
+handleDecouple msgctx = do 
+  let conn = msgctx^.dbConnection
+      src = messageCommitSource msgctx
   mCommit <- getTempCommit conn src
   case mCommit of
     Nothing -> return ()
     Just c -> do
       updateDBWithCommit conn src c
-      broadcastSheetUpdate mid state $ sheetUpdateFromCommit c
+      broadcastSheetUpdate msgctx $ sheetUpdateFromCommit c
 
-handleSetLanguagesInRange :: MessageId -> ASUserClient -> ServerState -> ASLanguage -> ASRange -> IO ()
-handleSetLanguagesInRange mid uc state lang rng = do 
-  let inds = finiteRangeToIndices rng
-      conn = state^.dbConn
-  cells <- catMaybes <$> getCells conn inds -- disregard cells that are empty
+handleSetLanguagesInRange :: MessageContext -> ASLanguage -> ASRange -> IO ()
+handleSetLanguagesInRange msgctx lang rng = do 
+  let idxs = finiteRangeToIndices rng
+      conn = msgctx^.dbConnection
+  cells <- catMaybes <$> getCells conn idxs -- disregard cells that are empty
   let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells
-  errOrUpdate <- runDispatchCycle state mid cellsWithLangsChanged DescendantsWithParent (userCommitSource uc) id
-  broadcastErrOrUpdate mid state uc errOrUpdate
+  errOrUpdate <- runDispatchCycle msgctx cellsWithLangsChanged DescendantsWithParent id
+  broadcastErrOrUpdate msgctx errOrUpdate
 
 -- | The user has pressed the "kill" button for an overlong operation;
 -- look up the relevant thread, and kill it if it exists.
-handleTimeout :: MessageId -> State -> IO ()
-handleTimeout mid state = 
-  modifyState_ state $ \curState -> do
-    putsObj "Killing message ID: " mid
-    case M.lookup mid (curState^.threads) of 
+handleTimeout :: State -> MessageId -> IO ()
+handleTimeout state timeoutMid = 
+  modifyState_ state $ \st -> do
+    putsObj "Killing message ID: " timeoutMid
+    case M.lookup timeoutMid (st^.threads) of 
       Just tid -> putsObj "killed thread: " tid >> killThread tid
       _ -> return ()
-    Python.haltMessage mid
-    R.haltMessage mid
-    return $ curState & threads %~ (M.delete mid)
+    Python.haltMessage timeoutMid
+    R.haltMessage timeoutMid
+    return $ st & threads %~ (M.delete timeoutMid)

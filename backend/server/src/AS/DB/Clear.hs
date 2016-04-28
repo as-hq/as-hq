@@ -27,7 +27,7 @@ clearSheet conn sid = do
   delInSheet SheetLastMessagesKey conn sid
   delInSheet SheetTempCommitsKey conn sid
   delInSheet SheetRangesKey conn sid
-  G.recomputeSheetDAG conn sid
+  G.clearSheetDAG sid
 
   -- clear python kernel for sheet
   liftIO $ KP.clear sid 

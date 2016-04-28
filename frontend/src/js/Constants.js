@@ -1,7 +1,6 @@
 /* @flow */
 
 import Environment from './Environment';
-
 function keyMirror<T>(obj: T): T {
   let ret: any = {};
   var key;

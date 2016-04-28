@@ -15,6 +15,12 @@ export default {
     });
   },
 
+  returnFocus() {
+    Dispatcher.dispatch({
+      _type: 'FOCUS_RETURNED',
+    });
+  },
+
   hover(hover: FocusedElement) {
     Dispatcher.dispatch({
       _type: 'HOVERED',

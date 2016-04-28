@@ -9,6 +9,8 @@ import AS.Types.DB
 import AS.Types.Graph
 import AS.Types.Network
 import AS.Types.Messages (MessageId)
+import AS.Types.Excel hiding (dbConn)
+import AS.Types.User
 import AS.Util
 
 import AS.DB.Graph as G
@@ -16,6 +18,7 @@ import AS.Eval.ColRangeHelpers
 import qualified AS.Dispatch.Expanding as DE
 
 import qualified AS.DB.API as DB
+import qualified AS.DB.Users as DB
 import AS.Logging
 
 import qualified Data.ByteString.Char8 as BC
@@ -33,7 +36,7 @@ import Control.Monad.Trans.Either
 
 import Control.Concurrent (myThreadId)
 
-type EvalChainFunc = ServerState -> MessageId -> [ASCell] -> EvalContext -> EitherTExec EvalContext
+type EvalChainFunc = MessageContext -> [ASCell] -> EvalContext -> EitherTExec EvalContext
 
 -- looks up cells in the given context, then in the database, in that precedence order
 -- this function is order-preserving
@@ -48,32 +51,40 @@ getPossiblyBlankCellsWithContext conn ctx locs = map replaceWithContextCell <$> 
     replaceWithContextCell (l, c) = maybe c id $ M.lookup l (ctx^.virtualCellsMap)
 
 ----------------------------------------------------------------------------------------------------------------------
--- Reference conversions/lookups
+-- Reference value lookup
+
+-- outputs an exRange equivalent to the input of the first ExRange, with the first coord <= second coord
+-- #lenses
+-- TODO: Introduce PossiblyInfiniteRange as a type: is just correct, makes colRange functions  consequence of functions on ranges.
+-- Note: Code duplication between this and orientRange.
 
 -- used by lookUpRef
 --  #mustrefactor IO CompositeValue should be EitherTExec CompositeValue
---  #mustrefactor why isn't this left IndexOfPointerNonExistant
-referenceToCompositeValue :: ServerState -> MessageId -> EvalContext -> ASReference -> EvalChainFunc -> IO CompositeValue
-referenceToCompositeValue _ _ ctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ ctx^.virtualCellsMap
-referenceToCompositeValue state _ ctx (PointerRef p) _ = do 
+referenceToCompositeValue ::  MessageContext ->
+                              EvalContext -> 
+                              ASReference -> 
+                              EvalChainFunc -> 
+                              IO CompositeValue
+referenceToCompositeValue _ evalctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ evalctx^.virtualCellsMap
+referenceToCompositeValue msgctx evalctx (PointerRef p) _ = do 
   let idx = pointerIndex p
-      mp = ctx^.virtualCellsMap
+      mp = evalctx^.virtualCellsMap
       cell = $valAt idx mp
-      conn = state^.dbConn
+      conn = msgctx^.dbConnection
   case cell^.cellRangeKey of 
     Nothing -> $error "Pointer to normal expression!" 
     Just rKey ->
-      case virtualRangeDescriptorAt ctx rKey of
+      case virtualRangeDescriptorAt evalctx rKey of
         Nothing -> $error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = finiteRangeKeyToIndices rKey
-              cells  = map ((ctx^.virtualCellsMap) M.!) indices
+              cells  = map ((evalctx^.virtualCellsMap) M.!) indices
               fatCell = FatCell cells descriptor
           return $ DE.recomposeCompositeValue fatCell
 -- #NeedsRefactor: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
-referenceToCompositeValue _ _ ctx (RangeRef r) _
+referenceToCompositeValue _ evalctx (RangeRef r) _
   | isFiniteRange r = do
-    let finiteRangeIndToVal ind = view cellValue $ $valAt ind $ ctx^.virtualCellsMap
+    let finiteRangeIndToVal ind = view cellValue $ $valAt ind $ evalctx^.virtualCellsMap
         rangeVals = map (map finiteRangeIndToVal) indices
     return . Expanding . VList . M $ rangeVals
   | isColRange r = do
@@ -81,21 +92,21 @@ referenceToCompositeValue _ _ ctx (RangeRef r) _
       -- current dispatch created new cells in the bottom of a column whose
       -- colRange is being evaluated.
     let colRangeIndToVal ind =
-          if M.member ind (ctx^.virtualCellsMap)
-             then view cellValue $ $valAt ind $ ctx^.virtualCellsMap
+          if M.member ind (evalctx^.virtualCellsMap)
+             then view cellValue $ $valAt ind $ evalctx^.virtualCellsMap
              else NoValue
         colRangeVals = map (map colRangeIndToVal) indices
     return $ Expanding . VList . M $ colRangeVals
-      where indices = rangeWithContextToIndicesRowMajor2D ctx r
-referenceToCompositeValue state mid ctx (TemplateRef (SampleExpr n idx)) f = $fromRight <$> (runEitherT $ do 
+      where indices = rangeWithContextToIndicesRowMajor2D evalctx r
+referenceToCompositeValue msgctx evalctx (TemplateRef (SampleExpr n idx)) f = $fromRight <$> (runEitherT $ do 
       -- Get all ancestors
-      let conn = state^.dbConn
+      let conn = msgctx^.dbConnection
       ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
-      ancInds <- concat <$> mapM (refToIndicesWithContextDuringEval conn ctx) ancRefs
-      ancCells <- lift $ getPossiblyBlankCellsWithContext conn ctx ancInds
-      let ctxWithAncs = addCellsToContext ancCells ctx
+      ancInds <- concat <$> mapM (refToIndicesWithContextDuringEval conn evalctx) ancRefs
+      ancCells <- lift $ getPossiblyBlankCellsWithContext conn evalctx ancInds
+      let evalctxWithAncs = addCellsToContext ancCells evalctx
       -- After adding ancestors to context, evaluate n times
-      samples <- replicateM n $ evaluateNode state mid ctxWithAncs idx ancCells f
+      samples <- replicateM n $ evaluateNode msgctx evalctxWithAncs idx ancCells f
       return $ Expanding $ VList $ A samples)
 
 -- Only used in conditional formatting.
@@ -143,7 +154,7 @@ refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do
 
 -- Evaluate a node by running an evaluation function and extracting the answer from the context at the end. 
 -- Assumes all ancestors are already in the context.
-evaluateNode :: ServerState -> MessageId -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
-evaluateNode state mid ctx idx ancestors f = do
-  ctx' <- f state mid ancestors ctx
-  return . view cellValue . $valAt idx $ ctx'^.virtualCellsMap
+evaluateNode :: MessageContext -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
+evaluateNode msgctx evalctx idx ancestors f = do
+  evalctx' <- f msgctx ancestors evalctx
+  return . view cellValue . $valAt idx $ evalctx'^.virtualCellsMap

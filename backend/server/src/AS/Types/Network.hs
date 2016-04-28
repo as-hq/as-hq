@@ -9,7 +9,7 @@ import AS.Types.Sheets
 import AS.Types.Locations
 import AS.Types.Commits
 import AS.Types.Messages hiding (LogSource)
-import AS.Types.User
+import AS.Types.User hiding (userId)
 import AS.Types.Window
 
 import Data.Aeson
@@ -94,6 +94,28 @@ emptyServerState conn = ServerState
   , _isDebuggingLog = False
   } 
 
+----------------------------------------------------------------------------------------------------------------------------------------------
+-- Messages
+
+data MessageContext = MessageContext 
+  { _messageState :: State
+  , _messageId :: MessageId 
+  , _userClient :: ASUserClient
+  , _dbConnection :: R.Connection
+  }
+
+makeLenses ''MessageContext
+
+readContextualState :: MessageContext -> IO ServerState
+readContextualState = readState . view messageState
+
+messageCommitSource :: MessageContext -> CommitSource
+messageCommitSource ctx = CommitSource  { srcSheetId = messageSheetId ctx
+                                        , srcUserId = ctx^.userClient.userId
+                                        }
+
+messageSheetId :: MessageContext -> ASSheetId
+messageSheetId ctx = windowSheetId $ ctx^.userClient.userWindow
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Clients
 

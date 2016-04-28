@@ -33,11 +33,6 @@ testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emp
 -------------------------------------------------------------------------------------------------------------------------
 -- Misc
 
-sendMessage :: ClientMessage -> WS.Connection -> IO ()
-sendMessage msg conn = do
-  WS.sendTextData conn (encode msg)
-  puts $ "SENT REPLY TO " ++ T.unpack (clientMessageId msg)
-
 -- | Generates a random number
 getUniqueId :: IO String
 getUniqueId = return . toString =<< nextRandom

@@ -34,13 +34,12 @@ shouldKeepPropAfterDelete _ = True
 removeBadFormats :: ASCell -> ASCell
 removeBadFormats = cellProps %~ filterProps shouldKeepPropAfterDelete
 
-handleDelete :: MessageId -> ASUserClient -> ServerState -> ASRange -> IO ()
-handleDelete mid uc state rng = do
-  let conn = state^.dbConn
-      inds = finiteRangeToIndices rng
-  blankedCells <- map removeBadFormats <$> getBlankedCellsAt conn inds -- need to know the formats at the old locations
-  errOrUpdate <- runDispatchCycle state mid blankedCells DescendantsWithParent (userCommitSource uc) (modifyUpdateForDelete rng)
-  broadcastErrOrUpdate mid state uc errOrUpdate
+handleDelete :: MessageContext -> ASRange -> IO ()
+handleDelete msgctx rng = do
+  let inds = finiteRangeToIndices rng
+  blankedCells <- map removeBadFormats <$> getBlankedCellsAt (msgctx^.dbConnection) inds -- need to know the formats at the old locations
+  errOrUpdate <- runDispatchCycle msgctx blankedCells DescendantsWithParent (modifyUpdateForDelete rng)
+  broadcastErrOrUpdate msgctx errOrUpdate
 
 -- | Adds the range among the list of locations to delete, and remove all the update cells located within in range. 
 modifyUpdateForDelete :: ASRange -> SheetUpdate -> SheetUpdate

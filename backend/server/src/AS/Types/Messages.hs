@@ -49,10 +49,6 @@ data ClientMessage = ClientMessage {
   , clientAction :: ClientAction
 } deriving (Show, Read, Generic)
 
--- maybe move to Util?
-failureMessage :: MessageId -> String -> ClientMessage
-failureMessage mid s = ClientMessage mid $ ShowFailureMessage s
-
 -- the constructors (i.e. the first words) are verbs telling client what action to take
 -- (anand 2/05) I think this is a bad design principle. Not all messages exchanged with 
 -- the client are verbs, such as authentication status.
@@ -82,6 +78,7 @@ data ServerAction =
   | OpenSheet ASSheetId
   | NewSheet SheetName
   | CloneSheet ASSheetId
+  | DeleteSheet ASSheetId
   -- currently used for sharing sheets.
   | AcquireSheet ASSheetId 
   | GetMySheets
@@ -208,9 +205,9 @@ generateErrorMessage e = case e of
 
 -- | Creates a server message from an ASExecError. Used in makeReplyMessageFromCells and  makeDeleteMessage.
 -- #needsrefactor when makeCondFormatMessage goes, this can probably go too
-makeErrorMessage :: MessageId -> ASExecError -> ClientMessage
-makeErrorMessage mid DecoupleAttempt = ClientMessage mid AskDecouple 
-makeErrorMessage mid e = ClientMessage mid $ ShowFailureMessage $ generateErrorMessage e
+makeErrorAction :: ASExecError -> ClientAction
+makeErrorAction DecoupleAttempt = AskDecouple 
+makeErrorAction e = ShowFailureMessage $ generateErrorMessage e
 
 -- I only need a string here, because the ActionType is never used to construct anything -
 -- only to insert a field into one of the JSON messages (AskTimeout)
@@ -219,3 +216,6 @@ makeErrorMessage mid e = ClientMessage mid $ ShowFailureMessage $ generateErrorM
 --        Decouple       -> "Decouple"
 getServerActionType :: ServerAction -> String
 getServerActionType = showConstructor
+
+failureMessage :: MessageId -> String -> ClientMessage
+failureMessage mid = ClientMessage mid . ShowFailureMessage

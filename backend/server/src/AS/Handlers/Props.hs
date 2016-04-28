@@ -9,7 +9,7 @@ import AS.Types.Eval
 import AS.Types.Formats
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.User
+import AS.Types.User (ASUserId)
 import AS.Types.Updates
 
 import AS.Prelude 
@@ -28,9 +28,9 @@ import qualified Data.Map as M
 import Database.Redis (Connection)
 
 -- | Used only for flag props. 
-handleToggleProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
-handleToggleProp mid uc state prop rng = do
-  let conn = state^.dbConn
+handleToggleProp :: MessageContext -> CellProp -> ASRange -> IO ()
+handleToggleProp msgctx prop rng = do
+  let conn = msgctx^.dbConnection
       locs = finiteRangeToIndices rng
       pt = propType prop
   cells <- getPossiblyBlankCells conn locs
@@ -43,7 +43,7 @@ handleToggleProp mid uc state prop rng = do
                      else \c -> if elem c cellsWithoutProp
                                then setProp prop $ c^.cellProps
                                else c^.cellProps
-  transformPropsInDatabase mid cellToNewProps uc state rng
+  transformPropsInDatabase msgctx cellToNewProps rng
 -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
 -- Said toad. (Alex 11/7)
 
@@ -64,30 +64,30 @@ removePropEndware _ _ _ = return ()
 -- to update when you change their precision. 
 -- The (ASCell -> ASCellProps) argument of transformPropsInDatabase is a function
 -- that takes a cell, and isolates the new cell props to apply to that cell.
-transformPropsInDatabase :: MessageId -> (ASCell -> ASCellProps) -> ASUserClient -> ServerState -> ASRange -> IO ()
-transformPropsInDatabase mid f uc state rng = do
+transformPropsInDatabase :: MessageContext -> (ASCell -> ASCellProps) -> ASRange -> IO ()
+transformPropsInDatabase msgctx f rng = do
   let locs = finiteRangeToIndices rng
-      conn = state^.dbConn
+      conn = msgctx^.dbConnection
   cs <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 
   let cells' = map (f >>= (set cellProps)) cs
   -- Update the DB with the new cells, these won't be re-evaluated
   -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
   errOrUpdate <-
-    -- This case, the cells in cells' at the end of the dispatch cycle are guaranteed to be the same as cs, except with props set.
-    DP.runDispatchCycle state mid cells' ProperDescendants (userCommitSource uc) (insertCellsIntoSheetUpdate cells')
-  broadcastErrOrUpdate mid state uc (addCellsToUpdate cells' <$> errOrUpdate)
+    DP.runDispatchCycle msgctx cells' ProperDescendants (insertCellsIntoSheetUpdate cells')
+    -- ^ In this case, the cells in cells' at the end of the dispatch cycle are guaranteed to be the same as cs, except with props set.
+  broadcastErrOrUpdate msgctx (addCellsToUpdate cells' <$> errOrUpdate)
 
 -- #Lenses.
 insertCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
 insertCellsIntoSheetUpdate cells su = su & cellUpdates %~ (insertCellsIntoUpdate cells)
 
-handleSetProp :: MessageId -> ASUserClient -> ServerState -> CellProp -> ASRange -> IO ()
-handleSetProp mid uc state prop rng = transformPropsInDatabase mid (setProp prop . view cellProps) uc state rng
+handleSetProp :: MessageContext -> CellProp -> ASRange -> IO ()
+handleSetProp msgctx prop rng = transformPropsInDatabase msgctx (setProp prop . view cellProps) rng
 
 -- Change the decimal precision of all the values in a range
-handleChangeDecimalPrecision :: MessageId -> ASUserClient -> ServerState -> Int ->  ASRange -> IO ()
-handleChangeDecimalPrecision mid uc state i rng = transformPropsInDatabase mid cellPropsUpdate uc state rng
+handleChangeDecimalPrecision :: MessageContext -> Int ->  ASRange -> IO ()
+handleChangeDecimalPrecision msgctx i rng = transformPropsInDatabase msgctx cellPropsUpdate rng
   where
     getUpdatedFormat :: ASCell -> Maybe Format
     getUpdatedFormat = view format . shiftDecPrecision i . getFormattedVal

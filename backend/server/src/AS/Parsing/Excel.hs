@@ -122,11 +122,10 @@ indexMatch = do
 -- | Parser matching a valid sheet name. It also consumes the !. 
 -- Applying this parser on "hello!" would return "hello".
 nameMatch :: Parser ByteString
-nameMatch = takeWhile1 (not . badWord8) <* exclamation
+nameMatch = takeWhile1 acceptable <* exclamation
   where
-    -- These Word8's match up to !, $, @, :, and ' ' 
     -- Following attoparsec advice to use custom byte-checking
-    badWord8 w = w == _exclam || w == _dollar || w == _at || w == _colon || w == _space
+    acceptable w = isAlphaNum w || w == _underscore
 
 -- | Parser matching a (workbook,  sheet) pair, delimited by ! (which will be consumed).
 sheetWorkbookMatch :: Parser (Maybe SheetName, Maybe WorkbookName)

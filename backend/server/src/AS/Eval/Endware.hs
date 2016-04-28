@@ -23,13 +23,15 @@ import AS.DB.Eval
 import AS.Daemon as DM
 
 -- | Here, we apply a stack of endwares for setting props post-eval, from e.g. streaming or conditional formatting
-evalEndware :: ServerState -> MessageId -> CommitSource -> EvalContext -> EvalChainFunc -> EitherTExec [ASCell]
-evalEndware state mid (CommitSource sid uid) ctx f = do 
-  let cells0 = newCellsInContext ctx
-      cells1 = cells0 ++ blankCellsAt (refsToIndices $ ctx^.updateAfterEval.cellUpdates.oldKeys)
+evalEndware ::  MessageContext ->
+                EvalContext -> 
+                EvalChainFunc -> 
+                EitherTExec [ASCell]
+evalEndware msgctx evalctx f = do 
+  let cells0 = newCellsInContext evalctx
+      cells1 = cells0 ++ blankCellsAt (refsToIndices $ evalctx^.updateAfterEval.cellUpdates.oldKeys)
       -- ^ represents all the cells that might have changed from the eval. we don't explicitly record deleted blank cells.
-  mapM_ (lift . DM.possiblyCreateDaemon state uid) cells0
-  oldRules <- lift $ DB.getCondFormattingRulesInSheet (state^.dbConn) sid 
-  let updatedRules = applyUpdate (ctx^.updateAfterEval.condFormatRuleUpdate) oldRules
-  cells2 <- conditionallyFormatCells state mid sid cells1 updatedRules ctx f
+  oldRules <- lift $ DB.getCondFormattingRulesInSheet (msgctx^.dbConnection) (messageSheetId msgctx) 
+  let updatedRules = applyUpdate (evalctx^.updateAfterEval.condFormatRuleUpdate) oldRules
+  cells2 <- conditionallyFormatCells msgctx evalctx cells1 updatedRules f
   return cells2 -- we added blank cells at the deleted locations -- we don't want the actual Update to remember these. 

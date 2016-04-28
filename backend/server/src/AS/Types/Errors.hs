@@ -97,6 +97,7 @@ data ASExecError =
   | EvaluationError {evalErrorDesc :: String}
   | DependenciesLocked {lockUserId :: ASUserId}
   | DBNothingException {badLocs :: [ASIndex]}
+  | ReferenceOutOfBounds
   | DecoupleAttempt
   | UnknownGraphError 
   | CircularDepError {badLoc :: ASIndex}
