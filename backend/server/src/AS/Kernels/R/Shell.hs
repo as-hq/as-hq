@@ -40,8 +40,8 @@ import Control.Memory.Region
 import AS.Prelude
 import AS.Config.Settings as S
 import AS.Util 
-import AS.Types.Cell hiding (Cell)
-import AS.Types.Eval
+import AS.Types.Cell hiding (Cell, isInfinite)
+import AS.Types.Eval hiding (isInfinite)
 import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Kernels.Internal
@@ -226,7 +226,11 @@ castVector origValue vec = do
 
 castMatrix :: R.SomeSEXP m -> R m CompositeValue
 castMatrix s = do
-  Expanding (VList (A vals)) <- castSEXP s
+  elems <- castSEXP s
+  let vals = case elems of
+                Expanding (VList (A vs)) -> vs
+                CellValue v              -> [v] 
+                _ -> $error $ "could not cast matrix vals for: " ++ show elems
   Expanding (VList (A dims)) <- castR =<< [r|dim(s_hs)|]
   let [(ValueI nrows), _] = dims
   return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
@@ -257,6 +261,8 @@ fromLogical R.NA    = ValueNaN
 
 fromReal :: Double -> ASValue
 fromReal d 
+  | isNaN d               = ValueNaN
+  | isInfinite d          = ValueInf
   | d == fromInteger dInt = ValueI dInt
   | otherwise             = ValueD d
   where dInt = round d

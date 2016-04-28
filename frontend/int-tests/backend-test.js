@@ -1429,6 +1429,33 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it('interprets vertical ranges as vectors', (done) => {
+          _do([
+            python('A1', '=range(10)'),
+            r('B1', '=summary(A1:A10)'),
+            shouldBe('B1', valueI(0)),
+            exec(done)
+          ]);
+        });
+
+        it('casts degenerate matrices correctly', (done) => {
+          _do([
+            r('A1', '=matrix(1, nrow=1, ncol=1)'),
+            shouldBe('A1', valueI(1)),
+            exec(done)
+          ])
+        })
+
+        it('can compute cor matrix of horizontal vector', (done) => {
+          _do([
+            python('A1', '=[range(10)]'),
+            r('A2', '=cor(A1:J1)'),
+            shouldBe('A2', valueNaN()),
+            shouldBe('A11', valueNaN()),
+            exec(done)
+          ])
+        })
       });
 
       describe('excel', () => {
@@ -4287,7 +4314,7 @@ describe('backend', () => {
           ]);
       });
 
-      xit ('converts NaNs', (done) => {
+      it ('converts NaNs', (done) => {
         _do([
           python('A1', '=np.nan'),
           r('B1', '=A1 + 1'),
@@ -4299,7 +4326,7 @@ describe('backend', () => {
           ]);
       });
 
-      xit ('converts Infs', (done) => {
+      it ('converts Infs', (done) => {
         _do([
           python('A1', '=np.inf'),
           r('B1', '=A1 + 1'),

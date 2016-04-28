@@ -14,7 +14,7 @@ import qualified Data.Text.Lazy (replace)
 
 import AS.Types.Cell
 import AS.Types.Excel
-import AS.Types.Eval
+import AS.Types.Eval 
 
 import AS.Parsing.Common
 import AS.Util
@@ -100,11 +100,13 @@ showCollection :: ASLanguage -> Collection -> String
 showCollection lang coll = case coll of 
   A arr -> list lang $ map (showPrimitive lang) arr
   M mat -> case lang of 
-    R -> "matrix(" ++ elems ++ ", nrow=" ++ height ++ ", ncol=" ++ width ++ ")"
-      where 
-        height = show $ length mat
-        width = show . length $ $head mat
-        elems = list R $ map (showPrimitive R) (concat $ L.transpose mat) 
+    R -> case (L.transpose mat) of 
+      arr:[] -> list R $ map (showPrimitive R) arr
+      mat_t -> "matrix(" ++ elems ++ ", nrow=" ++ show height ++ ", ncol=" ++ show width ++ ")"
+        where 
+          height  = length mat
+          width   = length $ $head mat
+          elems   = list R $ map (showPrimitive R) (concat mat_t) 
     _ -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
 
 wrapList :: ASLanguage -> String -> String
