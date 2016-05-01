@@ -373,7 +373,8 @@ pws.whenReady(() => {
         const host = Constants.getFrontendHost();
         // Log a login success to slack if it's remote, not a dev/public, and not master
         if (Constants.isRemote && host !== 'master.alphasheets.com' && !LoginStore.userIsDev() && !LoginStore.isPublicLogin()) {
-          logSlack(SheetStateStore.getSheetLink(false), '#userlogins');
+          const slackMsg = SheetStateStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
+          logSlack(slackMsg, '#userlogins');
         }
         break;
       case 'AuthFailure':
