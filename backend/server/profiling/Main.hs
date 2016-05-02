@@ -1,6 +1,8 @@
-{-# LANGUAGE OverloadedStrings, DataKinds, StandaloneDeriving, DeriveGeneric, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, DataKinds, StandaloneDeriving, DeriveGeneric #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+
 module Main where
-import Prelude()
+
 import AS.Prelude
 import AS.Dispatch.Core
 import AS.Config.Settings as CS
@@ -8,6 +10,8 @@ import qualified Data.Map as M
 import GHC.Generics
 import AS.Util as U
 import Control.Lens
+import qualified Network.WebSockets as WS
+import Control.Concurrent
 
 import AS.DB.API
 
@@ -32,6 +36,11 @@ import AS.Types.CondFormat
 import AS.Types.EvalHeader
 import AS.Types.Commits
 
+import qualified AS.Serialize as S
+
+import Criterion.Main
+import Criterion.Main.Options
+import Criterion.Types
 import qualified AS.DB.Transaction as DT
 
 import AS.Handlers.Misc
@@ -45,11 +54,23 @@ import Control.Monad.Trans.Either (runEitherT)
 import Control.DeepSeq.Generics (genericRnf)
 import Control.DeepSeq
 import Control.Exception
-import Control.Concurrent.MVar
+
 
 import AS.Parsing.Substitutions
 import AS.Kernels.Excel.Compiler
 import AS.Types.Excel hiding (dbConn)
+import qualified AS.Kernels.Internal as KI
+
+import qualified AS.DB.Clear as DBC
+import qualified AS.DB.Graph as DBG
+import qualified AS.DB.API as DB
+import qualified AS.DB.Users as DU
+
+import Network.Socket (withSocketsDo)
+
+
+--------------------------------------------------------------------------------
+-- Instances
 
 deriving instance Generic ServerState
 deriving instance Generic ASUserClient
@@ -80,54 +101,86 @@ instance NFData EValue
 instance (NFData a) => NFData (Formatted a)
 instance NFData ENumeric
 
+--------------------------------------------------------------------------------
+-- Environment
 
 testSS :: IO ServerState
 testSS = alphaMain $ do
   conn <- DI.connectRedis
   return $ emptyServerState conn 
 
-emptyCtx :: EvalContext
-emptyCtx = emptyContext
-eval :: MessageContext -> [ASCell] -> EvalContext -> IO (Either ASExecError SheetUpdate)
-eval msgctx cells evalctx = do
-  runDispatchCycle msgctx cells DescendantsWithParent id
+-- | Given the test and a WS server connection, create an initial messageContext
+-- with which to run the test, and then run the test. 
+clientApp :: (MessageContext -> IO ()) -> WS.Connection -> IO ()
+clientApp action wsConn = do 
+  ss <- testSS 
+  state <- newMVar ss 
+  let conn = ss^.dbConn
+  clean conn
+  uc <- DU.createUserClient conn wsConn "bench_user_id" 
+  let msgctx = MessageContext { _messageState = State state
+                              , _messageId = "bench_message_id"
+                              , _userClient = uc
+                              , _dbConnection = conn
+                              }
+  action msgctx
 
-mockMessageId :: T.Text 
-mockMessageId = T.pack ""
+-- | Each test is a function taking messageContext -> IO (). We augment this
+-- by creating a WS connection and running a clientApp.
+genTest :: (MessageContext -> IO ()) -> IO ()
+genTest action = alphaMain $ do 
+  host <- getSetting serverHost
+  port <- getSetting serverPort
+  withSocketsDo $ WS.runClient host port "/" $ clientApp action 
+
+--------------------------------------------------------------------------------
+-- Generating objects
 
 testCells :: [Int] -> [ASCell]
 testCells = testCellsWithExpression (const $ Expression "=1+1" Excel) 1
 
 testCellsWithExpression :: (Int -> ASExpression) -> Int -> [Int] -> [ASCell]
-testCellsWithExpression f col = map (\i -> U.testCell & cellLocation .~ testIndex col i & cellExpression .~ (f i))
+testCellsWithExpression f col = map $
+  \i -> U.testCell & cellLocation .~ testIndex col i & cellExpression .~ (f i)
 
 testIndex :: Int -> Int -> ASIndex
 testIndex x y = Index "BENCH_ID" (Col x, Row y)
 
+--------------------------------------------------------------------------------
+-- Clean up
+
+clean :: R.Connection -> IO ()
+clean conn = DBC.clear conn >> DBG.clearAllDAGs
+
+--------------------------------------------------------------------------------
+-- Benchmarks
+
+dispatchN :: Int -> MessageContext -> IO ()
+dispatchN n msgctx = do
+  let f = \i -> Expression ("=2+2") Python
+  let cells = testCellsWithExpression f 1 [1..n]
+  runDispatchCycle msgctx cells DescendantsWithParent id
+  return ()
+
+rangeN :: Int -> MessageContext -> IO ()
+rangeN n msgctx = do 
+  let f = \i -> Expression ("=range(" ++ show n ++ ")") Python
+  let cells = testCellsWithExpression f 1 [1]
+  runDispatchCycle msgctx cells DescendantsWithParent id
+  return ()
+
+
 main :: IO ()
-main = alphaMain $ do 
-  -- let inds = map (\i -> Index "BENCH_ID" (Coord 1 i)) [1..5000]
-  -- settings <- CS.getRuntimeSettings
-  -- conn <- DI.connectRedis settings
-  state <- testSS
-  mstate <- newMVar state
-  let msgctx = MessageContext { _messageState = State mstate
-                              , _messageId = "BENCH_ID"
-                              , _userClient = $undefined -- can't create a userclient here. when necessary, fix this.
-                              , _dbConnection = state^.dbConn
-                              }
-  -- let conn = state^.dbConn
-  --     graphAddress = state^.appSettings.graphDbAddress
-  -- commit <- DT.undo graphAddress conn (CommitSource "BENCH_ID" "BENCH_ID")
-  --let cells1 = testCellsWithExpression (\i -> Expression "=1+1" Excel) 1 [1]
-  --    cells2 = testCellsWithExpression (\i -> Expression ("=A" ++ (show (i-1)) ++ "+1") Excel) 1 [2..8000]
-  --x <- eval (cells1++cells2) emptyCtx
-  let cells2 = testCellsWithExpression (\i -> Expression "=2" Python) 1 [1]
-  let cells1 = testCellsWithExpression (\i -> Expression "1111111 + $A$1 + 1111111" Python) 1 [2..10000]
-  x <- eval msgctx (cells2 ++ cells1) emptyCtx
-  -- x <- eval [(U.testCell & cellExpression .~ Expression "range(10000)" Python)] emptyCtx
-  evaluate $ rnf x
-  ---- let results = map (getExcelReferences) [Expression "=$A1+A1 + 1111 +$A1" Excel | x <- [1..10000]]
-  --let results = map parseFormula ["=1111111 + 1111111" | x <- [1..1000000]]
-  --evaluate $ rnf results
-  --print (take 10 results)
+main = genTest $ dispatchN 10000
+
+--defaultMain [ 
+--  bgroup "dispatch"
+--    [ bench "dispatch 10000 cells" $ whnfIO $ genTest $ dispatchN 10000
+    
+--    ]
+--  --bgroup "ranges"
+--  --  [ bench "range(10000)" $ whnfIO $ genTest $ rangeN 10000
+
+--  --  ]
+--  ]
+
