@@ -14,6 +14,7 @@ import AS.Types.Updates
 
 import AS.Prelude 
 import AS.DB.API
+import qualified AS.DB.Transaction as DT
 import AS.Dispatch.Core as DP
 import AS.Daemon as DM
 import AS.Reply
@@ -56,27 +57,31 @@ removePropEndware :: ServerState -> CellProp -> ASCell -> IO ()
 removePropEndware state (StreamInfo s) c = removeDaemon (c^.cellLocation) state
 removePropEndware _ _ _ = return ()
 
--- Given a prop transform, create the new cells by mapping over the transform and run a dispatch cycle with those cells.
--- We want to run a dispatch cycle so that the possibly new formats can propagate; if A1 is now a percent and B1 depended on A1, 
--- then B1 may now have a percent format as well. This isn't necessary for many props, however, (bold doesn't propagate)
--- so a future refactor of props should address this. 
--- Also note that we don't want to re-evaluate the cells for which we're just a adding props; this can, for example, cause random numbers
--- to update when you change their precision. 
+-- Given a prop transform, create the new cells by mapping over the transform 
+-- We do not "propagate" any of these formats/props to descendants, for now, 
+-- even though Google Sheets does this for percents in Excel mode (Ritesh 5/1)
+-- We used to do a dispatch of proper descendants, and then patch the roots
+-- into the update. 
 -- The (ASCell -> ASCellProps) argument of transformPropsInDatabase is a function
 -- that takes a cell, and isolates the new cell props to apply to that cell.
-transformPropsInDatabase :: MessageContext -> (ASCell -> ASCellProps) -> ASRange -> IO ()
+transformPropsInDatabase :: MessageContext 
+                         -> (ASCell -> ASCellProps) 
+                         -> ASRange 
+                         -> IO ()
 transformPropsInDatabase msgctx f rng = do
   let locs = finiteRangeToIndices rng
       conn = msgctx^.dbConnection
+      src  = messageCommitSource msgctx
   cs <- getPossiblyBlankCells conn locs
   -- Create new cells by changing props in accordance with cellPropsTransforms 
+  -- Add them to an empty evalContext, and update the DB in the same way that 
+  -- we do after an eval (add commit + cells to the database, so that this can
+  -- be undone. Return the update to frontend.)
   let cells' = map (f >>= (set cellProps)) cs
-  -- Update the DB with the new cells, these won't be re-evaluated
-  -- Run a dispatch cycle, but only eval proper descendants, and add the new cells to the update
-  errOrUpdate <-
-    DP.runDispatchCycle msgctx cells' ProperDescendants (insertCellsIntoSheetUpdate cells')
-    -- ^ In this case, the cells in cells' at the end of the dispatch cycle are guaranteed to be the same as cs, except with props set.
-  broadcastErrOrUpdate msgctx (addCellsToUpdate cells' <$> errOrUpdate)
+  let evalctx = addCellsToContext cells' emptyContext
+  runEitherT $ DT.updateDBWithContext conn src evalctx
+  let update = Right $ evalctx^.updateAfterEval
+  broadcastErrOrUpdate msgctx update
 
 -- #Lenses.
 insertCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
