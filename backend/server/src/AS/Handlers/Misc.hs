@@ -92,6 +92,15 @@ evalObjectView msgctx cell s = case lang of
     action s = SetObjectView s idx 
     lang = cell^.cellExpression.language
 
+handleTogglePauseMode :: MessageContext -> ASSheetId -> IO ()
+handleTogglePauseMode msgctx sid = do 
+  let conn = msgctx^.dbConnection 
+  sheet <- DB.getSheet conn sid 
+  case sheet of
+    Just s -> do
+      let newSheet = s { inPauseMode = not $ inPauseMode s }
+      DB.setSheet conn newSheet
+    Nothing -> return ()
 
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 

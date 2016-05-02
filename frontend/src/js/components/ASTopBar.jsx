@@ -62,23 +62,28 @@ export default class ASTopBar extends React.Component {
   state: {};
 
   _sheetsListener: () => void;
+  _pauseModeListener: () => void;
 
   constructor(props: ASTopBarProps) {
     super(props);
     this._sheetsListener = () => this.forceUpdate();
+    this._pauseModeListener = () => this.forceUpdate();
   }
 
   componentDidMount() {
     API.getMySheets();
     SheetStateStore.addListener('GOT_MY_SHEETS', this._sheetsListener);
+    SheetStateStore.addListener('TOGGLED_PAUSE_MODE', this._pauseModeListener);
   }
 
   componentWillUnmount() {
     SheetStateStore.removeListener('GOT_MY_SHEETS', this._sheetsListener);
+    SheetStateStore.removeListener('TOGGLED_PAUSE_MODE', this._pauseModeListener);
   }
 
   render(): React.Element {
     let self = this;
+    const paused = SheetStateStore.inPauseMode();
 
     let testAlphaSheets =
       Constants.isProduction
@@ -251,6 +256,12 @@ export default class ASTopBar extends React.Component {
               title: 'Global code editor',
               callback() {
                 self.props.toggleEvalHeader();
+              }
+            }),
+            simple({
+              title: paused ? 'Paused evaluations (click to toggle)' : 'Normal evaluations (click to toggle)',
+              callback() {
+                SheetActions.togglePauseMode();
               }
             })
           ]},

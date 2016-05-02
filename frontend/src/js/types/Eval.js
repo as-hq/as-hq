@@ -349,6 +349,7 @@ export type ASSheet = {
   sheetId: string;
   sheetName: string;
   sheetOwner: string;
+  inPauseMode: boolean;
 };
 
 export type ASWorkbook = {

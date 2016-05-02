@@ -50,7 +50,7 @@ import Debug.Trace
 -- Configuration
 
 isFirstMigration :: Bool
-isFirstMigration = True
+isFirstMigration = False
 
 ------------------------------------------------------------------------------------------------------
 -- Helpers

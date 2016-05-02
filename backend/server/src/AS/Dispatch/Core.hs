@@ -124,20 +124,36 @@ runDispatchCycle msgctx cs descSetting updateTransform = do
 -- this seems conceptually better than letting each round of dispatch produce a new context, 
 -- and hoping we union them in the right order. This means that at any point in time, there is a *single*
 -- EvalContext in existence, and we just continue writing to it every time dispatch is called recursively. 
-dispatch :: MessageContext -> [ASCell] -> EvalContext -> DescendantsSetting -> EitherTExec EvalContext
+dispatch :: MessageContext 
+        -> [ASCell] 
+        -> EvalContext 
+        -> DescendantsSetting 
+        -> EitherTExec EvalContext
 dispatch _ [] evalctx _ = return evalctx
 dispatch msgctx roots oldEvalCtx descSetting = do
   let conn = msgctx^.dbConnection
-  -- For all the original cells, add the edges in the graph DB; parse + setRelations
+  let commonSid = ($head roots)^.cellLocation.locSheetId
+  commonSheet <- liftIO $ DB.getSheet conn commonSid
+  let paused = (inPauseMode <$> commonSheet) == Just True
+  -- For all the original cells, add the edges in the 
+  -- graph DB; parse + setRelations
   G.setCellsAncestors conn (msgctx^.userClient.userId) roots
-  descLocs       <- getEvalLocs roots descSetting
-  -- Turn the descLocs into Cells, but the roots are already given as cells, so no DB actions needed there
-  cellsToEval    <- getCellsToEval conn oldEvalCtx descLocs
-  ancLocs        <- G.getImmediateAncestors $ indicesToAncestryRequestInput descLocs
+  descLocs <- if paused 
+    then return $ mapCellLocation roots
+    else getEvalLocs roots descSetting
+  evalCells <- getCellsToEval conn oldEvalCtx descLocs
+  ancLocs <- G.getImmediateAncestors $ indicesToAncestryRequestInput descLocs
   -- The initial lookup cache has the ancestors of all descendants
-  modifiedEvalCtx <- getModifiedContext conn ancLocs oldEvalCtx
-  evalChainWithException msgctx cellsToEval modifiedEvalCtx -- start with current cells, then go through descendants
-
+  newCtx <- getModifiedContext conn ancLocs oldEvalCtx
+  let whenCaught e = do
+        putsError (messageCommitSource msgctx) $ 
+          "Runtime exception caught" ++ show (e :: SomeException)
+        return $ Left RuntimeEvalException
+  let evalAction = if paused 
+                    then evalChainWithoutPropagation msgctx evalCells newCtx 
+                    else evalChain msgctx evalCells newCtx 
+  result <- liftIO $ catchAny (runEitherT evalAction) whenCaught
+  hoistEither result
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- Eval building blocks
@@ -193,17 +209,6 @@ formatCell mf c = maybe c ((c &) . over cellProps . setProp . ValueFormat) mf
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
 -- EvalChain
-
--- A wrapper around evalChain which catches errors
-evalChainWithException :: MessageContext -> [ASCell] -> EvalTransform
-evalChainWithException msgctx cells evalctx = 
-  let whenCaught e = do
-        putsError (messageCommitSource msgctx) $ 
-          "Runtime exception caught" ++ show (e :: SomeException)
-        return $ Left RuntimeEvalException
-  in do
-    result <- liftIO $ catchAny (runEitherT $ evalChain msgctx cells evalctx) whenCaught
-    hoistEither result
 
 -- If a cell input to evalChain is a coupled cell that's not a fat-cell-head, then we NEVER evaluate it. In addition, if there's a normal cell
 -- in the list of cells that has a coupled counterpart in the context, we don't evaluate that cell either. The reason is that we want to give 

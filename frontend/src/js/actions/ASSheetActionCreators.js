@@ -1,6 +1,7 @@
 /* @flow */
 
 import Dispatcher from '../Dispatcher';
+import API from '../actions/ASApiActionCreators';
 
 import type {
   SheetUpdate,
@@ -18,6 +19,14 @@ import ASCondFormatRule from '../classes/ASCondFormatRule';
 import SheetStateStore from '../stores/ASSheetStateStore';
 
 export default {
+
+  togglePauseMode() {
+    API.togglePauseMode();
+    Dispatcher.dispatch({
+      _type: 'TOGGLED_PAUSE_MODE'
+    });
+  },
+
   updateSheet(update: SheetUpdate) {
     Dispatcher.dispatch({
       _type: 'SHEET_UPDATED',

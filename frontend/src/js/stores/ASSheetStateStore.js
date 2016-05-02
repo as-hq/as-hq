@@ -85,8 +85,33 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
         ASSheetStateStore.emit('GOT_MY_SHEETS');
         break;
 
+      case 'TOGGLED_PAUSE_MODE':
+        ASSheetStateStore.togglePauseMode();
+        ASSheetStateStore.emit('TOGGLED_PAUSE_MODE');
+        break;
+
+      default:
+        break;
+
     }
   }),
+
+  /**************************************************************************************************************************/
+  // Helpers
+
+  findSheet(pred: ((sheet: ASSheet) => boolean)): ?ASSheet {
+    const sheet = _data.mySheets
+          .concat(_data.sharedSheets)
+          .find(pred);
+    // sheet is not available when app is first mounting.
+    if (sheet === undefined || sheet === null) {
+      return null;
+    } else return sheet;
+  },
+
+  getCurrentSheet(): ?ASSheet {
+    return this.findSheet(sheet => sheet.sheetId === _data.currentSheetId);
+  },
 
   /**************************************************************************************************************************/
   /* getter and setter methods */
@@ -109,6 +134,18 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
     _data.clipboard.area = rng;
     _data.clipboard.isCut = isCut;
     Render.setMode(rng === null ? null : (isCut ? 'cut' : 'copy'));
+  },
+
+  togglePauseMode() {
+    const sheet = this.getCurrentSheet();
+    if (sheet != null) {
+      sheet.inPauseMode = !sheet.inPauseMode;
+    }
+  },
+
+  inPauseMode(): boolean {
+    const sheet = this.getCurrentSheet();
+    return sheet !== null && sheet.inPauseMode;
   },
 
   getClipboard() {
@@ -141,14 +178,10 @@ const ASSheetStateStore = Object.assign({}, BaseStore, {
   },
 
   getCurrentSheetTitle(): string {
-    const sheet = _data.mySheets
-      .concat(_data.sharedSheets)
-      .find(sheet =>
-        sheet.sheetId === _data.currentSheetId
-    );
-
+    const sheet = this.getCurrentSheet();
+  
     // sheet is not available when app is first mounting.
-    if (sheet === undefined) {
+    if (sheet === null) {
       return '';
     }
 

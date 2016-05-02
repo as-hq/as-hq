@@ -253,6 +253,10 @@ export type OpenMenuItem = {
   name: string;
 };
 
+export type ToggledPauseMode = {
+  _type: 'TOGGLED_PAUSE_MODE';
+};
+
 export type CloseMenuItem = {
   _type: 'CLOSE_TOOLBAR_ITEM';
   name: string;
@@ -430,6 +434,7 @@ export type ASAction =
   | ToggledFocusF2Action
   | SetConnectingStateAction
   | OpenMenuItem
+  | ToggledPauseMode
   | CloseMenuItem
   | SetFormat
   | SetFont

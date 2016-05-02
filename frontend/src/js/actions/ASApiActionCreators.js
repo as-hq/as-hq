@@ -1020,6 +1020,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  togglePauseMode() {
+    const msg = {
+      tag: "TogglePauseMode",
+      contents: SheetStateStore.getCurrentSheetId()
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   /**************************************************************************************************************************/
   // Logging
 
