@@ -264,6 +264,13 @@ pws.whenReady(() => {
         const {mySheets, sharedSheets} = action;
         SheetActions.setMySheets(mySheets, sharedSheets);
         break;
+      case 'SetObjectView':
+        Dispatcher.dispatch({
+          _type: 'SET_OBJECT_VIEW',
+          objectView: action.objectView,
+          location: action.location
+        });
+        break;
       case 'AskDecouple':
         // #needsrefactor should use notification; currently sticking with alert box because
         // it automatically takes the focus, which is better UX. (Can be implemented with notifications
@@ -425,14 +432,17 @@ const API = {
   // this exists to slightly fork logic when necessary during testing. e.g. see ASCellStore.
   isTesting: false,
 
-  sendMessageWithAction(action: any) {
+  sendMessageWithAction(action: any, showProgress: boolean = true) {
     const messageId = shortid.generate();
     const msg = {
       serverAction: action,
       messageId
     };
 
-    ProgressActions.markSent(msg);
+    if (showProgress) {
+      ProgressActions.markSent(msg);
+    }
+
     setCallbacks(msg.messageId);
     pws.send(msg);
   },
@@ -537,6 +547,14 @@ const API = {
           contents: [language, range.obj()],
         };
     API.sendMessageWithAction(action);
+  },
+
+  getObjectView(index: ASIndex) {
+    const action = {
+      tag: "GetObjectView",
+      contents: index.obj()
+    };
+    API.sendMessageWithAction(action, false);
   },
 
   // Currently not supporting (Alex 12/29)

@@ -118,6 +118,7 @@ from AS.stdlib import *
 from AS.kernel.serialize import * 
 from AS.functions.openExcel import *
 from AS.SQL import *
+from AS.object_view import *
 import matplotlib._pylab_helpers
 import matplotlib.pyplot as plt
 import cPickle

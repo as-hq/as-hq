@@ -5,6 +5,7 @@ AS/errors.py
 AS/formats.py
 AS/hidden.py
 AS/iterable.py
+AS/object_view.py
 AS/samples.py
 AS/stdlib.py
 AS.egg-info/PKG-INFO

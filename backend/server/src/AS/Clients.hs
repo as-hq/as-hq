@@ -118,6 +118,8 @@ instance Client ASUserClient where
       StartDebuggingLog            -> handleStopLoggingActions state
       GetAllSessions               -> handleGetAllSessions msgctx
       RenameSheet sid sname        -> handleRenameSheet msgctx sid sname
+      -- #needsrefactor the object view should be a part of the cell
+      GetObjectView idx            -> handleGetObjectView msgctx idx
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 

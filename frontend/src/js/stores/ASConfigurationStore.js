@@ -86,10 +86,11 @@ class ConfigurationStore extends ReduceStore<State> {
 
       case 'SELECTION_CHANGED': {
         const {origin, range} = action.selection;
-
         const cell = CellStore.getCell(origin);
         if (cell != null && cell.hasOutput()) {
           return state.set('bottomPane', 'cell_output');
+        } else if (cell != null && cell.isObject()) {
+          return state.set('bottomPane', 'object_viewer');
         } else {
           const cells = CellStore.getCells(range);
           if (cells.some((cell) => cell != null && cell.hasError())) {
@@ -99,7 +100,6 @@ class ConfigurationStore extends ReduceStore<State> {
           }
         }
       }
-
       default:
         return state;
     }

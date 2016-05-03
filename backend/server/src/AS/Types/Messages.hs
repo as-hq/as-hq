@@ -71,6 +71,7 @@ data ClientAction =
   | AuthSuccess { authUserId :: ASUserId, defaultSheetId :: ASSheetId }
   | SessionLog { sessionLog :: [LogData] }
   | AllSessions { allSessions :: [SessionData] }
+  | SetObjectView { objectView :: String, location :: ASIndex }
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -116,6 +117,7 @@ data ServerAction =
   | StartDebuggingLog
   | GetAllSessions
   | RenameSheet { renameSheetId :: ASSheetId, newSheetName :: SheetName }
+  | GetObjectView ASIndex
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs

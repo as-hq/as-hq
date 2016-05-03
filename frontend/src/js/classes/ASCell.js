@@ -145,4 +145,11 @@ export default class ASCell {
   hasOutput(): boolean {
     return (this._display != null) && (this._display !== '');
   }
+
+  isObject(): boolean {
+    const tag = this._value.tag;
+    // serialized values or long string have object views
+    return tag === 'ValueSerialized' || tag === 'ValueS';
+  }
+  
 }

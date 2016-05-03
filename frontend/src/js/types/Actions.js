@@ -8,6 +8,7 @@ import type ASSelection from '../classes/ASSelection';
 
 import type {
   ASLocation,
+  ASIndexObject,
   ASExpression,
   ASValue,
   ASCompositeValue,
@@ -88,6 +89,12 @@ export type GotFailureAction = {
 export type ScrolledAction = {
   _type: 'SCROLLED';
   vWindow: ASRange;
+};
+
+export type SetObjectViewAction = {
+  _type: 'SET_OBJECT_VIEW';
+  location: ASIndexObject;
+  objectView: string;
 };
 
 export type GotSelectionAction = {
@@ -393,6 +400,7 @@ export type ASAction =
   | DeletedWorkbooksAction
   | GotUpdatedRulesAction
   | ScrolledAction
+  | SetObjectViewAction
   | HeaderDataResetAction
   | GotSelectionAction
   | GotUpdatedRangeDescriptorsAction

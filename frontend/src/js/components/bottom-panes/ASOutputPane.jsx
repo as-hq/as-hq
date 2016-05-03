@@ -63,7 +63,8 @@ export default class ASOutputPane extends React.Component {
             .split('\n')
             .map((line) =>
       (
-        <div
+        // preserve whitespace, div doesn't do that
+        <pre
           style={styles.outputLine}
           dangerouslySetInnerHTML={
             {__html: Ansi.ansi_to_html(line, {use_classes: true})}

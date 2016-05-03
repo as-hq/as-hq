@@ -26,7 +26,12 @@ export type FocusedElement =
   | 'bottombar'
   ;
 
-export type BottomPaneType = 'header_output' | 'errors' | 'cell_output' | 'no_pane';
+export type BottomPaneType = 
+    'header_output' 
+  | 'errors' 
+  | 'cell_output' 
+  | 'object_viewer'
+  | 'no_pane';
 
 export type ASClientWindow = {
   window: ASRange;

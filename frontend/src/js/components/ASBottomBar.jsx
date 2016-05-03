@@ -24,10 +24,12 @@ window.dom = ReactDOM;
 type Props = {
   errorIconStyle: any;
   outputIconStyle: any;
+  objectViewerIconStyle: any;
   sheetName: string;
   onErrorIconClick: () => void;
   onHeaderIconClick: () => void;
   onOutputIconClick: () => void;
+  onObjectViewerClick: () => void;
 };
 
 function LabeledIconButton(props: {
@@ -69,12 +71,14 @@ class BottomBar extends React.Component {
     // have to check this manually because we can't compare functions (which get passed as props)
     return !(_.isEqual(nextProps.errorIconStyle, this.props.errorIconStyle) &&
              _.isEqual(nextProps.outputIconStyle, this.props.outputIconStyle) &&
+             _.isEqual(nextProps.objectViewerIconStyle, this.props.objectViewerIconStyle) &&
              nextProps.sheetName === this.props.sheetName);
   }
 
   render(): React.Element {
     const {errorIconStyle, outputIconStyle, sheetName,
-           onErrorIconClick, onOutputIconClick, onHeaderIconClick} = this.props;
+           onErrorIconClick, onOutputIconClick, onHeaderIconClick, 
+           onObjectViewerClick, objectViewerIconStyle} = this.props;
 
     return (
       <Paper style={styles.root}
@@ -109,6 +113,14 @@ class BottomBar extends React.Component {
           tooltip={`Header output (${U.Browser.metaKeyName()}+Alt+H)`}
           iconClassName="input"
           label="Header output"
+        />
+
+        <LabeledIconButton
+          contentStyle={objectViewerIconStyle}
+          onClick={onObjectViewerClick}
+          tooltip={`Object viewer (${U.Browser.metaKeyName()}+Alt+V)`}
+          iconClassName="visibility"
+          label="Object Viewer"
         />
 
       </Paper>

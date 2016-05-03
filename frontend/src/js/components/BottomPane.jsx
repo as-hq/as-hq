@@ -14,6 +14,7 @@ import Focusable from './transforms/Focusable.jsx';
 import ASErrorPaneController from './bottom-panes/ASErrorPaneController.jsx';
 import ASCellPaneController from './bottom-panes/ASCellPaneController.jsx';
 import ASHeaderPaneController from './bottom-panes/ASHeaderPaneController.jsx';
+import ASObjectViewerController from './bottom-panes/ASObjectViewerController.jsx';
 
 type Props = {};
 type State = {};
@@ -64,6 +65,9 @@ class BottomPane extends React.Component {
       }
       case 'cell_output': {
         return <ASCellPaneController />;
+      }
+      case 'object_viewer': {
+        return <ASObjectViewerController />;
       }
       default: {
         return <noscript />;

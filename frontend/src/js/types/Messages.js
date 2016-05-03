@@ -312,6 +312,7 @@ export type ServerAction =
   | Export
   | Evaluate
   | EvaluateHeader
+  | GetObjectView
   | SetLanguagesInRange
   | Get
   | GetBar
@@ -447,6 +448,11 @@ export type EvalHeader = {
 export type EvaluateHeader = {
   tag: "EvaluateHeader";
   contents: EvalHeader;
+};
+
+export type GetObjectView = {
+  tag: "GetObjectView";
+  contents: ASIndexObject;
 };
 
 export type SetLanguagesInRange = {

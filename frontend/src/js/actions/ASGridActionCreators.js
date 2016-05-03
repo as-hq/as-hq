@@ -17,6 +17,9 @@ import APIActions from './APIActionCreators';
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import HeaderStore from '../stores/ASHeaderStore';
+import ViewStore from '../stores/ASObjectViewerStore';
+import CellStore from '../stores/ASCellStore';
+
 import { actions as Shortcuts } from '../AS/Shortcuts';
 import ExpressionActions from './ASExpressionActionCreators';
 
@@ -50,6 +53,12 @@ const GridActions = {
     // #needsrefactor
     if (HeaderStore.isDirty()) {
       APIActions.evaluateActiveHeader();
+    }
+    // Object viewing
+    const loc = GridStore.getActiveSelection().origin;
+    const dirty = ViewStore.shouldRecomputeObjectViewAt(loc);
+    if (dirty && CellStore.activeCellIsObject()) {
+      API.getObjectView(loc);
     }
   },
 

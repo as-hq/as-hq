@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+
 module AS.Handlers.Misc where
 
 import qualified Data.ByteString.Lazy as BL
@@ -51,7 +52,45 @@ import qualified AS.DB.Export             as DX
 import qualified AS.DB.Graph              as G
 import qualified AS.DB.Clear              as DC
 
+import qualified AS.Kernels.Python.Client as KP 
+import qualified AS.Kernels.R.Client as KR
+
 import qualified Data.Set as S
+
+handleGetObjectView :: MessageContext -> ASIndex -> IO ()
+handleGetObjectView msgctx idx = do 
+  state <- readContextualState msgctx 
+  let conn = msgctx^.dbConnection
+  let action s = SetObjectView s idx 
+  mCell <- DB.getCell conn idx
+  case mCell of 
+    Nothing   -> sendAction msgctx $ action "No object view for empty cell"
+    Just cell -> do 
+      case cell^.cellValue of
+        ValueSerialized s _ -> evalObjectView msgctx cell s
+        ValueS s -> evalObjectView msgctx cell $ "\"" ++ s ++ "\""
+        _ -> return ()
+
+evalObjectView :: MessageContext -> ASCell -> String -> IO ()
+evalObjectView msgctx cell s = case lang of
+  Excel -> sendAction msgctx $ action "No object view for Excel cells"
+  Python -> do 
+    result <- runEitherT $ KP.evaluate mid sid $ "object_view(" ++ s ++ ")"
+    case (view resultValue) <$> result of
+      Right (CellValue (ValueS s)) -> sendAction msgctx $ action s
+      _ -> return ()
+  R -> do 
+    result <- runEitherT $ KR.evaluate mid sid $ "str(" ++ s ++ ")"
+    case (view resultValue) <$> result of
+      Right (CellValue (ValueS s)) -> sendAction msgctx $ action s
+      _ -> return ()
+  SQL -> sendAction msgctx $ action "No object view for SQL cells"
+  where
+    mid = msgctx^.messageId
+    idx = cell^.cellLocation
+    sid = idx^.locSheetId
+    action s = SetObjectView s idx 
+    lang = cell^.cellExpression.language
 
 
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 

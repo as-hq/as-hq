@@ -57,16 +57,19 @@ export default class ASBottomBarController extends React.Component {
   render(): React.Element {
     const errorIconStyle  = CellStore.activeCellHasError() ? {color: "orange"} : {};
     const outputIconStyle = CellStore.activeCellHasOutput() ? {color: "orange"} : {};
+    const objectViewerIconStyle = CellStore.activeCellIsObject() ? {color: "orange"} : {};
     const onErrorIconClick = () => ConfigActions.toggleBottomPane('errors');
     const onOutputIconClick = () => ConfigActions.toggleBottomPane('cell_output');
     const onHeaderIconClick = () => ConfigActions.toggleBottomPane('header_output');
-
+    const onObjectViewerClick = ()=> ConfigActions.toggleBottomPane('object_viewer');
     return <ASBottomBar
               errorIconStyle={errorIconStyle}
               outputIconStyle={outputIconStyle}
+              objectViewerIconStyle={objectViewerIconStyle}
               sheetName={SheetStateStore.getCurrentSheetTitle()}
               onErrorIconClick={onErrorIconClick}
               onOutputIconClick={onOutputIconClick}
-              onHeaderIconClick={onHeaderIconClick} />;
+              onHeaderIconClick={onHeaderIconClick}
+              onObjectViewerClick={onObjectViewerClick} />;
   }
 }
