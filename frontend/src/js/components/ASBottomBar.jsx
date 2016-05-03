@@ -130,11 +130,11 @@ class BottomBar extends React.Component {
   }
 }
 
-// TODO flex this shit
 const styles = {
   root: {
     position: 'relative',
-    display: 'block',
+    display: 'flex',
+    flexDirection: 'row',
     height: 30,
     background: '#424242',
     zIndex: bottomBarZIndex,
@@ -142,8 +142,7 @@ const styles = {
 
   sheetBrowser: {
     position: 'relative',
-    display: 'inline-block',
-    width: '85%',
+    flexGrow: 1
   },
 
   button: {

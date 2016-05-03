@@ -80,7 +80,6 @@ class SheetBrowser extends React.Component {
 
     return (
       <div style={styles.root}>
-
         <IconButton ref={elem => this._createButton = elem}
                     style={styles.createButton}
                     onClick={() => this.setState({addPopoverOpen: true})}
@@ -91,6 +90,7 @@ class SheetBrowser extends React.Component {
           add_box
         </IconButton>
 
+        <div style={styles.leftFader} />
 
         <Popover open={addPopoverOpen}
                  anchorEl={popOverAnchor}
@@ -144,6 +144,7 @@ class SheetBrowser extends React.Component {
           <div style={styles.spacer} />
         </Scrollbars>
 
+        <div style={styles.rightFader} />
       </div>
     );
   }
@@ -187,22 +188,24 @@ const width = 750;
 
 const styles = {
   root: {
-    display: 'inline-block',
+    display: 'inline-flex',
+    flexDirection: 'row',
+    width: '100%',
     height,
   },
   createButton: {
-    display: 'inline-block',
+    flexGrow: 0,
+    flexBasis: 'content',
     position: 'relative',
-    float: 'left',
     top: '-11%',
     left: -2,
     padding: 0,
   },
   tabs: {
-    display: 'inline-block',
+    flexGrow: 1,
+    flexBasis: width,
     position: 'relative',
     height,
-    width,
     overflowY: 'hidden',
     whiteSpace: 'nowrap',
     marginLeft: -10,
@@ -221,6 +224,20 @@ const styles = {
     marginLeft: 10,
     marginRight: 10,
   },
+  leftFader: {
+    position: 'relative',
+    left: 'calc(1.5em - 10px)',
+    width: '1.5em',
+    background: '-webkit-linear-gradient(right, rgba(66,66,66,0) 0%, rgba(66,66,66,1) 100%)',
+    zIndex: 10000000
+  },
+  rightFader: {
+    position: 'relative',
+    right: '2.5em',
+    width: '2.5em',
+    background: '-webkit-linear-gradient(left, rgba(66,66,66,0) 0%, rgba(66,66,66,1) 100%)',
+    zIndex: 10
+  }
 };
 
 export default SheetBrowser;

@@ -159,6 +159,7 @@ function getStyles(props: Props, state: State): any {
 
   return {
     root: {
+      position: 'relative', // NOTE: this ensures z-indices work properly
       display: 'inline-block',
       background: color,
       width: 'fitContent',
