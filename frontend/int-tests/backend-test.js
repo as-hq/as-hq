@@ -2841,6 +2841,16 @@ describe('backend', () => {
             exec(done)
           ]);
         });
+
+        it ('shouldn"t parse refs outside the spreadsheet', (done) => {
+          _do([
+            python('A1', '=from urllib2 import urlopen; urlopen'),
+            shouldBeSerialized('A1'),
+            python('A2', '=asdf12'),
+            shouldBeError('A2'),
+            exec(done)
+          ])
+        })
       });
     });
 

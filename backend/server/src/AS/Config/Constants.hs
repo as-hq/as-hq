@@ -76,3 +76,10 @@ rHeaderDefaultText = unlines [
   "",
   "referenceMe <- 4"
   ]
+
+-- spreadsheet bounds
+num_rows :: Int
+num_rows = 1000
+
+num_cols :: Int
+num_cols = 26

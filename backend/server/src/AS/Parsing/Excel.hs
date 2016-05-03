@@ -14,6 +14,7 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as BU
 
 import AS.Prelude hiding (takeWhile)
+import AS.Config.Constants (num_rows, num_cols)
 import AS.Types.Cell
 import AS.Types.Excel
 import AS.Util
@@ -68,8 +69,10 @@ readRefType d1 = case d1 of
 colMatch :: Parser ExCol
 colMatch = do
   dol <- option "" dollar
-  col <- takeWhile1 isLetter
-  return $! ExItem (readRefType dol) $ colStrToCol col
+  col <- colStrToCol <$> takeWhile1 isLetter
+  if col > Col num_cols
+    then fail "ref exceeded column bounds"
+    else return $! ExItem (readRefType dol) col
 
 -- | This parser matches strings of the form "$14211" to rows, represented as ExRows. 
 -- Note that $142a will not parse as a rowMatch, since we check that the next byte isn't a letter.
@@ -83,7 +86,9 @@ rowMatch = do
   case next of
     Nothing -> return ()
     Just w  -> when (isLetter w) $ fail "letter after row"
-  return $! ExItem (readRefType dol) $ Row row
+  if row > num_rows
+    then fail "ref exceeded row bounds"
+    else return $! ExItem (readRefType dol) $ Row row
 
 ----------------------------------------------------------------------------------------------------
 -- Partial ExRef parsers
