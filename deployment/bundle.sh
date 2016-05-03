@@ -14,8 +14,6 @@
 # - installed frontend libs
 # - environment files in their right places
 
-set -e
-
 USE_SUDO=false
 PUSH_REMOTE=false
 ENV_FILE=false
@@ -78,6 +76,14 @@ else
   bower install --allow-root
   gulp prod-build
 fi
+
+FRONTEND_STATUS=$?
+if [ $FRONTEND_STATUS -ne 0 ]; then
+  printf "\n\n"
+  echo "Frontend build failed!"
+  exit $FRONTEND_STATUS
+fi
+
 cd ..
 cp -r frontend/dist build/frontend
 echo "frontend build finished."
@@ -88,6 +94,14 @@ cp frontend/src/js/Environment*.js build/frontend/
 # Install up-to-date Python libraries
 cd backend/as-libs/py
 python setup.py develop
+
+PYTHON_STATUS=$?
+if [ $PYTHON_STATUS -ne 0 ]; then
+  printf "\n\n"
+  echo "Python libraries build failed!"
+  exit $PYTHON_STATUS
+fi
+
 cd ../../..
 echo "built Python libraries"
 
@@ -98,6 +112,14 @@ if $USE_SUDO; then
 else 
   stack build 
 fi
+
+BACKEND_STATUS=$?
+if [ $BACKEND_STATUS -ne 0 ]; then
+  printf "\n\n"
+  echo "Backend build failed!"
+  exit $BACKEND_STATUS
+fi
+
 cd ../..
 mkdir build/server
 mkdir build/rkernel
@@ -111,7 +133,15 @@ echo "backend build finished."
 
 # C++ executable (compile, move executable over to build/graph
 cd backend/graph-database
-g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -lpthread -std=c++11 
+make
+
+GRAPH_STATUS=$?
+if [ $GRAPH_STATUS -ne 0 ]; then
+  printf "\n\n"
+  echo "Graph DB build failed!"
+  exit $GRAPH_STATUS
+fi
+
 cd ../../
 mkdir build/graph
 cp backend/graph-database/server build/graph/
@@ -128,6 +158,14 @@ mkdir build/server/static
 # Copy all executables needed into the build/server/static folder
 cd backend/server/static
 pyinstaller file-input-handler.py
+
+FILEINPUT_STATUS=$?
+if [ $FILEINPUT_STATUS -ne 0 ]; then
+  printf "\n\n"
+  echo "Fileinput build failed!"
+  exit $FILEINPUT_STATUS
+fi
+
 cd ../../..
 cp -r backend/server/static/dist/file-input-handler/* build/server/static/
 cd backend/server/static
