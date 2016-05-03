@@ -14,6 +14,8 @@
 # - installed frontend libs
 # - environment files in their right places
 
+set -e
+
 USE_SUDO=false
 PUSH_REMOTE=false
 ENV_FILE=false
