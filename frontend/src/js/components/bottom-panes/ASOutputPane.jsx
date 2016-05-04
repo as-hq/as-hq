@@ -79,6 +79,8 @@ const topBarHeight = 26;
 const styles = {
   root: {
     height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
   },
 
   topBar: {
@@ -96,8 +98,7 @@ const styles = {
   },
 
   contentPane: {
-    position: 'absolute',
-    height: `calc(100% - ${topBarHeight}px)`,
+    flexGrow: 1,
     width: '100%',
     overflow: 'auto',
   },

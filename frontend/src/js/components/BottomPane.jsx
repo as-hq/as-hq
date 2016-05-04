@@ -82,6 +82,7 @@ class BottomPane extends React.Component {
 
 const styles = {
   full: {
+    height: '100%',
   },
 };
 
