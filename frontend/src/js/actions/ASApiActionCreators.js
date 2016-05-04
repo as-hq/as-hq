@@ -768,6 +768,14 @@ const API = {
     API.setProp(formatProp, rng);
   },
 
+  toggleFormat(formatType: FormatType, rng: ASRange) {
+    const formatProp: ValueFormat = {
+      tag: 'ValueFormat',
+      valFormat: {tag: 'Format', formatType: formatType, numDecimals: null}
+    };
+    API.toggleProp(formatProp, rng);
+  },
+
   handleChangeDecimalPrecision(i: number, rng: ASRange) {
     let msg: ChangeDecimalPrecision = {
       tag: "ChangeDecimalPrecision",

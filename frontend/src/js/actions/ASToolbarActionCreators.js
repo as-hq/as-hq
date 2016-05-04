@@ -61,10 +61,10 @@ export default {
     const {range} = GridStore.getActiveSelection();
     switch (tag) {
       case 'Money':
-        API.setFormat('Money', range);
+        API.toggleFormat('Money', range);
         break;
       case 'Percentage':
-        API.setFormat('Percentage', range);
+        API.toggleFormat('Percentage', range);
         break;
       default:
         // TODO(joel) - handle NoFormat / Date

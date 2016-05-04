@@ -44,7 +44,8 @@ handleToggleProp msgctx prop rng = do
                      else \c -> if elem c cellsWithoutProp
                                then setProp prop $ c^.cellProps
                                else c^.cellProps
-  transformPropsInDatabase msgctx cellToNewProps rng
+  update <- transformPropsInDatabase msgctx cellToNewProps rng
+  broadcastErrOrUpdate msgctx $ Right update
 -- don't HAVE to send back the entire cells, but that's an optimization for a later time. 
 -- Said toad. (Alex 11/7)
 
@@ -67,7 +68,7 @@ removePropEndware _ _ _ = return ()
 transformPropsInDatabase :: MessageContext 
                          -> (ASCell -> ASCellProps) 
                          -> ASRange 
-                         -> IO ()
+                         -> IO SheetUpdate
 transformPropsInDatabase msgctx f rng = do
   let locs = finiteRangeToIndices rng
       conn = msgctx^.dbConnection
@@ -80,19 +81,22 @@ transformPropsInDatabase msgctx f rng = do
   let cells' = map (f >>= (set cellProps)) cs
   let evalctx = addCellsToContext cells' emptyContext
   runEitherT $ DT.updateDBWithContext conn src evalctx
-  let update = Right $ evalctx^.updateAfterEval
-  broadcastErrOrUpdate msgctx update
+  return $ evalctx^.updateAfterEval
 
 -- #Lenses.
 insertCellsIntoSheetUpdate :: [ASCell] -> SheetUpdate -> SheetUpdate
 insertCellsIntoSheetUpdate cells su = su & cellUpdates %~ (insertCellsIntoUpdate cells)
 
 handleSetProp :: MessageContext -> CellProp -> ASRange -> IO ()
-handleSetProp msgctx prop rng = transformPropsInDatabase msgctx (setProp prop . view cellProps) rng
+handleSetProp msgctx prop rng = 
+  transformPropsInDatabase msgctx (setProp prop . view cellProps) rng >>= 
+    broadcastErrOrUpdate msgctx . Right
 
 -- Change the decimal precision of all the values in a range
 handleChangeDecimalPrecision :: MessageContext -> Int ->  ASRange -> IO ()
-handleChangeDecimalPrecision msgctx i rng = transformPropsInDatabase msgctx cellPropsUpdate rng
+handleChangeDecimalPrecision msgctx i rng = 
+  transformPropsInDatabase msgctx cellPropsUpdate rng >>= 
+    broadcastErrOrUpdate msgctx . Right
   where
     getUpdatedFormat :: ASCell -> Maybe Format
     getUpdatedFormat = view format . shiftDecPrecision i . getFormattedVal
