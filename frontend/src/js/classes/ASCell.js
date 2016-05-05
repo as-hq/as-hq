@@ -147,9 +147,15 @@ export default class ASCell {
   }
 
   isObject(): boolean {
-    const tag = this._value.tag;
-    // serialized values or long string have object views
-    return tag === 'ValueSerialized' || tag === 'ValueS';
+    // Object viewer activates for serialized values and long strings
+    // for Python and R cells
+    const lang = this._expression.language;
+    if (lang !== 'Python' && lang !== 'R') {
+      return false;
+    }
+    if (this._value.tag === 'ValueS' && this._value.contents.length > 80) {
+      return true;
+    } else return this._value.tag === 'ValueSerialized';
   }
   
 }
