@@ -296,10 +296,11 @@ broadcastToWorkers :: (Sender s) => MVar KernelState -> Socket z s -> Message ->
 broadcastToWorkers state backend [clientAddr, msg] = do
   st <- liftIO $ readMVar state
   forM_ (M.elems $ st^.sheetWorkers) $ \worker -> 
-    sendMulti backend $ fromList  [ $fromJust (worker^.networkId)
-                                  , empty, clientAddr
-                                  , empty, msg
-                                  ]
+    when (worker^.isRegistered) $ 
+      sendMulti backend $ fromList  [ $fromJust (worker^.networkId)
+                                    , empty, clientAddr
+                                    , empty, msg
+                                    ]
 
 killWorkers :: MVar KernelState -> IO ()
 killWorkers state = readMVar state >>= \s -> 
