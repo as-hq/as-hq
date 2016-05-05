@@ -94,7 +94,7 @@ runRequest_ msg = void $ do
 --  the message sent to the kernel is still being processed. 
 produceStatusRequest ::  KernelRequest -> Socket z Dealer -> ZMQ z ()
 produceStatusRequest req dealer = case getMessageId req of
-  Just mid -> send' dealer [] $ Serial.encodeLazy (GetStatusRequest mid)
+  Just mid -> send' dealer [] $ Serial.encodeLazy (GetStatusRequest mid )
   _ -> return ()
 
 -- | Helper to get message ids

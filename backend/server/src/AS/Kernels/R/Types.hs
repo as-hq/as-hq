@@ -6,8 +6,9 @@ import AS.Prelude
 import AS.Config.Settings
 import AS.Logging (getTime)
 import Data.SafeCopy
-import qualified Data.Map as M
-import qualified Data.ByteString as B
+import qualified Data.Map as Map
+import Data.Map         (Map)
+import Data.ByteString  (ByteString)
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Lens
@@ -23,17 +24,25 @@ import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
 
+import System.Posix.Types
+
 --------------------------------------------------------------------------------
 -- Client types
 
 data EvalScope = Header | Cell deriving (Show, Generic, Data)
 data KernelRequest = 
-    EvaluateRequest { scope :: EvalScope, 
-                      evalMessageId :: MessageId, 
-                      envSheetId :: ASSheetId, 
-                      code :: String } 
+  -- An evaluation request for user-supplied code
+    EvaluateRequest 
+      { scope :: EvalScope          -- the scope in which to execute code
+      , evalMessageId :: MessageId  -- the message ID associated with an eval request
+      , envSheetId :: ASSheetId     -- the sheet in which the execution is requested
+      , code :: String              -- user-supplied code
+      } 
+  -- Clears the namespace of global (header) variables in a sheet
   | ClearRequest ASSheetId
+  -- Halts execution of a previous message.
   | HaltMessageRequest MessageId
+  -- Queries the status of a previous message.
   | GetStatusRequest MessageId
   deriving (Show, Generic, Data)
 
@@ -52,55 +61,78 @@ deriveSafeCopy 1 'base ''KernelReply
 -- Server types 
 
 type Addr = String
-type WorkerId = B.ByteString
-type NetworkId = B.ByteString
+type NetworkId = ByteString
+type Message = [ByteString]
 
-data Worker = Worker {_workerId :: WorkerId, 
-                      _networkId :: Maybe NetworkId, 
-                      _thread :: Async (), 
-                      _status :: WorkerStatus }
-data WorkerStatus = 
-    Unregistered
-  | Idle
-  | Busy (Maybe MessageId)
-  deriving (Ord, Eq)
+data SheetWorker = SheetWorker 
+  { _workerSheetId :: ASSheetId
+  , _networkId :: Maybe NetworkId
+  , _process :: ProcessID 
+  , _isRegistered :: Bool
+  }
 
-data State = State 
-  { _workers :: M.Map WorkerId Worker
-  , _numWorkers :: Int
-  , _shell :: Shell
-  , _log :: Maybe Handle}
+data CellWorker = CellWorker
+  { _cellProcess :: ProcessID
+  , _cellMessage :: MessageId
+  }
 
-emptyState :: Shell -> Maybe Handle -> State
-emptyState s l = State M.empty 0 s l 
+data SheetState = SheetState
+  { _sheetEnvironment :: SEXP0                -- a pointer to an environment on the R heap
+  , _cellWorkers :: Map ProcessID CellWorker
+  , _sheetLog :: Maybe Handle
+  }
 
--- A map of pointers to R environments. There is one environment per sheet.
-data Shell = Shell {_environments :: M.Map ASSheetId SEXP0}
+data KernelState = KernelState 
+  { _sheetWorkers :: Map ASSheetId SheetWorker
+  , _kernelLog :: Maybe Handle
+  , _messageQueue :: Map ASSheetId [Message]
+  }
 
-makeLenses ''Worker
-makeLenses ''State
-makeLenses ''Shell
+newKernelState :: Maybe Handle -> KernelState
+newKernelState l = KernelState 
+  { _sheetWorkers = Map.empty
+  , _kernelLog = l 
+  , _messageQueue = Map.empty
+  }
 
-instance NFData Shell where rnf x = seq x ()
+newSheetState :: SEXP0 -> Maybe Handle -> SheetState
+newSheetState e h = SheetState 
+  { _sheetEnvironment = e
+  , _cellWorkers = Map.empty
+  , _sheetLog = h
+  }
+
+makeLenses ''SheetWorker
+makeLenses ''CellWorker
+makeLenses ''KernelState
+makeLenses ''SheetState
 
 --------------------------------------------------------------------------------
 -- Helper functions
 
-closeLog :: (MonadIO m) => MVar State -> m ()
-closeLog st = liftIO $ readMVar st >>= \st_ -> hClose ($fromJust $ st_^.log)
+class LoggableState a where
+  getLog :: a -> IO (Maybe Handle)
 
-flushLog :: (MonadIO m) => MVar State -> m ()
-flushLog st = liftIO $ readMVar st >>= \st_ -> hFlush ($fromJust $ st_^.log)
+instance LoggableState (MVar KernelState) where
+  getLog st = view kernelLog <$> readMVar st
 
-puts :: (MonadIO m) => MVar State -> String -> m ()
-puts st x = liftIO $ do
+instance LoggableState (MVar SheetState) where
+  getLog st = view sheetLog <$> readMVar st 
+
+closeLog :: (MonadIO m, LoggableState s) => s -> m ()
+closeLog st = liftIO $ getLog st >>= \log -> 
+  maybe (return ()) hClose log
+
+flushLog :: (MonadIO m, LoggableState s) => s -> m ()
+flushLog st = liftIO $ getLog st >>= \log -> 
+  maybe (return ()) hFlush log
+
+puts :: (MonadIO m, LoggableState s) => s -> String -> m ()
+puts st x = liftIO $ getLog st >>= \log -> do
   putStrLn x 
-  doIt <- getSetting rkernelLogsOn
-  when doIt $ do
-    _st <- readMVar st
-    hPutStrLn ($fromJust $ _st^.log) x
+  maybe (return ()) (\l -> hPutStrLn l x) log
 
-putsTimed :: (MonadIO m) => MVar State -> String -> m ()
+putsTimed :: (MonadIO m, LoggableState s) => s -> String -> m ()
 putsTimed st x = liftIO $ do
   t <- getTime
   let x' = x ++ " [" ++ t ++ "]"

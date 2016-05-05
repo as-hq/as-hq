@@ -1,23 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 module AS.Util where
 
-import Data.List (foldl', find)
-import Data.Maybe (isJust)
-import Data.UUID.V4 (nextRandom)
-import Data.UUID (toString)
-import Data.Aeson
+import Data.UUID.V1 (nextUUID)
+import Data.UUID    (toString)
 import Debug.Trace 
-import qualified Data.Text as T
-import qualified Data.Map as M
-import qualified Data.ByteString.Lazy as BL
-import qualified Network.WebSockets as WS
-import qualified Data.ByteString as B
+
+import Control.Concurrent (threadDelay)
 
 import AS.Prelude
 import AS.Logging
 import AS.Types.Cell
-import AS.Types.Network
-import AS.Types.Messages
 import AS.Types.CellProps (emptyProps)
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -33,6 +25,12 @@ testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emp
 -------------------------------------------------------------------------------------------------------------------------
 -- Misc
 
--- | Generates a random number
-getUniqueId :: IO String
-getUniqueId = return . toString =<< nextRandom
+-- | a hyphenated alphanumeric UUID 
+getUUID :: IO String
+getUUID = do
+  u <- nextUUID
+  case u of 
+    Just u  -> return $ toString u
+    -- according to https://hackage.haskell.org/package/uuid-1.3.12/docs/Data-UUID-V1.html,
+    -- `nextUUID` returns Nothing if you request UUIDs too quickly.
+    Nothing -> putStrLn "could not generate UUID!" >> threadDelay 100 >> getUUID

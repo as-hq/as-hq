@@ -196,7 +196,7 @@ getAllSheets conn = do
 -- creates a sheet with unique id
 createSheet :: Connection -> ASUserId -> String -> IO ASSheet
 createSheet conn uid name = do
-  sid <- T.pack <$> getUniqueId
+  sid <- T.pack <$> getUUID
   let sheet = Sheet sid name uid False
   setSheet conn sheet
   return sheet

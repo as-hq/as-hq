@@ -47,7 +47,7 @@ authenticateUser strat = case strat of
       onException :: SomeException -> IO (Either String ASUserId)
       onException e = return $ Left "connection failure"
   -- a randomly generated, unique user id. Ensures that a publicly-referred user has access only to the sheet she was referred to.
-  PublicAuth -> Right . T.pack <$> getUniqueId 
+  PublicAuth -> Right . T.pack <$> getUUID 
   -- when running tests, no authentication performed.
   TestAuth -> return $ Right "test_user_id" 
 -------------------------------------------------------------------------------------------------------------------------

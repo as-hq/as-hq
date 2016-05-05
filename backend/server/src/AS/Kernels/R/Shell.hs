@@ -7,6 +7,7 @@ module AS.Kernels.R.Shell where
 
 import Data.List (transpose, dropWhile, dropWhileEnd)
 import Data.List.Split (chunksOf)
+import Data.Char (isSpace)
 import Data.Word (Word8)
 import System.Directory
 import Control.Monad.IO.Class
@@ -50,27 +51,16 @@ import AS.Kernels.R.Types
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
 
-newShell :: IO Shell
-newShell = R.runRegion $ do
-  -- the app needs to be run as root to install packages.
-  [r|
-    library("rjson")
-    library("ggplot2")
-  |]
-
-  return $ Shell M.empty
-
-runBlock :: MVar State -> EvalCode -> EvalScope -> ASSheetId -> IO EvalResult
-runBlock state code scope sid = do
-  curState <- readMVar state
+runBlock :: EvalScope -> R.SEXP0 -> EvalCode -> IO EvalResult
+runBlock scope env code = do
   cwd <- S.getSetting S.appDirectory
-  uid <- getUniqueId
+  uid <- getUUID
   let imageName = uid ++ ".png"
   let imagePath = cwd ++ S.images_dir ++ imageName
 
   let onException :: SomeException -> IO EvalResult
       onException e = do
-        puts state $ "runBlock ERROR: " ++ show e
+        putStrLn $ "runBlock ERROR: " ++ show e
         return $ EvalResult 
           (CellValue (ValueError (show e) "R error"))
           (Just $ show e)
@@ -78,23 +68,16 @@ runBlock state code scope sid = do
   handleAny onException $ 
     possiblyOverrideWithImage imageName =<< do
       R.runRegion $ do
-        when (M.notMember sid (curState^.shell.environments)) $ 
-          installEnv state sid
-        curState <- liftIO $ readMVar state
         let runCode = prepareExpression scope imagePath code
-        let againstEnv :: SEXP a 'R.Env
-            againstEnv = R.sexp $ (curState^.shell.environments) M.! sid
-        execR [r| eval(parse(text=runCode_hs), envir=againstEnv_hs) |]
-
-clear :: MVar State -> ASSheetId -> IO ()
-clear state sid = runRegion $ installEnv state sid
+        let formedEnv = R.sexp env :: SEXP a 'R.Env
+        execR [r| eval(parse(text=runCode_hs), envir=formedEnv_hs) |]
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Util
 
 trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to get block delimiters
 trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
-  where isWhitespace c = (c == ' ') || (c == '\n') || (c == '\t') || (c == ';')
+  where isWhitespace c = isSpace c || (c == ';')
 
 prepareExpression :: EvalScope -> FilePath -> EvalCode -> EvalCode
 prepareExpression scope imagePath code = 
@@ -119,15 +102,6 @@ isolateCodeScope code = "(function() {" ++ code ++ "})()"
   
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exec helpers
-
-installEnv :: MVar State -> ASSheetId -> R a ()
-installEnv state sid = do
-  newEnvUnformed <- [r|new.env()|]
-  liftIO $ do
-    let newEnv = R.cast R.SEnv newEnvUnformed
-    R.preserveObject newEnv -- preserve across all gc sweeps (for multithreaded access)
-    modifyMVar_' state $ return . (& shell.environments %~ M.insert sid (R.unsexp newEnv))
-    puts state $ "Created new environment for sheet: " ++ T.unpack sid
 
 execR :: R m (R.SomeSEXP m) -> R m EvalResult
 execR ex = do
@@ -213,7 +187,7 @@ castVector origValue vec = do
         let nameStrs = map (\(ValueS s) -> s) listNames
         if (isRGgPlot nameStrs)
           then do
-            uid <- liftIO getUniqueId
+            uid <- liftIO getUUID
             let imageName = uid ++ ".png"
                 savePath = S.images_dir ++ imageName
             [r|ggsave(filename=savePath_hs, plot=origValue_hs)|]

@@ -27,11 +27,13 @@ module AS.Prelude
   , liftIO
   , showConstructor
   , forkIO_
+  , forkProcess'
   , parMapM_
   , parForM_
   , runEitherT_
   , sequenceWith
   , whenLeft
+  , whenJust
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -90,6 +92,9 @@ import qualified Control.Monad.Catch as MC
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Either 
 
+import System.Posix.Types (ProcessID)
+import System.Posix.Process (forkProcess, exitImmediately)
+import System.Exit (ExitCode(..))
 
 -------------------------------------------------------------------------------------------------------------------------
 -- error with locations
@@ -196,7 +201,7 @@ catchAny m f = MC.catch m onExc
         | otherwise = True
 
 -- | a version of handle that never swallows asynchronous exceptions.
-handleAny :: (SomeException -> IO a) -> IO a -> IO a
+handleAny :: (MC.MonadCatch m, MonadIO m) => (SomeException -> m a) -> m a -> m a
 handleAny h f = catchAny f h
 
 -------------------------------------------------------------------------------------------------------------------------
@@ -220,6 +225,11 @@ showConstructor = showConstr . toConstr
 forkIO_ :: IO a -> IO ()
 forkIO_ = void . forkIO . void
 
+-- | Prevents GC stats (& other RTS info) from being printed when the process dies
+forkProcess' :: IO () -> IO ProcessID
+forkProcess' f =  
+  forkProcess $ f >> exitImmediately ExitSuccess
+
 runEitherT_ :: EitherT a IO b -> IO ()
 runEitherT_ = void . runEitherT 
 
@@ -227,10 +237,12 @@ sequenceWith :: (Monad m) => (a -> b) -> [m a] -> m [b]
 sequenceWith f = sequence . map (f <$>)
 
 whenLeft :: (Monad m) => Either a b -> m c -> m ()
-whenLeft x f = when (isLeft x) (void f)
-  where 
-    isLeft (Left _) = True
-    isLeft (Right _) = False
+whenLeft (Right _) _ = return ()
+whenLeft (Left _)  f = void f
+
+whenJust :: (Monad m) => Maybe a -> (a -> m b) -> m ()
+whenJust Nothing  _ = return ()
+whenJust (Just x) f = void $ f x
 
 parMapM_ :: (a -> IO ()) -> [a] -> IO ()
 parMapM_ f xs = mapM_ (forkIO_ . f) xs

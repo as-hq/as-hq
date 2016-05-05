@@ -90,5 +90,5 @@ handleTimeout state timeoutMid =
       Just tid -> putsObj "killed thread: " tid >> killThread tid
       _ -> return ()
     Python.haltMessage timeoutMid
-    R.haltMessage timeoutMid
+    R.haltMessage timeoutMid 
     return $ st & threads %~ (M.delete timeoutMid)
