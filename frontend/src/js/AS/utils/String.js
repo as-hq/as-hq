@@ -101,9 +101,14 @@ const StringUtils = {
   // the usage of this function is temporary, and in the long-run we actually
   // want to be checking for the URL prop
   isLink(text: string): boolean {
-    const urlRegex = '^(?!mailto:)(?:(?:http|https|ftp)://)?(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$';
-    const url = new RegExp(urlRegex, 'i');
-    return text.length < 2083 && url.test(text);
+    return tlds.some(tld => {
+      const idx = text.indexOf(tld);
+      const after = text[idx + tld.length];
+      return (
+        idx > -1 &&
+        (after === '/' || after === undefined)
+      );
+    });
   },
 
   linkHasProtocol(link: string): boolean {
@@ -111,6 +116,15 @@ const StringUtils = {
   },
 
 };
+
+const tlds = [
+  '.com',
+  '.org',
+  '.net',
+  '.edu',
+  '.gov',
+  '.mil',
+];
 
 window.isLink = StringUtils.isLink;
 
