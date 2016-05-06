@@ -377,9 +377,14 @@ pws.whenReady(() => {
       case 'AuthSuccess':
         const {authUserId, defaultSheetId} = action;
         LoginActions.onLoginSuccess(authUserId, defaultSheetId);
-        const host = Constants.getFrontendHost();
-        // Log a login success to slack if it's  not a dev/public, and not master
-        if (host !== 'master.alphasheets.com' && !LoginStore.userIsDev() && !LoginStore.isPublicLogin()) {
+        const host = Constants.getRemoteHost();
+        const isTest = LoginStore.getUserId === 'test_user_id';
+        // Log a login success to slack if it's not a dev/public, and not master
+        if ( host !== 'master.alphasheets.com' 
+          && host !== 'localhost'
+          && !isTest
+          && !LoginStore.userIsDev() 
+          && !LoginStore.isPublicLogin()) {
           const slackMsg = SheetStateStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
           logSlack(slackMsg, '#userlogins');
         }
