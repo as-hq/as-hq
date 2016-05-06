@@ -59,7 +59,7 @@ function GenerateToolbarMenu(ToolbarComponent) {
           if (propSet.secondaryText == null) {
             extraProps.insetChildren = true;
           }
-        } else if (propSet.leftIcon == null) {
+        } else if (propSet.rightIcon == null) {
           extraProps.checked = valueMatch;
           extraProps.insetChildren = !valueMatch;
         } else {

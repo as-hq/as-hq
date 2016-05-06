@@ -57,6 +57,7 @@ data CellPropType =
   | BoldProp | ItalicProp | UnderlineProp
   | VolatileProp
   | TrackingProp
+  | BorderProp
   deriving (Show, Read, Eq, Generic, Ord, Data)
 
 data CellProp =
@@ -74,6 +75,12 @@ data CellProp =
   | Bold | Italic | Underline
   | Volatile
   | Tracking
+  | Border 
+    { borderTop :: Bool
+    , borderBottom :: Bool
+    , borderLeft :: Bool
+    , borderRight :: Bool
+    }
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 type Color = String -- represents hex color
@@ -81,22 +88,23 @@ data HAlignType = LeftAlign | HCenterAlign | RightAlign deriving (Show, Read, Eq
 data VAlignType = TopAlign | VCenterAlign | BottomAlign deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 propType :: CellProp -> CellPropType
-propType (TextColor _) = TextColorProp
-propType (FillColor _) = FillColorProp
-propType (VAlign _) = VAlignProp
-propType (HAlign _) = HAlignProp
-propType (FontSize _) = FontSizeProp
-propType (FontName _) = FontNameProp
-propType (ValueFormat _) = ValueFormatProp
-propType (StreamInfo _) = StreamInfoProp
-propType (ImageData _ _ _ _) = ImageDataProp
-propType (ReadOnly _) = ReadOnlyProp
-propType (URL _) = URLProp
-propType Bold = BoldProp
-propType Italic = ItalicProp
-propType Underline = UnderlineProp
-propType Volatile = VolatileProp
-propType Tracking = TrackingProp
+propType (TextColor _)    = TextColorProp
+propType (FillColor _)    = FillColorProp
+propType (VAlign _)       = VAlignProp
+propType (HAlign _)       = HAlignProp
+propType (FontSize _)     = FontSizeProp
+propType (FontName _)     = FontNameProp
+propType (ValueFormat _)  = ValueFormatProp
+propType (StreamInfo _)   = StreamInfoProp
+propType (ImageData {})   = ImageDataProp
+propType (ReadOnly _)     = ReadOnlyProp
+propType (URL _)          = URLProp
+propType Bold             = BoldProp
+propType Italic           = ItalicProp
+propType Underline        = UnderlineProp
+propType Volatile         = VolatileProp
+propType Tracking         = TrackingProp
+propType (Border {})      = BorderProp
 
 
 data ASCellProps = ASCellProps { underlyingProps :: M.Map CellPropType CellProp , condFormatProps :: M.Map CellPropType CellProp } deriving (Show, Read, Generic)

@@ -5,7 +5,9 @@ import type {
   ASRangeObject
 } from '../types/Eval';
 
+import type { NakedIndex } from '../types/Eval';
 import type { Offset } from '../types/Eval';
+import type { Edge } from '../types/Format';
 
 import type {
   ASClientWindow
@@ -201,5 +203,23 @@ export default class ASRange {
       && tl.row <= other.br.row
       && br.row >= other.tl.row
     );
+  }
+
+  isOnEdge({col, row}: NakedIndex): boolean {
+    return (
+      col === this.tl.col ||
+      col === this.br.col ||
+      row === this.tl.row ||
+      row === this.br.row
+    );
+  }
+
+  getContactedEdges({col, row}: NakedIndex): [Edge] {
+    let edges = [];
+    if (col === this.tl.col) edges.push('left');
+    if (col === this.br.col) edges.push('right');
+    if (row === this.tl.row) edges.push('top');
+    if (row === this.br.row) edges.push('bottom');
+    return edges;
   }
 }

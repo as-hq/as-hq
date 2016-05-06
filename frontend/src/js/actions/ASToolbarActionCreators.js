@@ -1,9 +1,15 @@
 // @flow
 
+import _ from 'lodash';
+
 import Dispatcher from '../Dispatcher';
 import API from './ASApiActionCreators';
 import GridStore from '../stores/ASGridStore';
 
+import ASRange from '../classes/ASRange';
+
+import type { RangeBorderType } from '../types/Format';
+import type { NakedIndex } from '../types/Eval';
 import type {
   FormatType,
   ASCellProp,
@@ -104,4 +110,79 @@ export default {
     const {range} = GridStore.getActiveSelection();
     API.setFormat(format, range);
   },
+
+  setBorder(border: RangeBorderType) {
+    const {range} = GridStore.getActiveSelection();
+    _.range(range.tl.row, range.br.row+1).forEach(row => {
+      _.range(range.tl.col, range.br.col+1).forEach(col => {
+        const prop = getBorderProp(border, range, {row, col});
+        const rng = ASRange.fromNaked({tl: {row,  col}, br: {row, col}});
+        API.setProp(prop, rng);
+      });
+    });
+  },
 };
+
+function getBorderProp(border: RangeBorderType, range: ASRange, idx: NakedIndex) {
+  let borderTop = false, borderBottom = false, borderLeft = false, borderRight = false;
+  if (range.isOnEdge(idx)) {
+    const edges = range.getContactedEdges(idx);
+    edges.forEach(edge => {
+      switch(edge) {
+        case 'top':
+          borderTop = ['Outer', 'Top'].includes(border);
+          borderRight = borderRight || (
+            border === 'Inner' &&
+            ! edges.includes('right')
+          );
+          borderBottom = borderBottom || (
+            border === 'Inner' &&
+            ! edges.includes('bottom')
+          );
+          break;
+        case 'right':
+          borderRight = ['Outer', 'Right'].includes(border);
+          borderBottom = borderBottom || (
+            border === 'Inner' &&
+            ! edges.includes('bottom')
+          );
+          borderLeft = borderLeft || (
+            border === 'Inner' &&
+            ! edges.includes('left')
+          );
+          break;
+        case 'bottom':
+          borderBottom = ['Outer', 'Bottom'].includes(border);
+          borderLeft = borderLeft || (
+            border === 'Inner' &&
+            ! edges.includes('left')
+          );
+          borderTop = borderTop || (
+            border === 'Inner' &&
+            ! edges.includes('top')
+          );
+          break;
+        case 'left':
+          borderLeft = ['Outer', 'Left'].includes(border);
+          borderTop = borderTop || (
+            border === 'Inner' &&
+            ! edges.includes('top')
+          );
+          borderRight = borderRight || (
+            border === 'Inner' &&
+            ! edges.includes('right')
+          )
+          break;
+      }
+    });
+  } else {
+    borderTop = borderBottom = borderLeft = borderRight = (border === 'Inner');
+  }
+  return {
+    tag: 'Border',
+    borderTop,
+    borderBottom,
+    borderLeft,
+    borderRight,
+  };
+}

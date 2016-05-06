@@ -157,6 +157,14 @@ export type Tracking = {
   contents: Array<any>; // should really be forced to make it [], don't know how to do that in flow. (Alex 12/17)
 };
 
+export type Border = {
+  tag: 'Border';
+  borderTop: boolean;
+  borderBottom: boolean;
+  borderLeft: boolean;
+  borderRight: boolean;
+};
+
 export type BooleanCellTag = 'Bold' | 'Italic' | 'Underline' | 'Volatile' | 'Tracking' | 'Strikethrough';
 
 export type Bloomberg = {
@@ -214,7 +222,9 @@ export type ASCellProp =
   | URL
   | Bold | Italic | Underline
   | Volatile
-  | Tracking;
+  | Tracking
+  | Border
+  ;
 
 export type ASValue =
   NoValue

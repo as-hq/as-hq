@@ -222,6 +222,35 @@ const Renderers = {
           }
       }
 
+      // borders
+      if (this.config.borderTop) {
+        gc.beginPath();
+        gc.moveTo(x,y);
+        gc.lineTo(x+width,y);
+        gc.stroke();
+      }
+
+      if (this.config.borderBottom) {
+        gc.beginPath();
+        gc.moveTo(x,y+height);
+        gc.lineTo(x+width,y+height);
+        gc.stroke();
+      }
+
+      if (this.config.borderLeft) {
+        gc.beginPath();
+        gc.moveTo(x,y);
+        gc.lineTo(x,y+height);
+        gc.stroke();
+      }
+
+      if (this.config.borderRight) {
+        gc.beginPath();
+        gc.moveTo(x+width,y);
+        gc.lineTo(x+width,y+height);
+        gc.stroke();
+      }
+
       var iconWidth = 0;
       if (leftIcon) {
           iyoffset = Math.round((height - leftIcon.height) / 2);
@@ -246,6 +275,7 @@ const Renderers = {
   }: HGRendererObject),
 
   getCellRenderer(config: HGRendererConfig): HGRendererObject {
+    resetCachedConfigParams(config);
     const col = config.x + 1;
     const renderer = Renderers.defaultCellRenderer;
     const row = config.y + 1;
@@ -459,6 +489,17 @@ const Renderers = {
 
     }
   },
+};
+
+// Reset config parameters which are not "known" to the hypergrid source.
+// this is necessary because hg has a cache-invalidation function that
+// presumably only invalidates non-AS config properties.
+// #needsrefactor there might be an API method I can override.
+function resetCachedConfigParams(config: HGRendererConfig) {
+  config.borderTop = false;
+  config.borderBottom = false;
+  config.borderLeft = false;
+  config.borderRight = false;
 };
 
 export default Renderers;

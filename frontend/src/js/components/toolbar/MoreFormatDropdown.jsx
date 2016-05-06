@@ -32,7 +32,7 @@ const menuProps: Array<MenuProps> = [
 
 const toolbarControlProps: ToolbarControlProps = {
   tooltip: 'More formats',
-  iconName: 'wb_sunny',
+  iconName: 'menu',
   showTooltip: true,
   includeDropdownArrow: true,
   width: 55,
@@ -41,7 +41,7 @@ const toolbarControlProps: ToolbarControlProps = {
 const ButtonWithMenu = GenerateToolbarMenu(ToolbarButton);
 
 export default class MoreFormatDropdown extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: MoreFormatDropdownProps;
   state: {};
 

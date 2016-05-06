@@ -1,7 +1,7 @@
 // copy-pasted from https://github.com/callemall/material-ui/blob/master/src/DropDownMenu/DropDownMenu.jsx
 // commit da4a685
 
-// Extends material-ui's DropdownMenu in two ways: 
+// Extends material-ui's DropdownMenu in two ways:
 //   - user can specify width of label and popover as a prop
 //   - user can specify secondary text in the menu
 

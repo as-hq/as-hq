@@ -60,6 +60,10 @@ declare class HGRendererConfig {
   wrap: boolean;
   getTextWidth: (gc: GraphicsContext, text: string) => number;
   isLink: boolean;
+  borderTop?: boolean;
+  borderBottom?: boolean;
+  borderLeft?: boolean;
+  borderRight?: boolean;
 }
 
 

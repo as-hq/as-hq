@@ -119,19 +119,14 @@ export default class ASCell {
     return this.props.some(({tag}) => tag === propTag);
   }
 
-  hasPercentProp(): boolean {
-    let cellProps = this._props;
-    let propInd = cellProps.map(({tag}) => tag).indexOf("ValueFormat");
-    if (propInd < 0) {
-      return false;
-    }
-
-    // this is less concise than it could be so that flow has an easier time
-    let format = cellProps[propInd];
-    if (format.tag === "ValueFormat") {
-      return format.valFormat.formatType == "Percentage";
-    }
-    return false;
+  hasFormatType(ftype: string): boolean {
+    return this._props.some(prop => {
+      return (
+        prop.tag === 'ValueFormat' &&
+        prop.valFormat && 
+        prop.valFormat.formatType === ftype
+      );
+    });
   }
 
   isImage(): boolean {
@@ -157,5 +152,5 @@ export default class ASCell {
       return true;
     } else return this._value.tag === 'ValueSerialized';
   }
-  
+
 }

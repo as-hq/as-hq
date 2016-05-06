@@ -91,8 +91,7 @@ const Render = {
   },
 
   propsToRenderConfig(config: HGRendererConfig, props: Array<ASCellProp>) {
-    for (var i=0; i<props.length; i++) {
-      let prop = props[i];
+    props.forEach(prop => {
       switch (prop.tag) {
         case "TextColor":
           config.fgColor = Conversion.colorToHtml(prop.contents);
@@ -138,10 +137,16 @@ const Render = {
         case "Streaming": // obsolete; need to update to StreamInfo
           config.isStreaming = true;
           break;
+        case "Border":
+          config.borderTop = prop.borderTop;
+          config.borderBottom = prop.borderBottom;
+          config.borderLeft = prop.borderLeft;
+          config.borderRight = prop.borderRight;
+          break;
         default:
           break;
       }
-    }
+    });
   },
 
   expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType) {

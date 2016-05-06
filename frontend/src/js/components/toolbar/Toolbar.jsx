@@ -17,6 +17,7 @@ import SheetStateStore from '../../stores/ASSheetStateStore';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
+import BorderDropdown from './BorderDropdown.jsx';
 import FontPicker from './FontPicker.jsx';
 import FontSizePicker from './FontSizePicker.jsx';
 // $FlowFixMe ::ALEX::
@@ -119,7 +120,7 @@ export default class ASToolbar extends React.Component {
         <ToolbarButton
           propTag="Money"
           tooltip="Format as currency"
-          iconName="attach_money"
+          iconName={(cell && cell.hasFormatType('Money')) ? 'money_off' : 'attach_money'}
           onClick={() => ToolbarActionCreators.formatAs('Money')} />
         <ToolbarButton
           propTag="Percentage"
@@ -127,15 +128,17 @@ export default class ASToolbar extends React.Component {
           iconName="create"
           onClick={() => ToolbarActionCreators.formatAs('Percentage')} />
         <ToolbarButton
-          iconName="zoom_out"
-          tooltip="Decrease decimal places"
+          iconName="keyboard_arrow_left"
+          tooltip="Decrease decimal precision"
           onClick={() => {ToolbarActionCreators.handleDecimalChange(-1);}} />
         <ToolbarButton
-          iconName="zoom_in"
-          tooltip="Increase decimal places"
+          iconName="keyboard_arrow_right"
+          tooltip="Increase decimal precision"
           onClick={() => {ToolbarActionCreators.handleDecimalChange(1);}} />
         <MoreFormatDropdown
           visible={activeButton === 'MoreFormat'} />
+        <BorderDropdown
+          visible={activeButton === 'Border'} />
 
         <Separator />
 
