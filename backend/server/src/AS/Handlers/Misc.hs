@@ -100,7 +100,8 @@ handleTogglePauseMode msgctx sid = do
     Just s -> do
       let newSheet = s { inPauseMode = not $ inPauseMode s }
       DB.setSheet conn newSheet
-    Nothing -> return ()
+      sendAction msgctx NoAction
+    Nothing -> sendAction msgctx NoAction
 
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 

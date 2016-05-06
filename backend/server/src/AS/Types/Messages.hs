@@ -119,6 +119,7 @@ data ServerAction =
   | RenameSheet { renameSheetId :: ASSheetId, newSheetName :: SheetName }
   | GetObjectView ASIndex
   | TogglePauseMode ASSheetId
+  | ReEval ASSheetId
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs

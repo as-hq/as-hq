@@ -541,6 +541,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  reEval() {
+    const msg = {
+      tag: "ReEval",
+      contents: SheetStateStore.getCurrentSheetId()
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   setLanguagesInRange(language: ASLanguage, range: ASRange) {
     let action = {
           tag: "SetLanguagesInRange",

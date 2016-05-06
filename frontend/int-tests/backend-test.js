@@ -91,7 +91,9 @@ describe('backend', () => {
     shouldNotHaveProp,
 
     colShouldHaveDimension,
-    colShouldNotHaveDimensionProp
+    colShouldNotHaveDimensionProp,
+    togglePauseMode, 
+    reEval
   } = require('../src/js/browser-test/exec-api');
   const {
     fromToInclusive,
@@ -104,6 +106,7 @@ describe('backend', () => {
   } = require('../src/js/browser-test/exec-monad');
 
   const API = require('../src/js/actions/ASApiActionCreators');
+
 
   beforeAll(() => {
     __injectExpect(expect);
@@ -354,6 +357,22 @@ describe('backend', () => {
           _do([
             python('A1', '1/1/1900'),
             shouldBe('A1', valueD(0)),
+            exec(done)
+          ]);
+        });
+      });
+
+      describe('re-eval', () => {
+        it ('should work after pausing', (done) => {
+          _do([
+            python('A1', '=33'),
+            r('B1', '=A1'),
+            togglePauseMode(),
+            python('A1', '=44'),
+            shouldBe('B1', valueI(33)),
+            togglePauseMode(),
+            reEval(),
+            shouldBe('B1', valueI(44)),
             exec(done)
           ]);
         });

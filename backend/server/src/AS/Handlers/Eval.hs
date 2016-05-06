@@ -1,5 +1,12 @@
 module AS.Handlers.Eval where
 
+import Control.Concurrent
+import Control.Lens hiding ((.=))
+import Control.Monad.Trans.Either
+import Data.Maybe (catMaybes)
+import qualified Data.Map as M
+import qualified Data.Text as T
+
 import AS.Prelude
 import AS.Logging
 import AS.Types.Cell
@@ -12,26 +19,14 @@ import AS.Types.Network
 
 import AS.Dispatch.Core
 import AS.Eval.Core (evaluateHeader)
-
-import qualified AS.Kernels.Python.Client as Python
-import qualified AS.Kernels.R.Client as R
-
+import AS.Parsing.Show (showValue)
 import AS.DB.API
 import AS.DB.Transaction
 import AS.Reply
+import qualified AS.Kernels.Python.Client as Python
+import qualified AS.Kernels.R.Client as R
 
-import AS.Parsing.Show (showValue)
-
-import qualified Data.Map as M
-import qualified Data.Text as T
-
-import Control.Concurrent
-import Control.Lens hiding ((.=))
-import Control.Monad.Trans.Either
-
-import Data.Maybe (catMaybes)
-
-----------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Eval handler
 
 handleEval :: MessageContext -> [EvalInstruction] -> IO ()
@@ -40,7 +35,8 @@ handleEval msgctx evalInstructions  = do
       inds = map evalLoc evalInstructions
       conn = msgctx^.dbConnection
   oldProps <- mapM (getPropsAt conn) inds
-  let cells = map (\(xp, ind, props) -> Cell ind xp NoValue props Nothing Nothing) $ zip3 xps inds oldProps
+  let defCell (xp, ind, props) = Cell ind xp NoValue props Nothing Nothing
+  let cells = map defCell $ zip3 xps inds oldProps
   errOrUpdate <- runDispatchCycle msgctx cells DescendantsWithParent id
   broadcastErrOrUpdate msgctx errOrUpdate
 
@@ -58,8 +54,22 @@ handleEvalHeader msgctx evalHeader = do
               headerResult = HeaderResult valueStr display
           in HandleEvaluatedHeader evalHeader headerResult uid 
 
+--------------------------------------------------------------------------------
+-- Re-evaluation
+
+handleReEval :: MessageContext -> ASSheetId -> IO ()
+handleReEval msgctx sid = do 
+  let conn = msgctx^.dbConnection
+  cells <- getCellsInSheet conn sid
+  errOrUpdate <- runDispatchCycle msgctx cells DescendantsWithParent id
+  broadcastErrOrUpdate msgctx errOrUpdate
+
+--------------------------------------------------------------------------------
+-- Misc
+
 -- The user has said OK to the decoupling
--- We've stored the changed range keys and the last commit, which need to be used to modify DB
+-- We've stored the changed range keys and the last commit, which need to be 
+-- used to modify the DB
 handleDecouple :: MessageContext -> IO ()
 handleDecouple msgctx = do 
   let conn = msgctx^.dbConnection
@@ -76,8 +86,8 @@ handleSetLanguagesInRange msgctx lang rng = do
   let idxs = finiteRangeToIndices rng
       conn = msgctx^.dbConnection
   cells <- catMaybes <$> getCells conn idxs -- disregard cells that are empty
-  let cellsWithLangsChanged = map (cellExpression.language .~ lang) cells
-  errOrUpdate <- runDispatchCycle msgctx cellsWithLangsChanged DescendantsWithParent id
+  let newLangCells = map (cellExpression.language .~ lang) cells
+  errOrUpdate <- runDispatchCycle msgctx newLangCells DescendantsWithParent id
   broadcastErrOrUpdate msgctx errOrUpdate
 
 -- | The user has pressed the "kill" button for an overlong operation;
@@ -92,3 +102,5 @@ handleTimeout state timeoutMid =
     Python.haltMessage timeoutMid
     R.haltMessage timeoutMid 
     return $ st & threads %~ (M.delete timeoutMid)
+
+--------------------------------------------------------------------------------

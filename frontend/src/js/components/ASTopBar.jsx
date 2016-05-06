@@ -259,6 +259,12 @@ export default class ASTopBar extends React.Component {
               }
             }),
             simple({
+              title: 'Re-evaluate',
+              callback() {
+                API.reEval();
+              }
+            }),
+            simple({
               title: paused ? 'Paused evaluations (click to toggle)' : 'Normal evaluations (click to toggle)',
               callback() {
                 SheetActions.togglePauseMode();

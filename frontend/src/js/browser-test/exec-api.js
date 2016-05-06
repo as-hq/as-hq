@@ -200,6 +200,17 @@ export function rEvalHeader(xp: string): Prf {
   return evalHeader(xp, 'R');
 }
 
+export function togglePauseMode(): Prf {
+  return apiExec(() => {
+    API.togglePauseMode();
+  }); 
+}
+
+export function reEval(): Prf {
+  return apiExec(() => {
+    API.reEval();
+  }); 
+}
 
 export function repeat(rng: string, origin: string): Prf {
   return apiExec(() => {

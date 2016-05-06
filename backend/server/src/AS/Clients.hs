@@ -121,6 +121,7 @@ instance Client ASUserClient where
       -- #needsrefactor the object view should be a part of the cell
       GetObjectView idx            -> handleGetObjectView msgctx idx
       TogglePauseMode sid          -> handleTogglePauseMode msgctx sid
+      ReEval sid                   -> handleReEval msgctx sid
       --Undo         -> $error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 
