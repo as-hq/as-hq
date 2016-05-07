@@ -310,6 +310,7 @@ export type ServerAction =
   | GetMySheets
   | UpdateWindow
   | Export
+  | ExportCell
   | Evaluate
   | EvaluateHeader
   | GetObjectView
@@ -335,7 +336,8 @@ export type ServerAction =
   | UpdateCondFormatRules
   | SetBarProp
   | ImportCSV
-  | ImportExcel;
+  | ImportExcel
+  ;
 
 // These are the constructors of ServerAction.
 export type ServerActionType =
@@ -349,6 +351,7 @@ export type ServerActionType =
   | 'GetMySheets'
   | 'UpdateWindow'
   | 'Export'
+  | 'ExportCell'
   | 'Evaluate'
   | 'EvaluateHeader'
   | 'Get'
@@ -372,7 +375,8 @@ export type ServerActionType =
   | 'UpdateCondFormatRules'
   | 'SetBarProp'
   | 'ImportCSV'
-  | 'ImportExcel';
+  | 'ImportExcel'
+  ;
 
 export type Initialize = {
   tag: "Initialize";
@@ -425,6 +429,11 @@ export type UpdateWindow = {
 export type Export = {
   tag: "Export";
   contents: string;
+};
+
+export type ExportCell = {
+  tag: 'ExportCell';
+  contents: ASIndexObject;
 };
 
 export type EvalInstruction = {
@@ -593,6 +602,7 @@ export type ClientAction =
   | AskDecouple
   | AskTimeout
   | SetSheetData
+  | ExportCellData
   | ShowFailureMessage
   | UpdateSheet
   | ClearSheet
@@ -600,7 +610,8 @@ export type ClientAction =
   | AskOpenSheet
   | MakeSelection
   | LoadImportedCells
-  | HandleEvaluatedHeader;
+  | HandleEvaluatedHeader
+  ;
 
 export type NoAction = {
   tag: "NoAction";
@@ -623,6 +634,12 @@ export type SetSheetData = {
   updateSheetId: string;
   update: SheetUpdate;
   headers: Array<EvalHeader>;
+}
+
+export type ExportCellData = {
+  tag: 'ExportCellData';
+  exportedIndex: ASIndexObject;
+  contents: string;
 }
 
 export type ShowFailureMessage = {

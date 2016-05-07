@@ -34,6 +34,7 @@ import qualified Data.ByteString.Char8 as BC
 
 import AS.Reply
 
+import AS.Parsing.Show (showValue)
 import qualified AS.Parsing.Read          as PR
 import qualified AS.Util                  as U
 import qualified AS.Serialize             as S
@@ -73,6 +74,13 @@ handleExport :: MessageContext -> ASSheetId -> IO ()
 handleExport msgctx exportSid = do
   exported <- DX.exportSheetData (msgctx^.dbConnection) exportSid
   WS.sendBinaryData (msgctx^.userClient.userConn) (S.encodeLazy exported)
+
+handleExportCell :: MessageContext -> ASIndex -> IO ()
+handleExportCell msgctx idx = do
+  cell <- DB.getCell (msgctx^.dbConnection) idx
+  whenJust cell $ \c -> 
+    let exp = showValue (c^.cellExpression.language) (CellValue $ c^.cellValue)
+    in sendAction msgctx $ ExportCellData idx exp
 
 -- #RoomForImprovement: Timchu. Right now, any error in EvaluateRequest, or in
 -- pattern matching that that to an EvaluateReply, or in Parsing, or in

@@ -88,6 +88,7 @@ instance Client ASUserClient where
       GetMySheets                 -> handleGetSheets msgctx
       UpdateWindow win            -> handleUpdateWindow msgctx win
       Export sid                  -> handleExport msgctx sid
+      ExportCell idx              -> handleExportCell msgctx idx
       Evaluate xpsAndIndices      -> handleEval msgctx xpsAndIndices
       EvaluateHeader evalHeader   -> handleEvalHeader msgctx evalHeader
       Get locs                    -> handleGet msgctx locs

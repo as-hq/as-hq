@@ -16,6 +16,7 @@ import React from 'react';
 import API from '../actions/ASApiActionCreators';
 import APIActions from '../actions/APIActionCreators';
 import SheetStateStore from '../stores/ASSheetStateStore';
+import GridStore from '../stores/ASGridStore';
 import LogStore from '../stores/ASLoginStore';
 import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
@@ -108,7 +109,6 @@ export default class ASTopBar extends React.Component {
           })
       )]
       : [];
-
 
     return (
       <span>
@@ -213,11 +213,23 @@ export default class ASTopBar extends React.Component {
               },
             }),
 
-            simple({
-              title: 'Save',
-              callback() {
-                API.export(SheetStateStore.getCurrentSheetId());
-              }
+            nested({
+              title: 'Export',
+              menuItems: [
+                simple({
+                  title: 'Save',
+                  callback() {
+                    API.export(SheetStateStore.getCurrentSheetId());
+                  }
+                }),
+                simple({
+                  title: 'Current cell value',
+                  callback() {
+                    const { origin } = GridStore.getActiveSelection();
+                    API.exportCell(origin);
+                  }
+                }),
+              ]
             }),
 
           ]},

@@ -77,6 +77,7 @@ import CellStore from '../stores/ASCellStore';
 import SheetStateStore from '../stores/ASSheetStateStore';
 import ProgressStore from '../stores/ASProgressStore';
 import LoginStore from '../stores/ASLoginStore';
+import GridStore from '../stores/ASGridStore';
 
 import ProgressActions from './ASProgressActionCreators';
 import HeaderActions from './ASHeaderActionCreators';
@@ -361,6 +362,12 @@ pws.whenReady(() => {
           HeaderActions.setOutput(headerValue, headerDisplay);
         }
         break;
+      case 'ExportCellData':
+        const {exportedIndex, contents} = action;
+        const idx = new ASIndex(exportedIndex);
+        const blob = new Blob([contents], {type : 'application/json'});
+        const f = U.File.blobToFile(blob, idx.toExcel().toString() + '_value.txt');
+        U.File.promptSave(f);
       case 'Find':
         // TODO
       /*
@@ -380,10 +387,10 @@ pws.whenReady(() => {
         const host = Constants.getRemoteHost();
         const isTest = LoginStore.getUserId === 'test_user_id';
         // Log a login success to slack if it's not a dev/public, and not master
-        if ( host !== 'master.alphasheets.com' 
+        if ( host !== 'master.alphasheets.com'
           && host !== 'localhost'
           && !isTest
-          && !LoginStore.userIsDev() 
+          && !LoginStore.userIsDev()
           && !LoginStore.isPublicLogin()) {
           const slackMsg = SheetStateStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
           logSlack(slackMsg, '#userlogins');
@@ -489,6 +496,22 @@ const API = {
       contents: sheetId
     };
     API.sendMessageWithAction(msg);
+  },
+
+  exportCell(idx: ASIndex) {
+    if (CellStore.isNonBlankCell(idx)) {
+      const msg = {
+        tag: 'ExportCell',
+        contents: idx.obj(),
+      };
+      API.sendMessageWithAction(msg);
+    } else {
+      NotificationActions.addNotification({
+        title: `No value at ${GridStore.getActiveSelection().origin.toExcel().toString()}`,
+        level: 'warning',
+        autoDismiss: 2,
+      });
+    }
   },
 
   import(file: File) {

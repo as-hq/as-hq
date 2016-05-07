@@ -59,6 +59,7 @@ data ClientAction =
   | AskOpenSheet ASSheetId
   | SetSheetData { updateSheetId :: ASSheetId, update :: SheetUpdate, headers :: [EvalHeader] } -- list of expressions in header
   | SetMySheets { mySheets :: [ASSheet], sharedSheets :: [ASSheet] }
+  | ExportCellData { exportedIndex :: ASIndex, contents :: String }
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
   | ClearSheet ASSheetId
@@ -87,6 +88,7 @@ data ServerAction =
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
   | Export ASSheetId
+  | ExportCell ASIndex
   | Evaluate [EvalInstruction]
   | EvaluateHeader EvalHeader
   | Get [ASIndex]
