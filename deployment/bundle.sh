@@ -133,7 +133,7 @@ echo "backend build finished."
 
 # C++ executable (compile, move executable over to build/graph
 cd backend/graph-database
-make
+g++ -o server server.cpp location.cpp graph.cpp -lzmq -lboost_regex -lpthread -std=c++11 
 
 GRAPH_STATUS=$?
 if [ $GRAPH_STATUS -ne 0 ]; then
