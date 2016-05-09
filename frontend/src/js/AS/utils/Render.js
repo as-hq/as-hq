@@ -4,7 +4,8 @@ import type {
   ExpandingType,
   ValueError,
   ASValue,
-  ASCellProp
+  ASCellProp,
+  RangeKey
 } from '../../types/Eval';
 
 import type {
@@ -147,6 +148,19 @@ const Render = {
           break;
       }
     });
+  },
+
+  possiblyHighlightBorders(config: HGRendererConfig, rkey: RangeKey) {
+    const col = config.x + 1;
+    const row = config.y + 1;
+    const tlCol = rkey.keyIndex.index.col;
+    const tlRow = rkey.keyIndex.index.row;
+    const brCol = tlCol + rkey.keyDimensions.width  - 1;
+    const brRow = tlRow + rkey.keyDimensions.height - 1;
+    config.borderLeft = col === tlCol;
+    config.borderRight = col === brCol;
+    config.borderTop = row === tlRow;
+    config.borderBottom = row === brRow;
   },
 
   expandingTypeToRenderConfig(config: HGRendererConfig, etype: ExpandingType) {

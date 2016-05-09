@@ -30,6 +30,7 @@ export default class ASCell {
   get props(): Array<ASCellProp> { return this._props; }
   get expandingType(): ?ExpandingType { return this._expandingType; }
   get display(): ?string { return this._display; }
+  get rangeKey(): ?RangeKey { return this._rangeKey; }
 
   static emptyCellAt(asIndex?: ASIndex): ASCell {
     let cl = asIndex ||
@@ -74,7 +75,6 @@ export default class ASCell {
       const rd = DescriptorStore.getRangeDescriptor(this._rangeKey);
       if (rd) {
         this._expandingType = rd.expandingType;
-        delete this._rangeKey;
       }
     } else {
       this._expandingType = null;
