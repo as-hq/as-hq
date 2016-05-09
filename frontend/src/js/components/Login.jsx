@@ -121,7 +121,7 @@ class Login extends React.Component {
 
 const properties = {
   googleSignin: {
-    scope: 'https://www.googleapis.com/auth/plus.login',
+    scope: 'https://www.googleapis.com/auth/userinfo.profile',
     width: 250,
     height: 50,
     longtitle: true,
