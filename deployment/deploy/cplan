@@ -1,0 +1,29 @@
+
+Done:
+x Add delay timer to Pipe::select()
+x Other operations to get Pipe() up to date 
+x Modify Pipe() to support commandline detection and support bash shell open
+x Basic structure: Deploy command, Pipe&Shell object, libsendao library
+
+
+Todo (validate):
+- Prompt detection
+- 
+
+Todo (important):
+- Store logfiles (currently just echo'd)
+- Validate commands (echo $?==0)
+- Wrap commands ("[cmd] 2>&1\n")
+- Local testing
+
+
+Todo (deferred):
+- cyclic pipe read buffer
+- Deploy testing
+- Monitor time use during installation via pipeIdle()
+
+
+
+
+
+
