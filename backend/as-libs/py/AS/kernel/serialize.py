@@ -186,4 +186,4 @@ def generalSerialize(val, name):
           'displayName': name}
 
 def isPrimitive(val):
-  return (type(val) in (int, float, bool, str, np.int64, np.float64, np.string_)) or (val is None)
+  return (type(val) in (int, float, bool, str, unicode, np.int64, np.float64, np.string_)) or (val is None)

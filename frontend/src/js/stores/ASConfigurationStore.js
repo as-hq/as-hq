@@ -19,7 +19,7 @@ type State = any;
 
 const StateRecord = Immutable.Record({
   isConnected: true,
-  headerOpen: false,
+  headerOpen: true,
   bottomPane: 'no_pane',
   findBarOpen: false,
   findModalOpen: false,
