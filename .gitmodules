@@ -1,0 +1,3 @@
+[submodule "deployment/deploy/libsendao"]
+	path = deployment/deploy/libsendao
+	url = http://bitbucket.org/Sendao/libsendao
