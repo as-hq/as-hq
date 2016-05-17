@@ -89,7 +89,7 @@ unallowed_builtins = [
 #   'len', 'list',
     'locals',
 #   'long', 'map', 'max', 'min', 'object', 'oct',
-    'open',
+#   'open',
 #   'ord', 'pow', 'property', 'range',
     'raw_input',
 #   'reduce',
@@ -103,9 +103,9 @@ unallowed_builtins = [
 ]
 
 unallowed_imports = [
-   'os',
+   # 'os',
    'sys',
-   'subprocess',
+   # 'subprocess',
    'docker',
    'threading',
    'multiprocessing',
