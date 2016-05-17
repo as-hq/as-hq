@@ -79,6 +79,7 @@ function markOutdated(state: State, update: CellUpdate): State {
   let state_ = state;
   const updater = (view) => {
     view.dirty = true;
+    view.content = "Reloading object view...";
     return view
   };
   ASCell.makeCells(update.newVals).forEach((cell) => {

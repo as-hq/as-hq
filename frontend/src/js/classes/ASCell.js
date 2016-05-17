@@ -143,9 +143,8 @@ export default class ASCell {
 
   isObject(): boolean {
     // Object viewer activates for serialized values and long strings
-    // for Python and R cells
     const lang = this._expression.language;
-    if (lang !== 'Python' && lang !== 'R') {
+    if (lang === 'SQL') {
       return false;
     }
     if (this._value.tag === 'ValueS' && this._value.contents.length > 80) {

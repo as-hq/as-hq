@@ -77,7 +77,7 @@ export default class ASObjectViewerController extends React.Component {
     const loc = GridStore.getActiveSelection().origin;
     const view = ViewStore.getObjectViewAt(loc);
     if (view === null) {
-      return "No object view";
+      return "Loading object view...";
     } else return view;
   }
 

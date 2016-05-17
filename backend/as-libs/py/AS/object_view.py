@@ -10,7 +10,7 @@ from AS.errors import *
 from AS.formats import *
 
 def object_view(o):
-  print(str(o), file=sys.__stdout__)
+  # print(str(o), file=sys.__stdout__)
   if isinstance(o, Hidden):
     return object_view(o.unhide())
   if isinstance(o, dict):

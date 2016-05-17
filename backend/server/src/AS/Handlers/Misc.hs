@@ -57,6 +57,9 @@ import qualified AS.Kernels.R.Client as KR
 
 import qualified Data.Set as S
 
+--------------------------------------------------------------------------------
+-- Object viewer
+
 handleGetObjectView :: MessageContext -> ASIndex -> IO ()
 handleGetObjectView msgctx idx = do 
   state <- readContextualState msgctx 
@@ -67,13 +70,18 @@ handleGetObjectView msgctx idx = do
     Nothing   -> sendAction msgctx $ action "No object view for empty cell"
     Just cell -> do 
       case cell^.cellValue of
+        -- Notice that show does the relevant character escaping
         ValueSerialized s _ -> evalObjectView msgctx cell s
-        ValueS s -> evalObjectView msgctx cell $ "\"" ++ s ++ "\""
+        ValueS s -> evalObjectView msgctx cell $ show s
         _ -> return ()
 
 evalObjectView :: MessageContext -> ASCell -> String -> IO ()
 evalObjectView msgctx cell s = case lang of
-  Excel -> sendAction msgctx $ action "No object view for Excel cells"
+  Excel -> do -- just use Python
+    result <- runEitherT $ KP.evaluate mid sid $ "object_view(" ++ s ++ ")"
+    case (view resultValue) <$> result of
+      Right (CellValue (ValueS s)) -> sendAction msgctx $ action s
+      _ -> return ()
   Python -> do 
     result <- runEitherT $ KP.evaluate mid sid $ "object_view(" ++ s ++ ")"
     case (view resultValue) <$> result of
@@ -91,6 +99,8 @@ evalObjectView msgctx cell s = case lang of
     sid = idx^.locSheetId
     action s = SetObjectView s idx 
     lang = cell^.cellExpression.language
+
+--------------------------------------------------------------------------------
 
 handleTogglePauseMode :: MessageContext -> ASSheetId -> IO ()
 handleTogglePauseMode msgctx sid = do 
