@@ -34,6 +34,7 @@ import GridActions from '../actions/ASGridActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
 import ClipboardActions from '../actions/ASClipboardActionCreators';
+import ShortcutHelperActions from '../actions/ShortcutHelperActionCreators';
 
 import U from './Util';
 
@@ -409,5 +410,9 @@ function installAllShortcuts() {
 
   install('toplevel', 'toggle_header', 'Alt+H', (wildcard: string) => {
     ConfigActions.toggleHeader();
+  });
+
+  install('toplevel', 'toggle_scut_helper', 'Ctrl+/', (wildcard: string) => {
+    ShortcutHelperActions.toggleShortcutHelper();
   });
 }

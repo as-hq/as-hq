@@ -22,6 +22,7 @@ import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
 import SheetActions from '../actions/ASSheetActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
+import ShortcutHelperActions from '../actions/ShortcutHelperActionCreators';
 import Constants from '../Constants';
 
 import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
@@ -294,6 +295,18 @@ export default class ASTopBar extends React.Component {
           ]},
 
           {title: 'Help', menuItems: [
+            simple({
+              title: 'Documentation',
+              callback() {
+                window.open('https://gist.github.com/zgao/3280177206da3cf75ca2f8c616c19c7f')
+              }
+            }),
+            simple({
+              title: 'Keyboard shortcuts',
+              callback() {
+                ShortcutHelperActions.toggleShortcutHelper();
+              }
+            }),
             simple({
               title: 'Submit bug report',
               callback() {
