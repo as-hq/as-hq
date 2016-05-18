@@ -90,6 +90,12 @@ class App extends React.Component {
   }
 
   componentDidMount() {
+
+    // Warn that we only support Chrome right now
+    if (!U.Browser.isChrome()) {
+      alert('Warning: AlphaSheets may not display or function properly on browsers besides Google Chrome.');
+    }
+
     U.React.addStoreLinks(this, [
       { store: ModalStore }
     ]);
