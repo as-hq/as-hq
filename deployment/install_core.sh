@@ -9,7 +9,12 @@ function report_error {
 }
 
 function try {
-	output=$(${@:2} 2>&1)
+	echo Trying $1
+
+	exec 5>&1
+	output=$(${@:2} 2>&1|tee /dev/fd/5)
+	echo $output >> log_$1
+	#echo $output
 	code="$?"
 	if [ ! "$code" = "0" ]; then
 		report_error Process failed: "$1": "$output" exit code: $code
@@ -20,16 +25,12 @@ stage_set=0
 
 function initialize_installer {
 	if [ "$1" = "install" ]; then
-		stage_set=1
+		stage_set=2
 	fi
-	if [ "$1" = "clean" ]; then
-		echo Cleaning install files.
-		rm -f .install_stages install_status
-		exit 0
-	fi
-	if [ $stage_set = 0 ] && [ -f ~/.install_stages ]; then
+	if [ "$stage_set" = "0" ] && [ -f '/root/.install_stages' ]; then
 		STAGES=(`cat ~/.install_stages`)
 		stage_set=2
+		echo Repeating from where previous install left off.
 	else
 		stage_set=1
 		STAGES=()
@@ -71,20 +72,20 @@ function run_install {
 		stage=${STAGES[$((i+1))]}
 		status=${STAGES[$((i+2))]}
 		
-		if [ $status = 1 ]; then
+		if [ "$status" = "1" ]; then
 			echo ===========================  Passing complete stage $stage
+			echo 
 		else
-			echo ===========================  Running $stage at $location
-			if [ ! -d $location ]; then
-				echo ===========================  Creating $location
-				mkdir -p $location
+			if [ ! -e $location ]; then
+				mkdir $location
 			fi 
+			echo ===========================  Running $stage
 			cd $location
 			try $stage $stage
 			echo ===========================  Completed $stage
 			if [ "$errored" = "1" ]; then
 				report_errors
-    			report_errors >> ~/install_status
+	    			report_errors >> ~/.install_status
 				ERRORS=()
 				STAGES[$((i+2))]=2
 			else
@@ -96,6 +97,17 @@ function run_install {
 	done
 	
 	echo Done	
+}
+
+
+## Test examples
+
+function test_core {
+	echo "Hello, world!" > /tmp/testfile
+}
+
+function test_a_error {
+	ls /root/
 }
 
 
