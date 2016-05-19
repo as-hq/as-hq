@@ -130,8 +130,14 @@ infixD = normalD 2
 convertFuncResultToEitherT :: EFuncResult -> EFuncResultEitherT
 convertFuncResultToEitherT = ((hoistEither . ) . )
 
-cellType :: EFuncResult -> FuncDescriptor
-cellType eFuncResult = FuncDescriptor [1] [1] [] [1] (Just 1) (convertFuncResultToEitherT eFuncResult)
+-- | This function descriptors is for functions that want to do error handling
+-- directly; errors in arguments will not automatically result in errors, but 
+-- the function will process the errors. The first argument is the number of 
+-- arguments to the function. Used for ISBLANK, ISERROR, etc.
+
+cellType :: Int -> EFuncResult -> FuncDescriptor
+cellType n = fd . convertFuncResultToEitherT
+  where fd = FuncDescriptor [1..n] [1..n] [] [1..n] (Just n)
 
 -- | Map function names to function descriptors
 functions :: M.Map String FuncDescriptor
@@ -156,16 +162,16 @@ functions =  M.fromList $
     (" "              , FuncDescriptor [1,2] [1,2] [] [] (Just 2) (transform eSpace)), -- don't replace refs
 
     --  Excel information functions
-    ("isblank"        , cellType eIsBlank),
-    ("iserror"        , cellType eIsError), -- efuncresult
-    ("islogical"      , cellType eIsLogical),
-    ("isnumber"       , cellType eIsNumber),
+    ("isblank"        , cellType 1 eIsBlank),
+    ("iserror"        , cellType 1 eIsError), 
+    ("islogical"      , cellType 1 eIsLogical),
+    ("isnumber"       , cellType 1 eIsNumber),
     ("iseven"         , normalD 1 eIsEven),
     ("isodd"          , normalD 1 eIsOdd),
 
     --  Excel logical functions
-    ("iferror"        , FuncDescriptor [1,2] [1,2] [] [1,2] (Just 2) eIfError), -- efuncresult
-    ("if"             , normalD 3 eIf),
+    ("iferror"        , cellType 2 eIfError),
+    ("if"             , cellType 3 eIf),
     ("and"            , vectorD eAnd),
     ("or"             , vectorD eOr),
     ("not"            , normalD 1 eNot),
@@ -475,7 +481,7 @@ arrConstToResult c es = do
 
 -- NOTE: treating index refs as 1x1 matrices for functions like sum that need to know that a value came from a reference
 refToEntity :: Context -> ERef -> ThrowsError EEntity
-refToEntity c (ERef l@(IndexRef i)) = case (asValueToEntity v) of
+refToEntity c (ERef l@(IndexRef i)) = case asValueToEntity v of
     Nothing -> Left $ CannotConvertToExcelValue l
     Just (EntityVal val) -> Right $ EntityMatrix $ EMatrix 1 1 (V.singleton val)
     where
@@ -798,7 +804,7 @@ eIsNumber :: EFuncResult
 eIsNumber = typeVerifier "isnumber" isNumeric False
 
 eIsError :: EFuncResult
-eIsError = typeVerifier "iserror" (const False) True
+eIsError = typeVerifier "iserror" isError True
 
 eIsEven :: EFunc
 eIsEven c e = do
@@ -832,16 +838,21 @@ isNumeric (EntityVal (EValueNum _)) = True
 isNumeric (EntityMatrix (EMatrix 1 1 v)) = isNumeric $ EntityVal $ V.head v
 isNumeric _ = False
 
+isError :: EEntity -> Bool 
+isError (EntityVal (EValueE _)) = True 
+isError (EntityMatrix (EMatrix 1 1 v)) = isError $ EntityVal $ V.head v
+isError _ = False
+
 --------------------------------------------------------------------------------------------------------------
 -- | Excel logical functions
 
 -- | If the first argument is an error (eval or otherwise), return the second
 -- | Eval error will produce a Left, referencing an error cell (eg if A1 is #REF) is a EValueE
-eIfError :: EFuncResultEitherT
-eIfError c r = hoistEither $ do
+eIfError :: EFuncResult
+eIfError c r = do 
   r' <- testNumArgs 2 "iferror" r
   let errRes = r!!1
-  case ($head r') of
+  case $head r' of
     Left e -> errRes
     Right (EntityVal (EValueE _)) -> errRes
     Right (EntityMatrix (EMatrix 1 1 v)) -> case V.head v of 
@@ -849,15 +860,15 @@ eIfError c r = hoistEither $ do
       otherwise -> $head r'
     otherwise -> $head r'
 
-eIf :: EFunc
-eIf c e = do
-  let f = "if"
-  b <- getRequired f 1 e :: ThrowsError Bool
-  v1 <- getRequired f 2 e :: ThrowsError EValue
-  v2 <- getRequired f 3 e :: ThrowsError EValue
-  if b
-    then valToResult v1
-    else valToResult v2
+-- | Standard if function, but shouldn't error if in the 'if' clause, but the
+-- 'else' clause has an error.
+eIf :: EFuncResult
+eIf c r = do
+  r' <- testNumArgs 3 "if" r
+  case r'!!0 of
+    Left e -> Left e
+    Right (EntityVal (EValueB True)) -> r'!!1
+    Right (EntityVal (EValueB False)) -> r'!!2
 
 -- | Returns the logical inverse of its only argument
 eNot :: EFunc

@@ -102,6 +102,8 @@ eValToASValue (EMissing)  = return NoValue
 eValToASValue (EValueE s) = return $ ValueError s ""
 
 toEValue :: Formatted ASValue -> Maybe EValue
+toEValue (Formatted (ValueError msg t) _) = Just $ EValueE msg'
+  where msg' = "Error of type: " ++ t ++ ". Details: " ++ msg
 toEValue (Formatted (ValueS s) _) = Just $ EValueS s
 toEValue (Formatted (ValueB b) _) = Just $ EValueB b
 toEValue (Formatted (ValueD d) f) = Just $ EValueNum $ Formatted (EValueD d) f
