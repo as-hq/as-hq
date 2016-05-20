@@ -32,7 +32,7 @@ const StateRecord = Immutable.Record({
   scrollDisabled: false,
   width: null,
   height: null,
-  gridClipboard: {
+  clipboard: {
     area: null,
     isCut: false,
   },
