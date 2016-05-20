@@ -260,7 +260,7 @@ function focusOnComponent(comp) {
 }
 
 function clipboardRange() {
-  return WorkbookStore.getClipboard().area.range;
+  return GridStore.getClipboard().area.range;
 }
 
 function formatTestCellToStore() {

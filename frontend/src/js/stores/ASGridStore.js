@@ -166,7 +166,7 @@ class GridStore extends ReduceStore<State> {
   }
 
   getClipboard() {
-    return this.getState().clipboard.toJS();
+    return this.getState().clipboard;
   }
 
 }

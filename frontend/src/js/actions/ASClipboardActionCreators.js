@@ -120,7 +120,7 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
   // #incomplete should either be checking if you're from the same sheet, OR support
   // copy/pasting across sheets.
   if (isAlphaSheets) { // From AS
-    const clipboard = WorkbookStore.getClipboard();
+    const clipboard = GridStore.getClipboard();
     const sheetId = WorkbookStore.getCurrentSheetId();
     const toASRange = sel.range;
 
