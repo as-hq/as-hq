@@ -14,7 +14,8 @@ import type {
   ASLanguage,
   ASExpression,
   ASValue,
-  ASSheet,
+  Sheet,
+  Workbook,
   ASCellProp,
   FormatType,
   ValueFormat,
@@ -74,7 +75,7 @@ import ASRange from '../classes/ASRange';
 import ASSelection from '../classes/ASSelection';
 
 import CellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import ProgressStore from '../stores/ASProgressStore';
 import LoginStore from '../stores/ASLoginStore';
 import GridStore from '../stores/ASGridStore';
@@ -85,7 +86,7 @@ import HeaderActions from './ASHeaderActionCreators';
 import ConfigActions from '../actions/ASConfigActionCreators';
 import LoginActions from '../actions/ASLoginActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
-import SheetActions from '../actions/ASSheetActionCreators';
+import WorkbookActions from '../actions/ASWorkbookActionCreators';
 
 const request: any = require('superagent');
 import pws from '../AS/PWSInstance';
@@ -204,13 +205,13 @@ pws.whenReady(() => {
 
   pws.onreconnect = () => {
     ConfigActions.setConnectedState(true);
-    API.openSheet(SheetStateStore.getCurrentSheetId());
+    API.openWorkbook(WorkbookStore.getCurrentWorkbookId());
   };
 
   pws.onmessage = (event: MessageEvent) => {
     if (event.data instanceof Blob) {
       logDebug("Received binary data from server.");
-      let fName = SheetStateStore.getCurrentSheetId() + ".as";
+      let fName = WorkbookStore.getCurrentSheetId() + ".as";
       // #anand event.data typecasts to Blob, because we already checked the instance above
       // and flow doesn't understand that event.data is type DOMString | Blob | ...
       let f = U.File.blobToFile(((event.data: any): Blob), fName);
@@ -250,20 +251,21 @@ pws.whenReady(() => {
       case 'NoAction':
         break;
       case 'SetSheetData':
-        SheetActions.changeSheet(action.updateSheetId);
-        SheetActions.clearSheet(action.updateSheetId);
-        SheetActions.updateSheet(action.update);
-        HeaderActions.resetData(action.headers);
+        WorkbookActions.changeSheet(action.updateSheetId);
+        WorkbookActions.clearSheet(action.updateSheetId);
+        WorkbookActions.updateSheet(action.update);
         break;
       case 'UpdateSheet':
-        SheetActions.updateSheet(action.contents);
+        WorkbookActions.updateSheet(action.contents);
         break;
       case 'ClearSheet':
-        SheetActions.clearSheet(action.contents);
+        WorkbookActions.clearSheet(action.contents);
         break;
-      case 'SetMySheets':
-        const {mySheets, sharedSheets} = action;
-        SheetActions.setMySheets(mySheets, sharedSheets);
+      case 'SetOpenedWorkbook':
+        WorkbookActions.setOpenedWorkbook(action.contents);
+        break;
+      case 'SetMyWorkbooks':
+        WorkbookActions.setMyWorkbooks(action.contents);
         break;
       case 'SetObjectView':
         Dispatcher.dispatch({
@@ -327,21 +329,6 @@ pws.whenReady(() => {
           });
         }
         break;
-      case 'AskOpenSheet':
-        NotificationActions.addNotification({
-          title: 'Open sheet?',
-          position: 'tc',
-          message: 'Would you like to open the sheet just created or imported?',
-          level: 'info',
-          action: {
-            label: 'OK',
-            callback: () => {
-              SheetActions.changeSheet(action.contents);
-              API.openSheet(action.contents);
-            }
-          }
-        });
-        break;
       case 'MakeSelection':
         Dispatcher.dispatch({
           _type: 'GOT_SELECTION',
@@ -350,7 +337,7 @@ pws.whenReady(() => {
         break;
       case 'HandleEvaluatedHeader':
         const {headerValue, headerDisplay} = action.headerResult;
-        const {evalHeaderLang, evalHeaderExpr, evalHeaderSheetId} = action.headerContents;
+        const {evalHeaderLang, evalHeaderExpr} = action.headerContents;
         const {headerEvaluator} = action;
 
         HeaderActions.update(evalHeaderExpr, evalHeaderLang);
@@ -382,17 +369,17 @@ pws.whenReady(() => {
         }); */
         break;
       case 'AuthSuccess':
-        const {authUserId, defaultSheetId} = action;
-        LoginActions.onLoginSuccess(authUserId, defaultSheetId);
-        const host = Constants.getRemoteHost();
+        const {authUserId, openedWorkbook, workbookRefs} = action;
+        LoginActions.onLoginSuccess(authUserId, openedWorkbook, workbookRefs);
+        const host = window.location.hostname;
         const isTest = LoginStore.getUserId === 'test_user_id';
-        // Log a login success to slack if it's not a dev/public, and not master
+        // Log a login success to slack if it's  not a dev/public, and not master
         if ( host !== 'master.alphasheets.com'
           && host !== 'localhost'
           && !isTest
           && !LoginStore.userIsDev()
           && !LoginStore.isPublicLogin()) {
-          const slackMsg = SheetStateStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
+          const slackMsg = WorkbookStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
           logSlack(slackMsg, '#userlogins');
         }
         break;
@@ -556,23 +543,23 @@ const API = {
   },
 
   evaluateHeader(expression: string, language: ASLanguage) {
-    let sid = SheetStateStore.getCurrentSheetId(),
-        msg = {
-          tag: "EvaluateHeader",
-          contents: {
-            tag: "EvalHeader",
-            evalHeaderSheetId: sid,
-            evalHeaderExpr: expression,
-            evalHeaderLang: language
-          }
-        };
+    const wid = WorkbookStore.getCurrentWorkbookId();
+    const msg = {
+      tag: "EvaluateHeader",
+      contents: {
+        tag: "EvalHeader",
+        evalHeaderWorkbookId: wid,
+        evalHeaderExpr: expression,
+        evalHeaderLang: language
+      }
+    };
     API.sendMessageWithAction(msg);
   },
 
   reEval() {
     const msg = {
       tag: "ReEval",
-      contents: SheetStateStore.getCurrentSheetId()
+      contents: WorkbookStore.getCurrentSheetId()
     };
     API.sendMessageWithAction(msg);
   },
@@ -703,7 +690,7 @@ const API = {
   },
 
   setColumnWidth(col: number, width: number) {
-    let sid = SheetStateStore.getCurrentSheetId(),
+    let sid = WorkbookStore.getCurrentSheetId(),
         msg = {
           tag: "SetBarProp",
           contents: [
@@ -716,7 +703,7 @@ const API = {
   },
 
   setRowHeight(row: number, height: number) {
-    let sid = SheetStateStore.getCurrentSheetId(),
+    let sid = WorkbookStore.getCurrentSheetId(),
         msg = {
           tag: "SetBarProp",
           contents: [
@@ -959,7 +946,7 @@ const API = {
   },
 
   clearSheet() {
-    let sid = SheetStateStore.getCurrentSheetId(),
+    let sid = WorkbookStore.getCurrentSheetId(),
         msg: ClearSheetServer = {
           tag: "ClearSheetServer",
           contents: sid
@@ -978,18 +965,34 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  openSheet(mySheetId: string) {
+  openSheet(sheetId: string) {
     const msg = {
       tag: "OpenSheet",
-      contents: mySheetId
+      contents: sheetId
     };
     API.sendMessageWithAction(msg);
   },
 
-  newSheet(sheetName: string) {
+  openWorkbook(workbookId: string) {
+    const msg = {
+      tag: "OpenWorkbook",
+      contents: workbookId
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  newSheet(name: string) {
     const msg = {
       tag: "NewSheet",
-      contents: sheetName
+      contents: name,
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  newWorkbook(name: string) {
+    const msg = {
+      tag: "NewWorkbook",
+      contents: name,
     };
     API.sendMessageWithAction(msg);
   },
@@ -1019,10 +1022,18 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
-  getMySheets() {
+  getOpenedWorkbook() {
     const msg = {
-      tag: "GetMySheets",
-      contents: []
+      tag: "GetOpenedWorkbook",
+      contents: [],
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  getMyWorkbooks() {
+    const msg = {
+      tag: "GetMyWorkbooks",
+      contents: [],
     };
     API.sendMessageWithAction(msg);
   },
@@ -1046,20 +1057,20 @@ const API = {
   },
 
   updateViewingWindow(vWindow: ASRange) {
-    let msg: UpdateWindow = {
-      tag: "UpdateWindow",
-      contents: {
-        window: vWindow.obj().range,
-        sheetId: vWindow.sheetId
-      }
-    };
-    API.sendMessageWithAction(msg);
+    // let msg: UpdateWindow = {
+    //   tag: "UpdateWindow",
+    //   contents: {
+    //     window: vWindow.obj().range,
+    //     sheetId: vWindow.sheetId
+    //   }
+    // };
+    // API.sendMessageWithAction(msg);
   },
 
   togglePauseMode() {
     const msg = {
       tag: "TogglePauseMode",
-      contents: SheetStateStore.getCurrentSheetId()
+      contents: WorkbookStore.getCurrentSheetId()
     };
     API.sendMessageWithAction(msg);
   },

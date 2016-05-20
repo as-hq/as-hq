@@ -17,7 +17,6 @@ import qualified Data.List as L
 import Database.Redis hiding (decode)
 import Data.List
 import Control.Monad
-import Control.Lens hiding (set, index)
 import Control.Monad.Trans.Class
 
 -- | Helper methods for colRangeWithContextToIndices. Used in colRange list interpolation.
@@ -46,16 +45,16 @@ removeEmptyCellsFromEndOfList ls = reverse $ drop (numTrailingEmptyCells ls) $ r
 
 -- TODO: timchu, need the DB lookup at beginning of dispatch to get the context,
 -- This is inefficient. Filters all cells in the sheet and checks if it's in a column.
-lookUpDBCellsByCol :: Connection -> ASSheetId -> Col -> IO [ASCell]
+lookUpDBCellsByCol :: Connection -> SheetID -> Col -> IO [ASCell]
 lookUpDBCellsByCol conn sid column =  do
   allCells <- DB.getCellsInSheet conn sid
   return $ filter (\ind -> (getCellCol ind == column)) allCells
 
 -- filters for the indices in the EvalContext corresponding to a particular column number.
-evalContextCellsByCol :: EvalContext -> ASSheetId -> Col -> [ASCell]
+evalContextCellsByCol :: EvalContext -> SheetID -> Col -> [ASCell]
 evalContextCellsByCol ctx sid column = cellMapCellsByCol (ctx^.virtualCellsMap) sid column
 
-cellMapCellsByCol :: CellMap -> ASSheetId -> Col -> [ASCell]
+cellMapCellsByCol :: CellMap -> SheetID -> Col -> [ASCell]
 cellMapCellsByCol virtualCellsMap sid column = filter isInMyColumn cellsInCtx 
   where
     isInMyColumn c = getCellCol c == column && (c^.cellLocation.locSheetId == sid)
@@ -83,12 +82,12 @@ maxNonBlankRowInListOfLists ll = maximum (map maxNonBlankRow ll)
 --This is only used in minimalBoundingFiniteRange as a way to build finite ranges
 --from the top left coord, the bottom right col, and the bottom left row of the
 --range you want to construct.
-makeFiniteRange' :: ASSheetId -> Coord -> Col -> Row -> ASRange
+makeFiniteRange' :: SheetID -> Coord -> Col -> Row -> ASRange
 makeFiniteRange' sid coord1 col row = makeFiniteRange sid coord1 (makeCoord col row)
 
 -- helper function in colRangeWith(DBAnd)ContextToFiniteRange
 -- Creates the minimal finite range containing [[ASCell]], Coord, and Col
-minimalBoundingFiniteRange :: ASSheetId -> Coord -> Col -> [[ASCell]] -> ASRange
+minimalBoundingFiniteRange :: SheetID -> Coord -> Col -> [[ASCell]] -> ASRange
 minimalBoundingFiniteRange sid tl rCol cellsByCol = 
   let maxRowInCols = maxNonBlankRowInListOfLists cellsByCol
       maxRowNum = max maxRowInCols $ tl^.row

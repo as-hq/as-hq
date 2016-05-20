@@ -1,6 +1,5 @@
 module AS.DB.Graph where
 
-import Control.Lens
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Data.List.NonEmpty as N (fromList)
@@ -29,11 +28,9 @@ import AS.Logging
 
 import qualified AS.DB.API as DB
 import AS.DB.Internal
-import AS.DB.Users (getUserSheets)
+import AS.DB.Users (getOpenedSheets)
 
 import AS.Parsing.References (getDependencies)
-
-import Control.Lens
 
 import Database.Redis (Connection)
 
@@ -45,9 +42,9 @@ import Database.Redis (Connection)
 -- added to the graph.)
 -- Note that a relation is (ASIndex, [ASReference]), where a graph ancestor can be any valid reference type, 
 -- including pointer, range, and index. 
-setCellsAncestors :: Connection -> ASUserId -> [ASCell] -> EitherTExec ()
+setCellsAncestors :: Connection -> UserID -> [ASCell] -> EitherTExec ()
 setCellsAncestors conn uid cells = do
-  sheets <- liftIO $ getUserSheets conn uid
+  sheets <- liftIO $ getOpenedSheets conn uid
   let depSets = map (getAncestorsForCell sheets) cells
       relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
   setRelations relations 
@@ -55,7 +52,7 @@ setCellsAncestors conn uid cells = do
 -- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. 
 -- However, for a non-fat-cell-head coupled cell, we only want to set an edge from it to the $head of the list 
 -- (for checking circular dependencies).
-getAncestorsForCell :: [ASSheet] -> ASCell -> [ASReference]
+getAncestorsForCell :: [Sheet] -> ASCell -> [ASReference]
 getAncestorsForCell sheets c = if not $ isEvaluable c
   then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
   else getDependencies (c^.cellLocation.locSheetId) sheets (c^.cellExpression)
@@ -67,7 +64,7 @@ removeAncestorsAt conn = setCellsAncestors conn "" . blankCellsAt
 
 -- | Should only be called when undoing or redoing commits, which should be guaranteed to not
 -- introduce errors. 
-setCellsAncestorsForce :: Connection -> ASUserId -> [ASCell] -> IO ()
+setCellsAncestorsForce :: Connection -> UserID -> [ASCell] -> IO ()
 setCellsAncestorsForce conn uid cells = runEitherT_ (setCellsAncestors conn uid cells) 
 
 removeAncestorsAtForced :: Connection -> [ASIndex] -> IO ()
@@ -193,7 +190,7 @@ recomputeAllDAGs :: R.Connection -> IO ()
 recomputeAllDAGs conn = do
   sheets <- DB.getAllSheets conn
   forM_ sheets $ \s -> 
-    let src = CommitSource (sheetOwner s) (sheetId s)
+    let src = CommitSource (s^.sheetOwner) (s^.sheetId)
     in recomputeSheetDAG conn src
 
 recomputeSheetDAG :: R.Connection -> CommitSource -> IO ()
@@ -212,7 +209,7 @@ clearAllDAGs :: IO ()
 clearAllDAGs = void . runEitherT $ processWriteRequest ClearAllDAGs
 
 -- #needsrefactor the fact that this is IO () and not EitherTExec () concerns me. 
-clearSheetDAG :: ASSheetId -> IO ()
+clearSheetDAG :: SheetID -> IO ()
 clearSheetDAG sid = void . runEitherT $ processWriteRequest (ClearSheetDAG sid)
 
 -- Takes in a list of (index, [list of ancestors of that cell])'s and sets the ancestor relationship in the graph

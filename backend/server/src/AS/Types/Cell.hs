@@ -27,7 +27,6 @@ import qualified Data.Set as S
 
 import Data.Aeson.Types (Parser)
 import Control.DeepSeq
-import Control.Lens hiding ((.=))
 import Control.Applicative (liftA2)
 import Control.DeepSeq.Generics (genericRnf)
 

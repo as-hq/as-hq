@@ -26,7 +26,9 @@ import AS.Reply
 import qualified AS.Kernels.Python.Client as Python
 import qualified AS.Kernels.R.Client as R
 
---------------------------------------------------------------------------------
+import qualified Data.Map as M
+import qualified Data.Text as T
+
 -- Eval handler
 
 handleEval :: MessageContext -> [EvalInstruction] -> IO ()
@@ -44,9 +46,11 @@ handleEvalHeader :: MessageContext -> EvalHeader -> IO ()
 handleEvalHeader msgctx evalHeader = do
   let mid = msgctx^.messageId
       uid = msgctx^.userClient.userId
-  setEvalHeader (msgctx^.dbConnection) evalHeader
+      conn = msgctx^.dbConnection
+  setEvalHeader conn evalHeader
   result <- runEitherT $ evaluateHeader mid evalHeader
-  broadcastActionTo msgctx [evalHeader^.evalHeaderSheetId] $ case result of 
+  sids <- getWorkbookSheetIds conn $ evalHeader^.evalHeaderWorkbookId 
+  broadcastActionTo msgctx sids $ case result of 
         Left e -> ShowFailureMessage $ generateErrorMessage e
         Right (EvalResult value display) -> 
           let lang = evalHeader^.evalHeaderLang
@@ -57,7 +61,7 @@ handleEvalHeader msgctx evalHeader = do
 --------------------------------------------------------------------------------
 -- Re-evaluation
 
-handleReEval :: MessageContext -> ASSheetId -> IO ()
+handleReEval :: MessageContext -> SheetID -> IO ()
 handleReEval msgctx sid = do 
   let conn = msgctx^.dbConnection
   cells <- getCellsInSheet conn sid

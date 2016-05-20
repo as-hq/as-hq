@@ -56,38 +56,41 @@ data ClientAction =
     NoAction
   | AskDecouple
   | AskTimeout { timeoutMessageId :: MessageId, serverActionType :: String }
-  | AskOpenSheet ASSheetId
-  | SetSheetData { updateSheetId :: ASSheetId, update :: SheetUpdate, headers :: [EvalHeader] } -- list of expressions in header
-  | SetMySheets { mySheets :: [ASSheet], sharedSheets :: [ASSheet] }
   | ExportCellData { exportedIndex :: ASIndex, contents :: String }
+  | SetSheetData { updateSheetId :: SheetID, update :: SheetUpdate } -- list of expressions in header
+  | SetOpenedWorkbook OpenedWorkbook
+  | SetMyWorkbooks [WorkbookRef]
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
-  | ClearSheet ASSheetId
+  | ClearSheet SheetID
   | MakeSelection Selection
-  | HandleEvaluatedHeader { headerContents :: EvalHeader, headerResult :: HeaderResult, headerEvaluator :: ASUserId }
+  | HandleEvaluatedHeader { headerContents :: EvalHeader, headerResult :: HeaderResult, headerEvaluator :: UserID }
   | PassBarToTest Bar
   | PassIsCoupledToTest Bool
   | PassCellsToTest [ASCell]
   | AuthFailure { failureReason :: String }
-  | AuthSuccess { authUserId :: ASUserId, defaultSheetId :: ASSheetId }
+  | AuthSuccess { authUserId :: UserID, openedWorkbook :: OpenedWorkbook, workbookRefs :: [WorkbookRef] }
   | SessionLog { sessionLog :: [LogData] }
   | AllSessions { allSessions :: [SessionData] }
   | SetObjectView { objectView :: String, location :: ASIndex }
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
-    InitializeDaemon { parentUserId :: ASUserId, parentLoc :: ASIndex }
-  | OpenSheet ASSheetId
+    InitializeDaemon { parentUserId :: UserID, parentLoc :: ASIndex }
+  | OpenWorkbook WorkbookID
+  | OpenSheet SheetID
+  | NewWorkbook WorkbookName
   | NewSheet SheetName
-  | CloneSheet ASSheetId
-  | DeleteSheet ASSheetId
+  | CloneSheet SheetID
+  | DeleteSheet SheetID
   -- currently used for sharing sheets.
-  | AcquireSheet ASSheetId 
-  | GetMySheets
-  | UpdateWindow ASWindow
+  | AcquireSheet SheetID 
+  | GetOpenedWorkbook
+  | GetMyWorkbooks
+  -- | UpdateWindow Window
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
-  | Export ASSheetId
+  | Export SheetID
   | ExportCell ASIndex
   | Evaluate [EvalInstruction]
   | EvaluateHeader EvalHeader
@@ -95,7 +98,7 @@ data ServerAction =
   | GetBar BarIndex
   | GetIsCoupled ASIndex
   | Delete ASRange
-  | ClearSheetServer ASSheetId
+  | ClearSheetServer SheetID
   | Undo 
   | Redo 
   | Copy { copyFrom :: ASRange, copyTo :: ASRange }
@@ -112,16 +115,16 @@ data ServerAction =
   | SetBarProp BarIndex BarProp
   | SetLanguagesInRange ASLanguage ASRange
   | ImportCSV { csvIndex :: ASIndex, csvLang :: ASLanguage, csvFileName :: String }
-  | ImportExcel { excelSheetId :: ASSheetId, excelFileName :: String}
+  | ImportExcel { excelSheetId :: SheetID, excelFileName :: String}
   | ChangeDecimalPrecision Int ASRange
   | LogAction String
   | GetSessionLogs LogSource
   | StartDebuggingLog
   | GetAllSessions
-  | RenameSheet { renameSheetId :: ASSheetId, newSheetName :: SheetName }
+  | RenameSheet { renameSheetId :: SheetID, newSheetName :: SheetName }
   | GetObjectView ASIndex
-  | TogglePauseMode ASSheetId
-  | ReEval ASSheetId
+  | TogglePauseMode SheetID
+  | ReEval SheetID
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
@@ -137,10 +140,10 @@ data ServerAction =
 data LogData = LogData {logMsg :: String, isAction :: Bool}
    deriving (Show, Read, Eq, Generic)
 -- These are the keys of logs in the DB (user and session info)
-data LogSource = LogSource {logUserId :: ASUserId, logSessionId :: SessionId}
+data LogSource = LogSource {logUserId :: UserID, logSessionId :: SessionId}
    deriving (Show, Read, Eq, Generic, Data)
 -- Data for a session
-data SessionData = SessionData {seshUserId :: ASUserId, seshId :: SessionId, seshTime :: String} 
+data SessionData = SessionData {seshUserId :: UserID, seshId :: SessionId, seshTime :: String} 
   deriving (Show, Read, Eq, Generic, Data)
 
 

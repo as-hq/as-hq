@@ -1,20 +1,20 @@
 module AS.Types.Logging where
 
-import AS.Prelude
+import Control.Concurrent.Chan 
+import qualified Data.Map as M
 
+import AS.Prelude
 import AS.Types.Network
 import AS.Types.Commits
+import AS.Types.Sheets
 
-import qualified Data.Map as M
-import Control.Concurrent.Chan 
-import Control.Lens
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Logging
 
 data LogSource = 
     MainLog
-  | SheetLog ASSheetId
+  | SheetLog SheetID
   | ErrorLog CommitSource
   | BugLog CommitSource
   | ConsoleLog

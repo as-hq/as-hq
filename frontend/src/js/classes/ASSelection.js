@@ -5,13 +5,9 @@ import type {
   NakedIndex
 } from '../types/Eval';
 
-import type {
-  PayloadSelection
-} from '../types/Messages';
-
 import type { Offset } from '../types/Eval';
 
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 import ASIndex from './ASIndex';
 import ASRange from './ASRange';
@@ -26,7 +22,7 @@ export default class ASSelection {
   get sheetId(): string { return this._sheetId; }
 
   constructor(obj: ASSelectionObject, sheetId?: ?string) {
-    this._sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    this._sheetId = sheetId || WorkbookStore.getCurrentSheetId();
     this._origin = ASIndex.fromNaked(obj.origin, this._sheetId);
     this._range = ASRange.fromNaked(obj.range, this._sheetId);
   }
@@ -43,24 +39,12 @@ export default class ASSelection {
     return ASIndex.fromNaked({ row: 1, col: 1}, sheetId).toSelection();
   }
 
-  static fromPayload(payload: PayloadSelection): ASSelection {
-    const {
-      selectionRange: {range, sheetId},
-      selectionOrigin: {index: origin}
-    } = payload;
-
-    return new ASSelection({
-      range: range,
-      origin: origin
-    }, sheetId);
-  }
-
   static fromASLocations({ origin, range, sheetId }: ({
     origin: ASIndex;
     range: ASRange;
     sheetId?: ?string;
   })): ASSelection {
-    const updSheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    const updSheetId = sheetId || WorkbookStore.getCurrentSheetId();
     return new ASSelection({
       origin: origin.obj().index,
       range: range.obj().range

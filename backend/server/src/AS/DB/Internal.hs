@@ -13,7 +13,6 @@ import AS.Util as U
 import AS.Logging
 import AS.Parsing.Show (showPrimitive)
 
-import Control.Lens
 import Database.Redis hiding (decode, Message)
 
 ----------------------------------------------------------------------------------------------------------------------

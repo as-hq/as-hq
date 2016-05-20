@@ -33,7 +33,7 @@
 // import U from '../../AS/Util';
 // import CellStore from '../../stores/ASCellStore';
 // import GridStore from '../../stores/ASGridStore';
-// import SheetStore from '../../stores/ASSheetStateStore';
+// import WorkbookStore from '../../stores/ASWorkbookStore';
 // import ASButton from '../basic-controls/ASButton.jsx';
 // import ASChart from './ASChart.jsx';
 // import CU from './ChartUtils';
@@ -162,7 +162,7 @@
 //     let hasError = Object.keys(errorMessages).length > 0;
 //     if (valueRange !== null && valueRange !== undefined && !hasError) {
 //       let ctx = this._generateContext();
-//       let sheetId = SheetStore.getCurrentSheetId();
+//       let sheetId = WorkbookStore.getCurrentSheetId();
 //       this.props.onCreate({
 //         id: U.Render.getUniqueId(),
 //         renderElem: (style) =>
@@ -319,7 +319,7 @@
 //               <ASChart
 //                 ref="generatedChart"
 //                 valueRange={valueRange}
-//                 sheetId={SheetStore.getCurrentSheetId()}
+//                 sheetId={WorkbookStore.getCurrentSheetId()}
 //                 chartContext={this._generateContext()}
 //                 chartStyle={{width: "100%", height: "100%"}}
 //                 showLegend={showLegend}

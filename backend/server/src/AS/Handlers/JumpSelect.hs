@@ -17,7 +17,7 @@ module AS.Handlers.JumpSelect where -- (handleJumpSelect) where
 -- import Control.Concurrent
 
 -- -- #incomplete the logic here is actually wrong. Also isn't hooked up to anything on frontend yet. 
--- handleJumpSelect :: ASUserClient -> State -> ASPayload -> IO ()
+-- handleJumpSelect :: UserClient -> State -> ASPayload -> IO ()
 -- handleJumpSelect uc state p@(PayloadJump sel origin shifted dir) = 
 --   let 
 --     (Range sid (tl, br)) = sel

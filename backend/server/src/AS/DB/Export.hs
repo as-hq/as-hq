@@ -1,6 +1,5 @@
 module AS.DB.Export where
 
-import Control.Lens hiding ((.=))
 import Database.Redis
 
 import AS.Config.Settings
@@ -19,7 +18,7 @@ import AS.DB.Transaction as DT
 -------------------------------------------------------------------------------------------------------------------------
 -- This module is for database functions associated with exporting/importing data.
 
-exportSheetData :: Connection -> ASSheetId -> IO ExportData
+exportSheetData :: Connection -> SheetID -> IO ExportData
 exportSheetData conn sid = do
   cells <- DB.getCellsInSheet conn sid
   bars <- DB.getBarsInSheet conn sid
@@ -28,7 +27,7 @@ exportSheetData conn sid = do
   headers <- mapM (DB.getEvalHeader conn sid) headerLangs
   return $ ExportData cells bars descs condFormatRules headers
 
-importSheetData :: Connection -> ASUserId -> ExportData -> IO ()
+importSheetData :: Connection -> UserID -> ExportData -> IO ()
 importSheetData conn uid (ExportData cells bars descs condFormatRules headers) = do
   let sid = view (cellLocation.locSheetId) . $head $ cells
   DC.clearSheet conn sid 

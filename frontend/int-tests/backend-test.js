@@ -92,7 +92,7 @@ describe('backend', () => {
 
     colShouldHaveDimension,
     colShouldNotHaveDimensionProp,
-    togglePauseMode, 
+    togglePauseMode,
     reEval
   } = require('../src/js/browser-test/exec-api');
   const {
@@ -143,8 +143,6 @@ describe('backend', () => {
         init (),
         logP('Opening sheet...'),
         openSheet(),
-        logP('Syncing window...'),
-        syncWindow(),
         logP('Set up environment.'),
         exec(done)
       ]);

@@ -12,7 +12,7 @@ import AS.Types.Commits
 
 import AS.Parsing.Substitutions 
 
-import AS.DB.Users (getUserSheets)
+import AS.DB.Users (getOpenedSheets)
 
 import Database.Redis (Connection)
 
@@ -21,7 +21,7 @@ import Database.Redis (Connection)
 
 -- | Returns the list of dependencies in ASExpression. 
 -- #needsrefactor not all ASReferences are valid references for the graph.
-getDependencies :: ASSheetId -> [ASSheet] -> ASExpression -> [ASReference]
+getDependencies :: SheetID -> [Sheet] -> ASExpression -> [ASReference]
 getDependencies sid sheets = map (convertInvalidRef . exRefToASRef sid sheets) . getExcelReferences
   where 
     convertInvalidRef r = case r of 
@@ -34,8 +34,8 @@ getDependencies sid sheets = map (convertInvalidRef . exRefToASRef sid sheets) .
 
 -- | Turns an Excel reference to an AlphaSheets reference. (first arg is the sheet of the
 -- ref, unless it's a part of the ExRef)
-exRefToASRef :: ASSheetId -> 
-                [ASSheet] ->     -- list of all the user's sheets (used for matching sheet names <=> sheetIDs)
+exRefToASRef :: SheetID -> 
+                [Sheet] ->     -- list of all the user's sheets (used for matching sheet names <=> sheetIDs)
                 ExRef -> 
                 ASReference      -- #needsrefactor should return (Either RefError ASReference)
 exRefToASRef sid sheets exRef = case exRef of
@@ -70,5 +70,5 @@ exRefToASRef sid sheets exRef = case exRef of
         Just sid' -> TemplateRef . SampleExpr n $ Index sid' (exIndexToCoord coord)
 
 -- #TODO (incomplete) does not consider workbookname.
-lookupSheetId :: [ASSheet] -> SheetName -> Maybe WorkbookName -> Maybe ASSheetId
-lookupSheetId sheets sn _ = sheetId <$> find (\s -> sheetName s == sn) sheets
+lookupSheetId :: [Sheet] -> SheetName -> Maybe WorkbookName -> Maybe SheetID
+lookupSheetId sheets sn _ = view sheetId <$> find ((== sn) . view sheetName) sheets

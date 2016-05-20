@@ -4,7 +4,6 @@ import Control.Monad.Trans.Class (lift)
 import qualified Network.WebSockets as WS
 import Database.Redis as R
 import Control.Concurrent
-import Control.Lens hiding ((.=))
 
 import AS.Prelude
 import AS.Types.Cell

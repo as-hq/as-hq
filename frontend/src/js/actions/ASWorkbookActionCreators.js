@@ -10,13 +10,15 @@ import type {
 } from '../types/Updates';
 
 import type {
-  ASSheet
+  Workbook,
+  WorkbookRef,
+  Sheet,
 } from '../types/Eval';
 
 import ASCell from '../classes/ASCell';
 import U from '../AS/Util';
 import ASCondFormatRule from '../classes/ASCondFormatRule';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 export default {
 
@@ -30,7 +32,7 @@ export default {
   updateSheet(update: SheetUpdate) {
     Dispatcher.dispatch({
       _type: 'SHEET_UPDATED',
-      sheetId: SheetStateStore.getCurrentSheetId(),
+      sheetId: WorkbookStore.getCurrentSheetId(),
       update
     });
   },
@@ -49,11 +51,17 @@ export default {
     });
   },
 
-  setMySheets(mySheets: Array<ASSheet>, sharedSheets: Array<ASSheet>) {
+  setOpenedWorkbook(workbook: Workbook) {
     Dispatcher.dispatch({
-      _type: 'GOT_MY_SHEETS',
-      mySheets,
-      sharedSheets
+      _type: 'SET_OPENED_WORKBOOK',
+      workbook,
+    });
+  },
+
+  setMyWorkbooks(workbooks: Array<WorkbookRef>) {
+    Dispatcher.dispatch({
+      _type: 'SET_MY_WORKBOOKS',
+      workbooks,
     });
   },
 

@@ -1,6 +1,10 @@
 /* @flow */
 
 import type {Callback} from '../types/Base';
+import type {
+  Workbook,
+  WorkbookRef,
+} from '../types/Eval';
 
 import API from './ASApiActionCreators';
 import { API_test } from './ASApiActionCreators';
@@ -33,11 +37,12 @@ export default {
     }
   },
 
-  onLoginSuccess(userId: string, sheetId: string) {
+  onLoginSuccess(userId: string, openedWorkbook: Workbook, workbookRefs: Array<WorkbookRef>) {
     Dispatcher.dispatch({
       _type: 'LOGIN_SUCCESS',
       userId,
-      sheetId
+      openedWorkbook,
+      workbookRefs,
     });
   },
 

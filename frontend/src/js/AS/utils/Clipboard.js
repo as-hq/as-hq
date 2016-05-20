@@ -15,7 +15,7 @@ import type {
 import {logDebug} from '../Logger';
 
 import CellStore from '../../stores/ASCellStore';
-import SheetStateStore from '../../stores/ASSheetStateStore';
+import WorkbookStore from '../../stores/ASWorkbookStore';
 
 import Location from './Location';
 import TC from './Conversion';
@@ -29,7 +29,7 @@ const Clipboard = {
 	valsToHtml(vals: Array<Array<string>>, rng: ASRange): string {
 		let table = document.createElement('table');
 		table.setAttribute("id","alphasheets"); // how we indicate the copy originated from within alphasheets
-    table.setAttribute("data-sheet-id", SheetStateStore.getCurrentSheetId());
+    table.setAttribute("data-sheet-id", WorkbookStore.getCurrentSheetId());
     table.setAttribute("data-from-range", JSON.stringify(rng.obj().range)); // stringified NakedRange
 		let tableBody = document.createElement('tbody');
 		vals.forEach((rowVals) => {

@@ -23,7 +23,6 @@ import qualified Data.Text.IO as T
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.ByteString.Char8 as BC
 import Control.Exception
-import Control.Lens hiding ((.=))
 
 import Control.Concurrent.Chan
 
@@ -246,12 +245,12 @@ getRuntimeSettings = catchAny readEnvironment onException
     onException :: SomeException -> IO AppSettings
     onException e = $error $ "decoding Environment failed with error: " ++ show e 
 
-getWhitelistedUsers :: IO [ASUserId]
+getWhitelistedUsers :: IO [UserID]
 getWhitelistedUsers = catchAny getWhitelistedUsers' onException
   where 
     getWhitelistedUsers' = do
       mainDir <- getCurrentDirectory
       whitelist <- T.readFile $ mainDir </> whitelist_path
       return $ T.lines whitelist
-    onException :: SomeException -> IO [ASUserId]
+    onException :: SomeException -> IO [UserID]
     onException e = $error $ "opening whitelist file failed with error: " ++ show e 

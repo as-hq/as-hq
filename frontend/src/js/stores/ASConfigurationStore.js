@@ -80,6 +80,14 @@ class ConfigurationStore extends ReduceStore<State> {
         return state.set('sheetLoading', true);
       }
 
+      case 'API_OPENING_WORKBOOK': {
+        return state.set('sheetLoading', true);
+      }
+
+      case 'CHANGED_SHEET': {
+        return state.set('bottomPane', 'no_pane');
+      }
+
       case 'SHEET_UPDATED': {
         return state.set('sheetLoading', false);
       }

@@ -8,10 +8,7 @@ import Data.List hiding (head)
 import Data.Maybe hiding (fromJust)
 import Data.Ord (comparing)
 import Control.Exception.Base hiding (try)
-import Control.Lens hiding (Context, transform)
 import Control.Monad.Trans.Either
-import Control.Lens hiding ((.=), Context, index, transform)
-import Control.Lens.TH
 import Control.Monad.Trans.Either
 import Control.Applicative
 
@@ -386,7 +383,7 @@ scalarizeRef _ _ x = hoistEither $ snd x
 -- | AST Array Formula Evaluation helpers
 
 -- | Extract all unexpected range references out of a (valid) formula
-getUnexpectedRefs :: ASSheetId -> [ASSheet] -> Formula -> [ERef]
+getUnexpectedRefs :: SheetID -> [Sheet] -> Formula -> [ERef]
 getUnexpectedRefs _ _ (Basic (Var s)) = []
 getUnexpectedRefs _ _ (Basic (Ref e)) = []
 getUnexpectedRefs s sheets (ArrayConst b) = concatMap (getUnexpectedRefs s sheets) $ map Basic (concat b)
@@ -396,7 +393,7 @@ getUnexpectedRefs s sheets (Basic (Fun f fs)) = concatMap (getRangeRefs s sheets
     enum = zip [1..argNumLimit] fs
 
 -- | Helper: Given an argument, return the (possible) underlying range refs
-getRangeRefs :: ASSheetId -> [ASSheet] -> FuncDescriptor -> Arg Formula -> [ERef]
+getRangeRefs :: SheetID -> [Sheet] -> FuncDescriptor -> Arg Formula -> [ERef]
 getRangeRefs s sheets fDes (numArg,(Basic (Ref exIndex)))
   | (elem numArg (mapArgsIfArrayFormula fDes)) = 
       let ref = exRefToASRef s sheets exIndex
@@ -982,7 +979,7 @@ eIndirect c e = do
 justExcelMatch :: Parser ExRef
 justExcelMatch = refMatch <* endOfInput
 
-r1c1 :: ASSheetId -> Parser ASReference
+r1c1 :: SheetID -> Parser ASReference
 r1c1 sid = do 
   word8 _R <|> word8 _r
   row <- AC.decimal
@@ -991,7 +988,7 @@ r1c1 sid = do
   return $ IndexRef $ Index sid (makeCoord (Col col) (Row row))
 
 -- | Given boolean (True = A1, False = R1C1) and string, cast into ASLocation if possible (eg "A$1" -> Index (1,1))
-stringToLoc :: ASSheetId -> [ASSheet] -> Bool -> String -> Maybe ASReference
+stringToLoc :: SheetID -> [Sheet] -> Bool -> String -> Maybe ASReference
 stringToLoc sid sheets True str = case parseOnly justExcelMatch (C.pack str) of 
   Right exRef -> Just $ exRefToASRef sid sheets exRef
   Left _ -> Nothing 

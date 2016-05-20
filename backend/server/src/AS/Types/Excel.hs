@@ -32,8 +32,6 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Text as T
 import Database.Redis (Connection)
-import Control.Lens hiding ((.=), index, Context)
-import Control.Lens.TH
 import Control.Monad.Trans.Either
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -178,7 +176,6 @@ instance ShowExcel ExTemplateExpr where
 
 
 showRefQualifier :: Maybe WorkbookName -> Maybe SheetName -> String
-
 showRefQualifier wb sh = case wb of 
   Just wb' -> case sh of 
     Just sh' -> wb' ++ "!" ++ sh' ++ "!"
@@ -312,7 +309,7 @@ data EEntity =
 --------------------------------------------------------------------------------------------------------------------------------------------
 -- | Excel evaluation types
 
-data Context = Context {evalMap :: CellMap, curLoc :: ASIndex, userSheets :: [ASSheet], dbConn :: Connection}
+data Context = Context {evalMap :: CellMap, curLoc :: ASIndex, userSheets :: [Sheet], dbConn :: Connection}
 
 type ThrowsError = Either EError
 type EResult = ThrowsError EEntity

@@ -30,7 +30,6 @@ import Data.List
 import Data.Maybe (catMaybes)
 import Control.Monad
 import Control.Monad.IO.Class
-import Control.Lens hiding (set)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 

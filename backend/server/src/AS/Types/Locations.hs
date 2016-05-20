@@ -23,10 +23,8 @@ import Data.Hashable
 import Data.SafeCopy
 import Data.Maybe (fromJust)
 
-import Control.Lens hiding ((.=))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
-import Control.Lens hiding ((.=))
 
 -- We want O(n log n) unions for collections of locations and datatypes that depend on them
 -- (e.g. ASCell), so we're making them instances of Ord. 
@@ -107,14 +105,14 @@ type ExtendedRect = (Coord, ExtendedCoord)
 data ASTemplateExpr = SampleExpr { samples :: Int, sampledIndex :: ASIndex}
   deriving (Show, Read, Eq, Ord, Generic, Data)
 
-data ASIndex = Index { _locSheetId :: ASSheetId, _index :: Coord } 
+data ASIndex = Index { _locSheetId :: SheetID, _index :: Coord } 
   deriving (Show, Read, Eq, Generic, Data, Typeable, Ord)
 data ASPointer = Pointer { pointerIndex :: ASIndex } 
   deriving (Show, Read, Eq, Ord, Generic, Data, Typeable)
 -- NORM: All Ranges should be oriented. This is something that a lot of
 -- code relies on. This is guaranteed when ranges are constructed via functions
 -- 'range' and 'colRange' defined below in this file.
-data ASRange = Range {rangeSheetId :: ASSheetId, rect :: ExtendedRect }
+data ASRange = Range {rangeSheetId :: SheetID, rect :: ExtendedRect }
   deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 
 data ASReference = 
@@ -127,7 +125,7 @@ data ASReference =
 
 makeLenses ''ASIndex
 
-refSheetId :: ASReference -> ASSheetId
+refSheetId :: ASReference -> SheetID
 refSheetId (IndexRef i)   = i^.locSheetId
 refSheetId (RangeRef r)   = rangeSheetId r
 refSheetId (PointerRef p) = (view locSheetId) . pointerIndex $ p
@@ -136,7 +134,7 @@ refSheetId (TemplateRef t) = case t of
 
 -- Creates a range from two coordinates. Result guaranteed to be finite.
 -- Requires that coords are oriented.
-makeFiniteRange :: ASSheetId -> Coord -> Coord -> ASRange
+makeFiniteRange :: SheetID -> Coord -> Coord -> ASRange
 makeFiniteRange sid coord1 coord2 = Range sid $ makeFiniteRect coord1 coord2
 
 -- Creates an oriented rectangle from two coordinates.
@@ -151,7 +149,7 @@ makeFiniteRect coord1 coord2 =  (coord1', coord2')
 
 -- Creates a range from two coordinates. Result guaranteed to be a column range.
 -- Automatically orients the colRange properly.
-makeColRange :: ASSheetId -> Coord -> Col -> ASRange
+makeColRange :: SheetID -> Coord -> Col -> ASRange
 makeColRange sid coord1 col2 = Range sid $ makeColRect coord1 col2
 
 makeColRect :: Coord -> Col -> ExtendedRect
@@ -438,7 +436,7 @@ deriveSafeCopy 1 'base ''GeneralRow
 
 data Coord0 = Coord0 { _coordCol0 :: Int, _coordRow0 :: Int }
   deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
-data ASIndex0 = Index0 { _locSheetId0 :: ASSheetId, _index0 :: Coord0 } 
+data ASIndex0 = Index0 { _locSheetId0 :: SheetID, _index0 :: Coord0 } 
   deriving (Show, Read, Eq, Generic, Data, Typeable, Ord)
 deriveSafeCopy 1 'base ''Coord0
 deriveSafeCopy 1 'base ''ASIndex0
@@ -447,7 +445,7 @@ instance Migrate ASIndex where
   type MigrateFrom ASIndex = ASIndex0
   migrate (Index0 sid (Coord0 c r)) = Index sid $ makeCoord (Col c) $ Row r
 
-data ASRange0 = Range0 { _asRangeSid :: ASSheetId, _range :: (Coord0, Coord0) } deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
+data ASRange0 = Range0 { _asRangeSid :: SheetID, _range :: (Coord0, Coord0) } deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 deriveSafeCopy 1 'base ''ASRange0
 deriveSafeCopy 2 'extension ''ASRange
 instance Migrate ASRange where

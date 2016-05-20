@@ -8,7 +8,7 @@ import type {
 } from '../types/Eval';
 
 import Constants from '../Constants';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 import Util from '../AS/Util';
 
@@ -69,7 +69,7 @@ export default class ASIndex {
   }
 
   static fromNaked(naked: NakedIndex, sheetId?: ?string): ASIndex {
-    const sid = sheetId || SheetStateStore.getCurrentSheetId();
+    const sid = sheetId || WorkbookStore.getCurrentSheetId();
     return new ASIndex({
       tag: 'index',
       index: naked,

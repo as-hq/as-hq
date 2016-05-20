@@ -4,7 +4,6 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Aeson as A
 import Control.Monad (when)
-import Control.Lens hiding ((.=))
 
 import AS.Prelude
 import AS.Types.Network 
@@ -35,16 +34,15 @@ import AS.Logging
 
 
 -------------------------------------------------------------------------------------------------------------------------
--- ASUserClient is a client
+-- UserClient is a client
 
 shouldLogMessage :: ServerMessage -> Bool
 shouldLogMessage msg = case msg of 
-  ServerMessage _ (UpdateWindow _)    -> False
   ServerMessage _ (LogAction _)       -> False
   ServerMessage _ (GetSessionLogs _)  -> False
   _ -> True
 
-instance Client ASUserClient where
+instance Client UserClient where
   clientType _ = UserType
   clientConn = view userConn
   sessionId = view userSessionId
@@ -80,13 +78,15 @@ instance Client ASUserClient where
       otherwise -> handleLogMessage msgctx $ A.encode message
     case (serverAction message) of
       -- the following 3 actions take the mutable state rather than ServerState because it updates the uc's window
+      OpenWorkbook wid            -> handleOpenWorkbook msgctx wid
       OpenSheet sid               -> handleOpenSheet msgctx sid
-      NewSheet sheetName          -> handleNewSheet msgctx sheetName
+      NewWorkbook name            -> handleNewWorkbook msgctx name
+      NewSheet name               -> handleNewSheet msgctx name
       CloneSheet sid              -> handleCloneSheet msgctx sid
       AcquireSheet sid            -> handleAcquireSheet msgctx sid
       DeleteSheet sid             -> handleDeleteSheet msgctx sid
-      GetMySheets                 -> handleGetSheets msgctx
-      UpdateWindow win            -> handleUpdateWindow msgctx win
+      GetOpenedWorkbook           -> handleGetOpenedWorkbook msgctx
+      GetMyWorkbooks              -> handleGetMyWorkbooks msgctx
       Export sid                  -> handleExport msgctx sid
       ExportCell idx              -> handleExportCell msgctx idx
       Evaluate xpsAndIndices      -> handleEval msgctx xpsAndIndices

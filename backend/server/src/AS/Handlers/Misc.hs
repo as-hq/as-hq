@@ -10,7 +10,6 @@ import Data.Maybe
 import qualified Network.WebSockets as WS
 import Control.Exception
 import Control.Applicative
-import Control.Lens
 import Control.Monad.Trans.Either
 import Database.Redis (Connection)
 
@@ -18,7 +17,7 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
-import AS.Types.User (ASUserId)
+import AS.Types.User (UserID)
 import AS.Types.DB hiding (Clear)
 import AS.Types.Graph
 import AS.Types.Eval
@@ -100,22 +99,19 @@ evalObjectView msgctx cell s = case lang of
     action s = SetObjectView s idx 
     lang = cell^.cellExpression.language
 
---------------------------------------------------------------------------------
-
-handleTogglePauseMode :: MessageContext -> ASSheetId -> IO ()
+handleTogglePauseMode :: MessageContext -> SheetID -> IO ()
 handleTogglePauseMode msgctx sid = do 
   let conn = msgctx^.dbConnection 
   sheet <- DB.getSheet conn sid 
   case sheet of
     Just s -> do
-      let newSheet = s { inPauseMode = not $ inPauseMode s }
-      DB.setSheet conn newSheet
+      DB.setSheet conn $ s & inPauseMode %~ not
       sendAction msgctx NoAction
     Nothing -> sendAction msgctx NoAction
 
 -- Temporarily not supporting lazy loading. As of 1/14, it is not at all the 
 -- speed bottleneck, but adds a ton of complexity to the UX. 
-handleUpdateWindow :: MessageContext -> ASWindow -> IO ()
+handleUpdateWindow :: MessageContext -> Window -> IO ()
 handleUpdateWindow msgctx w = sendAction msgctx NoAction
 -- handleUpdateWindow cid mstate w = do
   -- state <- readState mstate
@@ -149,7 +145,7 @@ handleIsCoupled msgctx loc = do
   let isCoupled = maybe False (isJust . view cellRangeKey) mCell
   sendAction msgctx $ PassIsCoupledToTest isCoupled
 
-handleClear :: MessageContext -> ASSheetId -> IO ()
+handleClear :: MessageContext -> SheetID -> IO ()
 handleClear msgctx sid = do
   DC.clearSheet (msgctx^.dbConnection) sid
   broadcastActionTo msgctx [sid] $ ClearSheet sid

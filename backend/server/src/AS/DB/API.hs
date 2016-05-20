@@ -2,10 +2,31 @@
 
 module AS.DB.API where
 
+import Control.Arrow((&&&))
+import Data.List (zip4,intercalate,find)
+import Data.List.Split
+import Data.Maybe hiding (fromJust)
+import Data.SafeCopy (SafeCopy)
+import Control.Applicative
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Trans
+import Data.Time
+import Database.Redis hiding (decode)
+import Data.Aeson hiding (Success)
+import Data.Either as DE
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Either
+import qualified Data.Set as Set
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString as B
+
 import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
-import AS.Types.BarProps (BarProp, ASBarProps) 
+import AS.Types.BarProps
 import AS.Types.Messages
 import AS.Types.DB
 import AS.Types.EvalHeader
@@ -17,42 +38,16 @@ import AS.Types.Updates
 import AS.Types.User
 import AS.Types.Window
 import AS.Types.Commits
+import AS.Types.Network as N
 
-import qualified AS.Config.Settings
-import qualified AS.DB.Internal as DI
-import qualified AS.Serialize as S
+import AS.Config.Constants
+import AS.Config.Settings
 import AS.DB.Internal
 import AS.Util as U
 import AS.Logging
-
-import Control.Arrow((&&&))
-
-import Data.List (zip4,intercalate,find)
-import Data.List.Split
-import qualified Data.Map as M
-
-import Data.Maybe hiding (fromJust)
-
-import Data.SafeCopy (SafeCopy)
-
-import Control.Applicative
-import Control.Concurrent
-import Control.Monad
-import Control.Lens hiding (set)
-import Control.Monad.Trans
-import Data.Time
-import Database.Redis hiding (decode)
-
-import qualified Data.Text as T
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.ByteString as B
-import Data.Aeson hiding (Success)
-import Data.ByteString.Unsafe as BU
-import Data.Either as DE
-
--- EitherT
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
+import qualified AS.Config.Settings
+import qualified AS.DB.Internal as DI
+import qualified AS.Serialize as S
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
@@ -82,13 +77,13 @@ deleteLocs = delWithSheetFunc (SheetLocsKey . view locSheetId) IndexKey
 getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
 getPossiblyBlankCell conn loc = $head <$> getPossiblyBlankCells conn [loc]
 
-getCellsInSheet :: Connection -> ASSheetId -> IO [ASCell]
+getCellsInSheet :: Connection -> SheetID -> IO [ASCell]
 getCellsInSheet = getInSheet SheetLocsKey dbValToCell
 
 getAllCells :: Connection -> IO [ASCell]
 getAllCells conn = getCellsByKeyPattern conn "*"
 
-deleteLocsInSheet :: Connection -> ASSheetId -> IO ()
+deleteLocsInSheet :: Connection -> SheetID -> IO ()
 deleteLocsInSheet = delInSheet SheetLocsKey
 
 getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
@@ -123,7 +118,7 @@ getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
 ------------------------------------------------------------------------------------------------------------------------
 -- Range descriptors and keys
 
-getRangeKeysInSheet :: Connection -> ASSheetId -> IO [RangeKey]
+getRangeKeysInSheet :: Connection -> SheetID -> IO [RangeKey]
 getRangeKeysInSheet conn sid = map descriptorKey <$> getRangeDescriptorsInSheet conn sid
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
@@ -144,8 +139,19 @@ deleteDescriptor conn rk = deleteDescriptors conn [rk]
 deleteDescriptors :: Connection -> [RangeKey] -> IO ()
 deleteDescriptors = delWithSheetFunc (SheetRangesKey . rangeKeyToSheetId) RedisRangeKey 
 
-getRangeDescriptorsInSheet :: Connection -> ASSheetId -> IO [RangeDescriptor]
+getRangeDescriptorsInSheet :: Connection -> SheetID -> IO [RangeDescriptor]
 getRangeDescriptorsInSheet = getInSheet SheetRangesKey dbValToRDesc
+
+getRangeDescriptorsInWorkbook :: Connection
+                              -> WorkbookID
+                              -> IO [RangeDescriptor]
+getRangeDescriptorsInWorkbook conn wid = do 
+  wkbook <- getWorkbook conn wid 
+  case wkbook of
+    Nothing  -> return []
+    Just wkb -> do
+      let sids = Set.toList $ wkb^.workbookSheetIds
+      concat <$> mapM (getRangeDescriptorsInSheet conn) sids
 
 -- | Returns the listkeys of all the lists that are entirely contained in the range.  
 fatCellsInRange :: Connection -> ASRange -> IO [RangeKey]
@@ -160,24 +166,24 @@ fatCellsInRange conn rng = do
 ------------------------------------------------------------------------------------------------------------------------
 -- Permissions
 
---canAccessSheet :: Connection -> ASUserId -> ASSheetId -> IO Bool
+--canAccessSheet :: Connection -> UserID -> SheetID -> IO Bool
 --canAccessSheet conn uid sheetId = do
 --  mSheet <- getSheet conn sheetId
 --  maybe (return False) (return . hasPermissions uid . sheetPermissions) mSheet
 
---canAccess :: Connection -> ASUserId -> ASIndex -> IO Bool
+--canAccess :: Connection -> UserID -> ASIndex -> IO Bool
 --canAccess conn uid loc = canAccessSheet conn uid (loc^.locSheetId)
 
---canAccessAll :: Connection -> ASUserId -> [ASIndex] -> IO Bool
+--canAccessAll :: Connection -> UserID -> [ASIndex] -> IO Bool
 --canAccessAll conn uid locs = all id <$> mapM (canAccess conn uid) locs
 
-isPermissibleMessage :: ASUserId -> Connection -> ServerMessage -> IO Bool
+isPermissibleMessage :: UserID -> Connection -> ServerMessage -> IO Bool
 isPermissibleMessage uid conn _ = return True
 -- (ServerMessage _ payload) = case payload of 
 --   PayloadCL cells -> canAccessAll conn uid (mapCellLocation cells)
 --   PayloadLL locs -> canAccessAll conn uid locs
 --   PayloadS sheet -> canAccessSheet conn uid (sheetId sheet)
---   PayloadW window -> canAccessSheet conn uid (windowSheetId window)
+--   PayloadW Window -> canAccessSheet conn uid (windowSheetId window)
 --   PayloadProp _ rng -> canAccessAll conn uid (finiteRangeToIndices rng)
 --   _ -> return True
 -- commenting out 12/28 -- Alex
@@ -185,32 +191,94 @@ isPermissibleMessage uid conn _ = return True
 ------------------------------------------------------------------------------------------------------------------------
 -- Sheets 
 
-getSheet :: Connection -> ASSheetId -> IO (Maybe ASSheet)
+getSheet :: Connection -> SheetID -> IO (Maybe Sheet)
 getSheet conn sid = getV conn (SheetKey sid) dbValToSheet
 
-getAllSheets :: Connection -> IO [ASSheet]
+getAllSheets :: Connection -> IO [Sheet]
 getAllSheets conn = do 
   keys <- getS AllSheetsKey dbValToKey conn
   catMaybes <$> multiGet id dbValToSheet conn keys
 
--- creates a sheet with unique id
-createSheet :: Connection -> ASUserId -> String -> IO ASSheet
+-- | Creates a sheet with unique id
+createSheet :: Connection -> UserID -> String -> IO Sheet
 createSheet conn uid name = do
   sid <- T.pack <$> getUUID
   let sheet = Sheet sid name uid False
   setSheet conn sheet
   return sheet
 
-setSheet :: Connection -> ASSheet -> IO ()
+setSheet :: Connection -> Sheet -> IO ()
 setSheet conn sheet = do 
-  let dbKey = SheetKey $ sheetId sheet
+  let dbKey = SheetKey $ sheet^.sheetId
   setV conn dbKey (SheetValue sheet)
   addS conn AllSheetsKey (KeyValue dbKey)
 
-deleteSheet :: Connection -> ASSheetId -> IO ()
-deleteSheet conn sid = multiDel SheetKey conn [sid]
+deleteSheet :: Connection -> SheetID -> IO ()
+deleteSheet conn sid = do
+  multiDel SheetKey conn [sid]
+  remS conn AllSheetsKey (KeyValue $ SheetKey sid)
 
-------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Workbooks
+
+getWorkbook :: Connection -> WorkbookID -> IO (Maybe Workbook)
+getWorkbook conn wid = getV conn (WorkbookKey wid) dbValToWorkbook
+
+getOpenedWorkbook :: Connection -> WorkbookID -> IO (Maybe OpenedWorkbook)
+getOpenedWorkbook conn wid = do
+  mwb <- getWorkbook conn wid
+  case mwb of 
+    Nothing -> return Nothing
+    Just wb -> do
+      sheets <- catMaybes <$> mapM (getSheet conn) (Set.toList $ wb^.workbookSheetIds)
+      return . Just $ OpenedWorkbook
+        { openedWorkbookId = wb^.workbookId
+        , openedWorkbookName = wb^.workbookName
+        , openedWorkbookOwner = wb^.workbookOwner
+        , openedWorkbookSheets = sheets
+        , openedSheet = wb^.lastOpenSheet
+        }
+
+getWorkbooks :: Connection -> [WorkbookID] -> IO [Maybe Workbook]
+getWorkbooks = multiGet WorkbookKey dbValToWorkbook
+
+getWorkbookSheetIds :: Connection -> WorkbookID -> IO [SheetID]
+getWorkbookSheetIds conn wid = 
+  maybeM (return []) (Set.toList . view workbookSheetIds) (getWorkbook conn wid) 
+
+createWorkbook :: Connection -> UserID -> String -> IO Workbook
+createWorkbook conn uid wname = do 
+  sheet <- createSheet conn uid new_sheet_name
+  let sid = sheet^.sheetId
+  wid <- T.pack <$> getUUID
+  let workbook = Workbook wid wname (Set.singleton sid) uid sid
+  setWorkbook conn workbook
+  return workbook
+
+setWorkbook :: Connection -> Workbook -> IO ()
+setWorkbook conn workbook = do 
+  let dbKey = WorkbookKey $ workbook^.workbookId
+  setV conn dbKey (WorkbookValue workbook)
+  addS conn AllWorkbooksKey (KeyValue dbKey)
+
+getAllWorkbooks :: Connection -> IO [Workbook]
+getAllWorkbooks conn = do 
+  keys <- getS AllWorkbooksKey dbValToKey conn
+  catMaybes <$> multiGet id dbValToWorkbook conn keys
+
+--------------------------------------------------------------------------------
+-- Users
+
+getUser :: Connection -> UserID -> IO (Maybe User)
+getUser conn uid = getV conn (UserKey uid) dbValToUser
+
+setUser :: Connection -> User -> IO ()
+setUser conn user = setV conn (UserKey $ view AS.Types.User.userId $ user) (UserValue user)
+
+deleteUser :: Connection -> UserID -> IO ()
+deleteUser conn uid = delV conn (UserKey uid)
+
+--------------------------------------------------------------------------------
 -- Repeat handlers
 
 storeLastMessage :: Connection -> ServerMessage -> CommitSource -> IO () 
@@ -228,22 +296,22 @@ getLastMessage conn src = $error "Currently not implemented"
 ------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
 
-getCondFormattingRules :: Connection -> ASSheetId ->  [CondFormatRuleId] -> IO [CondFormatRule]
+getCondFormattingRules :: Connection -> SheetID ->  [CondFormatRuleId] -> IO [CondFormatRule]
 getCondFormattingRules conn sid cfids = do
   let keys = map (CFRuleKey sid) cfids
   catMaybes <$> multiGet id dbValToCFRule conn keys
 
-getCondFormattingRulesInSheet :: Connection -> ASSheetId -> IO [CondFormatRule]
+getCondFormattingRulesInSheet :: Connection -> SheetID -> IO [CondFormatRule]
 getCondFormattingRulesInSheet = getInSheet SheetCFRulesKey dbValToCFRule
  
-setCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRule] -> IO ()
+setCondFormattingRules :: Connection -> SheetID -> [CondFormatRule] -> IO ()
 setCondFormattingRules conn sid rules = do 
   let sheetKey = SheetCFRulesKey sid 
   let dbKeys = map (CFRuleKey sid) $ map condFormatRuleId rules
   let dbVals = map CFValue rules
   setWithSheet conn sheetKey dbKeys dbVals
  
-deleteCondFormattingRules :: Connection -> ASSheetId -> [CondFormatRuleId] -> IO ()
+deleteCondFormattingRules :: Connection -> SheetID -> [CondFormatRuleId] -> IO ()
 deleteCondFormattingRules conn sid cfids = do 
   let sheetKey = SheetCFRulesKey sid 
   let dbKeys = map (CFRuleKey sid) cfids 
@@ -258,7 +326,7 @@ getBar conn bInd  = $head <$> getBars conn [bInd]
 getBars :: Connection -> [BarIndex] -> IO [Maybe Bar]
 getBars = multiGet BarKey dbValToBar 
 
-getBarsInSheet :: Connection -> ASSheetId -> IO [Bar]
+getBarsInSheet :: Connection -> SheetID -> IO [Bar]
 getBarsInSheet = getInSheet SheetBarsKey dbValToBar 
  
 setBars :: Connection -> [Bar] -> IO ()
@@ -273,7 +341,7 @@ deleteBarAt conn bInd = deleteBarsAt conn [bInd]
 deleteBarsAt :: Connection -> [BarIndex] -> IO ()
 deleteBarsAt = delWithSheetFunc (SheetBarsKey . barSheetId) BarKey
 
-deleteBarsInSheet :: Connection -> ASSheetId -> IO ()
+deleteBarsInSheet :: Connection -> SheetID -> IO ()
 deleteBarsInSheet = delInSheet SheetBarsKey
 
 replaceBars :: Connection -> [Bar] -> [Bar] -> IO ()
@@ -284,24 +352,31 @@ replaceBars conn fromBars toBars = do
 ------------------------------------------------------------------------------------------------------------------------
 -- Header expressions handlers
 
-getEvalHeader :: Connection -> ASSheetId -> ASLanguage -> IO EvalHeader
-getEvalHeader conn sid lang = do 
-  maybeEH <- getV conn (EvalHeaderKey sid lang) dbValToEvalHeaderBStr
+getEvalHeader :: Connection -> WorkbookID -> ASLanguage -> IO EvalHeader
+getEvalHeader conn wid lang = do 
+  maybeEH <- getV conn (EvalHeaderKey wid lang) dbValToEvalHeaderBStr
   case maybeEH of 
-    Nothing -> return $ EvalHeader sid lang (defaultHeaderText lang)
-    Just msg -> return $ EvalHeader sid lang (BC.unpack msg)
+    Nothing -> return $ EvalHeader wid lang (defaultHeaderText lang)
+    Just msg -> return $ EvalHeader wid lang (BC.unpack msg)
+
+getEvalHeaders :: Connection -> WorkbookID -> IO [EvalHeader]
+getEvalHeaders conn wid = forM headerLangs $ getEvalHeader conn wid
 
 setEvalHeader :: Connection -> EvalHeader -> IO ()
 setEvalHeader conn evalHeader = do
-  let sid  = evalHeader^.evalHeaderSheetId
+  let wid  = evalHeader^.evalHeaderWorkbookId
       lang = evalHeader^.evalHeaderLang
       xp   = evalHeader^.evalHeaderExpr
-  setV conn (EvalHeaderKey sid lang) (HeaderValue (BC.pack xp))
+  setV conn (EvalHeaderKey wid lang) (HeaderValue (BC.pack xp))
+
+deleteEvalHeaders :: Connection -> WorkbookID -> IO ()
+deleteEvalHeaders conn wid = forM_ headerLangs $ \lang -> 
+  delV conn (EvalHeaderKey wid lang)
 
 getAllHeaders :: Connection -> ASLanguage -> IO [EvalHeader]
 getAllHeaders conn lang = do
-  sids <- map sheetId <$> getAllSheets conn
-  mapM (\sid -> getEvalHeader conn sid lang) sids
+  wids <- map (view workbookId) <$> getAllWorkbooks conn
+  mapM (\wid -> getEvalHeader conn wid lang) wids
 ------------------------------------------------------------------------------------------------------------------------
 
 -- Each commit source has a temp commit, used for decouple warnings

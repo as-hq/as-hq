@@ -4,7 +4,8 @@ import Util from './Util';
 
 import type {
   DragCorner,
-  RenderParams
+  RenderParams,
+  ClipboardMode,
 } from '../types/Render';
 
 import type {
@@ -23,7 +24,7 @@ import RenderU from './utils/Render';
 import U from './Util';
 
 let _renderParams : RenderParams = {
-  mode: null, // null mode indicates normal behavior; any other string indicates otherwise
+  clipboardMode: 'disabled',
   deps: [],
   cellWidth: 100, // should be in Constants.js, but it makes things faster to put it here
   selection: null,
@@ -67,8 +68,8 @@ const Renderers = {
   /*************************************************************************************************************************/
   // Other getters and setters
 
-  setMode(mode: ?string) {
-    _renderParams.mode = mode;
+  setClipboardMode(clipboardMode: ClipboardMode) {
+    _renderParams.clipboardMode = clipboardMode;
   },
 
   setSelection(sel: ?ASSelection) {
@@ -313,15 +314,16 @@ const Renderers = {
     // $FlowFixMe THIS IS VALID, FLOW, STOP BITCHING
     let {selection: {range, origin}} = _renderParams;
 
-    let rect = Util.Canvas.drawRect(range, this, gc);
+    const rect = Util.Canvas.drawRect(range, this, gc);
     _renderParams.selectionRect = rect;
 
     // optionally draw copy/cut ants
+    const { clipboardMode } = _renderParams;
     gc.lineWidth = 1;
-    if (_renderParams.mode === null) {
+    if (clipboardMode === 'disabled') {
       gc.strokeStyle = 'blue';
-    } else if ((_renderParams.mode === 'cut' || _renderParams.mode === 'copy') && !!rect) {
-      gc.strokeStyle = _renderParams.mode === 'cut' ? 'red' : 'blue';
+    } else if ((clipboardMode === 'cut' || clipboardMode === 'copy') && !!rect) {
+      gc.strokeStyle = clipboardMode === 'cut' ? 'red' : 'blue';
       gc.stroke();
       gc.rect(rect.origin.x, rect.origin.y, rect.extent.x, rect.extent.y);
       gc.strokeStyle = 'white';

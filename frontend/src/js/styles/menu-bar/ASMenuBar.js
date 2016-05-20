@@ -4,7 +4,7 @@ export default {
   root: {
     width: '100%',
     height: '36px',
-    backgroundColor: '#181818',
+    backgroundColor: '#212121',
     zIndex,
   },
 

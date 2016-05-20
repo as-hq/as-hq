@@ -9,7 +9,6 @@ import qualified Data.Map as M
 import qualified Data.ByteString as B
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Lens hiding ((.=))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import Control.Monad.IO.Class (MonadIO)
@@ -30,11 +29,10 @@ data KernelRequest =
     EvaluateRequest { 
       scope :: EvalScope, 
       evalMessageId :: MessageId, 
-      envSheetId :: ASSheetId, 
+      evalWorkbookId :: WorkbookID, 
       code :: String } 
-  | EvaluateFormatRequest { envSheetId :: ASSheetId, code :: String }
-  | AutocompleteRequest { envSheetId' :: ASSheetId, completeString :: String }
-  | ClearRequest ASSheetId
+  | EvaluateFormatRequest { formatorkbookId :: WorkbookID, code :: String }
+  | ClearRequest WorkbookID
   | HaltMessageRequest MessageId
   | GetStatusRequest MessageId
   deriving (Generic)
@@ -47,7 +45,6 @@ data KernelReply =
   | EvaluateFormatReply { 
       formatValue :: Maybe String, 
       formatError :: Maybe String }
-  | AutocompleteReply -- TODO
   | GenericSuccessReply
   | GenericErrorReply String
   | StillProcessingReply
@@ -60,26 +57,21 @@ instance ToJSON EvalScope
 
 instance ToJSON KernelRequest where
   toJSON msg = case msg of 
-    EvaluateRequest scope mid sid code -> object  
+    EvaluateRequest scope mid wid code -> object  
       [ "type" .= ("evaluate" :: String)
       , "scope" .= scope
       , "message_id" .= mid
-      , "sheet_id" .= sid
+      , "workbook_id" .= wid
       , "code" .= code
       ]
-    EvaluateFormatRequest sid code -> object  
+    EvaluateFormatRequest wid code -> object  
       [ "type" .= ("evaluate_format" :: String)
-      , "sheet_id" .= sid
+      , "workbook_id" .= wid
       , "code" .= code
       ]
-    AutocompleteRequest sid str -> object 
-      [ "type" .= ("autocomplete" :: String)
-      , "sheet_id" .= sid
-      , "complete_str" .= str
-      ]
-    ClearRequest sid -> object 
+    ClearRequest wid -> object 
       [ "type" .= ("clear" :: String)
-      , "sheet_id" .= sid
+      , "workbook_id" .= wid
       ]
     HaltMessageRequest mid -> object 
       [ "type" .= ("halt_message" :: String)
@@ -98,7 +90,6 @@ instance FromJSON KernelReply where
         EvaluateReply <$> v .:? "value" <*> v .:? "error" <*> v .:? "display"
       "evaluate_format" -> 
         EvaluateFormatReply <$> v .:? "value" <*> v .:? "error"
-      "autocomplete" -> return AutocompleteReply -- TODO
       "still_processing" -> return StillProcessingReply
       "generic_success" -> return GenericSuccessReply
       "generic_error" -> GenericErrorReply <$> v .: "error"

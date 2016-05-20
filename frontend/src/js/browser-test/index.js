@@ -56,7 +56,7 @@ import {
 } from './exec-api';
 
 import ASCellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import U from '../AS/Util';
@@ -260,7 +260,7 @@ function focusOnComponent(comp) {
 }
 
 function clipboardRange() {
-  return SheetStateStore.getClipboard().area.range;
+  return WorkbookStore.getClipboard().area.range;
 }
 
 function formatTestCellToStore() {

@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.DB where
 
@@ -11,7 +12,6 @@ import Data.SafeCopy
 import Control.Monad
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
-import Control.Lens hiding (index, context, set)
 import Database.Redis 
 
 import AS.Types.Cell
@@ -33,37 +33,41 @@ import AS.Types.Mutate
 import AS.Serialize as S 
 
 data DBSheetGroupKey = 
-    SheetRangesKey       ASSheetId
-  | SheetTempCommitsKey  ASSheetId  
-  | SheetLastMessagesKey ASSheetId 
-  | SheetLocsKey         ASSheetId
-  | SheetCFRulesKey      ASSheetId 
-  | SheetBarsKey         ASSheetId
+    SheetRangesKey       SheetID
+  | SheetTempCommitsKey  SheetID  
+  | SheetLastMessagesKey SheetID 
+  | SheetLocsKey         SheetID
+  | SheetCFRulesKey      SheetID 
+  | SheetBarsKey         SheetID
   deriving (Generic, Show)
+deriveSafeCopy 1 'base ''DBSheetGroupKey
 
 data DBKey = 
-    SheetKey             ASSheetId             
-  | EvalHeaderKey        ASSheetId  ASLanguage        
+    NullKey -- basically /dev/null for the database, when doing migrations send keys which should be deleted here
+  | SheetKey             SheetID     
+  | WorkbookKey          WorkbookID        
+  | EvalHeaderKey        WorkbookID ASLanguage        
   | TempCommitKey        CommitSource        
   | PushCommitKey        CommitSource        
   | PopCommitKey         CommitSource         
   | LastMessageKey       CommitSource       
   | SheetGroupKey        DBSheetGroupKey
-  | CFRuleKey            ASSheetId CondFormatRuleId
+  | CFRuleKey            SheetID CondFormatRuleId
   | BarKey               BarIndex             
-  | UserKey              ASUserId
+  | UserKey              UserID
   | IndexKey             ASIndex  
-  | WorkbookKey          WorkbookName
   | RedisRangeKey        RangeKey  
   | LogKey               LogSource 
   | AllSheetsKey
+  | AllWorkbooksKey
   deriving (Generic, Show)
+deriveSafeCopy 2 'extension ''DBKey
 
 data DBValue = 
     KeyValue DBKey
-  | UserValue ASUser
-  | SheetValue ASSheet
-  | WorkbookValue ASWorkbook
+  | UserValue User
+  | SheetValue Sheet
+  | WorkbookValue Workbook
   | HeaderValue ByteString
   | CommitValue ASCommit 
   | CellDBValue ASCell 
@@ -74,7 +78,49 @@ data DBValue =
   | RangeDescriptorValue RangeDescriptor 
   | LogValue LogData
   deriving (Generic, Show)
+deriveSafeCopy 1 'base ''DBValue
 
+
+---------------------------------------------------------------------------------------------------------------
+-- DBKey/DBValue migrations
+
+
+data DBKey0 = 
+    SheetKey0             SheetID             
+  | EvalHeaderKey0        SheetID ASLanguage        
+  | TempCommitKey0        CommitSource        
+  | PushCommitKey0        CommitSource        
+  | PopCommitKey0         CommitSource         
+  | LastMessageKey0       CommitSource       
+  | SheetGroupKey0        DBSheetGroupKey
+  | CFRuleKey0            SheetID CondFormatRuleId
+  | BarKey0               BarIndex             
+  | UserKey0              UserID
+  | IndexKey0             ASIndex  
+  | WorkbookKey0          WorkbookName
+  | RedisRangeKey0        RangeKey  
+  | LogKey0               LogSource 
+  | AllSheetsKey0
+  deriving (Generic, Show)
+deriveSafeCopy 1 'base ''DBKey0
+
+instance Migrate DBKey where
+  type MigrateFrom DBKey = DBKey0
+  migrate (SheetKey0 s) = SheetKey s
+  migrate (EvalHeaderKey0 s l) = EvalHeaderKey s l
+  migrate (TempCommitKey0 c) = TempCommitKey c
+  migrate (PushCommitKey0 c) = PushCommitKey c
+  migrate (PopCommitKey0 c) = PopCommitKey c
+  migrate (LastMessageKey0 c) = LastMessageKey c
+  migrate (SheetGroupKey0 g) = SheetGroupKey g
+  migrate (CFRuleKey0 s c) = CFRuleKey s c
+  migrate (BarKey0 b) = BarKey b 
+  migrate (UserKey0 u) = UserKey u
+  migrate (IndexKey0 i) = IndexKey i
+  migrate (WorkbookKey0 _) = NullKey
+  migrate (RedisRangeKey0 r) = RedisRangeKey r
+  migrate (LogKey0 l) = LogKey l
+  migrate AllSheetsKey0 = AllSheetsKey
 
 ---------------------------------------------------------------------------------------------------------------
 -- Exporting
@@ -89,10 +135,10 @@ makeLenses ''ExportData
 deriveSafeCopy 1 'base ''ExportData
 
 -- #incomplete Assumes the export has at least one cell. 
-exportDataSheetId :: ExportData -> ASSheetId
+exportDataSheetId :: ExportData -> SheetID
 exportDataSheetId = (view (cellLocation.locSheetId)) . $head . view exportCells
 
-cloneData :: ASSheetId -> ExportData -> ExportData
+cloneData :: SheetID -> ExportData -> ExportData
 cloneData sid ex = 
     (& exportCells %~ map moveCell)
   . (& exportBars %~ map moveBar)
@@ -110,7 +156,7 @@ cloneData sid ex =
       }
     moveRule r = r {cellLocs = map moveRange (cellLocs r)} 
     moveRange r = r {rangeSheetId = sid}
-    moveHeader = (& evalHeaderSheetId .~ sid)
+    moveHeader = (& evalHeaderWorkbookId .~ sid)
   
 ---------------------------------------------------------------------------------------------------------------
 -- Conversion from DBValue 
@@ -123,7 +169,7 @@ dbValToCell :: DBValue -> Maybe ASCell
 dbValToCell (CellDBValue c) = Just c 
 dbValToCell _ = Nothing
 
-dbValToUser :: DBValue -> Maybe ASUser
+dbValToUser :: DBValue -> Maybe User
 dbValToUser (UserValue u) = Just u 
 dbValToUser _ = Nothing
 
@@ -135,9 +181,13 @@ dbValToRDesc :: DBValue -> Maybe RangeDescriptor
 dbValToRDesc (RangeDescriptorValue rd) = Just rd 
 dbValToRDesc _ = Nothing
 
-dbValToSheet :: DBValue -> Maybe ASSheet 
+dbValToSheet :: DBValue -> Maybe Sheet 
 dbValToSheet (SheetValue s) = Just s 
 dbValToSheet _ = Nothing 
+
+dbValToWorkbook :: DBValue -> Maybe Workbook 
+dbValToWorkbook (WorkbookValue w) = Just w
+dbValToWorkbook _ = Nothing
 
 dbValToBar :: DBValue -> Maybe Bar 
 dbValToBar (BarValue b) = Just b 
@@ -169,7 +219,7 @@ fromBS' conv = mapMaybe (\b -> S.maybeDecode b >>= conv)
 -- Given a function producing a SheetGroupKey from a SheetId, and a value decoder, get all X in a sheet
 -- First gets all of the keys in the set associated with the SheetGroupKey
 -- Then does an mget on those keys to get the associated values in this sheet, and decodes them. 
-getInSheet :: (ASSheetId -> DBSheetGroupKey) -> (DBValue -> Maybe b) -> Connection -> ASSheetId -> IO [b]
+getInSheet :: (SheetID -> DBSheetGroupKey) -> (DBValue -> Maybe b) -> Connection -> SheetID -> IO [b]
 getInSheet toSheetGroupKey fromDBValue conn sid = runRedis conn $ do
   -- get all the dbKeys associated with the sheetGroupKey
   Right dbValKeys <- smembers (S.encode $ SheetGroupKey $ toSheetGroupKey sid)
@@ -226,7 +276,7 @@ delWithSheetFunc toSidKey toKey conn keys = do
 
 -- Delete everything associated with a SheetGroupKey in a given sheet
 -- Get all of the keys in the set associated with the SheetGroupKey and delete them
-delInSheet :: (ASSheetId -> DBSheetGroupKey) -> Connection -> ASSheetId -> IO ()
+delInSheet :: (SheetID -> DBSheetGroupKey) -> Connection -> SheetID -> IO ()
 delInSheet toKey conn sid = runRedis conn $ do  
   let sheetKey = S.encode $ SheetGroupKey $ toKey sid
   Right keyStrings <- smembers sheetKey
@@ -274,6 +324,9 @@ getV conn key fromDBValue = runRedis conn $ do
 setV :: Connection -> DBKey -> DBValue -> IO ()
 setV conn key val = void $ runRedis conn $ set (S.encode key) (S.encode val) 
 
+delV :: Connection -> DBKey -> IO ()
+delV conn key = void $ runRedis conn $ del [S.encode key]
+
 -- Given a key and a value decoder, get all of the values in the set associated with this key
 getS :: DBKey -> (DBValue -> Maybe b) -> Connection -> IO [b]
 getS key fromDBValue conn = runRedis conn $ do 
@@ -284,6 +337,10 @@ getS key fromDBValue conn = runRedis conn $ do
 -- Add a value to a set associated with the key
 addS :: Connection -> DBKey -> DBValue -> IO ()
 addS conn key val = void $ runRedis conn $ sadd (S.encode key) [S.encode val]
+
+-- Remove a value from a set associated with the key
+remS :: Connection -> DBKey -> DBValue -> IO ()
+remS conn key val = void $ runRedis conn $ srem (S.encode key) [S.encode val] 
 
 -- Add a value to the right end of a list at key
 addL :: Connection -> DBKey -> DBValue -> IO ()
@@ -298,11 +355,8 @@ getL conn key fromDBValue = runRedis conn $ do
 ---------------------------------------------------------------------------------------------------------------
 -- Instances 
 
-deriveSafeCopy 1 'base ''DBSheetGroupKey
-deriveSafeCopy 1 'base ''DBValue
-deriveSafeCopy 1 'base ''DBKey
 deriveSafeCopy 1 'base ''CommitSource
-deriveSafeCopy 1 'base ''ASWorkbook
+deriveSafeCopy 1 'base ''Workbook
 
 instance NFData DBSheetGroupKey where rnf = genericRnf
 instance NFData DBKey     where rnf = genericRnf
@@ -313,8 +367,7 @@ instance NFData BarIndex     where rnf = genericRnf
 instance NFData RangeKey     where rnf = genericRnf
 instance NFData BarCoord     where rnf = genericRnf
 instance NFData Dimensions     where rnf = genericRnf
-instance NFData ASWorkbook     where rnf = genericRnf
-instance NFData ASUser     where rnf = genericRnf
+instance NFData User     where rnf = genericRnf
 instance NFData RangeDescriptor      where rnf = genericRnf
 instance NFData ASCell      where rnf = genericRnf
 instance NFData JSONField      where rnf = genericRnf
@@ -348,7 +401,7 @@ instance NFData ASTime      where rnf = genericRnf
 instance NFData CondFormatRule      where rnf = genericRnf
 instance NFData EvalHeader      where rnf = genericRnf
 instance NFData Bloomberg      where rnf = genericRnf
-instance NFData ASWindow      where rnf = genericRnf
+instance NFData Window      where rnf = genericRnf
 instance NFData Selection      where rnf = genericRnf
 instance NFData Mutate where rnf = genericRnf
 instance (NFData a) => NFData (MutateTypeNew a) where rnf = genericRnf

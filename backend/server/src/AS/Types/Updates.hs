@@ -12,8 +12,6 @@ import Data.Map (Map)
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.SafeCopy
-import Control.Lens
-import Control.Lens.TH
 
 class HasKey a where 
   type KeyType a :: * -- #expert how to ensure this is an Eq

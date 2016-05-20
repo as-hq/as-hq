@@ -1,9 +1,9 @@
 module DB where
 
+import AS.Prelude
+
 import Control.Exception
-import Control.Monad
 import Database.Redis
-import Data.Maybe
 import Data.ByteString (ByteString)
 
 import Types (MigrateError(..))

@@ -10,7 +10,7 @@ import Dispatcher from '../Dispatcher';
 import GridStore from '../stores/ASGridStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import HeaderStore from '../stores/ASHeaderStore';
-import SheetStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 let lastEval = 0;
 let lastHeaderEval = 0;
@@ -32,11 +32,11 @@ export default {
     }
   },
 
-  evaluateActiveHeader() { 
+  evaluateActiveHeader() {
     const curTime = new Date().getTime();
     if (curTime - lastHeaderEval >= Constants.EVAL_RATE_LIMIT) {
-      lastHeaderEval = curTime; 
-      
+      lastHeaderEval = curTime;
+
       NotificationActions.addNotification({
         title: 'Evaluated!',
         level: 'success',
@@ -50,7 +50,7 @@ export default {
 
   // Used to open sheets that the user owns.
   openSheet(mySheetId?: string) {
-    const sheetId = mySheetId || SheetStore.getCurrentSheetId();
+    const sheetId = mySheetId || WorkbookStore.getCurrentSheetId();
     Dispatcher.dispatch({
       _type: 'API_OPENING_SHEET',
       sheetId
@@ -58,7 +58,16 @@ export default {
     API.openSheet(sheetId);
   },
 
-  // Used to open sheets that the user has received a link to. 
+  openWorkbook(myWorkbookId?: string) {
+    const workbookId = myWorkbookId || WorkbookStore.getCurrentWorkbookId();
+    Dispatcher.dispatch({
+      _type: 'API_OPENING_WORKBOOK',
+      workbookId
+    });
+    API.openWorkbook(workbookId);
+  },
+
+  // Used to open sheets that the user has received a link to.
   acquireSheet(sheetId: string) {
     Dispatcher.dispatch({
       _type: 'API_OPENING_SHEET',

@@ -1,7 +1,6 @@
 module AS.Kernels.Excel.Eval where
 
 import Data.List (transpose)
-import Control.Lens hiding (Context)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Database.Redis (Connection)
@@ -20,7 +19,7 @@ import AS.Kernels.Excel.Compiler as C
 import AS.Kernels.Excel.Lib as L
 import AS.Kernels.Excel.Util as U
 
-import AS.DB.Users (getUserSheets)
+import AS.DB.Users (getOpenedSheets)
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError
@@ -55,9 +54,9 @@ evalExcel s context = do
 
 -- | Entire Excel eval; parse, evaluate, cast to ASValue
 -- Excel doesn't have print statements, so the display value of EvalResult is always Nothing
-evaluate :: Connection -> ASUserId -> String -> ASIndex -> CellMap -> IO (Formatted EvalResult)
+evaluate :: Connection -> UserID -> String -> ASIndex -> CellMap -> IO (Formatted EvalResult)
 evaluate conn uid s idx mp =  do
-  sheets <- getUserSheets conn uid
+  sheets <- getOpenedSheets conn uid
   let context = Context mp idx sheets conn
   eResult <- runEitherT $ evalExcel s context
   let val = convertEither context eResult

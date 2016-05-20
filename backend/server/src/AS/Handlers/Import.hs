@@ -21,6 +21,7 @@ import Data.Either
 
 --  Used to custom parse json obtained from importing an xls file.
 import AS.Handlers.Misc (handleClear)
+import AS.Handlers.Sheets (handleOpenSheet)
 import AS.Parsing.Read
 import AS.Parsing.Common as C
 import AS.Types.Graph (read2)
@@ -49,7 +50,6 @@ import qualified Network.WebSockets as WS
 
 import qualified AS.DB.Transaction as DT 
 
-import Control.Lens hiding ((.=), (.>))
 import Control.Monad (void)
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class (lift)
@@ -59,18 +59,9 @@ import Control.Monad.Trans.Class (lift)
 -- so we just send alphasheets files as binary data over websockets and immediately load
 -- into the current sheet.
 handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
-handleImportBinary c mstate bin = do
-  state <- readState mstate
-  case (S.decodeLazy bin :: Either String ExportData) of
-    Left s -> sendMessage (clientConn c) $
-      ClientMessage import_message_id . ShowFailureMessage $ 
-        "could not process binary file, decode error: " ++ s
-    Right exportedData -> do
-      DX.importSheetData (state^.dbConn) (ownerName c) exportedData
-      sendMessage (clientConn c) $
-        ClientMessage import_message_id $ AskOpenSheet $ exportDataSheetId exportedData
+handleImportBinary c mstate bin = $undefined
 
-handleExport :: MessageContext -> ASSheetId -> IO ()
+handleExport :: MessageContext -> SheetID -> IO ()
 handleExport msgctx exportSid = do
   exported <- DX.exportSheetData (msgctx^.dbConnection) exportSid
   WS.sendBinaryData (msgctx^.userClient.userConn) (S.encodeLazy exported)
@@ -87,7 +78,7 @@ handleExportCell msgctx idx = do
 -- extracting Excel Cells from the jsonBlob, will give an undescriptive
 -- Left parseError. That is the extent of error handling in evaluateExcelSheet.
 -- Timchu, 2/15/16.
-evaluateExcelSheet :: MessageId -> ASSheetId -> EvalCode -> EitherTExec [ASCell]
+evaluateExcelSheet :: MessageId -> SheetID -> EvalCode -> EitherTExec [ASCell]
 evaluateExcelSheet mid sid code = do
   (KT.EvaluateReply val err disp) <- KP.runRequest $ KT.EvaluateRequest KT.Cell mid sid code
   let maybeCells = do
@@ -104,7 +95,7 @@ excelImportFuncString = "readSheet"
 -- Note: timchu. I don't really like how Handlers have more than just broadcast
 -- and one function. This makes me not able to reuse the functionality of
 -- HandleClear without broadcasting the result.
-handleExcelImport :: MessageContext -> ASSheetId -> String -> IO ()
+handleExcelImport :: MessageContext -> SheetID -> String -> IO ()
 handleExcelImport msgctx sid fileName = do
   let code = excelImportFuncString ++ "('" ++ fileName ++ "')"
       conn = msgctx^.dbConnection
@@ -120,7 +111,7 @@ handleExcelImport msgctx sid fileName = do
   broadcastErrOrUpdate msgctx update
 
 -- used for importing arbitrary files 
--- handleImport :: ASUserClient -> State -> ASPayload -> IO ()
+-- handleImport :: UserClient -> State -> ASPayload -> IO ()
 -- handleImport uc state msg = return () -- TODO
 
 -- Simply update the DB with the CSV data, and do a "trivial" parsing eval. No propagation/dispatch for an initial import.
@@ -182,9 +173,9 @@ csvValue lang s = case PR.parseValue lang (BC.pack s) of
 
 -- *******
 
--- input: ASSheetId, string of form "(1,4)"
+-- input: SheetID, string of form "(1,4)"
 -- output: ASIndex sid (Coord 1 4)
-stringToInd :: ASSheetId -> String -> ASIndex
+stringToInd :: SheetID -> String -> ASIndex
 stringToInd sid s = Index sid (read2 s :: Coord)
 
 stringToVal :: String -> ASValue
@@ -202,7 +193,7 @@ specToCell ind xp val = Cell ind xp val CP.emptyProps Nothing Nothing
 -- into an ASCell. Used in extractExcelCells.
 -- TODO(tim): There is very little type safety in the current implementation.
 -- That means this function should be entirely obscured from the user.
-cellJsToCell :: ASSheetId -> JSON -> Maybe ASCell
+cellJsToCell :: SheetID -> JSON -> Maybe ASCell
 cellJsToCell sid js = do
   let coordKey = "location"
       xpKey    = "formula"
@@ -218,7 +209,7 @@ cellJsToCell sid js = do
 -- >>  "{'cells': [{'formula': '=A1+1', 'location': '(1, 1)', 'value': '1'}]}"
 -- into Maybe ASCells, where the result is Nothing iff extractNestedListItems
 -- fails.
-extractExcelCells :: ASSheetId -> JSON -> Maybe [ASCell]
+extractExcelCells :: SheetID -> JSON -> Maybe [ASCell]
 extractExcelCells sid js = do
   let key = "cells"
   cellJsList <- extractNestedListItems js key

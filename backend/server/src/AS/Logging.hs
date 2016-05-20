@@ -1,15 +1,17 @@
-module AS.Logging 
-  ( puts
-  , putsObj
-  , putsError
-  , putsBugReport
-  , putsSheet
-  , putsConsole
-  , runLogger
-  , closeLog
-  , getTime
-  , whenLogging
-  ) where
+module AS.Logging where
+
+import System.Directory
+import Data.Aeson
+import Control.Monad.Trans.Class (lift)
+import Data.Time.Clock (getCurrentTime)
+import Control.Exception (catch, SomeException)
+import Control.Monad (when, void)
+import Control.Monad.State
+import Control.Concurrent
+import Control.Concurrent.Chan
+import qualified Data.Map as M
+import qualified Data.Text as T
+import qualified Network.Wreq as Wreq
 
 import AS.Prelude
 import AS.Types.Eval
@@ -17,22 +19,6 @@ import AS.Types.Commits
 import AS.Types.Graph
 import AS.Types.Logging
 import AS.Config.Settings as S
-
-import System.Directory
-import qualified Data.Map as M
-import qualified Data.Text as T
-import Data.Aeson
-import Control.Monad.Trans.Class (lift)
-import Data.Time.Clock (getCurrentTime)
-import Control.Exception (catch, SomeException)
-import Control.Monad (when, void)
-import Control.Lens hiding ((.=))
-
-import Control.Monad.State
-import Control.Concurrent
-import Control.Concurrent.Chan
-
-import qualified Network.Wreq as Wreq
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed API
@@ -70,7 +56,7 @@ putsBugReport src x = liftIO $ whenLogging $ do
   sendToLogger $ Log (BugLog src) x
 
 -- | Writes to the console and sheet logfile with a timestamp. 
-putsSheet :: (MonadIO m) => ASSheetId -> String -> m ()
+putsSheet :: (MonadIO m) => SheetID -> String -> m ()
 putsSheet sid x = liftIO $ whenLogging $ 
   sendToLogger $ Log (SheetLog sid) x
 

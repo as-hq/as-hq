@@ -16,7 +16,6 @@ import ReactU from './utils/React';
 import RenderU from './utils/Render';
 import ShortcutU from './utils/Shortcut';
 import StringU from './utils/String';
-import WorkbookU from './utils/Workbook';
 import HypergridU from './utils/Hypergrid';
 
 export default {
@@ -36,6 +35,5 @@ export default {
   Render: RenderU,
   Shortcut: ShortcutU,
   String: StringU,
-  Workbook: WorkbookU,
   Hypergrid: HypergridU
 };

@@ -19,7 +19,7 @@ import ASIndex from '../classes/ASIndex';
 
 import Render from '../AS/Renderers';
 
-import SheetStateStore from './ASSheetStateStore';
+import WorkbookStore from './ASWorkbookStore';
 import ExpressionStore from './ASExpressionStore';
 
 // #flowlens
@@ -31,7 +31,11 @@ const StateRecord = Immutable.Record({
   scroll: null,
   scrollDisabled: false,
   width: null,
-  height: null
+  height: null,
+  gridClipboard: {
+    area: null,
+    isCut: false,
+  },
 });
 
 class GridStore extends ReduceStore<State> {
@@ -42,7 +46,7 @@ class GridStore extends ReduceStore<State> {
   reduce(state: State, action: ASAction): State {
     switch(action._type) {
       case 'LOGIN_SUCCESS': {
-        const {sheetId} = action;
+        const sheetId = action.openedWorkbook.openedSheet;
 
         if (state.activeSelection === null) {
           return new StateRecord({
@@ -109,6 +113,23 @@ class GridStore extends ReduceStore<State> {
         );
       }
 
+      case 'CUT_GRID': {
+        Render.setClipboardMode('cut');
+        const { range } = action;
+        return state.set('clipboard', {range, isCut: true});
+      }
+
+      case 'COPY_GRID': {
+        Render.setClipboardMode('copy');
+        const { range } = action;
+        return state.set('clipboard', {range, isCut: false});
+      }
+
+      case 'CLIPBOARD_RESET': {
+        Render.setClipboardMode('disabled');
+        return state.set('clipboard', {range: null, isCut: false});
+      }
+
       default:
         return state;
     }
@@ -142,6 +163,10 @@ class GridStore extends ReduceStore<State> {
 
   isVisible(idx: ASIndex): boolean {
     return this.getViewingWindow().contains(idx);
+  }
+
+  getClipboard() {
+    return this.getState().clipboard.toJS();
   }
 
 }

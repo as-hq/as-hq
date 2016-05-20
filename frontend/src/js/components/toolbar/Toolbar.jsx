@@ -13,7 +13,7 @@ import ASCell from '../../classes/ASCell';
 import CellStore from '../../stores/ASCellStore';
 import ToolbarStore from '../../stores/ASToolbarStore';
 import ExpressionStore from '../../stores/ASExpressionStore';
-import SheetStateStore from '../../stores/ASSheetStateStore';
+import WorkbookStore from '../../stores/ASWorkbookStore';
 
 import ToolbarButton from './ToolbarButton.jsx';
 import MoreFormatDropdown from './MoreFormatDropdown.jsx';
@@ -81,7 +81,7 @@ export default class ASToolbar extends React.Component {
     );
     const activeButton = ToolbarStore.getActiveMenuItem();
     const cell = CellStore.getActiveCell();
-    const inPauseMode = SheetStateStore.inPauseMode();
+    const inPauseMode = WorkbookStore.inPauseMode();
 
     // Currently not supporting horizontal or vertical alignment (Ritesh 3/4)
     return (

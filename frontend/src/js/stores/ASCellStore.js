@@ -27,6 +27,7 @@ import API from '../actions/ASApiActionCreators';
 import ASCell from '../classes/ASCell';
 import ASIndex from '../classes/ASIndex';
 import ASRange from '../classes/ASRange';
+import ASSelection from '../classes/ASSelection';
 
 import Render from '../AS/Renderers';
 import GridStore from './ASGridStore.js';
@@ -233,6 +234,79 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     const sheet = this.getState().allCells.get(sheetId);
     const grid = sheet.toArray().map(r => r.toArray());
     return [].concat(...grid);
+  }
+
+  /**************************************************************************************************************************/
+  /* Data boundaries */
+
+  getDataBoundary(start: ASIndex, direction: string): ASIndex {
+    let dY = 0, dX = 0;
+
+    switch (direction) {
+      case "Right": dX = 1; break;
+      case "Left": dX = -1; break;
+      case "Down": dY = 1; break;
+      case "Up": dY = -1; break;
+      default: throw "Invalid direction passed in";
+    }
+
+    const shiftAmount = { dY: dY, dX: dX };
+    let prev = start;
+    let curIdx = start.shift(shiftAmount);
+    let next = curIdx.shift(shiftAmount);
+
+    // go in this direction (shiftAmount)
+      // find the first one that's a transition or an edge
+
+    function checkWhetherCurrentIsBoundary (p, c, n) {
+      return c && !(p && n);
+    };
+
+    while (!curIdx.equals(next)) { // while you still have a next, and you haven't reached boundary
+      const [p, c, n] = [prev, curIdx, next].map(i => this.isNonBlankCell(i));
+      if (checkWhetherCurrentIsBoundary(p, c, n)) {
+        break;
+      }
+      [prev, curIdx, next] = // move to the next window of 3 cells
+        [prev, curIdx, next].map((x) => x.shift(shiftAmount));
+    }
+
+    return curIdx;
+  }
+
+  //This function returns what the new selection would be if you pressed ctrl+shift+right/up/left/down.
+  //If shift is not held down,
+  getDataBoundSelection(selection: ASSelection, direction: string): ASSelection {
+    const {range: {tl, br}, origin} = selection;
+
+    let startLoc = { row: origin.row, col: origin.col };
+    switch (direction) {
+      case "Right": startLoc.col = (origin.col == tl.col) ? br.col : tl.col; break;
+      case "Left": startLoc.col = (origin.col == br.col) ? tl.col : br.col; break;
+      case "Up": startLoc.row = (origin.row == br.row) ? tl.row : br.row; break;
+      case "Down": startLoc.row = (origin.row == tl.row) ? br.row : tl.row; break;
+      default: throw "Invalid direction passed in";
+    }
+
+    const bound = this.getDataBoundary(ASIndex.fromNaked(startLoc), direction);
+
+    // slight misnomers; these are the corners, but not necessarily top left or bottom right
+    const newTl = {row: tl.row, col: tl.col};
+    const newBr = {row: br.row, col: br.col};
+    if (direction == "Up" || direction == "Down") {
+      if (origin.row > tl.row)
+        newTl.row = bound.row;
+      else
+        newBr.row = bound.row;
+    } else if (direction == "Left" || direction == "Right") {
+      if (origin.col > tl.col)
+        newTl.col = bound.col;
+      else
+        newBr.col = bound.col;
+    }
+    // I haven't actually figured out why the above code works, it seems like it sort of just does.
+
+    return new ASSelection({ range: {tl: newTl, br: newBr}, origin });
   }
 
 }

@@ -46,6 +46,9 @@ test_message_id = "TEST_ID"
 new_sheet_name :: String
 new_sheet_name = "Sheet1"
 
+new_workbook_name :: String 
+new_workbook_name = "Workbook1"
+
 -- Currently used only in the date parser. Eric Miller expected 3/5 to autoexpand to 3/5/2016, so 
 -- implementing this should make him pretty happy. Unfortunately, programatically getting
 -- the current year means you have to parse in the IO monad, which seems like opening a can of worms, and

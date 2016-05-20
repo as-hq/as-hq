@@ -3,7 +3,6 @@
 module AS.Parsing.Substitutions where
 
 import Control.Applicative
-import Control.Lens
 import Control.Monad
 import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
@@ -26,6 +25,8 @@ import AS.Util
 
 import AS.Kernels.Excel.Compiler (literal)
 import qualified AS.Parsing.Common as PC
+
+import qualified Control.Lens as Lens
 
 ----------------------------------------------------------------------------------------------------
 -- General parsing functions for Excel
@@ -167,7 +168,7 @@ shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 
 -- | Shift the cell's location, and shift all references satisfying the condition passed in. 
 shiftCell :: Offset -> ASCell -> Maybe ASCell
-shiftCell offset c = ((c &) . modifyXp . set cellLocation) <$> mLoc
+shiftCell offset c = ((c &) . modifyXp . Lens.set cellLocation) <$> mLoc
   where modifyXp = ((cellExpression %~ shiftExpression offset) .)
         mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation
 

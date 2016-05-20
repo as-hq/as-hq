@@ -95,7 +95,7 @@ getExcelErrorType ZeroToTheZero = (NumErr, "evaluating 0^0")
 data ASExecError =
     WillNotEvaluate
   | EvaluationError {evalErrorDesc :: String}
-  | DependenciesLocked {lockUserId :: ASUserId}
+  | DependenciesLocked {lockUserId :: UserID}
   | DBNothingException {badLocs :: [ASIndex]}
   | ReferenceOutOfBounds
   | DecoupleAttempt

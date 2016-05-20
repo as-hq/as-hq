@@ -91,3 +91,8 @@ importOp :: ASLanguage -> String
 importOp lang = case lang of
     Python  -> "import"
     R       -> "library"
+
+commented :: ASLanguage -> String -> String
+commented lang str = flip (++) str $ case lang of 
+  Python -> "# "
+  R -> "# "

@@ -354,18 +354,28 @@ export type ASLocation = ASIndex | ASRange;
 
 export type ASLocationObject = ASIndexObject | ASRangeObject;
 
-export type ASSheet = {
+export type Sheet = {
   tag: 'Sheet';
-  sheetId: string;
-  sheetName: string;
-  sheetOwner: string;
+  id: string;
+  name: string;
+  owner: string;
   inPauseMode: boolean;
 };
 
-export type ASWorkbook = {
+export type Workbook = {
   tag: 'Workbook';
-  workbookName: string;
-  workbookSheets: Array<string>;
+  id: string;
+  name: string;
+  owner: string;
+  sheets: Array<Sheet>;
+  openedSheet: string;
+};
+
+export type WorkbookRef = {
+  tag: 'WorkbookRef';
+  id: string;
+  name: string;
+  owner: string;
 };
 
 export type ASCellObject = {

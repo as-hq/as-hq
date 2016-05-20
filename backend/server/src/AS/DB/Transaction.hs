@@ -32,7 +32,6 @@ import Control.Monad.Trans.Either
 import Control.Monad.Trans.Class
 import Control.Concurrent
 import Control.Applicative
-import Control.Lens hiding (set)
 
 data CommitWithDecoupleInfo = CommitWithDecoupleInfo { baseCommit :: ASCommit, didDecouple :: Bool } deriving (Show)
 
@@ -53,7 +52,7 @@ updateDBWithContext conn src ctx = do
 -- The logic for getting the decouple info should ideally be separate from 
 -- the one for generating the commit, but by batching them together we get to make one fewer call to 
 -- the DB. (Alex 12/24)
-evalContextToCommitWithDecoupleInfo :: Connection -> ASSheetId -> EvalContext -> IO CommitWithDecoupleInfo
+evalContextToCommitWithDecoupleInfo :: Connection -> SheetID -> EvalContext -> IO CommitWithDecoupleInfo
 evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu bu du cfru)) = do
   bdiff  <- updateToDiff bu $ fmap catMaybes . mapM (DB.getBar conn)
   ddiff  <- updateToDiff du $ fmap catMaybes . mapM (DB.getRangeDescriptor conn)
@@ -89,7 +88,7 @@ evalContextToCommitWithDecoupleInfo conn sid (EvalContext mp _ (SheetUpdate cu b
 
 -- | Makes sure everything is synced; the listKeys and ancestors in graph db should reflect 
 -- the cell changes that happen as a result of setting the cells. 
-setCellsPropagated :: Connection -> ASUserId -> [ASCell] -> IO ()
+setCellsPropagated :: Connection -> UserID -> [ASCell] -> IO ()
 setCellsPropagated conn uid cells = 
   let roots = filter isEvaluable cells
   in do

@@ -18,7 +18,10 @@ import type {
   NakedIndex,
   HAlignType,
   VAlignType,
-  Offset
+  Offset,
+  Workbook,
+  Sheet,
+  WorkbookRef,
 } from './Eval';
 
 import type {Callback} from './Base';
@@ -37,7 +40,6 @@ import type {
 } from './Updates';
 
 import type {
-  ASBackendWorkbookSheet,
   ClientMessage,
   EvalHeader,
   MessageId
@@ -51,10 +53,6 @@ import type {
 import type {
   NotificationSpec
 } from '../classes/Notification';
-
-import type {
-  ASSheet
-} from './Eval';
 
 export type ToggleShortcutHelper = {
   _type: 'TOGGLE_SHORTCUT_HELPER';
@@ -122,14 +120,14 @@ export type ChangedSheetAction = {
   sheetId: string;
 };
 
-export type GotMySheetsAction = {
-  _type: 'GOT_MY_SHEETS';
-  sheets: Array<ASSheet>;
+export type SetOpenedWorkbookAction = {
+  _type: 'SET_OPENED_WORKBOOK';
+  workbook: Workbook;
 };
 
-export type GotUpdatedWorkbooksAction = {
-  _type: 'GOT_UPDATED_WORKBOOKS';
-  workbooks: Array<ASBackendWorkbookSheet>
+export type SetMyWorkbooksAction = {
+  _type: 'SET_MY_WORKBOOKS';
+  workbooks: Array<WorkbookRef>;
 };
 
 export type GotUpdatedRulesAction = {
@@ -174,16 +172,6 @@ export type HeaderLanguageChangedAction = {
 export type GotFindAction = {
   _type: 'GOT_FIND';
   findLocs: Array<ASIndex>;
-};
-
-export type GotNewWorkbooksAction = {
-  _type: 'GOT_NEW_WORKBOOKS';
-  workbooks: Array<ASBackendWorkbookSheet>;
-};
-
-export type DeletedWorkbooksAction = {
-  _type: 'DELETED_WORKBOOKS';
-  workbooks: Array<ASBackendWorkbookSheet>;
 };
 
 export type FindIncrementedAction = {
@@ -290,18 +278,14 @@ export type LoginAttemptAction = {
 export type LoginSuccessAction = {
   _type: 'LOGIN_SUCCESS';
   userId: string;
-  sheetId: string;
+  openedWorkbook: Workbook;
+  workbookRefs: Array<WorkbookRef>;
 };
 
 export type LoginCallbackRegisteredAction = {
   _type: 'LOGIN_CALLBACK_REGISTERED';
   cb: Callback;
 };
-
-export type WorkbookAction =
-  GotUpdatedWorkbooksAction
-  | GotNewWorkbooksAction
-  | DeletedWorkbooksAction;
 
 export type FocusedAction = {
   _type: 'FOCUSED';
@@ -399,9 +383,6 @@ export type ASAction =
   | OverlayDeletedAction
   | OverlayResizedAction
   | GotFailureAction
-  | GotUpdatedWorkbooksAction
-  | GotNewWorkbooksAction
-  | DeletedWorkbooksAction
   | GotUpdatedRulesAction
   | ScrolledAction
   | SetObjectViewAction

@@ -7,7 +7,6 @@ import Data.List hiding (tail)
 import Database.Redis (Connection)
 import Data.Maybe
 import Safe (headMay)
-import Control.Lens 
 
 import AS.Eval.Core as R
 import AS.Util as U

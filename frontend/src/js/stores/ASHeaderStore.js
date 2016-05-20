@@ -24,7 +24,7 @@ type HeaderData = Immutable.Record$Class;
 type HeaderStoreData = Immutable.Record$Class;
 
 const HeaderRecord = Immutable.Record({
-  expression: '', 
+  expression: '',
   wasEvaluated: true
 });
 
@@ -45,9 +45,6 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
 
   reduce(state: HeaderStoreData, action: ASAction): HeaderStoreData {
     switch (action._type) {
-      case 'CLEARED_SHEET':
-        return this.getInitialState();
-  
       case 'HEADER_UPDATED': {
         const {language, expression} = action;
         return state.mergeIn(
@@ -94,11 +91,11 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
   }
 
   // Currently returns whether the expression in the current header (i.e. for the
-  // current language) was not evaluated. 
+  // current language) was not evaluated.
   // #needsrefactor This should eventually count as "dirty" as long as ANY of the
-  // headers (as opposed to just the current one) have an unevaluated expression. 
-  isDirty(): boolean { 
-    return !this._getCurrentHeader().get('wasEvaluated'); 
+  // headers (as opposed to just the current one) have an unevaluated expression.
+  isDirty(): boolean {
+    return !this._getCurrentHeader().get('wasEvaluated');
   }
 
   _getCurrentHeader(): HeaderData {

@@ -28,14 +28,15 @@ import type {
   ASSelectionObject,
   ASLanguage,
   ASIndexObject,
-  ASSheet,
   ASValue,
   HeaderResult,
   ASExpression,
-  ASWorkbook,
   ASCellProp,
   ASCellObject,
-  FormatType
+  FormatType,
+  Sheet,
+  Workbook,
+  WorkbookRef,
 } from './Eval';
 
 import type {
@@ -97,196 +98,6 @@ export type ASInitConnection = {
   tag: 'ASInitConnection';
   connUserId: ASUserId;
   connSheetId: string;
-};
-
-export type PayloadN = {
-  tag: 'PayloadN';
-};
-
-export type PayloadCL = {
-  tag: 'PayloadCL';
-  contents: Array<ASCellObject>;
-};
-
-export type PayloadLL = {
-  tag: 'PayloadLL';
-  contents: Array<ASIndexObject>;
-};
-
-export type PayloadSS = {
-  tag: 'PayloadSS';
-  contents: Array<ASSheet>;
-};
-
-export type PayloadWBS = {
-  tag: 'PayloadWBS';
-  contents: Array<ASWorkbook>;
-};
-
-export type PayloadWorkbookSheets = {
-  tag: 'PayloadWorkbookSheets';
-  contents: Array<ASBackendWorkbookSheet>;
-};
-
-export type PayloadSelection = {
-  tag: 'PayloadSelection';
-  selectionRange: ASRangeObject;
-  selectionOrigin: ASIndexObject;
-};
-
-export type PayloadJump = {
-  tag: 'PayloadJump';
-  jumpRange: ASRangeObject;
-  jumpOrigin: ASIndexObject;
-  isShifted: boolean;
-  jumpDirection: ASBackendDirection;
-};
-
-export type PayloadPaste = {
-  tag: 'PayloadPaste';
-  copyRange: ASRangeObject;
-  copyTo: ASRangeObject;
-};
-
-export type PayloadProp = {
-  tag: 'PayloadTag';
-  prop: ASCellProp;
-  tagRange: ASRangeObject;
-};
-
-export type PayloadText = {
-  tag: 'PayloadText';
-  text: String;
-};
-
-export type PayloadDrag = {
-  tag: 'PayloadDrag';
-  initialRange: ASRangeObject;
-  dragRange: ASRangeObject;
-};
-
-export type PayloadInit = {
-  tag: 'PayloadInit';
-  contents: ASInitConnection;
-};
-
-export type PayloadOpen = {
-  tag: 'PayloadOpen';
-  initHeaderExpressions: Array<ASExpression>;
-  initSheetUpdate: SheetUpdate;
-};
-
-export type PayloadR = {
-  tag: 'PayloadR';
-  contents: ASRangeObject;
-};
-
-export type PayloadS = {
-  tag: 'PayloadS';
-  contents: ASSheet;
-};
-
-export type PayloadWB = {
-  tag: 'PayloadWB';
-  contents: ASWorkbook;
-};
-
-export type PayloadW = {
-  tag: 'PayloadW';
-  contents: ASRange;
-};
-
-export type PayloadU = {
-  tag: 'PayloadU';
-  contents: ASUserId;
-};
-
-export type PayloadE = {
-  tag: 'PayloadE';
-  contents: ASExecError;
-};
-
-export type PayloadXp = {
-  tag: 'PayloadXp';
-  contents: ASExpression;
-};
-
-export type PayloadList = {
-  tag: 'PayloadList';
-  contents: QueryList;
-};
-
-export type PayloadMutate = {
-  tag: 'PayloadMutate';
-  contents: MutateType;
-};
-
-export type PayloadFind = {
-  tag: 'PayloadFind';
-  contents: Array<ASIndexObject>;
-};
-
-// export type PayloadValue = {
-//   tag: 'PayloadValue';
-//   contents: [EvalResult, ASLanguage];
-// };
-
-export type PayloadCondFormatUpdate = {
-  tag: 'PayloadCondFormatUpdate';
-  contents: CondFormatRuleUpdate;
-};
-
-export type PayloadSetBarProp = {
-  tag: 'PayloadSetBarProp';
-  contents: [BarIndex, BarProp];
-};
-
-export type PayloadSheetUpdate = {
-  tag: 'PayloadSheetUpdate';
-  contents: SheetUpdate;
-};
-
-export type ASBackendPayload =
-  PayloadN
-  | PayloadInit
-  | PayloadOpen
-  | PayloadCL
-  | PayloadLL
-  | PayloadR
-  | PayloadS
-  | PayloadSelection
-  | PayloadJump
-  | PayloadSS
-  | PayloadWB
-  | PayloadWBS
-  | PayloadWorkbookSheets
-  | PayloadW
-  | PayloadU
-  | PayloadE
-  | PayloadPaste
-  | PayloadProp
-  | PayloadXp
-  | PayloadList
-  | PayloadText
-  | PayloadMutate
-  | PayloadDrag
-  | PayloadFind
-  | PayloadCondFormatUpdate
-  | PayloadSetBarProp
-  | PayloadSheetUpdate;
-
-export type ASBackendTime = {
-  tag: 'Time';
-  day: string;
-  hour: number;
-  minute: number;
-  sec: number;
-};
-
-export type ASBackendWorkbookSheet = {
-  tag: 'WorkbookSheet';
-  wsName: string;
-  wsSheets: Array<ASSheet>;
 };
 
 export type ASClientWindow = {
@@ -449,7 +260,7 @@ export type Evaluate = {
 
 export type EvalHeader = {
   tag: "EvalHeader";
-  evalHeaderSheetId: string;
+  evalHeaderWorkbookId: string;
   evalHeaderLang: ASLanguage;
   evalHeaderExpr: string;
 };
@@ -606,8 +417,8 @@ export type ClientAction =
   | ShowFailureMessage
   | UpdateSheet
   | ClearSheet
-  | SetMySheets
-  | AskOpenSheet
+  | SetOpenedWorkbook
+  | SetMyWorkbooks
   | MakeSelection
   | LoadImportedCells
   | HandleEvaluatedHeader
@@ -657,15 +468,14 @@ export type ClearSheet = {
   contents: string;
 }
 
-export type SetMySheets = {
-  tag: "SetMySheets";
-  mySheets: Array<ASSheet>;
-  sharedSheets: Array<ASSheet>;
+export type SetOpenedWorkbook = {
+  tag: "SetOpenedWorkbook";
+  contents: Workbook;
 }
 
-export type AskOpenSheet = {
-  tag: "AskOpenSheet";
-  contents: string;
+export type SetMyWorkbooks = {
+  tag: "SetMyWorkbooks";
+  contents: Array<WorkbookRef>;
 }
 
 export type MakeSelection = {

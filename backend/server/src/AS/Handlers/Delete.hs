@@ -4,7 +4,6 @@ import Data.List
 import qualified Data.Set as S
 import Control.Concurrent
 import Control.Applicative
-import Control.Lens
 import qualified Data.Map as M
 
 import AS.Prelude

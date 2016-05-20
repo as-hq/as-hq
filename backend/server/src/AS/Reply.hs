@@ -1,7 +1,6 @@
 module AS.Reply where 
 
 import Control.Concurrent
-import Control.Lens
 import Control.Monad (unless)
 
 import AS.Prelude
@@ -36,7 +35,7 @@ sendFailure msgctx = sendAction msgctx . ShowFailureMessage
 sendAction :: MessageContext -> ClientAction -> IO ()
 sendAction msgctx ac = sendMessage (msgctx^.userClient.userConn) (ClientMessage (msgctx^.messageId) ac) 
 
-broadcastActionTo :: MessageContext -> [ASSheetId] -> ClientAction -> IO ()
+broadcastActionTo :: MessageContext -> [SheetID] -> ClientAction -> IO ()
 broadcastActionTo msgctx sids ac = do
   st <- readContextualState msgctx
   let ucs = st^.userClients
@@ -65,10 +64,10 @@ broadcastSheetUpdate msgctx sheetUpdate = do
 -- We are NOT filtering the cells we're deleting; we can't let frontend learn what cells got deleted lazily
 -- since blank cells don't get saved in the database. Thus, if a cell gets blanked out, the user needs to know immediately. 
 -- (We *do* only send back the deleted cells in the sheet though, as opposed to deleted cells everywhere.)
-filterSheetUpdate :: SheetUpdate -> ASWindow -> SheetUpdate
+filterSheetUpdate :: SheetUpdate -> Window -> SheetUpdate
 filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
   where 
-    sid    = windowSheetId win
+    sid    = win^.windowSheetId
     -- #lens
     cu'    = filterUpdateByKey ((==) sid . refSheetId) cu 
     bu'    = filterUpdateByKey ((==) sid . barSheetId) bu
@@ -82,7 +81,7 @@ filterSheetUpdate (SheetUpdate cu bu du cfru) win = update
     filteredCfrs = S.filter (all ((==) sid . rangeSheetId) . cellLocs) (cfru^.newValsSet)
     update = SheetUpdate cu' bu' du' (Update filteredCfrs (cfru^.oldKeysSet))
 
-sendSheetUpdate :: MessageId -> ASUserClient -> SheetUpdate -> IO ()
+sendSheetUpdate :: MessageId -> UserClient -> SheetUpdate -> IO ()
 sendSheetUpdate mid uc update = sendMessage (uc^.userConn) (ClientMessage mid $ UpdateSheet update) 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------

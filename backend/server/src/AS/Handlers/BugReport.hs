@@ -7,7 +7,6 @@ import Text.Printf
 import Crypto.Hash.SHA1
 import Network.HTTP.Conduit
 import Data.Aeson
-import Control.Lens
 import Control.Monad
 import Database.Redis 
 import qualified Network.WebSockets as WS
@@ -24,6 +23,7 @@ import AS.Types.Commits
 import AS.Logging
 
 import AS.DB.Users
+import AS.DB.API (getUser)
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 -- Maniphest parameters
@@ -125,15 +125,15 @@ taskToJSON key id title desc = "{\"title\":\"" ++ title ++ "\", \"description\":
   where conduit = "{\"sessionKey\":\"" ++ key ++ "\", \"connectionID\":"  ++ (show id) ++ "}" 
 
 -- | Get the description of the task from the userClient (sessionId, userId, last sheet). This is useful info for debugging.
-getDescription :: ASUserClient -> Connection -> IO TaskDesc
+getDescription :: UserClient -> Connection -> IO TaskDesc
 getDescription uc conn = do 
-  maybeUser <- lookupUser conn $ uc^.userId
+  maybeUser <- getUser conn $ uc^.userId
   let uid = T.unpack $ uc^.userId
   let sid = T.unpack $ uc^.userSessionId
-  sheet <- case maybeUser of 
-    Nothing -> return "No last sheet found"
-    Just u  -> return $ T.unpack $ u^.lastOpenSheet
-  return $ "User ID: " ++ uid ++ ", Session ID: " ++ sid ++ ", Sheet: " ++ sheet ++ "."
+  wid <- case maybeUser of 
+    Nothing -> return "No last workbook found"
+    Just u  -> return $ T.unpack $ u^.lastOpenWorkbook
+  return $ "User ID: " ++ uid ++ ", Session ID: " ++ sid ++ ", Workbook: " ++ wid ++ "."
 
 -- | Create a maniphest task by posting to /api/maniphest.createtask. 
 createTask :: ConduitSessionKey -> ConduitConnectionID -> TaskTitle -> TaskDesc -> IO ()

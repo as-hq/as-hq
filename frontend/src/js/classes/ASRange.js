@@ -15,7 +15,7 @@ import type {
 
 import Util from '../AS/Util';
 import Constants from '../Constants';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 import _ from 'lodash';
 
@@ -76,7 +76,7 @@ export default class ASRange {
   }
 
   static fromNaked(naked: NakedRange, sheetId?: ?string): ASRange {
-    sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    sheetId = sheetId || WorkbookStore.getCurrentSheetId();
     return new ASRange({
       tag: 'range',
       range: naked,
@@ -113,7 +113,7 @@ export default class ASRange {
   }
 
   toClientWindow(sheetId?: string): ASClientWindow {
-    sheetId = sheetId || SheetStateStore.getCurrentSheetId();
+    sheetId = sheetId || WorkbookStore.getCurrentSheetId();
     return ({
       window: this.toNaked(),
       sheetId: this.sheetId

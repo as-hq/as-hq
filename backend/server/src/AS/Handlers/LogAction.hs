@@ -1,6 +1,5 @@
 module AS.Handlers.LogAction where
 
-import Control.Lens 
 import Control.Monad
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy.Char8 as BC (unpack)

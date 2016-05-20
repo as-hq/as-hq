@@ -38,7 +38,7 @@ import ExpressionActions from '../actions/ASExpressionActionCreators';
 import API from '../actions/ASApiActionCreators';
 
 import CellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import FindStore from '../stores/ASFindStore';
 import BarStore from '../stores/ASBarStore.js';
 import OverlayStore from '../stores/ASOverlayStore';

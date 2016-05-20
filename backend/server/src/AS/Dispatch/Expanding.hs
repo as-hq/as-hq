@@ -7,7 +7,6 @@ module AS.Dispatch.Expanding
   ) where
 
 import Data.List.Split (chunksOf)
-import Control.Lens
 import qualified Data.Map as M
 import qualified Data.List as L
 

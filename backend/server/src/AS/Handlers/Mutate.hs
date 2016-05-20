@@ -5,7 +5,7 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages hiding (Delete, Drag)
-import AS.Types.User (ASUserId)
+import AS.Types.User (UserID)
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
@@ -28,7 +28,6 @@ import AS.Logging
 
 import Control.Concurrent
 import Control.Monad
-import Control.Lens hiding (index)
 import Data.Maybe hiding (fromJust)
 import qualified Data.Set as S
 

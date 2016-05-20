@@ -1,5 +1,6 @@
 /* @flow */
 
+import type { StoreToken } from 'flux';
 import type {
   Callback
 } from '../types/Base';
@@ -12,14 +13,17 @@ import type {
 } from './menu-bar/types';
 
 import React from 'react';
+import DOM from 'react-dom';
+import {Paper} from 'material-ui';
 
 import API from '../actions/ASApiActionCreators';
 import APIActions from '../actions/APIActionCreators';
-import SheetStateStore from '../stores/ASSheetStateStore';
 import GridStore from '../stores/ASGridStore';
+import LoginStore from '../stores/ASLoginStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import LogStore from '../stores/ASLoginStore';
 import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
-import SheetActions from '../actions/ASSheetActionCreators';
+import WorkbookActions from '../actions/ASWorkbookActionCreators';
 import DialogActions from '../actions/DialogActionCreators';
 import OverlayActions from '../actions/ASOverlayActionCreators';
 import ShortcutHelperActions from '../actions/ShortcutHelperActionCreators';
@@ -31,8 +35,12 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 import FileImportDialog from '../AS/FileImportDialog';
 import {topBar as topBarZIndex} from '../styles/zIndex';
 
-type ASTopBarProps = {
+type Props = {
   toggleEvalHeader: Callback;
+};
+
+type State = {
+  workbookPopoverOpen: boolean;
 };
 
 function nested(etc): NestedMenuSpec {
@@ -60,32 +68,31 @@ function file({callback, title}): FileItemSpec {
 
 export default class ASTopBar extends React.Component {
   static defaultProps = {};
-  props: ASTopBarProps;
-  state: {};
+  props: Props;
+  state: State;
+  _workbookStoreListener: StoreToken;
+  _workbookTitle: any;
 
-  _sheetsListener: () => void;
-  _pauseModeListener: () => void;
-
-  constructor(props: ASTopBarProps) {
+  constructor(props: Props) {
     super(props);
-    this._sheetsListener = () => this.forceUpdate();
-    this._pauseModeListener = () => this.forceUpdate();
+    this.state = {
+      workbookPopoverOpen: false,
+    };
   }
 
   componentDidMount() {
-    API.getMySheets();
-    SheetStateStore.addListener('GOT_MY_SHEETS', this._sheetsListener);
-    SheetStateStore.addListener('TOGGLED_PAUSE_MODE', this._pauseModeListener);
+    this._workbookStoreListener = WorkbookStore.addListener(() => this.forceUpdate())
   }
 
   componentWillUnmount() {
-    SheetStateStore.removeListener('GOT_MY_SHEETS', this._sheetsListener);
-    SheetStateStore.removeListener('TOGGLED_PAUSE_MODE', this._pauseModeListener);
+    this._workbookStoreListener.remove();
   }
 
   render(): React.Element {
     let self = this;
-    const paused = SheetStateStore.inPauseMode();
+    const { workbookPopoverOpen } = this.state;
+    const paused = WorkbookStore.inPauseMode();
+    const me = LoginStore.getUserId();
 
     let testAlphaSheets =
       Constants.isProduction
@@ -112,7 +119,7 @@ export default class ASTopBar extends React.Component {
       : [];
 
     return (
-      <span>
+      <div style={styles.root}>
         <a href="http://alphasheets.com" style={{
           position: 'absolute',
           display: 'block',
@@ -135,68 +142,34 @@ export default class ASTopBar extends React.Component {
         }}>
           α
         </a>
-        <ASMenuBar style={{paddingLeft: '50px'}} menus={[
+        <ASMenuBar style={styles.menuBar} menus={[
           {title: 'File', menuItems: [
 
-            nested({
-              title: 'Open',
-              menuItems:
-                SheetStateStore.getMySheets().map(sheet =>
-                  simple({
-                    title: sheet.sheetName,
-                    callback() {
-                      APIActions.openSheet(sheet.sheetId);
-                    }
-                  })
-                )
-            }),
-
-            nested({
-              title: 'Shared with me',
-              menuItems:
-                SheetStateStore.getSharedSheets().map(sheet =>
-                  simple({
-                    title: sheet.sheetName,
-                    callback() {
-                      APIActions.openSheet(sheet.sheetId);
-                    }
-                  })
-                )
-            }),
-
             simple({
-              title: 'New',
+              title: 'New workbook',
               callback() {
-                // Set timeout so that the callback finishes quickly and menu closes
-                // before the popup appears
-                setTimeout(function() {
-                  let sheetName = window.prompt("Enter the sheet name.");
-                  if (sheetName != null) {
-                    API.newSheet(sheetName);
-                  }
-                }, 20);
+                const name = window.prompt('Enter workbook name.');
+                API.newWorkbook(name);
               }
             }),
 
-            simple({
-              title: 'Rename',
-              callback() {
-                // Set timeout so that the callback finishes quickly and menu closes
-                // before the popup appears
-                setTimeout(function() {
-                  const newSheetName = window.prompt("Enter the new sheet name.");
-                  if (newSheetName != null) {
-                    const sheetId = SheetStateStore.getCurrentSheetId();
-                    API.renameSheet(sheetId, newSheetName);
-                  }
-                }, 20);
-              }
+            nested({
+              title: 'Open workbook',
+              menuItems:
+                WorkbookStore.getWorkbooks().map(wb =>
+                  simple({
+                    title: wb.name + (me === wb.owner ? '' : ` [owned by ${wb.owner}]`),
+                    callback() {
+                      API.openWorkbook(wb.id);
+                    }
+                  })
+                )
             }),
 
             simple({
               title: 'Clone',
               callback() {
-                API.cloneSheet(SheetStateStore.getCurrentSheetId());
+                API.cloneSheet(WorkbookStore.getCurrentSheetId());
               }
             }),
 
@@ -220,7 +193,7 @@ export default class ASTopBar extends React.Component {
                 simple({
                   title: 'Save',
                   callback() {
-                    API.export(SheetStateStore.getCurrentSheetId());
+                    API.export(WorkbookStore.getCurrentSheetId());
                   }
                 }),
                 simple({
@@ -280,7 +253,7 @@ export default class ASTopBar extends React.Component {
             simple({
               title: paused ? 'Paused evaluations (click to toggle)' : 'Normal evaluations (click to toggle)',
               callback() {
-                SheetActions.togglePauseMode();
+                WorkbookActions.togglePauseMode();
               }
             })
           ]},
@@ -319,7 +292,41 @@ export default class ASTopBar extends React.Component {
             ...maybeLogButton
           ]},
         ]} />
-      </span>
+
+        <Paper style={styles.workbookTitle}>
+          {WorkbookStore.getCurrentWorkbookName()}
+        </Paper>
+
+      </div>
     );
   }
 }
+
+const styles = {
+  root: {
+    width: '100%',
+    display: 'inline-flex',
+    flexDirection: 'row',
+    backgroundColor: '#212121',
+  },
+   menuBar: {
+    paddingLeft: 50,
+    flexGrow: 1,
+    flexBasis: 'content',
+    position: 'relative',
+   },
+   workbookTitle: {
+     flexGrow: 0,
+     flexBasis: 'content',
+     position: 'relative',
+     backgroundColor: '#424242',
+     color: 'white',
+     marginRight: 10,
+     marginRight: 10,
+     marginTop: 8,
+     marginBottom: 8,
+     paddingLeft: 5,
+     paddingRight: 5,
+     fontWeight: 'bold',
+  },
+};

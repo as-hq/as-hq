@@ -36,7 +36,7 @@ window.login = require('./stores/ASLoginStore');
 window.loginactions = require('./actions/ASLoginActionCreators');
 window.conf = require('./stores/ASConfigurationStore');
 window.gridstore = require('./stores/ASGridStore');
-window.sheet = require('./stores/ASSheetStateStore');
+window.sheet = require('./stores/ASWorkbookStore');
 window.cellstore = require('./stores/ASCellStore');
 window.focusstore = require('./stores/ASFocusStore');
 window.api = require('./actions/ASApiActionCreators');
@@ -51,8 +51,7 @@ const Index = ({children}) => (
 function regularAuth(nextState, replace) {
   if (! LoginStore.isLoggedIn()) {
     LoginActions.registerCallback(() => {
-      console.error('REGULAR AUTH!!');
-      APIActions.openSheet();
+      APIActions.openWorkbook();
     });
     replace({ nextPathName: nextState.location.pathname }, '/login');
   }

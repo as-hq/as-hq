@@ -4,7 +4,6 @@ import Data.Aeson hiding (Success)
 import Data.Aeson.Lens (key)
 import Network.Wreq
 import Control.Monad.IO.Class (liftIO)
-import Control.Lens hiding ((.=))
 import qualified Data.List as L
 import qualified Data.Text as T 
 import qualified Data.ByteString.Char8 as B
@@ -18,14 +17,18 @@ import AS.Types.User hiding (userId)
 import AS.Types.Network 
 import AS.Types.Messages
 
+import AS.DB.Users (produceUser)
+
 import Control.Exception
+
+import Database.Redis (Connection)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- Authentication
 
-authenticateUser :: AuthStrategy -> IO (Either String ASUserId)
-authenticateUser strat = case strat of 
-  GoogleAuth token -> handleAny onException $ do
+authenticateUser :: Connection -> AuthStrategy -> IO (Either String User)
+authenticateUser conn strat = case strat of 
+  GoogleAuth token -> handleAny (const . return $ Left "connection failure") $ do
     putsObj "Received user id token: " token
     r <- get $ google_token_verify_url ++ (T.unpack token)
     let appClientId = r ^? responseBody . key "aud"
@@ -38,31 +41,23 @@ authenticateUser strat = case strat of
           else case uid of 
             Just uid -> do 
               whitelist <- getWhitelistedUsers
-              return $ if uid `elem` whitelist
-                then Right uid
-                else Left "You have not yet received an invitation to use AlphaSheets"
+              if uid `elem` whitelist
+                then Right <$> produceUser conn uid
+                else return $ Left "You have not yet received an invitation to use AlphaSheets"
             Nothing -> return $ Left "auth response did not have email field"
       _ -> return $ Left "received null app client id"
-    where
-      onException :: SomeException -> IO (Either String ASUserId)
-      onException e = return $ Left "connection failure"
   -- a randomly generated, unique user id. Ensures that a publicly-referred user has access only to the sheet she was referred to.
-  PublicAuth -> Right . T.pack <$> getUUID 
+  PublicAuth -> return . Right =<< produceUser conn =<< return . T.pack =<< getUUID 
   -- when running tests, no authentication performed.
-  TestAuth -> return $ Right "test_user_id" 
+  TestAuth -> Right <$> produceUser conn "test_user_id" 
 -------------------------------------------------------------------------------------------------------------------------
 -- Users management 
 
 -- | Checks 
-userIdExists :: ASUserId -> ServerState -> Bool
+userIdExists :: UserID -> ServerState -> Bool
 userIdExists uid state = L.elem uid (map (view userId) (state^.userClients))
 
-getUserClientBySessionId :: SessionId -> ServerState -> Maybe ASUserClient
+getUserClientBySessionId :: SessionId -> ServerState -> Maybe UserClient
 getUserClientBySessionId seshId state = case filter ((== seshId) . view userSessionId) (state^.userClients) of
   [] -> Nothing
   l -> Just $ $head l
-
--- | Applies a (user -> user) function to a user in the server state
-modifyUserClientInState :: State -> SessionId -> (ASUserClient -> ASUserClient) -> IO ()
-modifyUserClientInState state seshId f = modifyState_ state $ \state ->
-  return $ state & userClients %~ map (\u -> if (u^.userSessionId == seshId) then (f u) else u)

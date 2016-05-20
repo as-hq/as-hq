@@ -9,7 +9,7 @@ import AS.Types.Eval
 import AS.Types.Formats
 import AS.Types.Messages
 import AS.Types.Network
-import AS.Types.User (ASUserId)
+import AS.Types.User (UserID)
 import AS.Types.Updates
 
 import AS.Prelude 
@@ -22,9 +22,9 @@ import AS.Util
 
 import Data.List
 import qualified Data.Set as S
+import qualified Control.Lens as Lens
 import Control.Applicative ((<*>))
 import Control.Concurrent
-import Control.Lens
 import qualified Data.Map as M
 import Database.Redis (Connection)
 
@@ -78,7 +78,7 @@ transformPropsInDatabase msgctx f rng = do
   -- Add them to an empty evalContext, and update the DB in the same way that 
   -- we do after an eval (add commit + cells to the database, so that this can
   -- be undone. Return the update to frontend.)
-  let cells' = map (f >>= (set cellProps)) cs
+  let cells' = map (f >>= (Lens.set cellProps)) cs
   let evalctx = addCellsToContext cells' emptyContext
   runEitherT $ DT.updateDBWithContext conn src evalctx
   return $ evalctx^.updateAfterEval

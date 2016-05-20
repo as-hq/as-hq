@@ -7,7 +7,6 @@ import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Applicative
-import Control.Lens hiding ((.=))
 import System.IO
 import System.Process
 import qualified Data.ByteString as B

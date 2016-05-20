@@ -9,7 +9,7 @@ import NotificationActions from './ASNotificationActionCreators';
 import FocusStore from '../stores/ASFocusStore';
 import GridStore from '../stores/ASGridStore';
 import CellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import ExpressionStore from '../stores/ASExpressionStore';
 import ModalStore from '../stores/ASModalStore';
 
@@ -91,12 +91,14 @@ function handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean)
   // understand why.
   U.Key.killEvent(e);
 
-  const sel = GridStore.getActiveSelection();
-  const vals = CellStore.getRowMajorCellValues(sel.range);
+  const { range } = GridStore.getActiveSelection();
+  const vals = CellStore.getRowMajorCellValues(range);
 
-  // XXX should not mutate stores!!!
-  SheetStateStore.setClipboard(sel, isCut);
-  const html = U.Clipboard.valsToHtml(vals, sel.range);
+  Dispatcher.dispatch({
+    _type: isCut ? 'CUT_GRID' : 'COPY_GRID',
+    range,
+  });
+  const html = U.Clipboard.valsToHtml(vals, range);
   const plain = U.Clipboard.valsToPlain(vals);
   e.clipboardData.setData("text/html",html);
   e.clipboardData.setData("text/plain",plain);
@@ -104,8 +106,6 @@ function handleCopyTypeEventForGrid(e: SyntheticClipboardEvent, isCut?: boolean)
 }
 
 function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
-  Render.setMode(null);
-
   const sel = GridStore.getActiveSelection();
 
   const containsHTML = e.clipboardData.types.includes("text/html");
@@ -120,8 +120,8 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
   // #incomplete should either be checking if you're from the same sheet, OR support
   // copy/pasting across sheets.
   if (isAlphaSheets) { // From AS
-    const clipboard = SheetStateStore.getClipboard();
-    const sheetId = SheetStateStore.getCurrentSheetId();
+    const clipboard = WorkbookStore.getClipboard();
+    const sheetId = WorkbookStore.getCurrentSheetId();
     const toASRange = sel.range;
 
     let fromRange = U.Clipboard.getAttrsFromHtmlString(e.clipboardData.getData("text/html"));
@@ -132,15 +132,16 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     if (API.isTesting || U.Browser.isMac()) {
       if (!! clipboard.area) {
         fromRange   = clipboard.area.range;
-        fromSheetId = SheetStateStore.getCurrentSheetId();
+        fromSheetId = WorkbookStore.getCurrentSheetId();
       }
     }
 
     if (fromRange) {
       if (clipboard.isCut && sheetId == fromSheetId) { // only give cut behavior within sheets
+        Dispatcher.dispatch({
+          _type: 'CLIPBOARD_RESET',
+        });
         API.cut(fromRange, toASRange);
-        // XXX should not mutate stores!!!
-        SheetStateStore.setClipboard(null, false);
       } else {
         API.copy(fromRange, toASRange);
       }

@@ -6,7 +6,6 @@ import qualified Data.List.Split as LS
 import qualified Data.List as L
 import Data.Maybe hiding (fromJust)
 import Data.Char
-import Control.Lens hiding (index)
 import Database.Redis (Connection)
 import Data.Attoparsec.ByteString hiding (take, takeWhile)
 import Data.ByteString (ByteString)

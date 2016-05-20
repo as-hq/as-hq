@@ -3,7 +3,6 @@
 import type {
   ASValue,
   ASLanguage,
-  ASSheet
 } from '../types/Eval';
 
 import type { StoreToken } from 'flux';

@@ -5,7 +5,7 @@ import {parse, text} from 'bennu';
 import invariant from 'invariant';
 import _ from 'lodash';
 
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 import ASIndex from './ASIndex';
 import ASRange from './ASRange';
@@ -283,7 +283,7 @@ export default class ASExcelRef {
     // right now, we don't want to default-stringify A1:A4 into SHEET_ID!A1:A4
     // unless it's another sheet
 
-    const globalSheetId = SheetStateStore.getCurrentSheetId();
+    const globalSheetId = WorkbookStore.getCurrentSheetId();
     if (globalSheetId === this._sheetId || this._sheetId === undefined) {
       return result;
     } else {

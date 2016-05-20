@@ -6,7 +6,7 @@ import {logDebug} from '../AS/Logger';
 import Constants from '../Constants';
 
 import ExpressionStore from '../stores/ASExpressionStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import GridStore from '../stores/ASGridStore';
 import API from '../actions/ASApiActionCreators';
 import NotificationActions from '../actions/ASNotificationActionCreators';
@@ -32,7 +32,7 @@ const FileImportDialog = {
   },
 
   importExcelCallback(file: File) {
-    API.importExcel(SheetStateStore.getCurrentSheetId(), file.name);
+    API.importExcel(WorkbookStore.getCurrentSheetId(), file.name);
   },
 
   postFilesToBackend(files: Array<File>, callback:  (file: File ) => void ) {

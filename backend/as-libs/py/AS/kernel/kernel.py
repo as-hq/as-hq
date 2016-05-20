@@ -339,15 +339,15 @@ import base64
     if msg['type'] == 'evaluate':
       result = None
       if msg['scope'] == 'Header':
-        result = self.shell.run_header(msg['code'], msg['sheet_id'])
+        result = self.shell.run_header(msg['code'], msg['workbook_id'])
       elif msg['scope'] == 'Cell':
-        result = self.shell.run_cell(msg['code'], msg['sheet_id'])
+        result = self.shell.run_cell(msg['code'], msg['workbook_id'])
       else:
         raise NotImplementedError
       return self.exec_result_to_msg(result, msg)
 
     elif msg['type'] == 'evaluate_format':
-      result = self.shell.run_raw(msg['code'], msg['sheet_id'])
+      result = self.shell.run_raw(msg['code'], msg['workbook_id'])
       if result.result:
         # evaluate_format's reply type is string
         result.result = repr(result.result) 
@@ -360,7 +360,7 @@ import base64
       raise NotImplementedError
 
     elif msg['type'] == 'clear':
-      self.shell.init_sheet_ns(msg['sheet_id'])
+      self.shell.init_workbook_ns(msg['workbook_id'])
       return {'type': 'generic_success'}
 
     elif msg['type'] == 'halt_message':

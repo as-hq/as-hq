@@ -11,7 +11,6 @@ import Data.Map         (Map)
 import Data.ByteString  (ByteString)
 import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Lens
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 import Control.Monad.IO.Class (MonadIO)
@@ -35,11 +34,11 @@ data KernelRequest =
     EvaluateRequest 
       { scope :: EvalScope          -- the scope in which to execute code
       , evalMessageId :: MessageId  -- the message ID associated with an eval request
-      , envSheetId :: ASSheetId     -- the sheet in which the execution is requested
+      , evalWorkbookId :: WorkbookID-- the workbook in which the execution is requested
       , code :: String              -- user-supplied code
       } 
   -- Clears the namespace of global (header) variables in a sheet
-  | ClearRequest ASSheetId
+  | ClearRequest WorkbookID
   -- Halts execution of a previous message.
   | HaltMessageRequest MessageId
   -- Queries the status of a previous message.
@@ -64,8 +63,8 @@ type Addr = String
 type NetworkId = ByteString
 type Message = [ByteString]
 
-data SheetWorker = SheetWorker 
-  { _workerSheetId :: ASSheetId
+data WorkbookWorker = WorkbookWorker 
+  { _workerWorkbookId :: WorkbookID
   , _networkId :: Maybe NetworkId
   , _process :: ProcessID 
   , _isRegistered :: Bool
@@ -76,36 +75,36 @@ data CellWorker = CellWorker
   , _cellMessage :: MessageId
   }
 
-data SheetState = SheetState
-  { _sheetEnvironment :: SEXP0                -- a pointer to an environment on the R heap
+data WorkbookState = WorkbookState
+  { _workbookEnvironment :: SEXP0                -- a pointer to an environment on the R heap
   , _cellWorkers :: Map ProcessID CellWorker
-  , _sheetLog :: Maybe Handle
+  , _workbookLog :: Maybe Handle
   }
 
 data KernelState = KernelState 
-  { _sheetWorkers :: Map ASSheetId SheetWorker
+  { _workbookWorkers :: Map WorkbookID WorkbookWorker
   , _kernelLog :: Maybe Handle
-  , _messageQueue :: Map ASSheetId [Message]
+  , _messageQueue :: Map WorkbookID [Message]
   }
 
 newKernelState :: Maybe Handle -> KernelState
 newKernelState l = KernelState 
-  { _sheetWorkers = Map.empty
+  { _workbookWorkers = Map.empty
   , _kernelLog = l 
   , _messageQueue = Map.empty
   }
 
-newSheetState :: SEXP0 -> Maybe Handle -> SheetState
-newSheetState e h = SheetState 
-  { _sheetEnvironment = e
+newWorkbookState :: SEXP0 -> Maybe Handle -> WorkbookState
+newWorkbookState e h = WorkbookState 
+  { _workbookEnvironment = e
   , _cellWorkers = Map.empty
-  , _sheetLog = h
+  , _workbookLog = h
   }
 
-makeLenses ''SheetWorker
+makeLenses ''WorkbookWorker
 makeLenses ''CellWorker
 makeLenses ''KernelState
-makeLenses ''SheetState
+makeLenses ''WorkbookState
 
 --------------------------------------------------------------------------------
 -- Helper functions
@@ -116,8 +115,8 @@ class LoggableState a where
 instance LoggableState (MVar KernelState) where
   getLog st = view kernelLog <$> readMVar st
 
-instance LoggableState (MVar SheetState) where
-  getLog st = view sheetLog <$> readMVar st 
+instance LoggableState (MVar WorkbookState) where
+  getLog st = view workbookLog <$> readMVar st 
 
 closeLog :: (MonadIO m, LoggableState s) => s -> m ()
 closeLog st = liftIO $ getLog st >>= \log -> 

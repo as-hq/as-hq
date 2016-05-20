@@ -46,6 +46,7 @@ import qualified AS.DB.Transaction as DT
 import AS.Handlers.Misc
 
 import qualified Data.Text as T
+import qualified Data.Set as Set
 
 import qualified Database.Redis as R
 import qualified AS.DB.Internal as DI
@@ -73,7 +74,7 @@ import Network.Socket (withSocketsDo)
 -- Instances
 
 deriving instance Generic ServerState
-deriving instance Generic ASUserClient
+deriving instance Generic UserClient
 deriving instance Generic EvalContext
 deriving instance Generic ContextualFormula
 deriving instance Generic Formula
@@ -117,7 +118,8 @@ clientApp action wsConn = do
   state <- newMVar ss 
   let conn = ss^.dbConn
   clean conn
-  uc <- DU.createUserClient conn wsConn "bench_user_id" 
+  let user = User "bench_user_id" (Set.singleton "bench_workbook_id") "bench_workbook_id"
+  uc <- DU.createUserClient conn wsConn user
   let msgctx = MessageContext { _messageState = State state
                               , _messageId = "bench_message_id"
                               , _userClient = uc

@@ -16,7 +16,6 @@ import Control.Exception (handle, SomeException)
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
-import Control.Lens
 import Control.Concurrent
 import System.Directory (getCurrentDirectory)
 import qualified Data.ByteString.Char8 as BC

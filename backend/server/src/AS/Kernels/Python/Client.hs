@@ -8,7 +8,6 @@ import Data.Aeson
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Text as T
 import Control.Exception (catch, SomeException)
-import Control.Lens hiding ((.=))
 import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
@@ -45,31 +44,31 @@ initialize conn = do
   -- Run all the headers in db to initialize the sheet namespaces
   headers <- getAllHeaders conn Python
   forM_ headers $ \h -> do 
-    let sid  = h^.evalHeaderSheetId
+    let wid  = h^.evalHeaderWorkbookId
     let expr = h^.evalHeaderExpr
-    runEitherT $ evaluateHeader initialize_message_id sid expr
+    runEitherT $ evaluateHeader initialize_message_id wid expr
 
 --------------------------------------------------------------------------------
 -- Top level evaluation functions
 
-evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluate :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell
 
-evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateHeader :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 -- #needsrefactor Should not hard core errors
-evaluateLambdaFormat :: ASSheetId -> 
+evaluateLambdaFormat :: WorkbookID -> 
                         LambdaConditionExpr -> 
                         ASValue -> 
                         EitherTExec FormatResult
-evaluateLambdaFormat sid lambdaExpr val = do 
+evaluateLambdaFormat wid lambdaExpr val = do 
   (mFormatStr, mErr) <- case val of 
     ValueError _ _ -> return (Nothing, Just "can't format cell with error")
     v              -> do 
       let evalExpr = "(" ++ lambdaExpr ++ ")(" ++ 
                       showValue Python (CellValue v) ++ ")"
-      EvaluateFormatReply f e <- runRequest $ EvaluateFormatRequest sid evalExpr
+      EvaluateFormatReply f e <- runRequest $ EvaluateFormatRequest wid evalExpr
       return (f,e)
   return $ case mFormatStr of 
     Just formatStr -> case R.parseFormatValue formatStr of 
@@ -82,25 +81,25 @@ evaluateLambdaFormat sid lambdaExpr val = do
 haltMessage :: MessageId -> IO ()
 haltMessage = runRequest_ . HaltMessageRequest
 
-clear :: ASSheetId -> IO ()
+clear :: WorkbookID -> IO ()
 clear = runRequest_ . ClearRequest
 
 -- | SQL code is converted to Python code, so simply evaluating as usual will 
 -- suffice for now.
-evaluateSql :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateSql :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluateSql = evaluateWithScope Cell
 
 --------------------------------------------------------------------------------
 -- General Helpers
 
-testCell :: ASSheetId -> EvalCode -> IO ()
-testCell sid code = do 
-  evalledCell <- runEitherT $ evaluate sid test_message_id code
+testCell :: WorkbookID -> EvalCode -> IO ()
+testCell wid code = do 
+  evalledCell <- runEitherT $ evaluate wid test_message_id code
   putsObj "Test evaluate python cell: " evalledCell
 
-testHeader :: ASSheetId -> EvalCode -> IO ()
-testHeader sid code = do 
-  evalledHeader <- runEitherT $ evaluateHeader sid test_message_id code
+testHeader :: WorkbookID -> EvalCode -> IO ()
+testHeader wid code = do 
+  evalledHeader <- runEitherT $ evaluateHeader wid test_message_id code
   putsObj "Test evaluate python header: " evalledHeader
 
 --------------------------------------------------------------------------------
@@ -108,12 +107,12 @@ testHeader sid code = do
 
 evaluateWithScope :: EvalScope -> 
                      MessageId -> 
-                     ASSheetId -> 
+                     WorkbookID -> 
                      EvalCode -> 
                      EitherTExec EvalResult
 evaluateWithScope _ _ _ "" = return emptyResult
-evaluateWithScope scope mid sid code = do
-  (EvaluateReply v err disp) <- runRequest $ EvaluateRequest scope mid sid code
+evaluateWithScope scope mid wid code = do
+  (EvaluateReply v err disp) <- runRequest $ EvaluateRequest scope mid wid code
   let cleanedDisp = cleanDisplay <$> disp
   case v of 
     Nothing -> case err of 
@@ -187,7 +186,6 @@ getPoke req dealer = case getMessageId req of
 getMessageId :: KernelRequest -> Maybe MessageId
 getMessageId (EvaluateRequest _ mid _ _) = Just mid
 getMessageId (EvaluateFormatRequest _ _) = Nothing
-getMessageId (AutocompleteRequest _ _) = Nothing
 getMessageId (ClearRequest _) = Nothing
 getMessageId (HaltMessageRequest mid) = Just mid
 getMessageId (GetStatusRequest mid) = Just mid

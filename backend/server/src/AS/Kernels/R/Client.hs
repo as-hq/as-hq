@@ -7,7 +7,6 @@ import System.ZMQ4.Monadic
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Control.Applicative
-import Control.Lens
 import Database.Redis (Connection)
 
 import AS.Types.Cell hiding (Cell)
@@ -32,30 +31,33 @@ initialize conn = do
   -- Run all the headers in db to initialize the sheet namespaces
   headers <- getAllHeaders conn R
   forM_ headers $ \h -> do 
-    let sid  = h^.evalHeaderSheetId
+    let wid  = h^.evalHeaderWorkbookId
     let expr = h^.evalHeaderExpr
-    runEitherT $ evaluateHeader initialize_message_id sid expr
+    runEitherT $ evaluateHeader initialize_message_id wid expr
 
 --------------------------------------------------------------------------------
 -- Top level evaluation functions
 
-evaluateWithScope :: EvalScope -> MessageId -> ASSheetId -> 
-                     EvalCode -> EitherTExec EvalResult
+evaluateWithScope :: EvalScope 
+                  -> MessageId 
+                  -> WorkbookID 
+                  -> EvalCode 
+                  -> EitherTExec EvalResult
 evaluateWithScope _ _ _ "" = return emptyResult
-evaluateWithScope scope mid sid code = do
-  (EvaluateReply r) <- runRequest $ EvaluateRequest scope mid sid code
+evaluateWithScope scope mid wid code = do
+  (EvaluateReply r) <- runRequest $ EvaluateRequest scope mid wid code
   return r
 
-evaluate :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluate :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell
 
-evaluateHeader :: MessageId -> ASSheetId -> EvalCode -> EitherTExec EvalResult
+evaluateHeader :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluateHeader = evaluateWithScope Header
 
 haltMessage :: MessageId -> IO ()
 haltMessage = runRequest_ . HaltMessageRequest
 
-clear :: ASSheetId -> IO ()
+clear :: WorkbookID -> IO ()
 clear = runRequest_ . ClearRequest
 
 --------------------------------------------------------------------------------

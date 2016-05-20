@@ -22,7 +22,7 @@ import APIActions from '../../actions/APIActionCreators';
 import API from '../../actions/ASApiActionCreators';
 // #needsrefactor the two above should really be merged
 
-import SheetStore from '../../stores/ASSheetStateStore';
+import WorkbookStore from '../../stores/ASWorkbookStore';
 
 type Props = {};
 type State = {
@@ -38,7 +38,7 @@ type MenuItemContent = {
 class SheetBrowser extends React.Component {
   props: Props;
   state: State;
-  _sheetStoreListener: Callback;
+  _storeToken: StoreToken;
   _createButton: any;
   _createTextField: any;
   _scrollArea: any;
@@ -51,20 +51,19 @@ class SheetBrowser extends React.Component {
     };
   }
 
-  componendDidMount() {
-    this._sheetStoreListener = () => this.forceUpdate();
-    SheetStore.addChangeListener(this._sheetStoreListener);
+  componentDidMount() {
+    this._storeToken = WorkbookStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
-    SheetStore.removeChangeListener(this._sheetStoreListener);
+    this._storeToken.remove();
   }
 
   render(): React.Element {
     const { addPopoverOpen, titleFieldError } = this.state;
-    const mySheets = SheetStore.getMySheets();
-    const sharedSheets = SheetStore.getSharedSheets();
-    const currentSheet = SheetStore.getCurrentSheetId();
+    const mySheets = WorkbookStore.getMySheets();
+    const sharedSheets = WorkbookStore.getSharedSheets();
+    const currentSheet = WorkbookStore.getCurrentSheetId();
 
     const popOverAnchor = addPopoverOpen ?
       ReactDOM.findDOMNode(this._createButton)
@@ -120,23 +119,23 @@ class SheetBrowser extends React.Component {
           <div style={styles.spacer} />
 
           {mySheets.map(s =>
-            <Tab title={s.sheetName}
-                 active={s.sheetId === currentSheet}
+            <Tab title={s.name}
+                 active={s.id === currentSheet}
                  mutable={true}
-                 onSelect={() => APIActions.openSheet(s.sheetId)}
-                 onLabelChange={name => API.renameSheet(s.sheetId, name)}
-                 onDelete={() => API.deleteSheet(s.sheetId)}
-                 key={s.sheetId}
+                 onSelect={() => APIActions.openSheet(s.id)}
+                 onLabelChange={name => API.renameSheet(s.id, name)}
+                 onDelete={() => API.deleteSheet(s.id)}
+                 key={s.id}
                  />
             )
           }
 
           {sharedSheets.map(s =>
-            <Tab title={s.sheetName + ' [shared]'}
-                 active={s.sheetId === currentSheet}
+            <Tab title={s.name + ' [shared]'}
+                 active={s.id === currentSheet}
                  mutable={false}
-                 onSelect={() => APIActions.openSheet(s.sheetId)}
-                 key={s.sheetId}
+                 onSelect={() => APIActions.openSheet(s.id)}
+                 key={s.id}
                  />
             )
           }

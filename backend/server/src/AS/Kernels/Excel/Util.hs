@@ -18,7 +18,6 @@ import Data.Maybe hiding (fromJust)
 import Data.List hiding (head, tail)
 import qualified Data.Vector as V
 
-import Control.Lens
 import Control.Monad.Trans.Either
 
 import System.IO.Unsafe

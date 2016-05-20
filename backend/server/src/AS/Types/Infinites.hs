@@ -5,7 +5,6 @@ module AS.Types.Infinites where
 
 import AS.Prelude hiding (isInfinite)
 import Prelude hiding (isInfinite)
-import Control.Lens hiding ((.=))
 
 -- | Creates an Infinite data type from any existing data type.
 -- Used to create Infinite Col and Infinite Row data types, which are used as

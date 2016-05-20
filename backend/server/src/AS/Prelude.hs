@@ -6,9 +6,12 @@ module AS.Prelude
   , module Data.Data
   , module GHC.Generics
   , module System.IO
+  , module Control.Lens
+  , module Control.Lens.TH
   , module Control.Monad
   , module Control.Monad.Trans.Either
   , module Data.List
+  , module Data.Maybe
   , error
   , undefined
   , valAt
@@ -34,6 +37,8 @@ module AS.Prelude
   , sequenceWith
   , whenLeft
   , whenJust
+  , maybeM
+  , getUUID
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -74,9 +79,28 @@ import Data.List (
   , intercalate
   )
 
+import Data.Maybe (
+    catMaybes
+  , isNothing
+  , mapMaybe
+  )
+
 import Control.Concurrent
 import Control.Exception
-import Control.Lens
+import Control.Lens hiding (
+    (.=)
+  , (.>)
+  , set
+  , index
+  , to
+  , from
+  , Context
+  , transform
+  , Setter
+  , Getter
+  )
+import Control.Lens.TH
+
 import Language.Haskell.TH
 import Safe (headMay, lastMay, tailMay)
 import Text.Read (readEither)
@@ -95,6 +119,9 @@ import Control.Monad.Trans.Either
 import System.Posix.Types (ProcessID)
 import System.Posix.Process (forkProcess, exitImmediately)
 import System.Exit (ExitCode(..))
+
+import Data.UUID.V1 (nextUUID)
+import Data.UUID    (toString)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- error with locations
@@ -244,8 +271,23 @@ whenJust :: (Monad m) => Maybe a -> (a -> m b) -> m ()
 whenJust Nothing  _ = return ()
 whenJust (Just x) f = void $ f x
 
+maybeM :: (Monad m) => m b -> (a -> b) -> m (Maybe a) -> m b
+maybeM def f src = src >>= \mx -> case mx of 
+  Nothing -> def
+  Just x  -> return $ f x
+
 parMapM_ :: (a -> IO ()) -> [a] -> IO ()
 parMapM_ f xs = mapM_ (forkIO_ . f) xs
 
 parForM_ :: [a] -> (a -> IO ()) -> IO ()
 parForM_ = flip parMapM_
+
+-- | a hyphenated alphanumeric UUID 
+getUUID :: IO String
+getUUID = do
+  u <- nextUUID
+  case u of 
+    Just u  -> return $ toString u
+    -- according to https://hackage.haskell.org/package/uuid-1.3.12/docs/Data-UUID-V1.html,
+    -- `nextUUID` returns Nothing if you request UUIDs too quickly.
+    Nothing -> putStrLn "could not generate UUID!" >> threadDelay 100 >> getUUID

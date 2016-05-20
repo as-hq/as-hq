@@ -10,7 +10,6 @@ import Database.Redis (Connection)
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
-import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception (catch, SomeException)
 import Data.Maybe hiding (fromJust)
@@ -51,7 +50,7 @@ import AS.Config.Settings
 import qualified AS.DB.API as DB
 import qualified AS.DB.Eval as DE
 import qualified AS.DB.Graph as G
-import AS.DB.Users (getUserSheets)
+import AS.DB.Users (getOpenedSheets)
 
 ----------------------------------------------------------------------------------------------------
 -- Exposed functions
@@ -66,11 +65,12 @@ evaluateLanguage :: MessageContext ->
 evaluateLanguage msgctx evalctx idx xp f = catchEitherT $ do
   let conn = msgctx^.dbConnection
   let sid = idx^.locSheetId
+  let wid = messageWorkbookId msgctx
   let uid = msgctx^.userClient.userId
   let mid = msgctx^.messageId
   let lang = xp^.language
   -- Function from ExRef to string for interpolation
-  sheets <- liftIO $ getUserSheets conn uid
+  sheets <- liftIO $ getOpenedSheets conn uid
   let replaceFunc ref = lookUpRef msgctx evalctx lang (exRefToASRef sid sheets ref) f
   case equalsSignsCheck xp of
     Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
@@ -100,19 +100,19 @@ evaluateLanguage msgctx evalctx idx xp f = catchEitherT $ do
             -- values for loading the initial entities
           SQL -> do 
             code <- lift $ sqlToPythonCode msgctx evalctx nonInterpolatedXp f
-            return <$> KP.evaluateSql mid sid code
-          Python -> return <$> KP.evaluate mid sid (interpolatedXp^.expression)
-          R -> return <$> KR.evaluate mid sid (interpolatedXp^.expression)
+            return <$> KP.evaluateSql mid wid code
+          Python -> return <$> KP.evaluate mid wid (interpolatedXp^.expression)
+          R -> return <$> KR.evaluate mid wid (interpolatedXp^.expression)
 
 -- Python kernel now requires sheetid because each sheet now has a separate namespace against 
 --  which evals are executed
 evaluateHeader :: MessageId -> EvalHeader -> EitherTExec EvalResult
 evaluateHeader mid evalHeader = 
   case lang of 
-    Python -> KP.evaluateHeader mid sid str
-    R      -> KR.evaluateHeader mid sid str
+    Python -> KP.evaluateHeader mid wid str
+    R      -> KR.evaluateHeader mid wid str
   where 
-    sid  = evalHeader^.evalHeaderSheetId
+    wid  = evalHeader^.evalHeaderWorkbookId
     lang = evalHeader^.evalHeaderLang
     str  = evalHeader^.evalHeaderExpr
 
@@ -138,7 +138,7 @@ insertValues msgctx evalctx xp f = do
   let uid   = msgctx^.userClient.userId
       conn  = msgctx^.dbConnection
       sid   = messageSheetId msgctx
-  sheets <- getUserSheets conn uid
+  sheets <- getOpenedSheets conn uid
   let toASRef = exRefToASRef sid sheets
       replaceFunc ref = lookUpRef msgctx evalctx (xp^.language) (toASRef ref) f
   replacedXp <- replaceRefsIO replaceFunc xp
@@ -158,7 +158,7 @@ sqlToPythonCode msgctx evalctx xp f = do
   let conn  = msgctx^.dbConnection
       sid   = messageSheetId msgctx
       uid   = msgctx^.userClient.userId
-  sheets <- getUserSheets conn uid
+  sheets <- getOpenedSheets conn uid
   let exRefs = getExcelReferences xp
       toASRef = exRefToASRef sid sheets
       tableRefs = map toASRef $ filter refIsSQLTable exRefs 

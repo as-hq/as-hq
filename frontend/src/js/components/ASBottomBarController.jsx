@@ -13,7 +13,7 @@ import U from '../AS/Util';
 
 import type { StoreToken } from 'flux';
 
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import CellStore from '../stores/ASCellStore';
 import GridStore from '../stores/ASGridStore';
 import ConfigActions from '../actions/ASConfigActionCreators';
@@ -24,32 +24,21 @@ type Props = {
 };
 
 export default class ASBottomBarController extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: {};
   state: {};
   _gridStoreListener: StoreToken;
   _cellStoreListener: StoreToken;
-  _sheetsListener: () => void;
-
-  $storeLinks: Array<StoreLink>;
-
-  constructor(props: Props) {
-    super(props);
-    this._sheetsListener = () => this.forceUpdate();
-  }
+  _workbookStoreListener: StoreToken;
 
   componentDidMount() {
-    U.React.addStoreLinks(this, [
-      { store: SheetStateStore },
-    ]);
-    SheetStateStore.addListener('GOT_MY_SHEETS', this._sheetsListener);
+    this._workbookStoreListener = WorkbookStore.addListener(() => this.forceUpdate());
     this._gridStoreListener = GridStore.addListener(() => this.forceUpdate());
     this._cellStoreListener = CellStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
-    U.React.removeStoreLinks(this);
-    SheetStateStore.removeListener('GOT_MY_SHEETS', this._sheetsListener);
+    this._workbookStoreListener.remove();
     this._gridStoreListener.remove();
     this._cellStoreListener.remove();
   }
@@ -66,7 +55,7 @@ export default class ASBottomBarController extends React.Component {
               errorIconStyle={errorIconStyle}
               outputIconStyle={outputIconStyle}
               objectViewerIconStyle={objectViewerIconStyle}
-              sheetName={SheetStateStore.getCurrentSheetTitle()}
+              sheetName={WorkbookStore.getCurrentSheetTitle()}
               onErrorIconClick={onErrorIconClick}
               onOutputIconClick={onOutputIconClick}
               onHeaderIconClick={onHeaderIconClick}

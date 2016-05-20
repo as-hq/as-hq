@@ -16,10 +16,10 @@ import AS.Config.Constants
 import AS.Clients() -- #needsrefactor this exists because some other module re-exports AS.Clients
 import AS.Reply
 import AS.Logging
-import AS.DB.API as DB
-import AS.DB.Graph as G
-import AS.DB.Internal as DI
-import AS.DB.Users 
+import qualified AS.DB.API as DB
+import qualified AS.DB.Users as DB
+import qualified AS.DB.Graph as G
+import qualified AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
@@ -33,7 +33,6 @@ import System.Directory (createDirectoryIfMissing)
 import System.Posix.Signals
 import Control.Exception
 import Control.Concurrent
-import Control.Lens hiding ((.=))
 
 import Data.Aeson hiding (Success)
 import qualified Data.Text as T
@@ -66,7 +65,7 @@ main = alphaMain $ R.withEmbeddedR R.defaultConfig $ do
   installHandler sigPIPE Ignore Nothing `seq` return ()
   state <- initApp
   -- initializations
-  curState <- readMVar state
+  curState <- readState state
   when isDebug $ initDebug state
 
   putsConsole "Recomputing DAG..."
@@ -80,7 +79,7 @@ main = alphaMain $ R.withEmbeddedR R.defaultConfig $ do
   putsConsole "Server exited."
   closeLog
 
-initApp :: IO (MVar ServerState)
+initApp :: IO State
 initApp = do
   -- init logging
   forkIO_ runLogger
@@ -101,15 +100,15 @@ initApp = do
   host <- getSetting serverHost
   port <- getSetting ekgPort
   Monitor.forkServer (BC.pack host) port
-  return state
+  return $ State state
 
 -- |  for debugging. Only called if isDebug is true.
-initDebug :: MVar ServerState -> IO ()
+initDebug :: State -> IO ()
 initDebug _ = do
   putsConsole "Evaluating debug statements..."
   putsConsole "Done."
 
-runServer :: MVar ServerState -> IO ()
+runServer :: State -> IO ()
 runServer mstate = do
   host <- S.getSetting S.serverHost
   port <- S.getSetting S.serverPort
@@ -120,7 +119,7 @@ runServer mstate = do
       $ Warp.defaultSettings)
     $ application mstate
 
-application :: MVar ServerState -> Wai.Application
+application :: State -> Wai.Application
 application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticApp
   where
     wsApp :: WS.ServerApp
@@ -133,27 +132,30 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
     staticApp :: Wai.Application
     staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
 
-handshakeAndStart ::  MVar ServerState -> WS.Connection -> BL.ByteString -> IO ()
+handshakeAndStart ::  State -> WS.Connection -> BL.ByteString -> IO ()
 handshakeAndStart state wsConn msg =
   case (decode msg :: Maybe FirstMessage) of
     Just (Login auth) -> do -- first message must be user auth
       putsObj "got auth:" auth
-      authResult <- US.authenticateUser auth
+      dbConn <- view dbConn <$> readState state
+      authResult <- US.authenticateUser dbConn auth
       case authResult of 
-        Right uid -> do
-          dbConn <- view dbConn <$> readMVar state
-          userClient <- createUserClient dbConn wsConn uid 
+        Right user -> do
+          userClient <- DB.createUserClient dbConn wsConn user 
           -- If this is a test session, don't log. Otherwise, set logging = true (another preflight request
           -- will shut this off if we're debugging). Also, don't log testing users in the MySQL db
           case auth of 
             TestAuth  -> do 
-              handleStopLoggingActions (State state)
+              handleStopLoggingActions state
             _         -> do 
-              startLoggingActions (State state)
+              startLoggingActions state
               -- Modify the MySQL DB of users
               --updateUserSession (userId userClient) (userSessionId userClient)
-          let defaultSid = windowSheetId . view userWindow $ userClient
-          let successMsg = ClientMessage auth_message_id $ AuthSuccess uid defaultSid
+          let uid = userClient^.userId
+              wid = userClient^.userWindow.windowWorkbookId
+          openWb <- $fromJust <$> DB.getOpenedWorkbook dbConn wid
+          wbRefs <- DB.getUserWorkbookRefs dbConn uid
+          let successMsg = ClientMessage auth_message_id $ AuthSuccess uid openWb wbRefs
           sendMessage wsConn successMsg 
           catchAny 
             (engageClient userClient state) 
@@ -171,7 +173,7 @@ handshakeAndStart state wsConn msg =
 
 -- | For debugging purposes. Reads in a list of ServerMessages from a file and processes them, as though
 -- sent from a frontend. 
-preprocess :: WS.Connection -> MVar ServerState -> IO () 
+preprocess :: WS.Connection -> State -> IO () 
 preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4/13)
   --do
   ---- prepare the preprocessing
@@ -185,24 +187,24 @@ preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4
   --        uid' = T.pack uid
   --        -- userId and sessionId's are synonymous here, because mocked clients don't have a concept of multiple sessions
   --        mockUc = UserClient uid' conn win uid'
-  --    curState <- readMVar state
+  --    curState <- readState state
   --    when (isNothing $ US.getUserClientBySessionId uid' curState) $ 
-  --      modifyMVar_ state (return . addClient mockUc)
+  --      modifyState_ state (return . addClient mockUc)
   --    processMessage mockUc state ($read msg)
 
-engageClient :: (Client c) => c -> MVar ServerState -> IO ()
+engageClient :: (Client c) => c -> State -> IO ()
 engageClient client state = do
-  liftIO $ modifyMVar_ state (return . addClient client) -- add client to state
+  liftIO $ modifyState_ state (return . addClient client) -- add client to state
   puts "Client initialized!"
   finally (talk client state) (onDisconnect client state)
 
 -- | Maintains connection until user disconnects
-talk :: (Client c) => c -> MVar ServerState -> IO ()
+talk :: (Client c) => c -> State -> IO ()
 talk client state = forever $ do
   dmsg <- WS.receiveDataMessage (clientConn client)
   putsConsole "=== RECEIVE MESSAGE ===="
   case dmsg of 
-    WS.Binary b -> handleImportBinary client (State state) b
+    WS.Binary b -> handleImportBinary client state b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
       Right m -> processAsyncWithTimeout client state m
       Left s -> 
@@ -221,7 +223,7 @@ putsServerMessage msg = case msg of
 -- removes this bookkeeping upon success. Upon timeout, send an "AskTimeout" message to the client. The 
 -- client is expected to reply with a message with the same messageId, in order to reconcile the AskTimeout 
 -- with the relevant thread. Upon receiving the reply, kill it, and remove it from state.
-processAsyncWithTimeout :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
+processAsyncWithTimeout :: (Client c) => c -> State -> ServerMessage -> IO ()
 processAsyncWithTimeout c state msg = case clientType c of 
   UserType -> do
     successLock <- newEmptyMVar 
@@ -229,7 +231,7 @@ processAsyncWithTimeout c state msg = case clientType c of
       putsServerMessage msg
       processMessage c state msg
       putsConsole "=== FINISHED PROCESSING MESSAGE ====" 
-    modifyMVar_' state $ \curState -> 
+    modifyState_ state $ \curState -> 
       return $ curState & threads %~ (M.insert mid tid)
     putMVar successLock ()
     where
@@ -242,13 +244,13 @@ processAsyncWithTimeout c state msg = case clientType c of
           (clientConn c)
           (ClientMessage timeout_message_id $ AskTimeout mid act) 
       onSuccess lock = do
-        -- block until the first modifyMVar_ above finishes.
+        -- block until the first modifyState_ above finishes.
         takeMVar lock
-        modifyMVar_' state $ \curState -> 
+        modifyState_ state $ \curState -> 
           return $ curState & threads %~ (M.delete mid)
   DaemonType -> void $ forkIO (processMessage c state msg)
 
-handleRuntimeException :: ASUserClient -> MVar ServerState -> SomeException -> IO ()
+handleRuntimeException :: UserClient -> State -> SomeException -> IO ()
 handleRuntimeException user state e = do
   let logMsg = displayException e
   putStrLn logMsg
@@ -262,31 +264,31 @@ handleRuntimeException user state e = do
 -- when this happens, a client that's disconnected is still stored in the state. 
 -- This function makes sure they get removed from the state. Unsure if this is actually
 -- a robust solution. 
-purgeZombies :: MVar ServerState -> IO ()
+purgeZombies :: State -> IO ()
 purgeZombies state = do 
-  ucs <- view userClients <$> readMVar state
+  ucs <- view userClients <$> readState state
   forM_ ucs $ \uc -> 
     handleAny (onDisconnect' uc state) $ 
       WS.sendTextData (uc^.userConn) ("TEST" :: T.Text) 
 
 -- There's gotta be a cleaner way to do this... but for some reason even typecasting 
 -- (\e -> onDisconnect uc state) :: (SomeException -> IO()) didn't work...
-onDisconnect' :: (Client c) => c -> MVar ServerState -> SomeException -> IO ()
+onDisconnect' :: (Client c) => c -> State -> SomeException -> IO ()
 onDisconnect' c state _ = do 
   onDisconnect c state
   putsError (clientCommitSource c) "ZOMBIE KILLED!!"
 
-processMessage :: (Client c) => c -> MVar ServerState -> ServerMessage -> IO ()
+processMessage :: (Client c) => c -> State -> ServerMessage -> IO ()
 processMessage oldClient mstate message = do
-  state <- readMVar mstate 
+  state <- readState mstate 
   let newClient = lookupClient oldClient state -- the client's properties might have been mutated; read it anew
   isPermissible <- DB.isPermissibleMessage (ownerName newClient) (state^.dbConn) message
   if isPermissible || isDebug
-    then handleServerMessage newClient (State mstate) message
+    then handleServerMessage newClient mstate message
     else sendMessage (clientConn newClient) $
       failureMessage (serverMessageId message) "Insufficient permissions" 
 
-onDisconnect :: (Client c) => c -> MVar ServerState -> IO ()
+onDisconnect :: (Client c) => c -> State -> IO ()
 onDisconnect c state = do
   putsConsole $ "Client disconnected: " ++ T.unpack (ownerName c)
-  liftIO $ modifyMVar_' state (return . removeClient c) -- remove client from server
+  modifyState_ state (return . removeClient c) -- remove client from server

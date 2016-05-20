@@ -12,13 +12,6 @@ import type {
 } from '../types/Messages';
 
 export default {
-  resetData(headers: Array<EvalHeader>) {
-    Dispatcher.dispatch({
-      _type: 'HEADER_DATA_RESET',
-      headers
-    });
-  },
-
   update(expression: string, language: ASLanguage) {
     Dispatcher.dispatch({
       _type: 'HEADER_UPDATED',

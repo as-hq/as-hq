@@ -16,8 +16,14 @@ export type PXRectangle = {
   extent: { x: number, y: number }
 };
 
+export type ClipboardMode =
+  'disabled'
+  | 'cut'
+  | 'copy'
+  ;
+
 export type RenderParams = {
-  mode: ?string,
+  clipboardMode: ClipboardMode,
   deps: Array<ASRange>,
   cellWidth: number,
   selection: ?ASSelection,

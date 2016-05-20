@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module AS.Util where
 
-import Data.UUID.V1 (nextUUID)
-import Data.UUID    (toString)
 import Debug.Trace 
 
 import Control.Concurrent (threadDelay)
@@ -22,15 +20,3 @@ trace' s x = trace ("\n\n\n" ++ s ++ "\n" ++ (show x) ++ "\n\n\n") x
 testCell :: ASCell
 testCell = Cell (Index "" (makeCoord 1 1)) (Expression "=1+1" Excel) NoValue emptyProps Nothing Nothing
 
--------------------------------------------------------------------------------------------------------------------------
--- Misc
-
--- | a hyphenated alphanumeric UUID 
-getUUID :: IO String
-getUUID = do
-  u <- nextUUID
-  case u of 
-    Just u  -> return $ toString u
-    -- according to https://hackage.haskell.org/package/uuid-1.3.12/docs/Data-UUID-V1.html,
-    -- `nextUUID` returns Nothing if you request UUIDs too quickly.
-    Nothing -> putStrLn "could not generate UUID!" >> threadDelay 100 >> getUUID

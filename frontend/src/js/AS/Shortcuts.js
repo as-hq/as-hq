@@ -19,7 +19,7 @@ import {logDebug} from './Logger';
 
 import Constants from '../Constants';
 import CellStore from '../stores/ASCellStore';
-import SheetStateStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 import GridStore from '../stores/ASGridStore';
 import HeaderStore from '../stores/ASHeaderStore';
 import FindStore from '../stores/ASFindStore';
@@ -111,7 +111,7 @@ function installAllShortcuts() {
   install('evalpane', 'new_sheet', 'Shift+F11', (wildcard: string) => {
     // TODO
   });
- 
+
   install('evalpane', 'cell_eval_arrayformula', 'Ctrl+Shift+Enter', (wildcard: string) => {
     let expression = ExpressionStore.getExpression();
     if (ExpressionStore.getLanguage() === 'Excel') {
@@ -179,12 +179,12 @@ function installAllShortcuts() {
 
   install('grid', 'moveto_data_boundary', 'Ctrl+Up|Down|Left|Right', (dir) => {
     const { origin } = GridStore.getActiveSelection();
-    const newOrigin = SheetStateStore.getDataBoundary(origin, dir);
+    const newOrigin = CellStore.getDataBoundary(origin, dir);
     GridActions.select(newOrigin.toSelection());
   });
   install('grid', 'moveto_data_boundary_selected', 'Ctrl+Shift+Up|Down|Left|Right', (dir) => {
     const selection = GridStore.getActiveSelection();
-    const newSelection = SheetStateStore.getDataBoundSelection(selection, dir);
+    const newSelection = CellStore.getDataBoundSelection(selection, dir);
     GridActions.select(newSelection);
   });
   install('grid', 'grid_fill_down', 'Ctrl+D', (wildcard: string) => {
@@ -324,29 +324,29 @@ function installAllShortcuts() {
 
   const textboxAndEditorShortcuts = [
     {
-      name: 'eval_down', 
-      key: 'Enter', 
+      name: 'eval_down',
+      key: 'Enter',
       func: (wildcard: string) => {
         APIActions.evaluate({dX: 0, dY: 1});
       }
     },
     {
-      name: 'eval_up', 
-      key: 'Shift+Enter', 
+      name: 'eval_up',
+      key: 'Shift+Enter',
       func: (wildcard: string) => {
         APIActions.evaluate({dX: 0, dY: -1});
       }
     },
     {
-      name: 'eval_right', 
-      key: 'Tab', 
+      name: 'eval_right',
+      key: 'Tab',
       func: (wildcard: string) => {
         APIActions.evaluate({dX: 1, dY: 0});
       }
     },
     {
-      name: 'eval_left', 
-      key: 'Shift+Tab', 
+      name: 'eval_left',
+      key: 'Shift+Tab',
       func: (wildcard: string) => {
         APIActions.evaluate({dX: -1, dY: 0});
       }
@@ -360,7 +360,7 @@ function installAllShortcuts() {
 
   // header shortcuts -------------------------------------------------------------------------------
   install('header', 'save', 'Ctrl+S', (wildcard: string) => {
-    APIActions.evaluateActiveHeader(); 
+    APIActions.evaluateActiveHeader();
   });
 
   // top level shortcuts -------------------------------------------------------------------------------

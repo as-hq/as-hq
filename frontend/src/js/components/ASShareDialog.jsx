@@ -4,9 +4,7 @@ import type {
   Callback
 } from '../types/Base';
 
-import type {
-  StoreLink
-} from '../types/React';
+import type { StoreToken } from 'flux';
 
 import React from 'react';
 import {Dialog, FlatButton, TextField} from 'material-ui';
@@ -19,7 +17,7 @@ import LightTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import U from '../AS/Util';
 
-import SheetStore from '../stores/ASSheetStateStore';
+import WorkbookStore from '../stores/ASWorkbookStore';
 
 type Props = {
   onRequestClose: Callback;
@@ -34,7 +32,7 @@ class ASShareDialog extends React.Component {
   static defaultProps = {};
   props: Props;
   state: State;
-  $storeLinks: Array<StoreLink>;
+  _storeToken: StoreToken;
   _linkField: any;
 
   constructor(props: Props) {
@@ -45,13 +43,11 @@ class ASShareDialog extends React.Component {
   }
 
   componentDidMount() {
-    U.React.addStoreLinks(this, [
-      { store: SheetStore }
-    ]);
+    this._storeToken = WorkbookStore.addListener(() => this.forceUpdate());
   }
 
   componentWillUnmount() {
-    U.React.removeStoreLinks(this);
+    this._storeToken.remove();
   }
 
   getChildContext(): any {
@@ -63,7 +59,7 @@ class ASShareDialog extends React.Component {
   render(): React.Element {
     const {open, onRequestClose} = this.props;
     const {accountRequired} = this.state;
-    const url = SheetStore.getSheetLink(accountRequired);
+    const url = WorkbookStore.getSheetLink(accountRequired);
 
     const dismissAction = <FlatButton
       label="Dismiss"

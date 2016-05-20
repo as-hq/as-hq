@@ -4,7 +4,7 @@ import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Network
 import AS.Types.Messages
-import AS.Types.User (ASUserId)
+import AS.Types.User (UserID)
 import AS.Types.Excel hiding (dbConn)
 import AS.Types.Eval
 import AS.Types.Commits
@@ -25,10 +25,10 @@ import AS.Reply
 import Data.Maybe
 import Data.List
 import Control.Concurrent
+import qualified Control.Lens as Lens
 
 import Database.Redis (Connection)
 import Control.Monad ((>=>))
-import Control.Lens
 
 handleCopy :: MessageContext -> ASRange -> ASRange -> IO ()
 handleCopy msgctx from to = do
@@ -75,7 +75,7 @@ getCopyCells conn from to = do
       translateCell :: Offset -> ASCell -> Maybe ASCell
       translateCell o c = shiftRangeKey o =<< shiftCell o c -- remember to shift the range key of a coupled expression as well
       toCells       = catMaybes $ concatMap (\o -> map (translateCell o) sanitizedFromCells) offsets
-      updateSheetId = set locSheetId (rangeSheetId to)
+      updateSheetId = Lens.set locSheetId (rangeSheetId to)
       toCells'      = map (cellLocation %~ updateSheetId) toCells
   return toCells'
 
@@ -103,7 +103,7 @@ shiftExpressionForCut from offset xp = xp'
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
 shiftRangeKey offset c = case c^.cellRangeKey of 
   Nothing -> Just c
-  Just (RangeKey ind dims) -> ((c &) . set cellRangeKey . Just . flip RangeKey dims) <$> shiftByOffsetWithBoundsCheck offset ind
+  Just (RangeKey ind dims) -> ((c &) . Lens.set cellRangeKey . Just . flip RangeKey dims) <$> shiftByOffsetWithBoundsCheck offset ind
 
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
@@ -116,7 +116,7 @@ getCutCells conn from to = do
 
 -- #expert
 replaceCellLocsMaybe :: (ASIndex -> Maybe ASIndex) -> ASCell -> Maybe ASCell
-replaceCellLocsMaybe f c = (flip (set cellLocation) c) <$> (f $ c^.cellLocation)
+replaceCellLocsMaybe f c = (flip (Lens.set cellLocation) c) <$> (f $ c^.cellLocation)
 
 -- | Constructs the cells at the locations you'll be pasting to
 getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]

@@ -7,7 +7,6 @@ module AS.Types.Eval
   ) where
 
 import AS.Prelude
-import Control.Lens hiding (index)
 import Control.Applicative ((<$>), (<*>))
 import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
@@ -112,7 +111,7 @@ rangeRect (RangeKey idx dims) = (tl, br)
     o = Offset ((width dims) -1) ((height dims) -1)
     br = toExtendedCoord $ shiftByOffset o tl
 
-rangeKeyToSheetId :: RangeKey -> ASSheetId
+rangeKeyToSheetId :: RangeKey -> SheetID
 rangeKeyToSheetId = view locSheetId . keyIndex
 
 isFatCellHead :: ASCell -> Bool 

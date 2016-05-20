@@ -25,7 +25,7 @@ type BarUpdate = Update Bar BarIndex
 
 -- Uniquely identifies a row or column in a sheet. 
 data BarCoord = BarRow Row | BarCol Col deriving (Show, Read, Eq, Typeable, Data, Generic, Ord)
-data BarIndex = BarIndex { barSheetId :: ASSheetId, barCoord :: BarCoord } deriving (Show, Read, Eq, Typeable, Data, Generic, Ord)
+data BarIndex = BarIndex { barSheetId :: SheetID, barCoord :: BarCoord } deriving (Show, Read, Eq, Typeable, Data, Generic, Ord)
 
 data Bar = Bar {barIndex :: BarIndex, barProps :: ASBarProps} deriving (Show, Read, Eq, Generic, Typeable, Data)
 
@@ -82,7 +82,7 @@ asToJSON ''Bar
 -- This is used to handle DB migrations when the types in the DB change.
 
 data BarType0 = ColumnType | RowType deriving (Show, Read, Eq, Data, Typeable, Generic)
-data BarIndex0 = BarIndex0 { barSheetId0 :: ASSheetId, barType0 :: BarType0, barNumber0 :: Int } deriving (Show, Read, Eq, Data, Typeable, Generic)
+data BarIndex0 = BarIndex0 { barSheetId0 :: SheetID, barType0 :: BarType0, barNumber0 :: Int } deriving (Show, Read, Eq, Data, Typeable, Generic)
 deriveSafeCopy 1 'base ''BarType0
 deriveSafeCopy 1 'base ''BarIndex0
 deriveSafeCopy 2 'extension ''BarIndex

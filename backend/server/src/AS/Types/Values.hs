@@ -7,7 +7,6 @@ import AS.ASJSON
 
 import AS.Types.Locations (Dimensions(..), int)
 import Control.DeepSeq
-import Control.Lens
 import Control.DeepSeq.Generics (genericRnf)
 import Data.List.Split (chunksOf)
 import qualified Data.List as L

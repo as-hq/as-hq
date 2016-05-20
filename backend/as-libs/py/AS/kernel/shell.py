@@ -96,8 +96,8 @@ class ASShell(InteractiveShell):
         # This is the cache used for 'main' namespaces
         self._main_mod_cache = {}
 
-        # The set of namespaces corresponding to sheets
-        self.sheet_nss = {}
+        # The set of namespaces corresponding to workbooks
+        self.workbook_nss = {}
 
         # A table holding all the namespaces IPython deals with, so that
         # introspection facilities can search easily.
@@ -141,35 +141,35 @@ class ASShell(InteractiveShell):
 #  Run-time initialization
 #-----------------------------------------------------------------------------
 
-  def init_sheet_ns(self, sheet_id):
-    self.sheet_nss[sheet_id] = copy.copy(self.user_global_ns)
+  def init_workbook_ns(self, workbook_id):
+    self.workbook_nss[workbook_id] = copy.copy(self.user_global_ns)
 
 #-----------------------------------------------------------------------------
 #  Evaluation API
 #-----------------------------------------------------------------------------
   
-  def run_header(self, raw_header, sheet_id):
-    # self.init_sheet_ns(sheet_id)
-    return self.run_block(raw_header, sheet_id, isolated=False)
+  def run_header(self, raw_header, workbook_id):
+    # self.init_workbook_ns(workbook_id)
+    return self.run_block(raw_header, workbook_id, isolated=False)
 
-  def run_cell(self, raw_cell, sheet_id):
-    return self.run_block(raw_cell, sheet_id, isolated=True)
+  def run_cell(self, raw_cell, workbook_id):
+    return self.run_block(raw_cell, workbook_id, isolated=True)
 
 # an evaluation that applies no transformation/serialization to the output
-  def run_raw(self, raw_code, sheet_id):
-    return self.run_block(raw_code, sheet_id, last_node_tf=(lambda x: x), isolated=True)
+  def run_raw(self, raw_code, workbook_id):
+    return self.run_block(raw_code, workbook_id, last_node_tf=(lambda x: x), isolated=True)
 
 #-----------------------------------------------------------------------------
 #  Evaluation helpers
 #-----------------------------------------------------------------------------
 
-  def run_block(self, raw_cell, sheet_id, store_history=False, silent=False, shell_futures=True, last_node_tf=wrap_serialize, isolated=False):
+  def run_block(self, raw_cell, workbook_id, store_history=False, silent=False, shell_futures=True, last_node_tf=wrap_serialize, isolated=False):
     """
     Run a complete code block.
 
     Parameters
     ----------
-    sheet_id: str
+    workbook_id: str
       The namespace id to run the code against.
     raw_cell : str
       The code (including IPython code such as %magic functions) to run.
@@ -198,10 +198,10 @@ class ASShell(InteractiveShell):
     """
     result = ASExecutionResult()
 
-    # initialize the sheet if it doesn't exist
-    # needsrefactor this should be called eagerly (e.g. on sheet open) instead of lazily (on eval)
-    if not (sheet_id in self.sheet_nss):
-      self.init_sheet_ns(sheet_id)
+    # initialize the workbook if it doesn't exist
+    # needsrefactor this should be called eagerly (e.g. on workbook open) instead of lazily (on eval)
+    if not (workbook_id in self.workbook_nss):
+      self.init_workbook_ns(workbook_id)
 
     if (not raw_cell) or raw_cell.isspace():
         result.result = None
@@ -304,7 +304,7 @@ class ASShell(InteractiveShell):
             interactivity = "none" if silent else self.ast_node_interactivity
             self.run_ast_nodes(code_ast.body, 
                                 cell_name,
-                                sheet_id,
+                                workbook_id,
                                 last_node_tf,
                                 interactivity=interactivity, 
                                 compiler=compiler, 
@@ -331,7 +331,7 @@ class ASShell(InteractiveShell):
 
     return result
 
-  def run_ast_nodes(self, nodelist, cell_name, sheet_id, last_node_tf, interactivity='last_expr',
+  def run_ast_nodes(self, nodelist, cell_name, workbook_id, last_node_tf, interactivity='last_expr',
                     compiler=compile, result=None, isolated=False):
     """Run a sequence of AST nodes. The execution mode depends on the
     interactivity parameter.
@@ -343,7 +343,7 @@ class ASShell(InteractiveShell):
     cell_name : str
       Will be passed to the compiler as the filename of the cell. Typically
       the value returned by ip.compile.cache(cell).
-    sheet_id : str
+    workbook_id : str
       The namespace to run the cell in.
     interactivity : str
       'all', 'last', 'last_expr' or 'none', specifying which nodes should be
@@ -382,8 +382,8 @@ class ASShell(InteractiveShell):
 
     try:
         # the target namespace builds up for every line of cell code, 
-        # and is a copy of the sheet namespace if running in isolated mode.
-        target_ns = copy.copy(self.sheet_nss[sheet_id]) if isolated else self.sheet_nss[sheet_id] 
+        # and is a copy of the workbook namespace if running in isolated mode.
+        target_ns = copy.copy(self.workbook_nss[workbook_id]) if isolated else self.workbook_nss[workbook_id] 
         def exec_function(code_obj):
             exec_timed(code_obj, target_ns)
 
@@ -412,9 +412,9 @@ class ASShell(InteractiveShell):
             if self.run_code(code, exec_function, result):
                 return True
 
-        # add the newly created variables back into the sheet namespace
+        # add the newly created variables back into the workbook namespace
         if not isolated:
-          self.sheet_nss[sheet_id] = target_ns
+          self.workbook_nss[workbook_id] = target_ns
 
         # Flush softspace
         if softspace(sys.stdout, 0):

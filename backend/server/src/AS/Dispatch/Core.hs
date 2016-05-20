@@ -40,8 +40,8 @@ import AS.Parsing.Common
 import AS.Parsing.Show hiding (first)
 import AS.Parsing.Read
 
+import qualified Control.Lens as Lens
 import Control.Monad
-import Control.Lens
 import Control.Applicative (liftA2)
 import Control.Concurrent
 import Control.Monad.IO.Class (liftIO)
@@ -93,12 +93,13 @@ runDispatchCycle :: MessageContext -> [ASCell] -> DescendantsSetting -> UpdateTr
 runDispatchCycle msgctx cs descSetting updateTransform = do
   roots <- EM.evalMiddleware cs
   time <- getASTime 
-  let src = messageCommitSource msgctx
-      conn = msgctx^.dbConnection
-  rangeDescriptorsInSheet <- DB.getRangeDescriptorsInSheet conn $ messageSheetId msgctx
+  let src   = messageCommitSource msgctx
+      conn  = msgctx^.dbConnection
+      wid   = messageWorkbookId msgctx
+  rdescs <- DB.getRangeDescriptorsInWorkbook conn wid
   errOrUpdate <- runEitherT $ do
     let initialEvalMap = M.fromList $ zip (mapCellLocation roots) roots
-        initialContext = EvalContext initialEvalMap rangeDescriptorsInSheet $ sheetUpdateFromCommit $ emptyCommitWithTime time
+        initialContext = EvalContext initialEvalMap rdescs $ sheetUpdateFromCommit $ emptyCommitWithTime time
     -- you must insert the roots into the initial context, because getCells.ToEval will give you cells to evaluate that
     -- are only in the context or in the DB (in that order of prececdence). IF neither, you won't get anything. 
     -- this maintains the invariant that context always contains the most up-to-date, complete information. 
@@ -134,7 +135,7 @@ dispatch msgctx roots oldEvalCtx descSetting = do
   let conn = msgctx^.dbConnection
   let commonSid = ($head roots)^.cellLocation.locSheetId
   commonSheet <- liftIO $ DB.getSheet conn commonSid
-  let paused = (inPauseMode <$> commonSheet) == Just True
+  let paused = (view inPauseMode <$> commonSheet) == Just True
   -- For all the original cells, add the edges in the 
   -- graph DB; parse + setRelations
   G.setCellsAncestors conn (msgctx^.userClient.userId) roots
@@ -339,7 +340,7 @@ contextInsert msgctx c@(Cell idx xp _ ps _ _) (Formatted result f) evalctx = do
                           Nothing -> [formatCell f $ Cell idx xp v ps Nothing disp] -- no rangeKey
                             where 
                               CellValue v = cv
-                          Just (FatCell cs _) -> map (formatCell f . set cellDisplay disp) cs
+                          Just (FatCell cs _) -> map (formatCell f . Lens.set cellDisplay disp) cs
   -- Account for overwriting a fat cell (blanking out), adding a new fat cell (decoupling), and adding eval cells
   (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c evalctx 
   (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
@@ -374,7 +375,7 @@ contextInsertWithoutPropagation conn c@(Cell idx xp _ ps _ _) (Formatted result 
                           Nothing -> [formatCell f $ Cell idx xp v ps Nothing disp] -- no rangeKey
                             where 
                               CellValue v = cv
-                          Just (FatCell cs _) -> map (formatCell f . set cellDisplay disp) cs
+                          Just (FatCell cs _) -> map (formatCell f . Lens.set cellDisplay disp) cs
   (ctxWithBlanks, blankedIndices) <- delPrevFatCellFromContext conn c ctx 
   (ctxWithDecoupledCells, decoupledCells) <- addCurFatCellToContext conn idx maybeFatCell ctxWithBlanks
   let ctxWithEvalCells = addCellsToContext newCellsFromEval ctxWithDecoupledCells

@@ -4,7 +4,6 @@
 module AS.Types.Graph where
 
 import Control.Applicative
-import Control.Lens hiding (index, context)
 import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
 import qualified Data.Attoparsec.ByteString.Char8 as AC
@@ -17,8 +16,6 @@ import Data.List.Split (splitOn)
 import qualified Data.Text as T 
 import qualified Data.List as L
 import Data.SafeCopy
-import Control.Lens hiding ((.=))
-import Control.DeepSeq
 import Control.DeepSeq.Generics (genericRnf)
 
 import AS.Prelude
@@ -51,7 +48,7 @@ data GraphReadRequest =   GetDescendants [AncestryRequestInput]
 data AncestryRequestInput = IndexInput ASIndex | RangeInput ASRange deriving (Show)
 
 -- Graph set (setX) requests
-data GraphWriteRequest = SetRelations [ASRelation] | ClearAllDAGs | ClearSheetDAG ASSheetId deriving (Show)
+data GraphWriteRequest = SetRelations [ASRelation] | ClearAllDAGs | ClearSheetDAG SheetID deriving (Show)
 
 -- Graph input for functions like getDescendants can be indexes or ranges. Getting the descendants 
 -- of a range = descendants of decomposed indices in ranges

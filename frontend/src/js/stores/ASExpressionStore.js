@@ -64,7 +64,7 @@ class ExpressionStore extends ReduceStore<State> {
       }
 
       case 'LOGIN_SUCCESS': {
-        const {sheetId} = action;
+        const sheetId = action.openedWorkbook.openedSheet;
         return state.set('textboxPosition', ASIndex.fromNaked({col: 1, row: 1}, sheetId));
       }
 

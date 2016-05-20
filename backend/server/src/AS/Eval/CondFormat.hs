@@ -29,11 +29,10 @@ import Database.Redis (Connection)
 import Control.Monad (forM_, forever, (>=>))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Either (left)
-import Control.Lens
 import Data.Maybe
 import AS.Logging
 
-import AS.DB.Users (getUserSheets)
+import AS.DB.Users (getOpenedSheets)
 
 
 -- | Conditionally formats the cells based on the set of rules passed in -- all conditional formatting originally
@@ -100,7 +99,7 @@ updatedContextForEval msgctx evalctx xp = do
   let valMap = evalctx^.virtualCellsMap
       conn = msgctx^.dbConnection
       sid = messageSheetId msgctx
-  sheets <- liftIO $ getUserSheets conn $ msgctx^.userClient.userId
+  sheets <- liftIO $ getOpenedSheets conn $ msgctx^.userClient.userId
   let deps = getDependencies sid sheets xp 
   depInds <- concat <$> mapM (refToIndicesInCondFormatting conn) deps
   let depIndsToGet = filter (not . (flip M.member) valMap) depInds
@@ -138,4 +137,4 @@ evaluateFormatExpression :: MessageContext ->
 evaluateFormatExpression msgctx evalctx lambdaExpr v f = do
   evalctx' <- updatedContextForEval msgctx evalctx lambdaExpr
   lambdaExpr' <- lift $ insertValues msgctx evalctx' lambdaExpr f
-  evaluateLambdaFormat (messageSheetId msgctx) lambdaExpr' v
+  evaluateLambdaFormat (messageWorkbookId msgctx) lambdaExpr' v

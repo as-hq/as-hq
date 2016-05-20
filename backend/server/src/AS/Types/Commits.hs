@@ -16,8 +16,6 @@ import Data.List
 import qualified Data.Text as T
 import Data.SafeCopy
 import qualified Data.Set as S
-import Control.Lens
-import Control.Lens.TH
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,8 +38,8 @@ data ASCommit = Commit { cellDiff :: CellDiff
                        deriving (Show, Read, Generic)
 
 data CommitSource = CommitSource 
-  { srcSheetId :: ASSheetId
-  , srcUserId :: ASUserId 
+  { srcSheetId :: SheetID
+  , srcUserId :: UserID 
   } deriving (Show, Generic, Eq, Ord)
 
 type UpdateTransform = SheetUpdate -> SheetUpdate

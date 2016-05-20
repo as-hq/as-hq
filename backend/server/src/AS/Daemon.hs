@@ -28,7 +28,6 @@ import AS.Config.Settings as S
 import AS.Util as U
 
 import Control.Monad
-import Control.Lens hiding ((.=))
 import Data.Default
 import System.Posix.Daemon
 
@@ -55,7 +54,7 @@ getStreamPropFromExpression :: ASExpression -> Maybe Stream
 getStreamPropFromExpression _ = Nothing
 
 -- | Creates a streaming daemon for this cell if one of the tags is a streaming tag. 
-possiblyCreateDaemon :: ServerState -> ASUserId -> ASCell -> IO ()
+possiblyCreateDaemon :: ServerState -> UserID -> ASCell -> IO ()
 possiblyCreateDaemon state owner cell = 
   let xp = cell^.cellExpression
       loc = cell^.cellLocation
