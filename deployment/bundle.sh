@@ -123,8 +123,10 @@ fi
 cd ../..
 mkdir build/server
 mkdir build/rkernel
+mkdir build/migration
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-exe build/server/
 cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/rkernel-exe build/rkernel/
+cp backend/server/.stack-work/install/x86_64-linux/lts-3.7/7.10.2/bin/alphasheets-migrate build/migration/
 
 # backend environments are all the same, because they run on docker
 cp backend/Environment_$ENV_FILE.json build/Environment.json

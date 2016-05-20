@@ -28,8 +28,8 @@ import Conv
 import Types
 import DB
 
-main :: IO ()
-main = alphaMain $ do
+main' :: IO ()
+main' = alphaMain $ do
   conn <- connectRedis
   (Right bs) <- runRedis conn $ keys "*"
   let ks = map ($fromJust . toDBKey) bs :: [DBKey]
@@ -114,8 +114,11 @@ main = alphaMain $ do
   -- perform DB actions
   mapM_ ($ ()) dbActions
 
-main' :: IO ()
-main' = alphaMain $ do  
+  -- perform strict migration of all other types
+  migrateDBE conn
+
+main :: IO ()
+main = alphaMain $ do  
   -- perform migration
   conn <- connectRedis 
   migrateDBE conn 
