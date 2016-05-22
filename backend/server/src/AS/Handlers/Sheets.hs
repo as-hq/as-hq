@@ -68,14 +68,14 @@ handleNewSheet msgctx name = do
   -- open the new sheet
   handleOpenSheet msgctx sid
 
--- | When a user wants to rename a sheet, they will send us the new sheet, 
+-- | When a user wants to rename a sheet, they will send us the new sheet name, 
 -- which will contain the new sheetName and the old sheetId. 
 -- All we have to then do is modify the SheetId -> Sheet
 -- pair in the DB, and send back the updated sheets. 
 handleRenameSheet :: MessageContext -> SheetID -> SheetName -> IO ()
 handleRenameSheet msgctx sid sname = do 
   let conn = msgctx^.dbConnection
-  sheet <- $fromJust <$> getSheet conn sid
+  sheet <- (sheetName .~ sname) <$> $fromJust <$> getSheet conn sid
   setSheet conn sheet
   handleGetOpenedWorkbook msgctx
 
