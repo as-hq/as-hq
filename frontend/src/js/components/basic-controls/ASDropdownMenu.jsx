@@ -421,7 +421,7 @@ const ASDropDownMenu = React.createClass({
       valueMember,
     } = this.props;
 
-    if (menuItems && (this.state.selectedIndex !== key || e.target.value !== value)) {
+    if (menuItems) {
       const selectedItem = menuItems[key];
       if (selectedItem) {
         e.target.value = selectedItem[valueMember];

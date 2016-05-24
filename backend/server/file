@@ -1,0 +1,13 @@
+
+{
+  "type": "service_account",
+  "project_id": "alphacrm-1312",
+  "private_key_id": "2570d05fe44cdd5dab7408b2330cc36fca98649e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCrBydBTAU4wiRk\nK00R+UGHYL27gxMiRxnr+cd4gSRIojDAbsg8VI6aHjbcy/BtoHvYZaqZTs2AGMOf\nqFwiDndC6VefaL2wS3M1u4IU76sZHTcaRr95PnZcCPGRUJZdUpk/vemSpxkQ764g\np04rMX3QLxpHhbxE/nzQVPa5g3ziDIZDnJq4UHVeLjeKTBxSgL82yNFogyA1O2op\n5C3K8LVQJAxIBt/RiiXz+JcnCE+pSP8Nf2u+02HJ4cWDMU9Sj+TIXdRZt6zZPPxq\nx2zMBb0tABPcGoRVRIWV9/1UIdN7Mj2I/LrPfXax5CM4eqUhbLskCl5ipKwuHiCX\nOMo0GAcnAgMBAAECggEABtGpMgRK7QFonAnR79aFU1V7Gx/VwncdRHhYCKj1fmPh\nF7sTBrzEVsa/nzwOYQCWD4G2NJicvu+91P7MdZsoDCXrlXKCpaXMeSb5v8Xyh3TP\nvp91gOsJow/EOewBosTpUU5MIsnAyRkVUz34cuZtQsCuBo4BfKq85T2N/MWOVCDk\n9p0QZdBNhRqBhJr5wpvKUInlSX/FvLXyn1OUO/BEJAd4Bo7pnABLh5JJrdfMVVdr\nCvYZ8Lc0GrNRWR3q2H47LPF6LAtA/i6wJ470q+Jb1rOgLHUYIR7BPq2OxLrM5ejK\nQ++cCfChJUedk+J6rH01x3fmzQ+qqq9Xyg4mqGgLiQKBgQDjySPjgnMivtqEz76w\nU10jp100Aho9Hy8ApKvLV0QGeesgKukcSuIUjXg1MZ1P5mw3iJtJqA+LVTvgKP79\nwfTZngsnpI5VUX+n+ENZJBim6nI/GT1wvrCKuCEWDYmiedWLsc31A8hXQfZBv4wQ\nLZLS1Kq6I6HZIEy3d4opcwHzewKBgQDANkfTolk5Z2Hw7gmEI27CbDpaJx060khv\nqm4EpGpZLj06SuAGcvk8B/oJ95/i8Z6HmrmGbgstwgEaT/tDH3DZrCtgb0QVpoiv\nooLg7ByISwg1vrj3J8iOE1nyH1mfvePg5NAibFDKmkbBSeZlPlIwvhzlf7l4ZU5H\nL8FeX3AFRQKBgB7xqS10AD4dHURjkG0VthZs2w2Ap53cCZ+VvzzNaxFSKK3jBm3w\ngkv2d/kJ92vuSo80wJu99/aeqpamGxXP7npNrQhCo49Vlfj0kfmfHLY4LTMDM8SI\nMyV1JBGB30uyL19d1TPOwr2P2WtPITDlcAeyGktVIdyENcfKtnsxA3fXAoGAPBU7\nopYPGfiNDwj5hIqm5rN6EhBD/M0aw30c4uqaK8JedUhOevWZnwBHUrJLEl/A1Faz\nQ6hGaklImvcBbdv4JLLC5GQjfjkOZQiBrNlhmeEKcfJqUyfmczLtXNgb5ekvwG8F\n+JyvLIXJNEZrdJ5khsQGuF6SlWXlcC8nXN6sX5kCgYA5/rbSWKfRIh0tqxxxUV9X\n9hP5R2si6xGPqwR1HeTRpO1QmhHNPfAjxGA2dxaxVHNBto183LutqnavZRkVFoOK\nHbn2yJQqxNSgUjkitUBKmv1RBNSElDOBZRWqiU/FyHH/ESe9HLOfC34LkiapRfbm\nerUKWIK8ccbLgC4jmsw+ig==\n-----END PRIVATE KEY-----\n",
+  "client_email": "alphacrm@alphacrm-1312.iam.gserviceaccount.com",
+  "client_id": "102799603854082741001",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/alphacrm%40alphacrm-1312.iam.gserviceaccount.com"
+}
