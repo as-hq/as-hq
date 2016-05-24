@@ -11,7 +11,7 @@ import AS.Prelude
 --  --  y = Cons 6 (Cons 5 Nil)
 deepGMapT :: (Typeable s) => (s -> s) -> ((Data a) => a -> a)
 deepGMapT t x = case (t <$> cast x) of
-             Just s -> $fromJust $ cast s
+             Just s -> fromJust $ cast s
              Nothing -> gmapT (deepGMapT t) x
 
 -- | Applies the first function recursively to all values of type s
@@ -30,6 +30,6 @@ deepGMapT t x = case (t <$> cast x) of
 --
 deepGMapM :: (Monad m, Data s) => (s -> m s) -> (Data a => a -> m a)
 deepGMapM t x = case (t <$> cast x) of
-             Just monadS -> ($fromJust . cast) <$> monadS
+             Just monadS -> (fromJust . cast) <$> monadS
              Nothing -> gmapM (deepGMapM t) x
 

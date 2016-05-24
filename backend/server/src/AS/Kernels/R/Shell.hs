@@ -5,7 +5,6 @@
 
 module AS.Kernels.R.Shell where
 
-import Data.List (transpose, dropWhile, dropWhileEnd)
 import Data.List.Split (chunksOf)
 import Data.Char (isSpace)
 import Data.Word (Word8)
@@ -73,10 +72,6 @@ runBlock scope env code = do
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Util
-
-trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to get block delimiters
-trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
-  where isWhitespace c = isSpace c || (c == ';')
 
 prepareExpression :: EvalScope -> FilePath -> EvalCode -> EvalCode
 prepareExpression scope imagePath code = 
@@ -162,9 +157,8 @@ castSEXP origValue@(R.SomeSEXP x) = case x of
   _ -> return . CellValue $ ValueError "Could not cast R value." "R Error"
 
 rdVector :: [ASValue] -> CompositeValue
-rdVector vals
-  | length vals == 1 = CellValue $ $head vals 
-  | otherwise        = Expanding . VList . A $ vals
+rdVector [v] = CellValue v
+rdVector vs  = Expanding . VList . A $ vs
 
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
 castString v = ValueS . bytesToString $ SV.toList v
@@ -203,7 +197,7 @@ castMatrix s = do
   let vals = case elems of
                 Expanding (VList (A vs)) -> vs
                 CellValue v              -> [v] 
-                _ -> $error $ "could not cast matrix vals for: " ++ show elems
+                _ -> error $ "could not cast matrix vals for: " ++ show elems
   Expanding (VList (A dims)) <- castR =<< [r|dim(s_hs)|]
   let [(ValueI nrows), _] = dims
   return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
@@ -221,7 +215,7 @@ castNames val = case val of
   Expanding (VList (A names)) -> names
   CellValue (ValueS s)        -> [ValueS s]
   CellValue NoValue           -> [ValueS "NULL"]
-  _ -> $error $ "could not cast dataframe labels from composite value " ++ (show val)
+  _ -> error $ "could not cast dataframe labels from composite value " ++ (show val)
 
 -- TODO figure out S4 casting
 castS4 :: SEXP m a -> R m ASValue

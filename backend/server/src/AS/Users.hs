@@ -58,6 +58,10 @@ userIdExists :: UserID -> ServerState -> Bool
 userIdExists uid state = L.elem uid (map (view userId) (state^.userClients))
 
 getUserClientBySessionId :: SessionId -> ServerState -> Maybe UserClient
-getUserClientBySessionId seshId state = case filter ((== seshId) . view userSessionId) (state^.userClients) of
-  [] -> Nothing
-  l -> Just $ $head l
+getUserClientBySessionId seshId state = headMay $ 
+  filter ((== seshId) . view userSessionId) (state^.userClients)
+
+-- | Applies a (user -> user) function to a user in the server state
+modifyUserClientInState :: State -> SessionId -> (UserClient -> UserClient) -> IO ()
+modifyUserClientInState state seshId f = modifyState_ state $ \state ->
+  return $ state & userClients %~ map (\u -> if (u^.userSessionId == seshId) then (f u) else u)

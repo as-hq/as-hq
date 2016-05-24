@@ -1,6 +1,5 @@
 module AS.Kernels.Excel.Eval where
 
-import Data.List (transpose)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Either
 import Database.Redis (Connection)

@@ -59,7 +59,7 @@ import Control.Monad.Trans.Class (lift)
 -- so we just send alphasheets files as binary data over websockets and immediately load
 -- into the current sheet.
 handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
-handleImportBinary c mstate bin = $undefined
+handleImportBinary c mstate bin = undefined
 
 handleExport :: MessageContext -> SheetID -> IO ()
 handleExport msgctx exportSid = do
@@ -127,9 +127,9 @@ handleCSVImport msgctx ind lang fileName = do
     Left e -> void (putsError src $ "Could not decode CSV: " ++ e)
     Right csv -> do 
       -- Create cells, taking offset, lang, and parsing into account
-      let indices = imap2D (\dx dy -> $fromJust $ shiftByOffsetWithBoundsCheck (Offset dx dy) ind) csv
+      let indices = imap2D (\dx dy -> shiftSafe (Offset dx dy) ind) csv
           values = map2D (csvValue lang) csv
-          vCells = zipWith3In2D (\ind str val -> Cell ind (Expression str lang) val emptyProps Nothing Nothing) indices csv values
+          vCells = zipWith3In2D (\(Just ind) str val -> Cell ind (Expression str lang) val emptyProps Nothing Nothing) indices csv values
           cells = toList2D vCells
       -- generate and push commit to DB
       commit <- generateCommitFromCells cells
@@ -179,7 +179,7 @@ stringToInd :: SheetID -> String -> ASIndex
 stringToInd sid s = Index sid (read2 s :: Coord)
 
 stringToVal :: String -> ASValue
-stringToVal s = $fromRight $ parseOnly (asValue Excel) (BC.pack s)
+stringToVal s = fromRight $ parseOnly (asValue Excel) (BC.pack s)
 
 --input: string of form "=A1+4")
 stringToXp :: String -> ASExpression

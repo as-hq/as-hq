@@ -142,7 +142,7 @@ toEvalHeaderKey :: ToDBKey
 toEvalHeaderKey b = do 
   rest <- getRest "EvalHeaderType" b
   let [sid, lang] = splitOn delim rest
-  return $ EvalHeaderKey (T.pack sid) ($read lang :: ASLanguage)
+  return $ EvalHeaderKey (T.pack sid) (read lang :: ASLanguage)
 
 toTempCommitKey :: ToDBKey
 toTempCommitKey b = (TempCommitKey . toCommitSource) <$> getRest "TempCommitType" b
@@ -173,8 +173,8 @@ toBarKey b = do
   rest <- getRest "BarType2" b
   let [sidStr, typStr, indStr] = splitOn delim rest
   let sid = T.pack sidStr
-  let typ = $read typStr :: BarType0
-  let ind = $read indStr :: Int
+  let typ = read typStr :: BarType0
+  let ind = read indStr :: Int
   let barInd = case typ of
                  ColumnType -> BarIndex sid (BarCol $ Col ind)
                  RowType -> BarIndex sid (BarRow $ Row ind)
@@ -187,7 +187,7 @@ type ToDBValue = ByteString -> Maybe DBValue
 
 -- The DB stores show of ASSheet0, but the ASSheet type no longer has sheetPermissions. 
 toSheetValue :: ToDBValue
-toSheetValue b = $undefined -- not needed beyond first migration, and the sheet type has changed. (anand 3/11)
+toSheetValue b = undefined -- not needed beyond first migration, and the sheet type has changed. (anand 3/11)
   --do 
   --let str = BC.unpack b
   --let (first:_) = splitOn ", sheetPermissions" str

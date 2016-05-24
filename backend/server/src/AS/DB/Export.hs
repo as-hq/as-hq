@@ -29,7 +29,7 @@ exportSheetData conn sid = do
 
 importSheetData :: Connection -> UserID -> ExportData -> IO ()
 importSheetData conn uid (ExportData cells bars descs condFormatRules headers) = do
-  let sid = view (cellLocation.locSheetId) . $head $ cells
+  let sid = view (cellLocation.locSheetId) . head $ cells
   DC.clearSheet conn sid 
   DT.setCellsPropagated conn uid cells
   mapM_ (DB.setBar conn) bars

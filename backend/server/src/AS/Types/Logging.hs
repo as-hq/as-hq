@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Logging where
 
 import Control.Concurrent.Chan 

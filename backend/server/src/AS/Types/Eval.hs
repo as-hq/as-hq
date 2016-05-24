@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Eval
   ( module AS.Types.Eval
   , module AS.Types.Locations
@@ -109,7 +111,7 @@ rangeRect (RangeKey idx dims) = (tl, br)
   where 
     tl = idx^.index
     o = Offset ((width dims) -1) ((height dims) -1)
-    br = toExtendedCoord $ shiftByOffset o tl
+    Just br = toExtendedCoord <$> shiftSafe o tl
 
 rangeKeyToSheetId :: RangeKey -> SheetID
 rangeKeyToSheetId = view locSheetId . keyIndex
@@ -128,10 +130,12 @@ isEvaluable c = isFatCellHead c || (not $ isCoupled c)
 getFatCellIntersections :: EvalContext -> Either [ASIndex] [RangeKey] -> [RangeDescriptor]
 getFatCellIntersections ctx (Left locs) = filter descriptorIntersects $ virtualRangeDescriptors ctx
   where
-    anyLocsContainedInRect :: [ASIndex] -> ExtendedRect -> Bool
-    anyLocsContainedInRect ls r = any id $ map (rectContainsCoord r . (view index)) ls
     descriptorIntersects :: RangeDescriptor -> Bool
-    descriptorIntersects r = anyLocsContainedInRect locs (rangeRect . descriptorKey $ r)
+    descriptorIntersects r = any id $ for locs $ \loc -> 
+      let rect = rangeRect . descriptorKey $ r
+          sid  = rangeDescriptorSheetId r
+          idx  = loc^.index
+      in ((loc^.locSheetId) == sid) && (rectContainsCoord rect idx)
 
 -- given a list of keys and a descriptor, return True iff the descriptor intersects any of the keys
 getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descriptors keys
@@ -139,8 +143,9 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
     descriptors = virtualRangeDescriptors ctx
     descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
     descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
-    keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2) && sameSheetId k1 k2
-    sameSheetId k1 k2 = f k1 == f k2 where f = view locSheetId . keyIndex
+    keysIntersect k1 k2 = 
+         (rangeKeySheetId k1 == rangeKeySheetId k2)
+      && (rectsIntersect (rangeRect k1) (rangeRect k2))
     rectsIntersect (tl1, br1) (tl2, br2) =
       intervalIntersect (tl1^.col, br1^.extendedCol) (tl2^.col, br2^.extendedCol) && 
         intervalIntersect (tl1^.row, br1^.extendedRow) (tl2^.row, br2^.extendedRow)

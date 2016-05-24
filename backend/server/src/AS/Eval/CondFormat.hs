@@ -23,7 +23,6 @@ import AS.Eval.Core
 import AS.Parsing.Substitutions
 import AS.Parsing.References (getDependencies) 
 
-import Data.List
 import qualified Data.Map as M
 import Database.Redis (Connection)
 import Control.Monad (forM_, forever, (>=>))
@@ -71,7 +70,7 @@ ruleToCellTransform msgctx evalctx f (CondFormatRule _ rngs condMapConstructor) 
           shiftXp = shiftExpression offset
           determineFormats v = case condMapConstructor of 
             BoolFormatMapConstructor boolCond props -> do 
-              let mEvalLoc = shiftByOffsetWithBoundsCheck offset tl
+              let mEvalLoc = shiftSafe offset tl
               case mEvalLoc of 
                 Nothing -> return []
                 Just evalLoc -> do 

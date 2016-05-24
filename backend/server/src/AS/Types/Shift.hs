@@ -37,13 +37,8 @@ shiftByRow = deepGMapM  . shift'
 
 -- This is generally applied to Coords, ExtendedCoords, Ranges, Indices, ...
 -- and not to Cols or Rows.
-shiftByOffsetWithBoundsCheck :: (Data a) => Offset -> a -> Maybe a
-shiftByOffsetWithBoundsCheck o = shiftByCol (dCol o) >=> shiftByRow (dRow o)
-
--- shifts by offset. Caller has responsibility to make sure that the resulting
--- data is in bounds.
-shiftByOffset :: (Data a) => Offset -> a -> a
-shiftByOffset o a = $fromJust $ shiftByOffsetWithBoundsCheck o a
+shiftSafe :: (Data a) => Offset -> a -> Maybe a
+shiftSafe o = shiftByCol (dCol o) >=> shiftByRow (dRow o)
 
 shiftRef :: Offset -> ASReference -> Maybe ASReference
-shiftRef = shiftByOffsetWithBoundsCheck
+shiftRef = shiftSafe

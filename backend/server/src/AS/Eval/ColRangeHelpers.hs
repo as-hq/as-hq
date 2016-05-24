@@ -15,9 +15,6 @@ import qualified Data.Map as M
 import qualified Data.List as L
 
 import Database.Redis hiding (decode)
-import Data.List
-import Control.Monad
-import Control.Monad.Trans.Class
 
 -- | Helper methods for colRangeWithContextToIndices. Used in colRange list interpolation.
 -- gets all the indices in the DB corresponding to a particular column number.

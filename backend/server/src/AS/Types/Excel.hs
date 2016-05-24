@@ -1,6 +1,9 @@
 -- TODO: split this up to, and separate types into core types and Excel types? 
 
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeSynonymInstances, BangPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveFunctor #-}
 
@@ -18,7 +21,6 @@ import AS.Types.Infinites
 import AS.Types.Sheets
 import AS.Types.User
 
-import Data.List
 
 import qualified Data.Vector     as V
 import qualified Data.Char       as C
@@ -293,11 +295,11 @@ instance Ord EValue where
   (<=) (EValueS s1) (EValueS s2) = (<=) s1 s2
   (<=) (EValueS s) (EValueNum n) = (<=) (strToEValueNum s) (EValueNum n)
   (<=) (EValueNum n) (EValueS s) = (<=) (EValueNum n) (strToEValueNum s)
-  (<=) _ _ = $error "Invalid comparison" 
+  (<=) _ _ = error "Invalid comparison" 
 
 strToEValueNum :: String -> EValue
 strToEValueNum str = maybe err (EValueNum . return . EValueD) (readMaybe str :: Maybe Double)
-  where err = $error "Failed to convert string to number"
+  where err = error "Failed to convert string to number"
 
 data EMatrix = EMatrix {emCols :: !Int, emRows :: !Int, content :: !(V.Vector EValue)}
   deriving (Show, Eq)

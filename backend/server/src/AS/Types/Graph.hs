@@ -178,7 +178,7 @@ instance Read2 ASReference where
           where 
             (tag, sid, locstr) = case splitBy refDelimiter str of 
               [tag', sid', locstr'] -> (tag', sid', locstr')
-              _ -> $error ("read2 :: ASReference failed to split string " ++ str)
+              _ -> error ("read2 :: ASReference failed to split string " ++ str)
             loc' = case tag of 
               "I" -> IndexRef $ Index (T.pack sid) (read2 locstr :: Coord)
               "P" -> PointerRef $ Pointer (Index (T.pack sid) (read2 locstr :: Coord))
@@ -200,7 +200,7 @@ tupleParser = do
   return $! (x, y)
 
 instance Read2 Coord where
-  read2 str = pairToCoord $ $fromRight $ parseOnly tupleParser (C.pack str)
+  read2 str = pairToCoord . fromRight $ parseOnly tupleParser (C.pack str)
 -- No read2 on Infinite a. All casing is done within reading ExtendedCoord.
 
 -- Parsers for Read2 on ExtendedCoord. These are here temporarily until
@@ -236,5 +236,5 @@ instance Read2 GraphDescendant where
 
 instance Read2 Dimensions where
   read2 str = Dimensions { width = Col w, height = Row h }
-    where (w, h) = $read str :: (Int, Int)
+    where (w, h) = read str :: (Int, Int) 
 

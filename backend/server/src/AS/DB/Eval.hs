@@ -23,15 +23,8 @@ import AS.Logging
 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
-import qualified Data.List as L
 
 import Database.Redis hiding (decode)
-import Data.List
-import Data.Maybe (catMaybes)
-import Control.Monad
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
 
 import Control.Concurrent (myThreadId)
 
@@ -64,17 +57,17 @@ referenceToCompositeValue ::  MessageContext ->
                               ASReference -> 
                               EvalChainFunc -> 
                               IO CompositeValue
-referenceToCompositeValue _ evalctx (IndexRef i) _ = return $ CellValue . view cellValue $ $valAt i $ evalctx^.virtualCellsMap
+referenceToCompositeValue _ evalctx (IndexRef i) _ = return $ CellValue . view cellValue $ valAt i $ evalctx^.virtualCellsMap
 referenceToCompositeValue msgctx evalctx (PointerRef p) _ = do 
   let idx = pointerIndex p
       mp = evalctx^.virtualCellsMap
-      cell = $valAt idx mp
+      cell = valAt idx mp
       conn = msgctx^.dbConnection
   case cell^.cellRangeKey of 
-    Nothing -> $error "Pointer to normal expression!" 
+    Nothing -> error "Pointer to normal expression!" 
     Just rKey ->
       case virtualRangeDescriptorAt evalctx rKey of
-        Nothing -> $error "Couldn't find range descriptor of coupled expression!"
+        Nothing -> error "Couldn't find range descriptor of coupled expression!"
         Just descriptor -> do 
           let indices = finiteRangeKeyToIndices rKey
               cells  = map ((evalctx^.virtualCellsMap) M.!) indices
@@ -83,7 +76,7 @@ referenceToCompositeValue msgctx evalctx (PointerRef p) _ = do
 -- #NeedsRefactor: This is not the best way to do it: takes column cells, converts to indices, then converts back to values.....
 referenceToCompositeValue _ evalctx (RangeRef r) _
   | isFiniteRange r = do
-    let finiteRangeIndToVal ind = view cellValue $ $valAt ind $ evalctx^.virtualCellsMap
+    let finiteRangeIndToVal ind = view cellValue $ valAt ind $ evalctx^.virtualCellsMap
         rangeVals = map (map finiteRangeIndToVal) indices
     return . Expanding . VList . M $ rangeVals
   | isColRange r = do
@@ -92,21 +85,22 @@ referenceToCompositeValue _ evalctx (RangeRef r) _
       -- colRange is being evaluated.
     let colRangeIndToVal ind =
           if M.member ind (evalctx^.virtualCellsMap)
-             then view cellValue $ $valAt ind $ evalctx^.virtualCellsMap
+             then view cellValue $ valAt ind $ evalctx^.virtualCellsMap
              else NoValue
         colRangeVals = map (map colRangeIndToVal) indices
     return $ Expanding . VList . M $ colRangeVals
       where indices = rangeWithContextToIndicesRowMajor2D evalctx r
-referenceToCompositeValue msgctx evalctx (TemplateRef (SampleExpr n idx)) f = $fromRight <$> (runEitherT $ do 
-      -- Get all ancestors
-      let conn = msgctx^.dbConnection
-      ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
-      ancInds <- concat <$> mapM (refToIndicesWithContextDuringEval conn evalctx) ancRefs
-      ancCells <- lift $ getPossiblyBlankCellsWithContext conn evalctx ancInds
-      let evalctxWithAncs = addCellsToContext ancCells evalctx
-      -- After adding ancestors to context, evaluate n times
-      samples <- replicateM n $ evaluateNode msgctx evalctxWithAncs idx ancCells f
-      return $ Expanding $ VList $ A samples)
+--  #mustrefactor remove usage of unsafeRunEitherT
+referenceToCompositeValue msgctx evalctx (TemplateRef (SampleExpr n idx)) f = unsafeRunEitherT $ do 
+  -- Get all ancestors
+  let conn = msgctx^.dbConnection
+  ancRefs <- G.getAllAncestors $ indicesToAncestryRequestInput [idx]
+  ancInds <- concat <$> mapM (refToIndicesWithContextDuringEval conn evalctx) ancRefs
+  ancCells <- lift $ getPossiblyBlankCellsWithContext conn evalctx ancInds
+  let evalctxWithAncs = addCellsToContext ancCells evalctx
+  -- After adding ancestors to context, evaluate n times
+  samples <- replicateM n $ evaluateNode msgctx evalctxWithAncs idx ancCells f
+  return . Expanding . VList . A $ samples
 
 -- Only used in conditional formatting.
 refToIndicesInCondFormatting :: Connection -> ASReference -> EitherTExec [ASIndex]
@@ -156,4 +150,4 @@ refToIndicesWithContextBeforeEval conn ctx (PointerRef p) = do
 evaluateNode :: MessageContext -> EvalContext -> ASIndex -> [ASCell] -> EvalChainFunc -> EitherTExec ASValue
 evaluateNode msgctx evalctx idx ancestors f = do
   evalctx' <- f msgctx ancestors evalctx
-  return . view cellValue . $valAt idx $ evalctx'^.virtualCellsMap
+  return . view cellValue . valAt idx $ evalctx'^.virtualCellsMap

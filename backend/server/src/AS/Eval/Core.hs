@@ -17,7 +17,7 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.List.Split as LS
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec 
 
 import AS.Prelude
 import AS.Util
@@ -33,6 +33,8 @@ import AS.Types.Network
 import AS.Types.Messages (MessageId)
 import AS.Types.User hiding (userId)
 import AS.Types.Commits
+
+import AS.LanguageDefs (trimWhitespace)
 
 import AS.Kernels.Python.Client as KP
 import AS.Kernels.R.Client as KR
@@ -72,7 +74,7 @@ evaluateLanguage msgctx evalctx idx xp f = catchEitherT $ do
   -- Function from ExRef to string for interpolation
   sheets <- liftIO $ getOpenedSheets conn uid
   let replaceFunc ref = lookUpRef msgctx evalctx lang (exRefToASRef sid sheets ref) f
-  case equalsSignsCheck xp of
+  case checkEvaluableExpression xp of
     Left v@(ValueError _ _) -> return . return $ EvalResult (CellValue v) Nothing 
     Left (ValueS s) -> do 
       let xp' = Expression s lang 
@@ -119,15 +121,14 @@ evaluateHeader mid evalHeader =
 ----------------------------------------------------------------------------------------------------
 -- Interpolation
 
--- #mustrefactor IO String should be EitherTExec string
 lookUpRef :: MessageContext
           -> EvalContext 
           -> ASLanguage 
           -> ASReference 
           -> DE.EvalChainFunc 
           -> IO String
-lookUpRef msgctx evalctx lang ref f = showValue lang <$> cv
-  where cv = DE.referenceToCompositeValue msgctx evalctx ref f
+lookUpRef msgctx evalctx lang ref f = 
+  showValue lang <$> DE.referenceToCompositeValue msgctx evalctx ref f
 
 insertValues :: MessageContext
              -> EvalContext 
@@ -162,22 +163,20 @@ sqlToPythonCode msgctx evalctx xp f = do
   let exRefs = getExcelReferences xp
       toASRef = exRefToASRef sid sheets
       tableRefs = map toASRef $ filter refIsSQLTable exRefs 
-  datasetVals <- mapM (\ref -> lookUpRef msgctx evalctx SQL ref f) tableRefs
-  let showRef ref = if refIsSQLTable ref 
+  datasetVals <- forM tableRefs $ \ref -> lookUpRef msgctx evalctx SQL ref f
+  let showRef :: ExRef -> IO String
+      showRef ref = if refIsSQLTable ref 
                       then do 
-                        let i = $fromJust (L.findIndex (ref==) exRefs)
+                        let (Just i) = L.findIndex (ref==) exRefs
                         return $ "dataset" ++ show i 
                       else lookUpRef msgctx evalctx SQL (toASRef ref) f
   newExp <- replaceRefsIO showRef xp
-  let query = escape (newExp^.expression)
+  let query = show . catLines . trimWhitespace SQL $ newExp^.expression
   -- print query
-  let evalStmt = "evalSql(\"" ++ query ++ "\", " ++ (show datasetVals) ++ ")"
+  let evalStmt = "evalSql(" ++ query ++ ", " ++ show datasetVals ++ ")"
+  putStrLn $ "GOT SQL QUERY: " ++ show evalStmt
   return evalStmt
 
-escape :: String -> String
-escape xs = concatMap f xs 
-  where f '\"' = "\\\""
-        f x     = [x]
 ----------------------------------------------------------------------------------------------------
 -- Helpers
 
@@ -194,20 +193,19 @@ type ShortCircuitEval = Either ASValue ASExpression
 -- immediately evaluates as a literal, and otherwise returns an error saying that there are too 
 -- many equals signs. If there's exactly one equals sign, strip that = sign and return the new xp.
 -- #expressionrefactor
-equalsSignsCheck :: ASExpression -> ShortCircuitEval
-equalsSignsCheck xp@(Expression str lang) = 
-  case length evalLines of 
-    0 -> Left $ ValueS str 
-    1 -> case lang of 
-      Excel -> Right xp 
-      _ -> Right $ Expression (L.intercalate "\n" strippedLines) lang
-    _ -> Left $ ValueError "Too many lines beginning with equals signs" "Eval error"
+checkEvaluableExpression :: ASExpression -> ShortCircuitEval
+checkEvaluableExpression xp = case filter isEvaluableLine (lines str) of 
+  []  -> Left $ ValueS str
+  _:[] -> Right $ case (xp^.language) of 
+    Excel -> xp
+    _     -> xp & expression .~ unlines (map stripEqual $ lines str)
+  _   -> Left $ ValueError "Too many lines beginning with equals signs" "Eval error"
   where
-    startsWithEqual = L.isPrefixOf "=" 
-    stripEqual line = if startsWithEqual line then $tail line else line
-    lines = LS.splitOn "\n" str
-    evalLines = filter startsWithEqual lines
-    strippedLines = map stripEqual lines
+    str = xp^.expression
+    isEvaluableLine ('=':_) = True
+    isEvaluableLine _       = False
+    stripEqual ('=':xs) = xs
+    stripEqual xs       = xs
 
 -- | Map over both failure and success.
 bimapEitherT' :: Functor m => (e -> b) -> (a -> b) -> EitherT e m a -> EitherT e m b

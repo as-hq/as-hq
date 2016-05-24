@@ -7,7 +7,6 @@ import qualified Data.Text as T (unpack)
 
 import System.ZMQ4.Monadic
 import Control.Monad (forM)
-import qualified Data.List as L
 import qualified Text.Show.ByteString      as BS
 import qualified Data.ByteString.Char8     as BC 
 import qualified Data.ByteString.Char8     as B 
@@ -49,12 +48,12 @@ setCellsAncestors conn uid cells = do
       relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
   setRelations relations 
 
--- If a cell is a fat cell $head or a normal cell, you can parse its ancestors from the expression. 
--- However, for a non-fat-cell-head coupled cell, we only want to set an edge from it to the $head of the list 
+-- If a cell is a fat cell head or a normal cell, you can parse its ancestors from the expression. 
+-- However, for a non-fat-cell-head coupled cell, we only want to set an edge from it to the head of the list 
 -- (for checking circular dependencies).
 getAncestorsForCell :: [Sheet] -> ASCell -> [ASReference]
 getAncestorsForCell sheets c = if not $ isEvaluable c
-  then [IndexRef . keyIndex . $fromJust $ c^.cellRangeKey]
+  then [IndexRef . keyIndex . fromJust $ c^.cellRangeKey]
   else getDependencies (c^.cellLocation.locSheetId) sheets (c^.cellExpression)
 
 -- | It'll parse no dependencies from the blank cells at these locations, so each location in the
@@ -86,12 +85,12 @@ execGraphQuery msg = do
 
 -- Given the graph reply as a list of ByteStrings, case on the last part (status) and possibly throw an error
 processGraphReply :: (Read2 a, Show2 a) => [B.ByteString] -> EitherTExec [a]
-processGraphReply reply = case B.unpack $ L.last reply of
+processGraphReply reply = case B.unpack $ last reply of
   "OK" -> do
-    let filtered = L.map B.unpack $ L.init reply
-    right $ L.map read2 filtered
+    let filtered = map B.unpack $ init reply
+    right $ map read2 filtered
   "CIRC_DEP" -> do
-    let circDepLoc = (read2 (B.unpack $ $head reply)) :: ASIndex
+    let circDepLoc = (read2 (B.unpack $ head reply)) :: ASIndex
     left $ CircularDepError circDepLoc
   _ -> do
     left UnknownGraphError
@@ -102,14 +101,14 @@ processGraphReply reply = case B.unpack $ L.last reply of
 -- Given a read request type (such as GetDescendants) and a list of read inputs (index or range), 
 -- produce the message to send the graph, currently a giant lazy bytestring
 produceReadMessage :: GraphReadRequest -> BL.ByteString
-produceReadMessage req = BS.show $ L.intercalate msgPartDelimiter elements
+produceReadMessage req = BS.show $ intercalate msgPartDelimiter elements
   where 
     elements = case req of -- #needsrefactor Data.Data makes this cleaner, apparently
-                 GetDescendants inputs          -> "GetDescendants":(L.map show2 inputs)
-                 GetImmediateDescendants inputs -> "GetImmediateDescendants":(L.map show2 inputs)
-                 GetProperDescendants inputs    -> "GetProperDescendants":(L.map show2 inputs)
-                 GetImmediateAncestors inputs   -> "GetImmediateAncestors":(L.map show2 inputs)
-                 GetAllAncestors inputs         -> "GetAllAncestors":(L.map show2 inputs)
+                 GetDescendants inputs          -> "GetDescendants":(map show2 inputs)
+                 GetImmediateDescendants inputs -> "GetImmediateDescendants":(map show2 inputs)
+                 GetProperDescendants inputs    -> "GetProperDescendants":(map show2 inputs)
+                 GetImmediateAncestors inputs   -> "GetImmediateAncestors":(map show2 inputs)
+                 GetAllAncestors inputs         -> "GetAllAncestors":(map show2 inputs)
 
 -- Deal with the entire cycle of a read request. First produce the read message, then execute the query, 
 -- then process the reply. 
@@ -155,11 +154,11 @@ getImmediateDescendantsForced locs = do
 -- Deal with writing to the graph
 
 produceWriteMessage :: GraphWriteRequest -> BL.ByteString
-produceWriteMessage req = BS.show $ L.intercalate msgPartDelimiter elements
+produceWriteMessage req = BS.show $ intercalate msgPartDelimiter elements
   where 
     elements = case req of 
-                 SetRelations rels -> "SetRelations":(L.map (L.intercalate relationDelimiter . showRel) rels)
-                   where showRel rel = (show2 (fst rel)):(L.map show2 (snd rel))
+                 SetRelations rels -> "SetRelations":(map (intercalate relationDelimiter . showRel) rels)
+                   where showRel rel = (show2 (fst rel)):(map show2 (snd rel))
                  ClearAllDAGs -> ["Clear"]
                  ClearSheetDAG sid -> ["ClearSheet", T.unpack sid]
 

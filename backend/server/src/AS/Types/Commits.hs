@@ -12,7 +12,6 @@ import AS.Types.Bar
 import AS.Types.RangeDescriptor
 import AS.Types.User
 
-import Data.List
 import qualified Data.Text as T
 import Data.SafeCopy
 import qualified Data.Set as S

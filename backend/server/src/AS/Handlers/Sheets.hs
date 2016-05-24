@@ -40,7 +40,7 @@ handleGetOpenedWorkbook :: MessageContext -> IO ()
 handleGetOpenedWorkbook msgctx = do
   let conn = msgctx^.dbConnection
       wid  = msgctx^.userClient.userWindow.windowWorkbookId
-  fwb <- $fromJust <$> getOpenedWorkbook conn wid
+  fwb <- fromJust <$> getOpenedWorkbook conn wid
   sendAction msgctx $ SetOpenedWorkbook fwb
 
 handleNewWorkbook :: MessageContext -> WorkbookName -> IO ()
@@ -73,11 +73,14 @@ handleNewSheet msgctx name = do
 -- All we have to then do is modify the SheetId -> Sheet
 -- pair in the DB, and send back the updated sheets. 
 handleRenameSheet :: MessageContext -> SheetID -> SheetName -> IO ()
-handleRenameSheet msgctx sid sname = do 
+handleRenameSheet msgctx sid sname = 
   let conn = msgctx^.dbConnection
-  sheet <- (sheetName .~ sname) <$> $fromJust <$> getSheet conn sid
-  setSheet conn sheet
-  handleGetOpenedWorkbook msgctx
+  in maybeM 
+    (getSheet conn sid)
+    (sendFailure msgctx "cannot rename nonexistent sheet") 
+    $ \sheet -> do
+      setSheet conn (sheet & sheetName .~ sname)
+      handleGetOpenedWorkbook msgctx
 
 handleCloneSheet :: MessageContext -> SheetID -> IO ()
 handleCloneSheet msgctx sid = do
@@ -89,15 +92,19 @@ handleCloneSheet msgctx sid = do
                                 in if cur `Set.member` names
                                   then cloneName name (copyNum + 1)
                                   else cur
-  curName <- view sheetName . $fromJust <$> getSheet conn sid
-  newSid <- view sheetId <$> createSheet conn uid (cloneName curName 1)
-  modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert newSid)
-  ex <- cloneData newSid <$> exportSheetData conn sid
-  importSheetData conn uid ex
-  -- update user's workbook
-  handleGetOpenedWorkbook msgctx
-  -- open the cloned sheet
-  handleOpenSheet msgctx newSid
+  maybeM 
+    (getSheet conn sid)
+    (sendFailure msgctx "cannot clone nonexistent sheet") 
+    $ \sheet -> do
+      let curName = sheet^.sheetName
+      newSid <- view sheetId <$> createSheet conn uid (cloneName curName 1)
+      modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert newSid)
+      ex <- cloneData newSid <$> exportSheetData conn sid
+      importSheetData conn uid ex
+      -- update user's workbook
+      handleGetOpenedWorkbook msgctx
+      -- open the cloned sheet
+      handleOpenSheet msgctx newSid
 
 handleOpenWorkbook :: MessageContext -> WorkbookID -> IO ()
 handleOpenWorkbook msgctx wid = do
@@ -112,7 +119,7 @@ handleOpenWorkbook msgctx wid = do
   -- pre-evaluate the headers
   forM_ headers $ handleEvalHeader msgctx'
   -- open the last opened sheet in that workbook
-  wb <- $fromJust <$> getWorkbook conn wid
+  wb <- fromJust <$> getWorkbook conn wid
   handleOpenSheet msgctx' $ wb^.lastOpenSheet
 
 handleOpenSheet :: MessageContext -> SheetID -> IO ()
@@ -139,7 +146,7 @@ handleAcquireSheet :: MessageContext -> SheetID -> IO ()
 handleAcquireSheet msgctx sid = do
   let conn = msgctx^.dbConnection
       wid  = messageWorkbookId msgctx
-  wb <- $fromJust <$> getWorkbook conn wid
+  wb <- fromJust <$> getWorkbook conn wid
   unless (Set.member sid $ wb^.workbookSheetIds) $ do
     -- designate sheet as shared to user
     modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert sid)

@@ -1,4 +1,8 @@
-{-# LANGUAGE QuasiQuotes, DataKinds, ViewPatterns, TemplateHaskell, OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Main where
   
@@ -153,7 +157,7 @@ handshakeAndStart state wsConn msg =
               --updateUserSession (userId userClient) (userSessionId userClient)
           let uid = userClient^.userId
               wid = userClient^.userWindow.windowWorkbookId
-          openWb <- $fromJust <$> DB.getOpenedWorkbook dbConn wid
+          openWb <- fromJust <$> DB.getOpenedWorkbook dbConn wid
           wbRefs <- DB.getUserWorkbookRefs dbConn uid
           let successMsg = ClientMessage auth_message_id $ AuthSuccess uid openWb wbRefs
           sendMessage wsConn successMsg 
@@ -174,7 +178,7 @@ handshakeAndStart state wsConn msg =
 -- | For debugging purposes. Reads in a list of ServerMessages from a file and processes them, as though
 -- sent from a frontend. 
 preprocess :: WS.Connection -> State -> IO () 
-preprocess = $undefined -- not maintained; hasn't worked for some time. (anand 4/13)
+preprocess = undefined -- not maintained; hasn't worked for some time. (anand 4/13)
   --do
   ---- prepare the preprocessing
   --fileContents <- AS.Prelude.readFile (S.log_dir ++ "client_messages")
@@ -281,7 +285,7 @@ onDisconnect' c state _ = do
 processMessage :: (Client c) => c -> State -> ServerMessage -> IO ()
 processMessage oldClient mstate message = do
   state <- readState mstate 
-  let newClient = lookupClient oldClient state -- the client's properties might have been mutated; read it anew
+  let (Just newClient) = lookupClient oldClient state -- the client's properties might have been mutated; read it anew
   isPermissible <- DB.isPermissibleMessage (ownerName newClient) (state^.dbConn) message
   if isPermissible || isDebug
     then handleServerMessage newClient mstate message

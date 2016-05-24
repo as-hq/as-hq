@@ -2,15 +2,11 @@
 
 module AS.Kernels.Python.Client where
 
-import Data.Maybe (fromJust)
-import Data.List (findIndex, intercalate)
 import Data.Aeson 
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Text as T
 import Control.Exception (catch, SomeException)
 import System.ZMQ4.Monadic
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
 import qualified Data.List.Utils as LU
 import Database.Redis (Connection)
 
@@ -172,7 +168,7 @@ runRequest_ :: KernelRequest -> IO ()
 runRequest_ msg = void $ do
   resp <- runEitherT $ runRequest msg
   case resp of
-    Right (GenericErrorReply e) -> $error e
+    Right (GenericErrorReply e) -> error e
     otherwise -> return ()
 
 -- | Given the request and the client, return the poke action to test if

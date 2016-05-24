@@ -14,8 +14,6 @@ import AS.DB.API
 
 import qualified Data.Text as T
 import Data.Either
-import Data.Maybe hiding (fromJust)
-import Data.List hiding (head, tail)
 import qualified Data.Vector as V
 
 import Control.Monad.Trans.Either
@@ -174,50 +172,33 @@ matchDimension (ERef r1) (ERef r2) = if topLeft == botRight
   where
     topLeft = topLeftLoc r2
     o = Offset (getFiniteWidth r1 - Col 1) (getFiniteHeight r1 - Row 1)
-    botRight = shiftByOffset o topLeft
+    Just botRight = shiftSafe o topLeft
     sh = refSheetId r2
 
 extractRefs :: [EEntity] -> [ERef]
-extractRefs [] = []
-extractRefs ((EntityRef e):es) = e:(extractRefs es)
+extractRefs = map (\(EntityRef e) -> e)
 
 -------------------------------------------------------------------------------------------------------------
 -- | General utilities
 
--- | Make sure that the list of lists is rectangular
-aligned :: [[a]] -> Bool
-aligned lst = allTheSame lenRows
-  where
-    lenRows = map length lst
-
 -- | [[1,2],[3,4]] -> 1 if not empty
 topLeftLst :: [[a]] -> Maybe a
-topLeftLst b
-  | (length b == 0) = Nothing
-  | (length ($head b) == 0) = Nothing
-  | otherwise = Just $ ($head . $head) b
-
--- | Check if all elements of a list are the same
-allTheSame :: (Eq a) => [a] -> Bool
-allTheSame xs = and $ map (== $head xs) ($tail xs)
-
--- | All the elements in the list are either 1 or equal to some common value [1,3,3,1,1,3]
-allTheSameOrOne :: (Eq a, Num a) => [a] -> Bool
-allTheSameOrOne xs = allTheSame notOnes
-  where
-    (ones,notOnes) = partition (==1) xs
+topLeftLst [] = Nothing
+topLeftLst (x:xs) = case x of 
+  []    -> Nothing
+  xy:_  -> Just xy
 
 -- | Equivalent to "is not a matrix"
 isBasic :: EEntity -> Bool
 isBasic (EntityMatrix m) = False
-isBasic e = True
+isBasic e                = True
 
 ---------------------------------------------------------------------------------------------------
 -- | Error Handling
 
 errorVal :: EValue -> Bool
 errorVal (EValueE _) = True
-errorVal _ = False
+errorVal _           = False
 
 -- | If any element of the matrix is an error, return the first such instance; else return the matrix
 matrixError :: EMatrix -> ThrowsError EMatrix
@@ -229,12 +210,9 @@ matrixError m@(EMatrix _ _ v) = do
       let (EValueE s) = V.head errs
       Left $ Default s
 
-getError :: [EError] -> EError
-getError = $head
-
 compressErrors :: [ThrowsError a] -> ThrowsError [a]
 compressErrors x
-  | (any isLeft x) = Left $ getError (lefts x)
+  | (any isLeft x) = Left $ head (lefts x)
   | otherwise      = Right $ rights x
 
 

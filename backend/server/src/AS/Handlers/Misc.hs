@@ -5,8 +5,6 @@ module AS.Handlers.Misc where
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Map as M
-import Data.List
-import Data.Maybe
 import qualified Network.WebSockets as WS
 import Control.Exception
 import Control.Applicative

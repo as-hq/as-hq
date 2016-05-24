@@ -41,11 +41,7 @@ getDaemonName :: ASIndex -> String
 getDaemonName loc = (show loc) ++ "daemon"
 
 getConnByLoc :: ASIndex -> ServerState -> IO (Maybe WS.Connection)
-getConnByLoc loc state = do 
-  let daemon = filter ((==) loc . daemonLoc) (state^.daemonClients)
-  case daemon of 
-    [] -> return Nothing
-    d -> return $ Just $ daemonConn $ $head d 
+getConnByLoc = undefined
 
 -- | If it's something like TODAY() + DATE(), figure that out and automatically make the
 -- cell stream. 
@@ -70,18 +66,12 @@ possiblyCreateDaemon state owner cell =
 -- specified by the user. 
 -- not supported right now (anand 3/7) 
 createDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage -> IO ()
-createDaemon state s loc msg = $undefined
+createDaemon = undefined
 
 removeDaemon :: ASIndex -> ServerState -> IO ()
-removeDaemon loc state = do 
-  let name = getDaemonName loc
-  running <- isRunning name
-  when running $ do 
-    mConn <- getConnByLoc loc state
-    WS.sendClose ($fromJust mConn) ("Bye" :: Text)
-    killAndWait name
+removeDaemon = undefined
 
 -- | Replaces state and stream of daemon at loc, if it exists. If not, create daemon at that location. 
 -- (Ideal implementation would look more like modifyUser, but this works for now.)
 modifyDaemon :: ServerState -> Stream -> ASIndex -> ServerMessage-> IO ()
-modifyDaemon state stream loc msg = (removeDaemon loc state) >> (createDaemon state stream loc msg)
+modifyDaemon = undefined

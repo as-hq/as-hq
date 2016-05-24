@@ -4,13 +4,8 @@ module AS.Kernels.Excel.Lib where
 
 import Data.Either
 import Control.Monad.Except
-import Data.List hiding (head)
-import Data.Maybe hiding (fromJust)
 import Data.Ord (comparing)
 import Control.Exception.Base hiding (try)
-import Control.Monad.Trans.Either
-import Control.Monad.Trans.Either
-import Control.Applicative
 
 import qualified Data.Map.Lazy as ML
 import qualified Data.Map.Strict as M
@@ -425,10 +420,11 @@ getCommonDimension refs = dim
   where
     cols = map (\(ERef l) -> fst (dimension l)) refs
     rows = map (\(ERef l) -> snd (dimension l)) refs
-    dim | and [allTheSame cols, allTheSame rows]      = Just $ ($head cols, $head rows)
-      | and [allTheSame cols, allTheSameOrOne rows] = Just $ ($head cols, maximum rows)
-      | and [allTheSameOrOne cols, allTheSame rows] = Just $ (maximum cols, $head rows)
-      | otherwise = Nothing
+    dim | and [allEqual cols, allEqual rows]      = Just $ (head cols, head rows)
+        | and [allEqual cols, allEqualOrOne rows] = Just $ (head cols, maximum rows)
+        | and [allEqualOrOne cols, allEqual rows] = Just $ (maximum cols, head rows)
+        | otherwise = Nothing
+    allEqualOrOne = allEqual . snd . partition (== 1)
 
 -- | Given the correct dimension and a reference, replace it with a matrix of the right dimension, possibly using replication
 modifyRefToEntity :: Context -> Dim -> ERef -> ThrowsError EEntity
@@ -462,10 +458,10 @@ toValueAC _ (EntityMatrix (EMatrix c r v)) = case (c,r) of
 arrConstToResult :: Context -> [[EEntity]] -> ThrowsError EMatrix
 arrConstToResult c [[]] = Left $ ArrayConstantDim
 arrConstToResult c es = do
-  if (aligned es)
+  if (isRectangular es)
     then do
       vals <- compressErrors $ concatMap (map (toValueAC c)) es
-      return $ EMatrix (length ($head es)) (length es) (V.fromList vals)
+      return $ EMatrix (length (head es)) (length es) (V.fromList vals)
     else Left $ ArrayConstantDim
 
 --------------------------------------------------------------------------------------------------------------
@@ -575,7 +571,7 @@ numVal (EValueNum n) = Just n
 numVal _ = Nothing
 
 filterNum :: V.Vector EValue -> V.Vector EFormattedNumeric
-filterNum v = V.map ($fromJust . numVal) $ V.filter (isJust . numVal) v
+filterNum v = V.map (fromJust . numVal) $ V.filter (isJust . numVal) v
 
 flattenMatrix :: V.Vector (V.Vector a) -> V.Vector a
 flattenMatrix = V.concat . V.toList
@@ -686,7 +682,7 @@ ifsFunc f e = do
   criteria <- mapM (\n -> getRequired f n e) [2*arg+1 | arg<-[1..(length e-1) `div` 2]]
   let matches =  map matchLambda criteria -- [EValue -> Bool]
   let dims = map matrixDim criteriaMatrices
-  if (allTheSame dims) -- make sure that all ranges have the same dimension
+  if (allEqual dims) -- make sure that all ranges have the same dimension
     then do
       let critVecs = map content criteriaMatrices
       -- Should the ith element be included?
@@ -787,9 +783,10 @@ stringMatch bs = case BU.unsafeHead bs of
 typeVerifier :: String -> (EEntity -> Bool) -> Bool -> EFuncResult
 typeVerifier name verifier errDefault c e = do 
   e' <- testNumArgs 1 name e
-  case $head e' of 
-    Left _ -> valToResult $ EValueB errDefault
-    Right x -> valToResult $ EValueB $ verifier x 
+  case headMay e' of 
+    Nothing -> valToResult $ EValueB errDefault
+    Just (Left _) -> valToResult $ EValueB errDefault
+    Just (Right x) -> valToResult $ EValueB $ verifier x 
 
 eIsBlank :: EFuncResult
 eIsBlank = typeVerifier "isblank" isBlank False
@@ -849,13 +846,15 @@ eIfError :: EFuncResult
 eIfError c r = do 
   r' <- testNumArgs 2 "iferror" r
   let errRes = r!!1
-  case $head r' of
-    Left e -> errRes
-    Right (EntityVal (EValueE _)) -> errRes
-    Right (EntityMatrix (EMatrix 1 1 v)) -> case V.head v of 
-      EValueE _ -> errRes
-      otherwise -> $head r'
-    otherwise -> $head r'
+  case (headMay r') of
+    Nothing -> errRes
+    Just x  -> case x of 
+      Left e -> errRes
+      Right (EntityVal (EValueE _)) -> errRes
+      Right (EntityMatrix (EMatrix 1 1 v)) -> case V.head v of 
+        EValueE _ -> errRes
+        _ -> maybe errRes id $ headMay r'
+      _ -> maybe errRes id $ headMay r'
 
 -- | Standard if function, but shouldn't error if in the 'if' clause, but the
 -- 'else' clause has an error.
@@ -1005,11 +1004,12 @@ eOffset c e = do
   height <- getOptional ((getFiniteHeight loc)^.int) "offset" 4 e :: ThrowsError Int
   width <- getOptional ((getFiniteWidth loc)^.int) "offset" 5 e :: ThrowsError Int
   let topLeftOfLoc = topLeftLoc loc
-      tl = shiftByOffset (Offset (Col cols) (Row rows)) topLeftOfLoc
+      Just tl      = shiftSafe (Offset (Col cols) (Row rows)) topLeftOfLoc
   let loc' = case (height,width) of
                 (1, 1) -> IndexRef $ Index (refSheetId loc) tl
-                (h,w) -> RangeRef $ makeFiniteRange (refSheetId loc) tl br where
-                  br = shiftByOffset (Offset (Col $ w - 1) (Row $ h - 1)) tl
+                (h,w ) -> RangeRef $ makeFiniteRange (refSheetId loc) tl br 
+                  where
+                    Just br = shiftSafe (Offset (Col $ w - 1) (Row $ h - 1)) tl
   verifyInBounds loc'
 
 -- | Makes sure that an ASLocation doesn't have negative coordinates etc.
@@ -1048,13 +1048,13 @@ eMatch c e = do
       let desiredValue = V.maximum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else intToResult $ ($fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     -1 -> do 
       let indices = (V.filter (>=lookupVal) vec) 
       let desiredValue = V.minimum indices
       if (V.null indices)
         then Left $ NA "No match found"
-        else intToResult $ ($fromJust (V.findIndex (==desiredValue) vec)) + 1
+        else intToResult $ (fromJust (V.findIndex (==desiredValue) vec)) + 1
     otherwise -> Left $ VAL $ "Last argument for MATCH must be -1,0, or 1 (default)"
 
 -- | Has a "reference mode" and a "value mode", currently only doing value mode
@@ -1102,6 +1102,7 @@ eVlookup c e = do
   colNum <- getRequired f 3 e :: ThrowsError Int
   approx <- getOptional True f 4 e :: ThrowsError Bool
   let lstCols = transpose $ matrixTo2DList m 
+  let firstCol:_ = lstCols
   let len = length lstCols
   if len < 1
     then Left $ VAL "Matrix for VLOOKUP is too small"
@@ -1109,7 +1110,6 @@ eVlookup c e = do
   if approx -- assumes first col is sorted
     then do 
       -- Excel isn't very clear about this, I'm implementing it as the largest elem <= lookupVal
-      let firstCol = $head lstCols
       let i = findIndex (\x -> x > lookupVal) firstCol 
       -- first index with lookupVal > index. i-1 is the index of the largest
       -- element <= lookupVal, unless i is 0 or there was simply nothing found. 
@@ -1119,7 +1119,7 @@ eVlookup c e = do
         Just ind -> getElemFromCol m colNum (ind-1)
     else do 
       -- accept wildcards for an exact match
-      let mIndex = findIndex (matchLambda lookupVal) ($head lstCols)
+      let mIndex = findIndex (matchLambda lookupVal) firstCol
       case mIndex of
         Nothing -> Left $ NA $ "Cannot find lookup value for VLOOKUP"
         Just ind  -> getElemFromCol m colNum ind
@@ -1189,7 +1189,7 @@ eSqrt c e = do
   formattedNum <- getRequired "sqrt" 1 e :: ThrowsError EFormattedNumeric
   let num = formattedNum^.orig
   if num < EValueD 0 
-    then Left $ SqrtNegative $ $fromJust $ extractType $ EntityVal $ EValueNum formattedNum
+    then Left $ SqrtNegative $ fromJust $ extractType $ EntityVal $ EValueNum formattedNum
     else do 
       let ans = case num of
                     EValueI i -> sqrt (fromIntegral i)
@@ -1356,13 +1356,11 @@ eCountIf c e =  do
   intToResult $ V.length vec
 
 eCountIfs :: EFunc
-eCountIfs c e =  do
+eCountIfs c []     = Left $ RequiredArgMissing "countif" 1 
+eCountIfs c (e:es) =  do
   -- let the "sum range" argument be a duplicate of the first argument
-  if (length e <= 0)
-    then Left $ RequiredArgMissing "countif" 1 
-    else do 
-      vec <- ifsFunc "countifs" $ ($head e):e
-      intToResult $ V.length vec
+  vec <- ifsFunc "countifs" $ e:e:es
+  intToResult $ V.length vec
 
 eBinomDist ::  EFunc
 eBinomDist c e = do
@@ -1457,7 +1455,7 @@ eModeSngl c e = do
 
 -- | Median
 median :: [EFormattedNumeric] -> EFormattedNumeric
-median x | odd n  = $head  $ drop (n `div` 2) x'
+median x | odd n  = head  $ drop (n `div` 2) x'
          | even n = avg $ take 2 $ drop i x'
                   where i = (length x' `div` 2) - 1
                         x' = sort x
@@ -1466,14 +1464,14 @@ median x | odd n  = $head  $ drop (n `div` 2) x'
 
 -- | Modes returns a sorted list of modes in descending order
 modes :: (Ord a) => [a] -> [(Int, a)]
-modes xs = sortBy (comparing $ negate.fst) $ map (\x->(length x, $head x)) $ (group.sort) xs
+modes xs = sortBy (comparing $ negate.fst) $ map (\x->(length x, head x)) $ (group.sort) xs
 
 -- | Mode returns the mode of the list, otherwise Nothing
 mode :: (Ord a) => [a] -> Maybe a
 mode xs = case m of
-            [] -> Nothing
-            otherwise -> Just . snd $ $head m
-    where m = filter (\(a,b) -> a > 1) (modes xs)
+            [(_,x)] -> Just x
+            _       -> Nothing
+    where m = filter (\(a,_) -> a > 1) (modes xs)
 
 eCorrel :: EFunc
 eCorrel c e = do

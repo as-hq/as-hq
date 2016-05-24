@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -- these optimizations prevent global variable configuration in 
 -- Config/Settings.hs due to CSE and floating let's
 -- http://stackoverflow.com/questions/19371636/am-i-abusing-unsafeperformio (second answer)
@@ -64,7 +65,7 @@ instance FromJSON AppSettings where
     <*> v .: "slackLogsOn"
     <*> v .: "diagnosticsPort"
 
-  parseJSON _ = $error "expected environment to be an object"
+  parseJSON _ = error "expected environment to be an object"
 
 makeLenses ''AppSettings
 
@@ -134,7 +135,7 @@ getSetting :: IORef a -> IO a
 getSetting = readIORef
 
 getLogger :: IO Logger
-getLogger = $fromJust <$> getSetting logger
+getLogger = fromJust <$> getSetting logger
 
 -- !!!!!!MUST BE CALLED UPON APP START!!!!!!
 initializeSettings :: IO ()
@@ -241,9 +242,9 @@ getRuntimeSettings = catchAny readEnvironment onException
       env <- B.readFile $ mainDir </> env_path
       case eitherDecode env of 
         Right settings -> return settings
-        Left err -> $error $ "couldn't decode environment file, because: " ++ err
+        Left err -> error $ "couldn't decode environment file, because: " ++ err
     onException :: SomeException -> IO AppSettings
-    onException e = $error $ "decoding Environment failed with error: " ++ show e 
+    onException e = error $ "decoding Environment failed with error: " ++ show e 
 
 getWhitelistedUsers :: IO [UserID]
 getWhitelistedUsers = catchAny getWhitelistedUsers' onException
@@ -253,4 +254,4 @@ getWhitelistedUsers = catchAny getWhitelistedUsers' onException
       whitelist <- T.readFile $ mainDir </> whitelist_path
       return $ T.lines whitelist
     onException :: SomeException -> IO [UserID]
-    onException e = $error $ "opening whitelist file failed with error: " ++ show e 
+    onException e = error $ "opening whitelist file failed with error: " ++ show e 

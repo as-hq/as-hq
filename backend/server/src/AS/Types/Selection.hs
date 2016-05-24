@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 -- #needsrefactor selectedRanges should not be exposed, Currently it is because the correct type for Delete doesn't 
 -- quite exist yet.
 module AS.Types.Selection (Selection, activeIndex, indicesInFiniteSelection, selectedRanges) where

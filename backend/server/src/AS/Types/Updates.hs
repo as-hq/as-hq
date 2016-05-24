@@ -1,4 +1,6 @@
-{-# LANGUAGE TypeFamilies, StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.Updates where
 
@@ -6,7 +8,7 @@ import AS.Prelude
 
 import Control.Applicative (liftA2)
 import Data.Aeson.Types
-import Data.List as L
+import Data.List (unionBy)
 import Data.Set (Set)
 import Data.Map (Map)
 import qualified Data.Set as S
@@ -95,7 +97,7 @@ updateToDiff (Update nvs oks) dbGetter = do
   let (nvs', oks') = (S.toList nvs, S.toList oks)
   oldValues <- dbGetter oks'
   overWrittenValues <- dbGetter $ map key nvs'
-  return $ Diff { afterVals = nvs', beforeVals = L.unionBy (\x y -> key x == key y) overWrittenValues oldValues }
+  return $ Diff { afterVals = nvs', beforeVals = unionBy (\x y -> key x == key y) overWrittenValues oldValues }
 
 --------------------------------------------------------------------------------------------------------------
 -- Instances

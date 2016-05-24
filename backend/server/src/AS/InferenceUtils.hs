@@ -173,13 +173,11 @@ decomposePatternGroup pg = patterns
     lengths = [len,(len-1)..0]
     searchItems =  zip searchOrder lengths
     patternSplit = L.find (\(x,_) -> isJust (getPattern x)) searchItems
-    patterns = if isNothing patternSplit
-      then [] 
-      else largestStartPattern : (decomposePatternGroup restOfPatternGroup)
-        where
-          ps = $fromJust patternSplit
-          largestStartPattern = $fromJust $ getPattern $ fst ps
-          restOfPatternGroup = drop (snd ps) pg
+    patterns = maybe [] f patternSplit
+    f ps = largestStartPattern : (decomposePatternGroup restOfPatternGroup)
+      where
+        (Just largestStartPattern) = getPattern $ fst ps
+        restOfPatternGroup         = drop (snd ps) pg
 
 -- Get the cells corresponding to a pattern using position offsets (expression = value)
 translatePatternCells :: ASRange -> ASRange -> Pattern -> [ASCell]
@@ -208,7 +206,7 @@ type PatternMatcher = [ASCell] -> Maybe Pattern
 getPattern :: [ASCell] -> Maybe Pattern
 getPattern c = if noMatch
   then Nothing
-  else Just ($head patterns)
+  else headMay patterns
   where
     maybePatterns = map (\f -> f c) patternMatchers
     patterns = catMaybes maybePatterns  
@@ -277,15 +275,14 @@ sequenceMatcher :: PatternMatcher
 sequenceMatcher [] = Nothing -- don't match an empty pattern as a subsequence
 sequenceMatcher cells = result
   where
-    vals' = map (view cellValue) cells
-    vals = map lowercase vals' -- match lowercase
-    seqMatches = filter (\seq -> L.isInfixOf vals seq) sequences -- match infix (consecutive subsequence)
+    vals = map (lowercase . view cellValue) cells
+    seqMatches = filter (L.isInfixOf vals) sequences -- match infix (consecutive subsequence)
     result = if (length seqMatches == 0)
       then Nothing
       else Just (cells,valFunc)
         where
-          seq = $head seqMatches
-          startIndex = $fromJust $ L.findIndex ((==) ($head vals)) seq
+          seq = head seqMatches
+          startIndex = fromJust $ L.findIndex ((==) (head vals)) seq
           valFunc = \i -> seq !! ((startIndex+i) `mod` (length seq))
 
 sequences :: [[ASValue]]

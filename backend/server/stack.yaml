@@ -8,6 +8,7 @@ extra-deps:
 - inline-r-0.7.3.0
 - ekg-0.4.0.9
 - ekg-json-0.1.0.1
+- located-base-0.1.0.0
 
 resolver: lts-3.7
 

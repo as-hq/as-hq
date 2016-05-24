@@ -22,8 +22,6 @@ import AS.Util
 import AS.Dispatch.Core
 import AS.Reply
 
-import Data.Maybe
-import Data.List
 import Control.Concurrent
 import qualified Control.Lens as Lens
 
@@ -103,8 +101,9 @@ shiftExpressionForCut from offset xp = xp'
 shiftRangeKey :: Offset -> ASCell -> Maybe ASCell
 shiftRangeKey offset c = case c^.cellRangeKey of 
   Nothing -> Just c
-  Just (RangeKey ind dims) -> ((c &) . Lens.set cellRangeKey . Just . flip RangeKey dims) <$> shiftByOffsetWithBoundsCheck offset ind
-
+  Just (RangeKey ind dims) -> 
+    ((c &) . Lens.set cellRangeKey . Just . flip RangeKey dims) <$> shiftSafe offset ind
+    
 getCutCells :: Connection -> ASRange -> ASRange -> IO [ASCell]
 getCutCells conn from to = do 
   let offset = getRangeOffset from to
@@ -123,7 +122,7 @@ getCutToCells :: Connection -> ASRange -> Offset -> IO [ASCell]
 getCutToCells conn from offset = do 
   fromCells          <- getPossiblyBlankCells conn (finiteRangeToIndices from)
   sanitizedFromCells <- sanitizeCutCells conn fromCells from
-  let shiftLoc    = shiftByOffsetWithBoundsCheck offset
+  let shiftLoc    = shiftSafe offset
       changeExpr  = shiftExpressionForCut from offset
       modifyCell  = (shiftRangeKey offset) >=> (replaceCellLocsMaybe shiftLoc) . (cellExpression %~ changeExpr)
   return $ catMaybes $ map modifyCell sanitizedFromCells
@@ -139,7 +138,7 @@ getCutNewDescCells conn from offset = do
 
 -- | Decouples cells appropriately for re-eval on cut/paste, as follows:
 --   * if a cell is not a part of a list, leave it as is. 
---   * if an entire list is contained in the range, keep just the $head of the list. (So on eval
+--   * if an entire list is contained in the range, keep just the head of the list. (So on eval
 --     the entire list is re-evaluated)
 --   * if a cell is part of a list that is not contained entirely in the selection, decouple it. 
 sanitizeCutCells :: Connection -> [ASCell] -> ASRange -> IO [ASCell]

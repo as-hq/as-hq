@@ -2,7 +2,6 @@ module AS.Parsing.Show where
 
 import AS.Prelude
 
-import Data.List (elemIndex)
 import Data.Maybe
 import Data.Char as C
 import qualified Data.Text as T
@@ -90,7 +89,7 @@ showExpanding SQL (VNPMatrix mat) = wrapList SQL $ showCollection SQL $ M mat
 showExpanding SQL (VPSeries indices vals) = wrapList SQL $ showCollection SQL $ A vals 
 showExpanding SQL df@(VPDataFrame labels indices vals) = showExpanding Python df
 showExpanding SQL df@(VRDataFrame labels indices vals) = showExpanding Python df
-showExpanding l v = $error $ 
+showExpanding l v = error $ 
   "cannot insert value " ++ (show v) ++ " in language " ++ (show l)
     
 --------------------------------------------------------------------------------
@@ -105,7 +104,7 @@ showCollection lang coll = case coll of
       mat_t -> "matrix(" ++ elems ++ ", nrow=" ++ show height ++ ", ncol=" ++ show width ++ ")"
         where 
           height  = length mat
-          width   = length $ $head mat
+          width   = length $ head mat
           elems   = list R $ map (showPrimitive R) (concat mat_t) 
     _ -> list lang $ map (\row -> list lang $ map (showPrimitive lang) row) mat
 

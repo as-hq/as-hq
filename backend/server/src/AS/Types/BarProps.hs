@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.BarProps where
 
 import AS.Prelude

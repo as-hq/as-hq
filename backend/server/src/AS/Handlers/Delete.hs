@@ -1,6 +1,5 @@
 module AS.Handlers.Delete (handleDelete) where
 
-import Data.List
 import qualified Data.Set as S
 import Control.Concurrent
 import Control.Applicative

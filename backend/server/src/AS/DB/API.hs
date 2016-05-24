@@ -45,59 +45,37 @@ import AS.Config.Settings
 import AS.DB.Internal
 import AS.Util as U
 import AS.Logging
-import qualified AS.Config.Settings
-import qualified AS.DB.Internal as DI
-import qualified AS.Serialize as S
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Raw cells API
 -- all of these functions are order-preserving unless noted otherwise.
 
 getCell :: Connection -> ASIndex -> IO (Maybe ASCell)
-getCell conn loc = $head <$> getCells conn [loc]
+getCell conn loc = headMaybes <$> getCells conn [loc]
 
--- ::ALEX:: these are kind of unsafe
 setCell :: Connection -> ASCell -> IO ()
 setCell conn c = setCells conn [c]
 
 getCells :: Connection -> [ASIndex] -> IO [Maybe ASCell]
 getCells = multiGet IndexKey dbValToCell
 
--- ::ALEX:: these are kind of unsafe
 setCells :: Connection -> [ASCell] -> IO ()
 setCells = setWithSheetFunc (SheetLocsKey . view locSheetId) IndexKey CellDBValue (view cellLocation)
 
--- ::ALEX:: these are kind of unsafe
 deleteLocs :: Connection -> [ASIndex] -> IO ()
 deleteLocs = delWithSheetFunc (SheetLocsKey . view locSheetId) IndexKey
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Additional cell API methods
 
-getPossiblyBlankCell :: Connection -> ASIndex -> IO ASCell
-getPossiblyBlankCell conn loc = $head <$> getPossiblyBlankCells conn [loc]
+getPossiblyBlankCell :: Connection -> ASIndex -> IO (Maybe ASCell)
+getPossiblyBlankCell conn loc = headMay <$> getPossiblyBlankCells conn [loc]
 
 getCellsInSheet :: Connection -> SheetID -> IO [ASCell]
 getCellsInSheet = getInSheet SheetLocsKey dbValToCell
 
-getAllCells :: Connection -> IO [ASCell]
-getAllCells conn = getCellsByKeyPattern conn "*"
-
 deleteLocsInSheet :: Connection -> SheetID -> IO ()
 deleteLocsInSheet = delInSheet SheetLocsKey
-
-getCellsByKeyPattern :: Connection -> String -> IO [ASCell]
-getCellsByKeyPattern conn pattern = do
-  ks <- getKeysByPattern conn pattern
-  let locs = mapMaybe readLoc ks
-      readLoc k = case (S.maybeDecode k :: Maybe DBKey) of 
-        Just (IndexKey i) -> Just i
-        _ -> Nothing
-  return locs
-  map $fromJust <$> getCells conn locs
-
-getKeysByPattern :: Connection -> String -> IO [B.ByteString]
-getKeysByPattern conn pattern = runRedis conn $ $fromRight <$> keys (BC.pack pattern)
 
 -- Gets the cells at the locations with expressions and values removed, but tags intact. 
 getBlankedCellsAt :: Connection -> [ASIndex] -> IO [ASCell]
@@ -112,8 +90,8 @@ getPossiblyBlankCells conn locs = do
   cells <- getCells conn locs
   return $ map (\(l,c) -> fromMaybe (blankCellAt l) c) (zip locs cells)
 
-getPropsAt :: Connection -> ASIndex -> IO ASCellProps
-getPropsAt conn ind = view cellProps <$> getPossiblyBlankCell conn ind
+getPropsAt :: Connection -> ASIndex -> IO (Maybe ASCellProps)
+getPropsAt conn ind = (view cellProps <$>) <$> getPossiblyBlankCell conn ind
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Range descriptors and keys
@@ -122,7 +100,7 @@ getRangeKeysInSheet :: Connection -> SheetID -> IO [RangeKey]
 getRangeKeysInSheet conn sid = map descriptorKey <$> getRangeDescriptorsInSheet conn sid
 
 getRangeDescriptor :: Connection -> RangeKey -> IO (Maybe RangeDescriptor)
-getRangeDescriptor conn rk = $head <$> getRangeDescriptors conn [rk]
+getRangeDescriptor conn rk = headMaybes <$> getRangeDescriptors conn [rk]
 
 getRangeDescriptors :: Connection -> [RangeKey] -> IO [Maybe RangeDescriptor]
 getRangeDescriptors = multiGet RedisRangeKey dbValToRDesc
@@ -244,7 +222,11 @@ getWorkbooks = multiGet WorkbookKey dbValToWorkbook
 
 getWorkbookSheetIds :: Connection -> WorkbookID -> IO [SheetID]
 getWorkbookSheetIds conn wid = 
-  maybeM (return []) (Set.toList . view workbookSheetIds) (getWorkbook conn wid) 
+  maybeM 
+    (getWorkbook conn wid) 
+    (return []) 
+    $ \wb -> 
+      return $ Set.toList . view workbookSheetIds $ wb 
 
 createWorkbook :: Connection -> UserID -> String -> IO Workbook
 createWorkbook conn uid wname = do 
@@ -291,7 +273,7 @@ storeLastMessage conn msg src = case serverAction msg of
     setWithSheet conn sheetKey dbKeys dbVals
 
 getLastMessage :: Connection -> CommitSource -> IO ServerMessage
-getLastMessage conn src = $error "Currently not implemented"
+getLastMessage conn src = error "Currently not implemented"
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Conditional formatting handlers
@@ -321,7 +303,7 @@ deleteCondFormattingRules conn sid cfids = do
 -- Row/col getters/setters
 
 getBar :: Connection -> BarIndex -> IO (Maybe Bar)
-getBar conn bInd  = $head <$> getBars conn [bInd]
+getBar conn bInd = headMaybes <$> getBars conn [bInd]
 
 getBars :: Connection -> [BarIndex] -> IO [Maybe Bar]
 getBars = multiGet BarKey dbValToBar 

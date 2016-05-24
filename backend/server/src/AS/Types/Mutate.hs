@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Mutate where
 
 import AS.Prelude

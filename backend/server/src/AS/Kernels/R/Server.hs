@@ -3,7 +3,7 @@
 
 module AS.Kernels.R.Server where
 
-import AS.Prelude
+import AS.Prelude 
 import AS.Config.Settings
 
 import AS.Serialize as Serial
@@ -48,7 +48,7 @@ import System.Random (randomRIO)
 --------------------------------------------------------------------------------
 -- Constants 
 
-empty               = ""
+empty_frame         = ""
 ready               = "READY"
 url_workers         = "ipc:///tmp/rkernel_workers"
 
@@ -141,7 +141,7 @@ runServer url_clients numInitialWorkers = do
 -- case, we just register the worker in state and do nothing else.
 -- 2) The backend router received an evaluation reply from a worker, which
 -- it will forward to the frontend router. From runWorkbookWorker, we received three
--- frames. The req socket padded an empty frame and the backend router has 
+-- frames. The req socket padded an empty_frame frame and the backend router has 
 -- padded the worker's network, so we really have five frames upon reception.
 -- We send back [clientAddr, reply] to the frontend router, which will
 -- convey the result to the client by stripping away the clientAddr and sending
@@ -192,14 +192,14 @@ processFrontend  state (frontend, backend) evts =
 
     let forwardRequest :: WorkbookWorker -> ZMQ z ()
         forwardRequest w = 
-          sendMulti backend $ fromList [ $fromJust (w^.networkId)
-                                       , empty, clientAddr
-                                       , empty, req
+          sendMulti backend $ fromList [ fromJust (w^.networkId)
+                                       , empty_frame, clientAddr
+                                       , empty_frame, req
                                        ]
 
     let reply :: KernelReply -> ZMQ z ()
         reply r = sendMulti frontend $ 
-          fromList [clientAddr, empty, Serial.encode r]
+          fromList [clientAddr, empty_frame, Serial.encode r]
 
     case (Serial.decode req) of 
       Right er@(EvaluateRequest _ _ wid _) -> do
@@ -286,9 +286,9 @@ dequeueMsgs state backend wid = do
       liftIO $ modifyMVar_' state $ 
         return . (& messageQueue %~ M.delete wid)
       forM_ q $ \[clientAddr, msg] -> 
-        sendMulti backend $ fromList  [ $fromJust netid
-                                      , empty, clientAddr
-                                      , empty, msg
+        sendMulti backend $ fromList  [ fromJust netid
+                                      , empty_frame, clientAddr
+                                      , empty_frame, msg
                                       ]
 
 broadcastToWorkers :: (Sender s) => MVar KernelState -> Socket z s -> Message -> ZMQ z ()
@@ -296,9 +296,9 @@ broadcastToWorkers state backend [clientAddr, msg] = do
   st <- liftIO $ readMVar state
   forM_ (M.elems $ st^.workbookWorkers) $ \worker -> 
     when (worker^.isRegistered) $ 
-      sendMulti backend $ fromList  [ $fromJust (worker^.networkId)
-                                    , empty, clientAddr
-                                    , empty, msg
+      sendMulti backend $ fromList  [ fromJust (worker^.networkId)
+                                    , empty_frame, clientAddr
+                                    , empty_frame, msg
                                     ]
 
 killWorkers :: MVar KernelState -> IO ()
@@ -321,7 +321,7 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
     Z.connect backend url_workers
 
     -- send registration message
-    Z.sendMulti backend $ fromList [empty, ready, empty, workerId]
+    Z.sendMulti backend $ fromList [empty_frame, ready, empty_frame, workerId]
 
     handle <- getLogHandle $ "rkernel-workbook-" ++ T.unpack wid
     let env = R.unsexp . R.cast R.SEnv $ [rsafe| new.env() |]
@@ -340,7 +340,7 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
 
       let reply :: KernelReply -> IO ()
           reply r = Z.sendMulti backend $ 
-            fromList [empty, clientAddr, empty, Serial.encode r]
+            fromList [empty_frame, clientAddr, empty_frame, Serial.encode r]
 
       case req of 
         -- serialize all header evaluations
@@ -360,7 +360,7 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
                 Z.connect backend url_workers
                 -- will be delivered to backend (and not the workbook workers), because
                 -- the backend socket is the only one calling "bind"
-                Z.sendMulti backend $ fromList [clientAddr, empty, Serial.encode rep]
+                Z.sendMulti backend $ fromList [clientAddr, empty_frame, Serial.encode rep]
           recordWorkerPid state mid workerPid
 
         Right (HaltMessageRequest mid) -> do
@@ -381,7 +381,7 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
             return . (& workbookEnvironment .~ env)
           reply GenericSuccessReply
 
-        Right r -> $error $ "Workbook worker received non-evaluation request: " ++ show r
+        Right r -> error $ "Sheet worker received non-evaluation request: " ++ show r
 
         Left err -> do
           putsTimed state $ "Could not decode request: " ++ show err 

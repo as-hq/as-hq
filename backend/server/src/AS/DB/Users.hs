@@ -64,7 +64,7 @@ getAllSessions = do
 createUserClient :: Connection -> WS.Connection -> User -> IO UserClient
 createUserClient dbConn wsConn user = do
   let wid = user^.lastOpenWorkbook
-  wb <- $fromJust <$> DB.getWorkbook dbConn wid 
+  wb <- fromJust <$> DB.getWorkbook dbConn wid 
   let sid = wb^.lastOpenSheet
   seshId <- T.pack <$> getUUID
   let window = Window 
@@ -87,7 +87,7 @@ createUser conn uid = do
   return user
 
 produceUser :: Connection -> UserID -> IO User
-produceUser conn uid = maybeM (createUser conn uid) id (DB.getUser conn uid)
+produceUser conn uid = maybeM (DB.getUser conn uid) (createUser conn uid) pure 
 
 --------------------------------------------------------------------------------
 -- Reading users
@@ -95,19 +95,19 @@ produceUser conn uid = maybeM (createUser conn uid) id (DB.getUser conn uid)
 -- | Get all sheets in the user's currently open workbook.
 getOpenedSheets :: Connection -> UserID -> IO [Sheet]
 getOpenedSheets conn uid = do
-  mu <- DB.getUser conn uid
-  case mu of 
-    Just u -> do
-      wb <- $fromJust <$> DB.getWorkbook conn (u^.lastOpenWorkbook)
+  maybeM 
+    (DB.getUser conn uid)
+    (return [])
+    $ \user -> do
+      wb <- fromJust <$> DB.getWorkbook conn (user^.lastOpenWorkbook)
       let sids = Set.toList $ wb^.workbookSheetIds
-      map $fromJust <$> mapM (DB.getSheet conn) sids
-    Nothing -> return []
+      map fromJust <$> mapM (DB.getSheet conn) sids
 
 getUserWorkbookRefs :: Connection -> UserID -> IO [WorkbookRef]
 getUserWorkbookRefs conn uid = do
-  user <- $fromJust <$> DB.getUser conn uid
+  user <- fromJust <$> DB.getUser conn uid
   let wids = Set.toList $ user^.workbookIds
-  wbs <- forM wids $ fmap $fromJust . DB.getWorkbook conn
+  wbs <- forM wids $ fmap fromJust . DB.getWorkbook conn
   return $ map (\wb -> WorkbookRef (wb^.workbookId) (wb^.workbookName) (wb^.workbookOwner)) wbs
 
 --------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ modifyUser msgctx f = do
       uc = msgctx^.userClient
       uid = view Network.userId uc
       seshId = uc^.userSessionId
-  user <- $fromJust <$> DB.getUser conn uid
+  user <- fromJust <$> DB.getUser conn uid
   let user' = f user
   DB.setUser conn user'
   if (uc^.userWindow.windowWorkbookId == user'^.lastOpenWorkbook) 
@@ -140,7 +140,7 @@ modifyCurrentWorkbook msgctx f = do
       wid     = msgctx^.userClient.userWindow.windowWorkbookId
       state   = msgctx^.messageState
       seshId  = msgctx^.userClient.userSessionId
-  wb <- f . $fromJust <$> DB.getWorkbook conn wid
+  wb <- f . fromJust <$> DB.getWorkbook conn wid
 
   -- perform consistency checks
   wb' <- if Set.notMember (wb^.lastOpenSheet) (wb^.workbookSheetIds)
@@ -151,7 +151,7 @@ modifyCurrentWorkbook msgctx f = do
         return $ wb & workbookSheetIds .~ Set.singleton sid & lastOpenSheet .~ sid
       else 
         -- else, pick one of the workbook's other sheets to open.
-        let openedSheet = $head . Set.elems $ wb^.workbookSheetIds
+        let openedSheet = head . Set.elems $ wb^.workbookSheetIds
         in return $ wb & lastOpenSheet .~ openedSheet
     else return wb
 
@@ -160,5 +160,3 @@ modifyCurrentWorkbook msgctx f = do
   modifyUserClientInState state seshId 
     (& userWindow.windowSheetId .~ wb'^.lastOpenSheet)
   return wb'
-
---------------------------------------------------------------------------------

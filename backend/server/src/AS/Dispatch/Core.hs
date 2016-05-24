@@ -133,8 +133,7 @@ dispatch :: MessageContext
 dispatch _ [] evalctx _ = return evalctx
 dispatch msgctx roots oldEvalCtx descSetting = do
   let conn = msgctx^.dbConnection
-  let commonSid = ($head roots)^.cellLocation.locSheetId
-  commonSheet <- liftIO $ DB.getSheet conn commonSid
+  commonSheet <- liftIO $ DB.getSheet conn $ messageSheetId msgctx
   let paused = (view inPauseMode <$> commonSheet) == Just True
   -- For all the original cells, add the edges in the 
   -- graph DB; parse + setRelations
@@ -183,7 +182,7 @@ getCellsToEval conn ctx locs = possiblyThrowException =<< (lift $ DE.getCellsWit
   where 
     possiblyThrowException mcells = if any isNothing mcells
       then left $ DBNothingException missingLocs
-      else return $ map $fromJust mcells
+      else return $ map fromJust mcells
         where missingLocs = map fst $ filter (isNothing . snd) $ zip locs mcells 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -352,12 +351,12 @@ contextInsert msgctx c@(Cell idx xp _ ps _ _) (Formatted result f) evalctx = do
     Just (FatCell cs descriptor) -> do 
       let blankCells = case blankedIndices of 
                         Nothing -> []
-                        Just inds -> map (flip $valAt $ ctxWithEvalCells^.virtualCellsMap) inds
+                        Just inds -> map (flip valAt $ ctxWithEvalCells^.virtualCellsMap) inds
           dispatchCells = mergeCells newCellsFromEval $ mergeCells decoupledCells blankCells
       dispatch msgctx dispatchCells ctxWithEvalCells ProperDescendants
       -- propagate the descendants of the expanded cells (except for the list head)
       -- you don't set relations of the newly expanded cells, because those relations do not exist. 
-      -- Only the $head of the list has an ancestor at this point.
+      -- Only the head of the list has an ancestor at this point.
       -- first, check if we blanked out anything as a result of possiblyDeletePreviousFatCell. 
       -- if so, look up the new cells from the map. 
       -- e.g. if range(5) -> range(2), possiblyDeletePrevious... will return indices A1...A5, 

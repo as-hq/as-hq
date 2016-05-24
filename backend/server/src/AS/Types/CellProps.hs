@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.CellProps
   ( CellPropType(..), 
     CellProp(..),
@@ -37,7 +39,6 @@ import Control.Applicative (liftA2)
 
 import Data.Aeson.Types (Parser)
 import Data.Maybe
-import Data.List (foldl')
 import qualified Data.Map as M
 
 -- #expert is there a better way to structure these? 

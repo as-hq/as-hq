@@ -1,7 +1,7 @@
 module AS.Clients where
 
-import qualified Data.List as L
 import qualified Data.Text as T
+import qualified Data.List as L
 import qualified Data.Aeson as A
 import Control.Monad (when)
 
@@ -53,7 +53,7 @@ instance Client UserClient where
   removeClient uc s
     | uc `elem` (s^.userClients) = s & userClients %~ (L.delete uc)
     | otherwise = s
-  lookupClient uc s = $fromJust $ L.find (== uc) (s^.userClients)
+  lookupClient uc s = L.find (== uc) (s^.userClients)
   clientCommitSource = userCommitSource
   handleServerMessage uc state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
@@ -123,19 +123,19 @@ instance Client UserClient where
       GetObjectView idx            -> handleGetObjectView msgctx idx
       TogglePauseMode sid          -> handleTogglePauseMode msgctx sid
       ReEval sid                   -> handleReEval msgctx sid
-      --Undo         -> $error "Simulated crash"
+      --Undo         -> error "Simulated crash"
       -- ^^ above is to test API endpoints which don't have a frontend implementation
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client
 
 instance Client ASDaemonClient where
-  clientType = $undefined
-  clientConn = $undefined
-  sessionId = $undefined
-  ownerName = $undefined
-  addClient = $undefined
-  removeClient = $undefined
-  lookupClient = $undefined
-  clientCommitSource = $undefined
-  handleServerMessage = $undefined
+  clientType = undefined
+  clientConn = undefined
+  sessionId = undefined
+  ownerName = undefined
+  addClient = undefined
+  removeClient = undefined
+  lookupClient = undefined
+  clientCommitSource = undefined
+  handleServerMessage = undefined

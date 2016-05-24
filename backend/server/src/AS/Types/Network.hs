@@ -1,4 +1,15 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Network where
+
+import AS.Prelude
+
+import AS.Types.Sheets 
+import AS.Types.Locations
+import AS.Types.Commits
+import AS.Types.Messages hiding (LogSource)
+import AS.Types.User hiding (userId)
+import AS.Types.Window
 
 import Data.Aeson
 --import Data.Text
@@ -140,7 +151,7 @@ class Client c where
   sessionId :: c -> SessionId
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
-  lookupClient :: c -> ServerState -> c
+  lookupClient :: c -> ServerState -> Maybe c
   handleServerMessage :: c -> State -> ServerMessage -> IO ()
   clientCommitSource :: c -> CommitSource
 

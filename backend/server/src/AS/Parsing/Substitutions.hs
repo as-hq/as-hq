@@ -99,7 +99,7 @@ excelParser f b = unsafePerformIO $ excelParserIO (return . f) b
 {-# NOINLINE excelParser #-}
 
 excelParserIO :: (ExRef -> IO ByteString) -> ByteString -> IO ByteString 
-excelParserIO f = $fromRight . parseOnly parserIO
+excelParserIO f = fromRight . parseOnly parserIO
   where 
     parserIO = do 
       excels <- many' $ parseNextIO f
@@ -142,7 +142,7 @@ isExcelLiteral (Expression xp lang) = (lang == Excel) && parsedCorrectly
 getExcelReferences :: ASExpression -> [ExRef]
 getExcelReferences xp@(Expression str lang)
   | isExcelLiteral xp = []
-  | otherwise = (map nextRef . $fromRight) parseResult
+  | otherwise = (map nextRef . fromRight) parseResult
       where parseResult = parseOnly (many getFirstExcelRef) (C.pack str)
 
 -- | This is a specialized function for use in Eval/Core so that you don't call replaceRefsIO
@@ -150,10 +150,10 @@ getExcelReferences xp@(Expression str lang)
 -- It returns all of the ExRefs in  the input ASExpression, and also returns the ASExpression 
 -- along with the interpolated references. For example, "A1+123" with a replacer function of 
 -- const "boom" will return ("boom+123", [A1]) (ignoring the ASLanguage).
-getSubstitutedXpAndReferences :: (ExRef -> IO String) -> ASExpression -> IO (ASExpression, [ExRef])
+getSubstitutedXpAndReferences :: (Monad m) => (ExRef -> m String) -> ASExpression -> m (ASExpression, [ExRef])
 getSubstitutedXpAndReferences f (Expression xp lang) = do 
   let transform r = C.pack <$> f r
-  let (xs, last) = $fromRight $ parseOnly getAllExcelRefs (C.pack xp)
+  let (xs, last) = fromRight $ parseOnly getAllExcelRefs (C.pack xp)
   newStr <- B.concat <$> (forM xs $ \(UntilExRef b r) -> B.append b <$> transform r)
   let finalStr = B.append newStr last
   return $! (Expression (C.unpack finalStr) lang, map nextRef xs)
@@ -170,6 +170,6 @@ shiftExpression offset = replaceRefs (show . shiftExRefNF offset)
 shiftCell :: Offset -> ASCell -> Maybe ASCell
 shiftCell offset c = ((c &) . modifyXp . Lens.set cellLocation) <$> mLoc
   where modifyXp = ((cellExpression %~ shiftExpression offset) .)
-        mLoc  = shiftByOffsetWithBoundsCheck offset $ c^.cellLocation
+        mLoc  = shiftSafe offset $ c^.cellLocation
 
 ----------------------------------------------------------------------------------------------------

@@ -1,9 +1,10 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.DB where
 
-import AS.Prelude
+import AS.Prelude hiding (get, set)
 import Data.Maybe
 import qualified Data.ByteString.Char8         as BC
 import qualified Data.ByteString               as B
@@ -136,7 +137,7 @@ deriveSafeCopy 1 'base ''ExportData
 
 -- #incomplete Assumes the export has at least one cell. 
 exportDataSheetId :: ExportData -> SheetID
-exportDataSheetId = (view (cellLocation.locSheetId)) . $head . view exportCells
+exportDataSheetId = (view (cellLocation.locSheetId)) . head . view exportCells
 
 cloneData :: SheetID -> ExportData -> ExportData
 cloneData sid ex = 

@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Messages where
 
 import Data.Aeson
@@ -160,7 +162,7 @@ data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIn
 
 instance FromJSON ServerMessage where
   parseJSON (Object v) = ServerMessage <$> v .: "messageId" <*> v .: "serverAction"
-  parseJSON _ = $error "expected JSON to be object type"
+  parseJSON _ = error "expected JSON to be object type"
 
 -- #anand
 -- Daemons require a ToJSON instance, as they need to be able to generate ServerMessages.

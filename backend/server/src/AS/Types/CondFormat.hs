@@ -12,7 +12,6 @@ import AS.Types.Errors
 import AS.Types.Locations
 import AS.Types.Updates
 
-import Data.List
 import Data.Aeson.Types
 import Data.SafeCopy
 import qualified Data.Text as T

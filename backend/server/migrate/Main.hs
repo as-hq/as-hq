@@ -22,17 +22,23 @@ import AS.Types.RangeDescriptor
 import AS.Types.User
 import AS.Types.EvalHeader
 
+import qualified AS.Serialize as Serial
+
 import Data.SafeCopy
 
 import Conv
 import Types
 import DB
 
-main' :: IO ()
-main' = alphaMain $ do
+main :: IO ()
+main = alphaMain $ do
   conn <- connectRedis
   (Right bs) <- runRedis conn $ keys "*"
-  let ks = map ($fromJust . toDBKey) bs :: [DBKey]
+  oldks <- forM bs $ \b -> do
+    case (Serial.decode b :: Either String DBKey0) of 
+      Left err -> error $ "got retarded  key: " ++ show b ++ "\n\n" ++ err
+      Right b' -> return b'
+  let ks = map migrate oldks :: [DBKey]
 
   -- users
   let f (UserKey _) = True
@@ -41,7 +47,7 @@ main' = alphaMain $ do
   users <- forM userKeyPairs $ \(ub, uk) -> do
     (UserValue user) <- runRedis conn $ do
       Right (Just val) <- get ub
-      return . $fromJust $ toDBValue val :: Redis DBValue
+      return . fromJust $ toDBValue val :: Redis DBValue
     putStrLn $ "found user: " ++ show (user^.userId)
     return user
 
@@ -59,7 +65,7 @@ main' = alphaMain $ do
       let skey = encode $ SheetKey0 sid
       (SheetValue sheet) <- runRedis conn $ do
         Right (Just sval) <- get skey
-        return . $fromJust $ maybeDecode sval :: Redis DBValue
+        return . fromJust $ maybeDecode sval :: Redis DBValue
       putStrLn $ "[SUCCESS] user " ++ (T.unpack $ user^.userId) ++ " got sheet: " ++ (sheet^.sheetName)
       return $ Just sheet
     let sheets = catMaybes msheets
@@ -115,10 +121,12 @@ main' = alphaMain $ do
   mapM_ ($ ()) dbActions
 
   -- perform strict migration of all other types
+  putStrLn "performing strict migration..."
   migrateDBE conn
+  putStrLn "done."
 
-main :: IO ()
-main = alphaMain $ do  
+main' :: IO ()
+main' = alphaMain $ do  
   -- perform migration
   conn <- connectRedis 
   migrateDBE conn 
@@ -148,17 +156,6 @@ migrateDB conn = do
       let pairs = zip keys rawKeys
       dbObjects <- mapM (\(key, rawKey) -> getDBSetterObject key rawKey conn) pairs
       mapM_ (applyDBSetterObject conn) dbObjects
-
-      -- On the first migration, add all sheets to a default user
-      let sheets = extractSheets $ concatMap setterVals dbObjects
-      when (isFirstMigration && not (null sheets)) $ do
-        -- we don't do first migrations anymore. (anand 5/9)
-        $undefined
-        --let uid = T.pack "alphasheetsdemo@gmail.com"
-        --let sids = map sheetId sheets 
-        --let user = User (Set.fromList sids) Set.empty uid ($head sids)
-        --print user
-        --setV conn (UserKey uid) (UserValue user)
 
     else throwIO $ CouldNotDecodeKeys $ take 5 badRawKeys
 

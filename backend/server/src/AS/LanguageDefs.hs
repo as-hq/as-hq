@@ -2,6 +2,7 @@ module AS.LanguageDefs where
 
 import AS.Prelude
 import AS.Types.Cell
+import Data.Char (isSpace)
 
 import qualified Data.List as L
 
@@ -23,7 +24,7 @@ outNull lang = case lang of
   Python -> "None"
   R -> "NULL"
   SQL -> "None"
-  _ -> $error $ "null value not found for " ++ (show lang)
+  _ -> error $ "null value not found for " ++ show lang
 
 inNull :: ASLanguage -> String
 inNull lang = case lang of 
@@ -33,24 +34,24 @@ inNull lang = case lang of
 inNan :: ASLanguage -> String
 inNan lang = case lang of 
   Python -> "NaN"
-  _ -> $error $ "nan value not found for " ++ (show lang)
+  _ -> error $ "nan value not found for " ++ (show lang)
 
 outNan :: ASLanguage -> String
 outNan lang = case lang of 
   Python -> "np.nan"
   R -> "NaN"
-  _ -> $error $ "nan value not found for " ++ (show lang)
+  _ -> error $ "nan value not found for " ++ (show lang)
 
 inInf :: ASLanguage -> String
 inInf lang = case lang of 
   Python -> "Infinity"
-  _ -> $error $ "nan value not found for " ++ (show lang)
+  _ -> error $ "nan value not found for " ++ (show lang)
 
 outInf :: ASLanguage -> String
 outInf lang = case lang of 
   Python -> "np.inf"
   R -> "Inf"
-  _ -> $error $ "inf value not found for " ++ (show lang)
+  _ -> error $ "inf value not found for " ++ (show lang)
 
 outBool :: ASLanguage -> Bool -> String
 outBool lang val = case val of 
@@ -96,3 +97,7 @@ commented :: ASLanguage -> String -> String
 commented lang str = flip (++) str $ case lang of 
   Python -> "# "
   R -> "# "
+
+trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to get block delimiters
+trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
+  where isWhitespace c = isSpace c || (c == ';')

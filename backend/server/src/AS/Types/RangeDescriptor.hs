@@ -47,6 +47,7 @@ data JSONValue =
   | ListValue Collection
   | SimpleValue ASValue deriving (Show, Read, Eq, Generic)
 
+
 -------------------------------------------------------------------------------------------------------------------------
 -- Instances
 
@@ -66,3 +67,12 @@ deriveSafeCopy 1 'base ''ExpandingType
 deriveSafeCopy 1 'base ''RangeKey
 deriveSafeCopy 1 'base ''JSONField
 deriveSafeCopy 1 'base ''JSONValue
+
+-------------------------------------------------------------------------------------------------------------------------
+-- helpers
+
+rangeDescriptorSheetId :: RangeDescriptor -> SheetID
+rangeDescriptorSheetId = rangeKeySheetId . descriptorKey
+
+rangeKeySheetId :: RangeKey -> SheetID
+rangeKeySheetId = view locSheetId . keyIndex

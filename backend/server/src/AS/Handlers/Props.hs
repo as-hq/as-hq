@@ -20,13 +20,12 @@ import AS.Daemon as DM
 import AS.Reply
 import AS.Util
 
-import Data.List
 import qualified Data.Set as S
-import qualified Control.Lens as Lens
-import Control.Applicative ((<*>))
 import Control.Concurrent
 import qualified Data.Map as M
 import Database.Redis (Connection)
+
+import qualified Control.Lens as Lens
 
 -- | Used only for flag props. 
 handleToggleProp :: MessageContext -> CellProp -> ASRange -> IO ()

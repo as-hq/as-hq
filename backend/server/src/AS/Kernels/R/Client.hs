@@ -89,7 +89,7 @@ runRequest_ :: KernelRequest -> IO ()
 runRequest_ msg = void $ do
   resp <- runEitherT $ runRequest msg
   case resp of
-    Right (GenericErrorReply e) -> $error e
+    Right (GenericErrorReply e) -> error e
     otherwise -> return ()
 
 -- | Given the request and the client, return the statusReq action to test if

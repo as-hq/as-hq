@@ -1,4 +1,5 @@
-{-# LANGUAGE DataKinds, ExistentialQuantification, RankNTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
 
 module AS.Kernels.R.Types where
 

@@ -22,7 +22,6 @@ import AS.Util
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
-import qualified Data.List as L
 import Data.Maybe 
 import qualified Data.Set as S
 
@@ -151,7 +150,7 @@ applyUpdateToDBMaybePropagated shouldPropagate conn (CommitSource sid uid) u@(Sh
       overwrittenDeletedLocs = S.map (view cellLocation) $ cu^.newValsSet
       nonOverwrittenBlankLocs = S.toList $ deletedLocs S.\\ overwrittenDeletedLocs
       allUpdatedCells = cu^.newVals ++ blankCellsAt nonOverwrittenBlankLocs
-      (emptyCells, nonEmptyCells) = L.partition isEmptyCell allUpdatedCells
+      (emptyCells, nonEmptyCells) = partition isEmptyCell allUpdatedCells
   -- don't save blank cells in the database; in fact, we should delete any that are there. 
   deleteLocs' $ mapCellLocation emptyCells
   setCells' nonEmptyCells

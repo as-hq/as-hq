@@ -1,4 +1,6 @@
-{-# LANGUAGE TypeFamilies, DefaultSignatures #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AS.Types.Cell
   ( module AS.Types.Cell
@@ -20,7 +22,6 @@ import AS.Types.Updates
 import AS.Types.Values
 
 import Data.Aeson
-import Data.List
 import Data.SafeCopy
 import qualified Data.Map as M
 import qualified Data.Set as S

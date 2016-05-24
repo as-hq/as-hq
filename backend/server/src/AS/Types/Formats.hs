@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module AS.Types.Formats
   ( Format(..),
     FormatType(..), 
@@ -63,7 +65,7 @@ shiftDecPrecision shft fv =
   where
     initFormat    = format %~ Just . fromMaybe (Format NoFormat Nothing)
     boundedShift  = ((max 0 . min 20) .) . (+)
-    decimalPlaces = min 10 . length . $head . splitOn "e" . $last . splitOn "." . show
+    decimalPlaces = min 10 . length . head . splitOn "e" . last . splitOn "." . show
     -- ^ number of digits after the decimal. Assumes all doubles have have a decimal when called with
     -- show. For doubles shown in scientific notation, this counts the number of digits shown before the e.
 

@@ -37,7 +37,7 @@ handleEval msgctx evalInstructions  = do
       inds = map evalLoc evalInstructions
       conn = msgctx^.dbConnection
   oldProps <- mapM (getPropsAt conn) inds
-  let defCell (xp, ind, props) = Cell ind xp NoValue props Nothing Nothing
+  let defCell (xp, ind, props) = Cell ind xp NoValue (maybe emptyProps id props) Nothing Nothing
   let cells = map defCell $ zip3 xps inds oldProps
   errOrUpdate <- runDispatchCycle msgctx cells DescendantsWithParent id
   broadcastErrOrUpdate msgctx errOrUpdate

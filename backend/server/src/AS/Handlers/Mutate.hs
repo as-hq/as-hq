@@ -157,7 +157,10 @@ sanitizeMutateCell mt oldLoc c = cell'
     Just rk = c^.cellRangeKey
     cell' = if fatCellGotMutated mt rk
           then DI.toDecoupled c
-          else c & cellRangeKey .~ Just rk { keyIndex = $fromJust $ indexMutate mt (keyIndex rk) }  -- #lens
+          else let rk' = case indexMutate mt (keyIndex rk) of 
+                            Nothing  -> Nothing
+                            Just idx -> Just $ rk {keyIndex = idx}
+                in c & cellRangeKey .~ rk'
 
 between :: (Num a, Ord a) => a -> a -> a -> Bool
 between lower upper x = (x >= lower) && (x <= upper)
@@ -194,13 +197,13 @@ fatCellGotMutated (RowMutate (Drag r1 r2)) (RangeKey (Index _ coord) dims) = cas
 -- #ExposedConstructor : Coord
 rangeMutate :: Mutate -> (ASRange -> [ASRange])
 rangeMutate mt@(ColMutate (Delete c)) rng@(Range sid ((tlCol, tlRow), (Finite blCol, Finite blRow)))
-  | tlCol > blCol            = $error "improperly oriented range passed into rangeMutate"
+  | tlCol > blCol            = error "improperly oriented range passed into rangeMutate"
   | tlCol == c && blCol == c = []
   | tlCol == c             = [makeFiniteRange sid (makeCoord tlCol tlRow) (makeCoord (blCol-Col 1) blRow)] -- not (makeCoord tlCol+1 tlRow, C
   | blCol == c             = [makeFiniteRange sid (makeCoord tlCol tlRow) (makeCoord (blCol-Col 1) blRow)]
   | otherwise                 = rangeMutate' mt rng
 rangeMutate mt@(RowMutate (Delete r)) rng@(Range sid ((tlCol, tlRow), (Finite blCol, Finite blRow)))
-  | tlRow > blRow            = $error "improperly oriented range passed into rangeMutate"
+  | tlRow > blRow            = error "improperly oriented range passed into rangeMutate"
   | tlRow == r && blRow == r = []
   | tlRow == r             = [makeFiniteRange sid (makeCoord tlCol tlRow) (makeCoord blCol (blRow-Row 1))]
   | blRow == r             = [makeFiniteRange sid (makeCoord tlCol tlRow) (makeCoord blCol (blRow-Row 1))]
@@ -212,8 +215,8 @@ rangeMutate mt rng = rangeMutate' mt rng
 rangeMutate' :: Mutate -> (ASRange -> [ASRange])
 rangeMutate' mt (Range sid (c1, extC2)) =  [makeFiniteRange sid c1' c2']
   where
-    c1' = $fromJust $ coordMutate mt c1
-    c2' = $fromJust $ coordMutate mt c2
+    c1' = fromJust $ coordMutate mt c1
+    c2' = fromJust $ coordMutate mt c2
     c2 = fromExtendedCoord $ extC2
 
 

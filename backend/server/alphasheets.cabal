@@ -102,6 +102,7 @@ library
                        AS.Util
                        AS.Mock.DB
   build-depends:       base >= 4.7 && < 5
+                     , located-base
                      , text >= 0.11 && < 2.0
                      , filepath
                      , time
@@ -167,7 +168,6 @@ library
                        OverloadedStrings
                        TypeSynonymInstances
                        FlexibleInstances
-                       TemplateHaskell
                        DeriveGeneric
                        DeriveDataTypeable
                        NoImplicitPrelude

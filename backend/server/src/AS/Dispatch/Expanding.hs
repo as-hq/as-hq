@@ -158,7 +158,7 @@ recomposeCompositeValue (FatCell cells (RangeDescriptor key PDataFrame _)) = Exp
 recomposeCompositeValue (FatCell cells (RangeDescriptor key PSeries attrs)) = Expanding val
   where
     val       = VPSeries indices vals
-    (JSONLeaf (ListValue (A indices))) = $valAt "seriesIndices" attrs
+    (JSONLeaf (ListValue (A indices))) = valAt "seriesIndices" attrs
     (A vals)  = recomposeCells dims cells
     dims      = Dimensions { width = Col 1, height = Row $ length cells }
 

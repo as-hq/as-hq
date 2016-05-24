@@ -115,7 +115,7 @@ getLogPath rootDir src = rootDir ++ case src of
   SheetLog sid       -> "[sheet]" ++ T.unpack sid
   ErrorLog commitSrc -> "[errors]" ++ show commitSrc
   BugLog commitSrc   -> "[bugreports]" ++ show commitSrc
-  ConsoleLog         -> $error "invariant violation: no log file for ConsoleLog"
+  ConsoleLog         -> error "invariant violation: no log file for ConsoleLog"
 
 writeLog :: Handle -> LogSource -> String -> IO ()
 writeLog h src x = do
