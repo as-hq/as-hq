@@ -16,6 +16,8 @@ import AS.Types.User hiding (userId)
 import AS.Types.Window
 import AS.Types.Commits
 
+import qualified AS.Kernels.API as Kernels
+
 import AS.Handlers.Eval (handleEvalHeader)
 
 import AS.Serialize
@@ -114,10 +116,8 @@ handleOpenWorkbook msgctx wid = do
   msgctx' <- modifyUser msgctx (& lastOpenWorkbook .~ wid)
   -- update opened workbook
   handleGetOpenedWorkbook msgctx'
-  -- send workbook headers
-  headers <- forM headerLangs $ getEvalHeader conn wid
-  -- pre-evaluate the headers
-  forM_ headers $ handleEvalHeader msgctx'
+  -- notify kernels of opened workbook
+  Kernels.openWorkbook conn wid
   -- open the last opened sheet in that workbook
   wb <- fromJust <$> getWorkbook conn wid
   handleOpenSheet msgctx' $ wb^.lastOpenSheet

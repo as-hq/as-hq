@@ -353,6 +353,11 @@ import base64
         result.result = repr(result.result) 
       return self.exec_result_to_msg(result, msg)
 
+    elif msg['type'] == 'open_workbook':
+      if not self.shell.has_workbook(msg['workbook_id']):
+        self.shell.run_header(msg['code'], msg['workbook_id'])
+      return {'type': 'generic_success'}
+ 
     elif msg['type'] == 'get_status':
       raise NotImplementedError
 

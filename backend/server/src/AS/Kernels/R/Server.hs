@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module AS.Kernels.R.Server where
 
@@ -42,14 +43,14 @@ import Language.R.QQ
 
 import System.Posix.Types
 import System.Posix.Signals
-import System.Directory (createDirectoryIfMissing)
-import System.Random (randomRIO)
+import System.Posix.Process   (getProcessID)
+import System.Directory       (createDirectoryIfMissing)
+import System.Random          (randomRIO)
 
 --------------------------------------------------------------------------------
 -- Constants 
 
 empty_frame         = ""
-ready               = "READY"
 url_workers         = "ipc:///tmp/rkernel_workers"
 
 --------------------------------------------------------------------------------
@@ -82,19 +83,6 @@ initialize = do
 --------------------------------------------------------------------------------
 -- Running the server
 
-serverLoop :: MVar KernelState -> Socket z Router -> Socket z Router -> ZMQ z ()
-serverLoop state frontend backend = 
-  handleAny onException $ 
-    forever $ do 
-      [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, 
-                                   Sock frontend [In] Nothing]
-      processBackend  state (backend, frontend) evtsB 
-      processFrontend state (frontend, backend) evtsF 
-  where
-    onException e = do
-      puts state $ "ERROR: " ++ (show (e :: SomeException))
-      serverLoop state frontend backend 
-
 -- | Main server loop. Caveat: requires that R has already been initialized.
 runServer :: Addr -> Int -> IO ()
 runServer url_clients numInitialWorkers = do
@@ -103,7 +91,7 @@ runServer url_clients numInitialWorkers = do
 
   -- Initialize state
   state <- newMVar $ newKernelState logHandle
-  initialize
+  --initialize -- don't self-initialize worker processes (anand 5/18)
 
   -- initialize R libraries
   -- the app needs to be run as root to install packages.
@@ -133,6 +121,19 @@ runServer url_clients numInitialWorkers = do
 
     serverLoop state frontend backend 
 
+serverLoop :: MVar KernelState -> Socket z Router -> Socket z Router -> ZMQ z ()
+serverLoop state frontend backend = 
+  handleAny onException $ 
+    forever $ do 
+      [evtsB, evtsF] <- poll (-1) [Sock backend [In] Nothing, 
+                                   Sock frontend [In] Nothing]
+      processBackend  state (backend, frontend) evtsB 
+      processFrontend state (frontend, backend) evtsF 
+  where
+    onException e = do
+      puts state $ "ERROR: " ++ (show (e :: SomeException))
+      serverLoop state frontend backend 
+
 --------------------------------------------------------------------------------
 -- Process backend router events
 
@@ -154,14 +155,18 @@ processBackend  :: (Receiver r, Sender r, Sender s)
 processBackend state (backend, frontend) evts = 
   when (In `elem` evts) $ do
     msg <- receiveMulti backend
-    if (msg !! 2 == ready) 
-      then do
+    case (msg !! 2) of 
+      "REGISTER" -> do
         let netid = msg !! 0
         let wid = T.pack . unpack $ msg !! 4
-        liftIO $ registerWorkbookWorker state wid netid
+        liftIO $ registerWorker state wid netid
         puts state $ "WORKER REGISTERED: " ++ show wid
         dequeueMsgs state backend wid 
-      else do
+      "UNREGISTER" -> do
+        let wid = T.pack . unpack $ msg !! 4
+        liftIO $ unregisterWorker state wid
+        puts state $ "<<< worker " ++ show wid ++ " killed >>>"
+      _ -> do
         let clientAddr = msg !! 2
         let reply = msg !! 4
         putsTimed state "==== SENT BACK REPLY ==== "
@@ -190,6 +195,27 @@ processFrontend  state (frontend, backend) evts =
     msg <- receiveMulti frontend
     let [clientAddr, req] = msg
 
+    -- #needsrefactor this doesn't actually queue an action. It should, 
+    -- but I can't figure out how to queue arbitrary ZMQ actions without 
+    -- causing a weird deadlock. 
+    let withWorker :: WorkbookID -> (WorkbookWorker -> ZMQ z ()) -> ZMQ z ()
+        withWorker wid f = do
+          worker <- liftIO $ getWorker state wid
+          case worker of  
+            Nothing -> liftIO $ do
+              puts state "Creating workbook worker."
+              -- queue message for nonexistent worker
+              queueMsg state wid [clientAddr, req]
+              installWorker state wid 
+            Just w -> 
+              if (w^.isRegistered)
+                then do
+                  -- Invariant: if the worker is registered, it has a valid Network ID
+                  f w
+                else do
+                  -- queue message for unregistered worker
+                  liftIO $ queueMsg state wid [clientAddr, req]
+
     let forwardRequest :: WorkbookWorker -> ZMQ z ()
         forwardRequest w = 
           sendMulti backend $ fromList [ fromJust (w^.networkId)
@@ -202,32 +228,21 @@ processFrontend  state (frontend, backend) evts =
           fromList [clientAddr, empty_frame, Serial.encode r]
 
     case (Serial.decode req) of 
-      Right er@(EvaluateRequest _ _ wid _) -> do
-        worker <- liftIO $ getWorkbookWorker state wid
-        case worker of  
-          Nothing -> liftIO $ do
-            puts state "Creating workbook worker."
-            -- queue message for nonexistent worker
-            queueMsg state wid [clientAddr, req]
-            installWorkbookWorker state wid 
-          Just w -> 
-            if (w^.isRegistered)
-              then do
-                -- Invariant: if the worker is registered, it has a valid Network ID
-                forwardRequest w
-              else do
-                -- queue message for unregistered worker
-                liftIO $ queueMsg state wid [clientAddr, req]
+      Right (EvaluateRequest {evalWorkbookId}) -> 
+        withWorker evalWorkbookId forwardRequest
 
-      -- broadcast halt request to all workbook workers
-      Right (HaltMessageRequest {}) -> do
+      Right (OpenWorkbookRequest wid _) -> 
+        -- we only care that the worker exists, and `withWorker` takes care of that for us.
+        withWorker wid $ \_ -> reply GenericSuccessReply
+
+      Right (HaltMessageRequest {}) -> 
         broadcastToWorkers state backend [clientAddr, req]
 
       Right (GetStatusRequest {}) -> 
         broadcastToWorkers state backend [clientAddr, req]
 
       Right (ClearRequest wid) -> do
-        worker <- liftIO $ getWorkbookWorker state wid
+        worker <- liftIO $ getWorker state wid
         whenJust worker forwardRequest
 
       Left e -> do
@@ -239,8 +254,8 @@ processFrontend  state (frontend, backend) evts =
 
 -- | Create and install a worker. Its status is 'Unregistered' until it 
 -- sends a registration message.
-installWorkbookWorker :: MVar KernelState -> WorkbookID -> IO ()
-installWorkbookWorker state wid = do
+installWorker :: MVar KernelState -> WorkbookID -> IO ()
+installWorker state wid = do
   pid <- forkProcess' $ runWorkbookWorker wid 
   let worker = WorkbookWorker 
                 { _workerWorkbookId = wid
@@ -253,17 +268,25 @@ installWorkbookWorker state wid = do
 
 -- | Upon reception of a worker registration message, update its status and 
 -- network id in state.
-registerWorkbookWorker :: MVar KernelState -> WorkbookID -> NetworkId -> IO ()
-registerWorkbookWorker state wid netid = 
+registerWorker :: MVar KernelState -> WorkbookID -> NetworkId -> IO ()
+registerWorker state wid netid = 
   modifyMVar_' state $ 
     return . (& workbookWorkers %~ M.adjust 
       ( (& networkId .~ Just netid)
       . (& isRegistered .~ True))
       wid)
 
+-- | Remove worker from state and kill it.
+unregisterWorker :: MVar KernelState -> WorkbookID -> IO ()
+unregisterWorker state wid = do
+  worker <- modifyMVar state $ \s -> 
+    let worker = (s^.workbookWorkers) M.! wid 
+    in return (s & workbookWorkers %~ M.delete wid, worker)
+  signalProcess sigKILL $ worker^.process
+
 -- | Get a worker that is not engaged.
-getWorkbookWorker :: MVar KernelState -> WorkbookID -> IO (Maybe WorkbookWorker)
-getWorkbookWorker state wid = readMVar state >>= \s -> 
+getWorker :: MVar KernelState -> WorkbookID -> IO (Maybe WorkbookWorker)
+getWorker state wid = readMVar state >>= \s -> 
   return (M.lookup wid $ s^.workbookWorkers)  
 
 -- | Queue an evalution request for an unregistered worker.
@@ -321,26 +344,46 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
     Z.connect backend url_workers
 
     -- send registration message
-    Z.sendMulti backend $ fromList [empty_frame, ready, empty_frame, workerId]
+    Z.sendMulti backend $ fromList [empty_frame, "REGISTER", empty_frame, workerId]
 
     handle <- getLogHandle $ "rkernel-workbook-" ++ T.unpack wid
     let env = R.unsexp . R.cast R.SEnv $ [rsafe| new.env() |]
     state <- newMVar $ newWorkbookState env handle
 
-    forever $ do
-      -- blocks here until the worker is registered 
-      -- (due to invariant: unregistered worker never assigned work)
-      ["", clientAddr, "", msg] <- Z.receiveMulti backend
-      putsTimed state $ "==== WORKER " ++ T.unpack wid ++ " RECEIVED MESSAGE ==== "
+    -- worker timeout
+    mypid <- getProcessID
+    activityToggle <- newToggle 
 
-      let req = Serial.decode msg
+    -- timer thread
+    forkIO_ $ forever $ do
+      toggleOff activityToggle
+      threadDelaySeconds kernel_worker_activity_timeout
+      c <- isToggleOn activityToggle
+      unless c $ do
+        putsTimed state $ "<<< Worker " ++ T.unpack wid ++ " timeout out due to inactivity >>>"
+        -- send unregistration message
+        Z.sendMulti backend $ fromList [empty_frame, "UNREGISTER", empty_frame, workerId]
+
+    let receiveMsg :: IO (ClientAddr, Either String KernelRequest)
+        receiveMsg = do
+          ["", clientAddr, "", msg] <- Z.receiveMulti backend
+          putsTimed state $ "==== WORKER " ++ T.unpack wid ++ " RECEIVED MESSAGE ==== "
+          toggleOn activityToggle
+          return (clientAddr, Serial.decode msg)
+
+
+    forever $ do
+      -- blocks until the worker is registered 
+      -- (due to invariant: unregistered worker never assigned work)
+      (clientAddr, req) <- receiveMsg
+
+      let sendReply :: KernelReply -> IO ()
+          sendReply r = Z.sendMulti backend $ 
+            fromList [empty_frame, clientAddr, empty_frame, Serial.encode r]
+
       let mid = case req of 
                 Right (EvaluateRequest _ m _ _) -> Just m
                 _ -> Nothing
-
-      let reply :: KernelReply -> IO ()
-          reply r = Z.sendMulti backend $ 
-            fromList [empty_frame, clientAddr, empty_frame, Serial.encode r]
 
       case req of 
         -- serialize all header evaluations
@@ -348,7 +391,7 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
         Right (EvaluateRequest Header _ _ code) -> do
           env <- getWorkbookEnv state
           rep <- EvaluateReply <$> runBlock Header env code
-          reply rep
+          sendReply rep
           
         -- fork cell evaluations
         Right (EvaluateRequest Cell mid _ code) -> do
@@ -363,29 +406,34 @@ runWorkbookWorker wid = bracket Z.context Z.term $ \c -> do
                 Z.sendMulti backend $ fromList [clientAddr, empty_frame, Serial.encode rep]
           recordWorkerPid state mid workerPid
 
+        Right (OpenWorkbookRequest wid code) -> do
+          env <- getWorkbookEnv state
+          runBlock Header env code
+          sendReply GenericSuccessReply
+
         Right (HaltMessageRequest mid) -> do
           worker <- lookupWorker state mid
           whenJust worker $ \w -> do
             signalProcess sigKILL $ w^.cellProcess
             clearWorkerPid state $ w^.cellProcess
-            reply GenericSuccessReply
+            sendReply GenericSuccessReply
 
         Right (GetStatusRequest mid) -> do
           worker <- lookupWorker state mid
           whenJust worker $ \_ -> 
-            reply StillProcessingReply
+            sendReply StillProcessingReply
 
         Right (ClearRequest {}) -> do
           let env = R.unsexp . R.cast R.SEnv $ [rsafe| new.env() |]
           modifyMVar_' state $ 
             return . (& workbookEnvironment .~ env)
-          reply GenericSuccessReply
+          sendReply GenericSuccessReply
 
         Right r -> error $ "Sheet worker received non-evaluation request: " ++ show r
 
         Left err -> do
           putsTimed state $ "Could not decode request: " ++ show err 
-          reply $ GenericErrorReply err
+          sendReply $ GenericErrorReply err
 
     flushLog state
 

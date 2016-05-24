@@ -51,6 +51,7 @@ library
                        AS.Handlers.LogAction
                        AS.Handlers.BugReport
                        AS.InferenceUtils
+                       AS.Kernels.API
                        AS.Kernels.Excel.Eval
                        AS.Kernels.Excel.Compiler
                        AS.Kernels.Excel.Lib

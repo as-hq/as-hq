@@ -10,6 +10,7 @@ import Data.SafeCopy
 import qualified Data.Map as Map
 import Data.Map         (Map)
 import Data.ByteString  (ByteString)
+import Data.IORef
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.DeepSeq
@@ -23,6 +24,7 @@ import Control.Memory.Region
 import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
+import AS.Types.Eval
 
 import System.Posix.Types
 
@@ -33,11 +35,13 @@ data EvalScope = Header | Cell deriving (Show, Generic, Data)
 data KernelRequest = 
   -- An evaluation request for user-supplied code
     EvaluateRequest 
-      { scope :: EvalScope          -- the scope in which to execute code
-      , evalMessageId :: MessageId  -- the message ID associated with an eval request
-      , evalWorkbookId :: WorkbookID-- the workbook in which the execution is requested
-      , code :: String              -- user-supplied code
+      { scope :: EvalScope            -- the scope in which to execute code
+      , evalMessageId :: MessageId    -- the message ID associated with an eval request
+      , evalWorkbookId :: WorkbookID  -- the workbook in which the execution is requested
+      , code :: EvalCode              -- user-supplied code
       } 
+  -- Initializes the worker workbook and loads namespace, if not already done
+  | OpenWorkbookRequest WorkbookID EvalCode
   -- Clears the namespace of global (header) variables in a sheet
   | ClearRequest WorkbookID
   -- Halts execution of a previous message.
@@ -63,6 +67,8 @@ deriveSafeCopy 1 'base ''KernelReply
 type Addr = String
 type NetworkId = ByteString
 type Message = [ByteString]
+type ClientAddr = ByteString
+type SingleMessage = ByteString
 
 data WorkbookWorker = WorkbookWorker 
   { _workerWorkbookId :: WorkbookID
@@ -106,6 +112,26 @@ makeLenses ''WorkbookWorker
 makeLenses ''CellWorker
 makeLenses ''KernelState
 makeLenses ''WorkbookState
+
+--------------------------------------------------------------------------------
+-- Abstractions
+
+type Toggle = IORef Bool
+
+-- | Create a new toggle in the off position.
+newToggle :: IO Toggle
+newToggle = newIORef False
+
+-- | Set toggle to 'on' position
+toggleOn :: Toggle -> IO ()
+toggleOn t = atomicWriteIORef t True
+
+-- | Set toggle to 'off' position
+toggleOff :: Toggle -> IO ()
+toggleOff t = atomicWriteIORef t False
+
+isToggleOn :: Toggle -> IO Bool
+isToggleOn = readIORef
 
 --------------------------------------------------------------------------------
 -- Helper functions

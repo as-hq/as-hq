@@ -38,6 +38,9 @@ initialize conn = do
 --------------------------------------------------------------------------------
 -- Top level evaluation functions
 
+openWorkbook :: WorkbookID -> EvalCode -> IO ()
+openWorkbook wid code = runRequest_ $ OpenWorkbookRequest wid code
+
 evaluateWithScope :: EvalScope 
                   -> MessageId 
                   -> WorkbookID 
@@ -102,7 +105,8 @@ produceStatusRequest req dealer = case getMessageId req of
 -- | Helper to get message ids
 getMessageId :: KernelRequest -> Maybe MessageId
 getMessageId (EvaluateRequest _ mid _ _) = Just mid
-getMessageId (ClearRequest _) = Nothing
+getMessageId (OpenWorkbookRequest {}) = Nothing
+getMessageId (ClearRequest {}) = Nothing
 getMessageId (HaltMessageRequest mid) = Just mid
 getMessageId (GetStatusRequest mid) = Just mid
 

@@ -43,6 +43,7 @@ module AS.Prelude (
   , isRectangular
   , for
   , catLines
+  , threadDelaySeconds
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -168,8 +169,10 @@ import GHC.Generics hiding (
   , R
   , prec
   )
+
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
+import Control.Concurrent       (threadDelay)
 import Control.Monad
 import qualified Control.Monad.Catch as MC
 import Control.Monad.IO.Class
@@ -298,3 +301,6 @@ for = flip map
 
 catLines :: String -> String
 catLines = foldl' (++) "" . lines
+
+threadDelaySeconds :: Int -> IO ()
+threadDelaySeconds = threadDelay . (1000000 *)

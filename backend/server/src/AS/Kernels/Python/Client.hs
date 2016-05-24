@@ -45,7 +45,10 @@ initialize conn = do
     runEitherT $ evaluateHeader initialize_message_id wid expr
 
 --------------------------------------------------------------------------------
--- Top level evaluation functions
+-- Client API
+
+openWorkbook :: WorkbookID -> EvalCode -> IO ()
+openWorkbook wid code = runRequest_ $ OpenWorkbookRequest wid code
 
 evaluate :: MessageId -> WorkbookID -> EvalCode -> EitherTExec EvalResult
 evaluate = evaluateWithScope Cell

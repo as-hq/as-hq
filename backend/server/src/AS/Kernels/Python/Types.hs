@@ -20,31 +20,36 @@ import AS.Logging (getTime)
 import AS.Types.Eval (EvalResult)
 import AS.Types.Cell hiding (Cell)
 import AS.Types.Messages (MessageId)
+import AS.Types.Eval
 
 --------------------------------------------------------------------------------
 -- Types
 
 data EvalScope = Header | Cell deriving (Generic)
 data KernelRequest = 
-    EvaluateRequest { 
-      scope :: EvalScope, 
-      evalMessageId :: MessageId, 
-      evalWorkbookId :: WorkbookID, 
-      code :: String } 
-  | EvaluateFormatRequest { formatorkbookId :: WorkbookID, code :: String }
+    EvaluateRequest 
+      { scope :: EvalScope
+      , evalMessageId :: MessageId
+      , evalWorkbookId :: WorkbookID
+      , code :: EvalCode
+      } 
+  | EvaluateFormatRequest { formatWorkbookId :: WorkbookID, code :: String }
+  | OpenWorkbookRequest WorkbookID String
   | ClearRequest WorkbookID
   | HaltMessageRequest MessageId
   | GetStatusRequest MessageId
   deriving (Generic)
 
 data KernelReply = 
-    EvaluateReply { 
-      value :: Maybe String, 
-      evalError :: Maybe String, 
-      display :: Maybe String } 
-  | EvaluateFormatReply { 
-      formatValue :: Maybe String, 
-      formatError :: Maybe String }
+    EvaluateReply 
+      { value :: Maybe String
+      , evalError :: Maybe String
+      , display :: Maybe String 
+      } 
+  | EvaluateFormatReply 
+      { formatValue :: Maybe String
+      , formatError :: Maybe String 
+      }
   | GenericSuccessReply
   | GenericErrorReply String
   | StillProcessingReply
@@ -66,6 +71,11 @@ instance ToJSON KernelRequest where
       ]
     EvaluateFormatRequest wid code -> object  
       [ "type" .= ("evaluate_format" :: String)
+      , "workbook_id" .= wid
+      , "code" .= code
+      ]
+    OpenWorkbookRequest wid code -> object 
+      [ "type" .= ("open_workbook" :: String)
       , "workbook_id" .= wid
       , "code" .= code
       ]

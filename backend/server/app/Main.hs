@@ -27,7 +27,7 @@ import qualified AS.DB.Internal as DI
 import AS.Users as US
 import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
-import qualified AS.Kernels.Python.Client as KP
+--import qualified AS.Kernels.Python.Client as KP
 --import qualified AS.Kernels.R.Client as KR
 
 import AS.Async
@@ -96,7 +96,8 @@ initApp = do
   state <- newMVar $ emptyServerState conn
   -- init kernels
   putsConsole "initializing kernels..."
-  KP.initialize conn >> putsConsole "Python done."
+  --KP.initialize conn -- don't self-initialize worker processes (anand 5/18)
+  putsConsole "Python done." 
   -- this is a double-initialization, since R auto-initializes for now.
   --KR.initialize conn >> 
   putsConsole "R done."

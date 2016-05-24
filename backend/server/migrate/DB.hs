@@ -1,6 +1,6 @@
 module DB where
 
-import AS.Prelude hiding (set, get)
+import AS.Prelude
 
 import Control.Exception
 import Database.Redis

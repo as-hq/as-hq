@@ -99,6 +99,10 @@ heartbeat_interval = 1000
 server_timeout :: Seconds
 server_timeout = 10000
 
+-- | Time out workers after 6 hours of inactivity
+kernel_worker_activity_timeout :: Seconds
+kernel_worker_activity_timeout = 3600 * 6
+
 process_message_timeout :: Seconds
 process_message_timeout = 3
 
