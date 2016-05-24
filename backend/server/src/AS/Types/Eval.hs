@@ -139,7 +139,8 @@ getFatCellIntersections ctx (Right keys) = descriptorsIntersectingKeys descripto
     descriptors = virtualRangeDescriptors ctx
     descriptorIntersectsAnyKeyInList ks d = length (filter (\key -> keysIntersect (descriptorKey d) key) ks) > 0
     descriptorsIntersectingKeys ds ks = filter (descriptorIntersectsAnyKeyInList ks) ds
-    keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2)
+    keysIntersect k1 k2 = rectsIntersect (rangeRect k1) (rangeRect k2) && sameSheetId k1 k2
+    sameSheetId k1 k2 = f k1 == f k2 where f = view locSheetId . keyIndex
     rectsIntersect (tl1, br1) (tl2, br2) =
       intervalIntersect (tl1^.col, br1^.extendedCol) (tl2^.col, br2^.extendedCol) && 
         intervalIntersect (tl1^.row, br1^.extendedRow) (tl2^.row, br2^.extendedRow)
