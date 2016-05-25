@@ -99,6 +99,10 @@ runServer url_clients numInitialWorkers = do
     [r|
       library("rjson")
       library("ggplot2")
+      library("devtools")
+      library("twitteR")
+      library("bit64")
+      library("httr")
     |] 
 
    -- Close resources cleanly upon Ctrl+C
