@@ -307,7 +307,6 @@ import base64
       self.workers[worker_id].set_working_status(True, message_id)
 
       putsTimed('worker ' + worker_id + ' PROCESSING')
-      puts(repr(client_msg))
 
       try:
         reply_msg = self.process_message(client_msg, worker_id)

@@ -148,7 +148,7 @@ class ASShell(InteractiveShell):
 #  Evaluation API
 #-----------------------------------------------------------------------------
   
-  def has_workbook(workbook_id):
+  def has_workbook(self, workbook_id):
     return workbook_id in self.workbook_nss
 
   def run_header(self, raw_header, workbook_id):
