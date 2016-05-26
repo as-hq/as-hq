@@ -9,12 +9,13 @@ import subprocess
 import shortid
 from time import gmtime, strftime
 
-# This script will try to evaluate in all languages. If it fails in any way, it will trigger a 
-# redeploy. It's meant to be run from the root directory, with two arguments: 
+# This script will try to evaluate in all languages. 
+# If it fails in any way, it will trigger a redeploy
+# It's meant to be run from the root directory, with two arguments: 
 # 1) either "stable" or "master"
 # 2) The websocket address (usually ws://localhost:5000)
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Constants
 
 languages = ["Excel", "Python", "R"]
@@ -26,7 +27,7 @@ sid = shortid.ShortId();
 def id_gen():
   return sid.generate()
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Timeout errors
 
 class TimeoutError(Exception):
@@ -47,7 +48,7 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
         return wraps(func)(wrapper)
     return decorator
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Message creation
 
 def login_message():
@@ -94,11 +95,11 @@ def eval_message(language, sheetId):
   }
   return json.dumps(msg)
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Helpers for analyzing responses
 
 def get_sheet_id(msg):
- return json.loads(msg)["clientAction"]["defaultSheetId"]
+  return json.loads(msg)["clientAction"]["openedWorkbook"]["openedSheet"]
 
 def is_correct_eval_result(msg):
   try:
@@ -120,7 +121,7 @@ def get_response(ws):
   else:
     return result
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Handle failure
 
 # Return false or the ith element of a list
@@ -170,7 +171,7 @@ def handle_ws_down():
   slack_cmd = "bash send-slack.sh " + slack_msg + " #general plumbus-bot"
   subprocess.call([slack_cmd], shell = True)
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Printing with time
 
 def pwt(s):
@@ -178,7 +179,7 @@ def pwt(s):
   msg = "[" + time + "] " + s 
   print msg
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Main communication/testing methods
 
 @timeout(10, os.strerror(errno.ETIMEDOUT))
@@ -215,8 +216,8 @@ def test():
       handle_failure(test_successes)
     pwt("About to close ws in try block")
     ws.close()
-    # It seems like this isn't synchronous, so running a bunch of these quickly in succession may
-    # not work as expected.
+    # It seems like this isn't synchronous, so running a bunch of these quickly 
+    # in succession may not work as expected.
     pwt("Closed ws in try block")
   except Exception as e:
     try:
@@ -231,3 +232,5 @@ def test():
       handle_ws_down()
 
 test()
+
+#-------------------------------------------------------------------------------
