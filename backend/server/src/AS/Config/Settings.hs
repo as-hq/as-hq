@@ -44,7 +44,9 @@ data AppSettings = AppSettings  { _backendWsAddress' :: String
                                 , _backendLogsOn' :: Bool
                                 , _rkernelLogsOn' :: Bool
                                 , _slackLogsOn' :: Bool
-                                , _diagnosticsPort' :: Int}
+                                , _diagnosticsPort' :: Int
+                                , _useWhitelist' :: Bool
+                                , _introSheetsOn' :: Bool}
                                 deriving (Show)
 
 -- default values represent what should happen on localhost; the Environment.json values *should* 
@@ -64,6 +66,8 @@ instance FromJSON AppSettings where
     <*> v .: "rkernelLogsOn"
     <*> v .: "slackLogsOn"
     <*> v .: "diagnosticsPort"
+    <*> v .: "useWhitelist"
+    <*> v .: "introSheetsOn"
 
   parseJSON _ = error "expected environment to be an object"
 
@@ -128,6 +132,21 @@ static_dir      = "static/"
 whitelist_path  = ".." </> "email_whitelist.txt"
 
 --------------------------------------------------------------------------------------
+-- Onboarding settings
+
+tutorialWorkbookId :: WorkbookID
+tutorialWorkbookId = "tutorial_workbook_id"
+
+templateWorkbookId :: WorkbookID 
+templateWorkbookId = "template_workbook_id"
+
+tutorialWorkbookName :: WorkbookName
+tutorialWorkbookName = "Tutorials"
+
+templateWorkbookName :: WorkbookName
+templateWorkbookName = "Templates"
+
+--------------------------------------------------------------------------------------
 -- configuration-dependent parameters
 
 alphaMain a = initializeSettings >> a
@@ -164,7 +183,9 @@ initializeSettings = do
   writeSetting dbHost (appSettings^.redisHost')
   writeSetting dbPort (appSettings^.redisPort')
   writeSetting dbPassword (appSettings^.redisPassword')
-  writeSetting ekgPort (appSettings^.diagnosticsPort')
+  writeSetting diagnosticsPort (appSettings^.diagnosticsPort')
+  writeSetting useWhitelist (appSettings^.useWhitelist')
+  writeSetting introSheetsOn (appSettings^.introSheetsOn')
 
   -- init logger
   chan <- newChan
@@ -183,7 +204,9 @@ initializeSettings = do
   putStrLn . ("[CONFIG] dbHost : " ++) . show =<< getSetting dbHost
   putStrLn . ("[CONFIG] dbPort : " ++) . show =<< getSetting dbPort
   putStrLn . ("[CONFIG] dbPassword : " ++) . show =<< getSetting dbPassword 
-  putStrLn . ("[CONFIG] diagnosticsPort : " ++) . show =<< getSetting ekgPort 
+  putStrLn . ("[CONFIG] diagnosticsPort : " ++) . show =<< getSetting diagnosticsPort 
+  putStrLn . ("[CONFIG] useWhitelist : " ++) . show =<< getSetting useWhitelist 
+  putStrLn . ("[CONFIG] introSheetsOn : " ++) . show =<< getSetting introSheetsOn
   return ()
 
 appDirectory :: IORef String
@@ -225,8 +248,14 @@ dbPort = declareGlobal (-1)
 dbPassword :: IORef (Maybe BC.ByteString)
 dbPassword = declareGlobal Nothing
 
-ekgPort :: IORef Int
-ekgPort = declareGlobal (-1)
+diagnosticsPort :: IORef Int
+diagnosticsPort = declareGlobal (-1)
+
+useWhitelist :: IORef Bool
+useWhitelist = declareGlobal False
+
+introSheetsOn :: IORef Bool
+introSheetsOn = declareGlobal False
 
 logger :: IORef (Maybe Logger)
 logger = declareGlobal Nothing

@@ -12,8 +12,6 @@ import AS.Types.Commits
 
 import AS.Parsing.Substitutions 
 
-import AS.DB.Users (getOpenedSheets)
-
 import Database.Redis (Connection)
 
 ----------------------------------------------------------------------------------------------------------------------

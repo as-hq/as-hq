@@ -4,7 +4,8 @@ module Main where
 
 import qualified Data.Text as T
 import qualified Data.Set as Set
-import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Char8  as BC
+import qualified Data.ByteString        as B
 import Data.ByteString (ByteString)
 import Control.Exception
 import qualified Data.Set as Set
@@ -14,12 +15,17 @@ import AS.Prelude
 import AS.Mock.DB
 
 import qualified AS.DB.API as DB
-import AS.Config.Settings
+import qualified AS.DB.Export as DB
+import qualified AS.DB.Clear as DB
+import qualified AS.DB.Transaction as DB
 import qualified AS.LanguageDefs as LD
-import AS.Config.Settings as CS
+
+import AS.Config.Settings
+
 import AS.Types.Locations
 import AS.Types.RangeDescriptor
 import AS.Types.User
+import AS.Types.Eval
 import AS.Types.EvalHeader
 
 import qualified AS.Serialize as Serial
@@ -33,6 +39,24 @@ import DB
 main :: IO ()
 main = alphaMain $ do
   conn <- connectRedis
+
+  -- perform workbook migration
+  putStrLn "\n\nperforming workbook migration..."
+  migrateWorkbooks conn
+  putStrLn "done."
+
+  -- perform strict migration of all other types
+  putStrLn "\n\nperforming strict migration..."
+  migrateDBE conn
+  putStrLn "done."
+
+  -- add onboarding sheets
+  putStrLn "\n\nadding onboarding sheets..."
+  onboard conn
+  putStrLn "done"
+
+migrateWorkbooks :: Connection -> IO ()
+migrateWorkbooks conn = do
   (Right bs) <- runRedis conn $ keys "*"
   oldks <- forM bs $ \b -> do
     case (Serial.decode b :: Either String DBKey0) of 
@@ -75,29 +99,18 @@ main = alphaMain $ do
     let wb = Workbook wid "Workbook1" (Set.fromList sids) (user^.userId) openedSheet
 
       -- headers
-    let defaultHeaderSet = map (\lang -> EvalHeader wid lang "") headerLangs
-    let processHeaders [] hs = return hs
-        processHeaders (s:ss) hs = do
-          let sid = s^.sheetId
-          headers <- runRedis conn $ do
-            forM headerLangs $ \lang -> do
-              let hkey = encode $ EvalHeaderKey0 sid lang
-              Right mhval <- get hkey
-              return $ EvalHeader wid lang $ 
-                maybe "" BC.unpack mhval
-          let headers' = map (& evalHeaderWorkbookId .~ wid) headers
-          let hs' = flip map (zip hs headers') $ \(h, h') -> 
-                      let lang = h^.evalHeaderLang
-                          body = unlines  [ h^.evalHeaderExpr
-                                          , LD.commented lang "-----------------------------------"
-                                          , LD.commented lang $ "SHEET: " ++ (s^.sheetName)
-                                          , LD.commented lang "-----------------------------------"
-                                          -- just don't even ask
-                                          , drop 17 $ h'^.evalHeaderExpr
-                                          ]
-                      in EvalHeader wid lang body
-          processHeaders ss hs'
-    newHeaders <- processHeaders sheets defaultHeaderSet
+    oldSheetHeaders <- forM sheets $ \sheet -> do
+      let sid = sheet^.sheetId
+      runRedis conn $ do
+        forM headerLangs $ \lang -> do
+          let hkey = encode $ EvalHeaderKey0 sid lang
+          Right mhval <- get hkey
+          let hval = maybeDecode =<< mhval :: Maybe DBValue
+          return $ EvalHeader0 "some_sheet_id" lang $ --doesn't matter what the sheetId is
+            maybe "" (\(HeaderValue h) -> BC.unpack h) hval
+                                    
+    let oldHeaderSets = zip oldSheetHeaders $ map (view sheetName) sheets
+    let newWorkbookHeaders = collateOldHeaders wid oldHeaderSets 
 
     -- user
     let newUser = User  { _userId = user^.userId
@@ -113,17 +126,69 @@ main = alphaMain $ do
         del $ concat $ map (\sid -> map (encode . EvalHeaderKey0 sid) headerLangs) sids
       -- set all data
       mapM_ (DB.setSheet conn) sheets
-      mapM_ (DB.setEvalHeader conn) newHeaders 
+      mapM_ (DB.setEvalHeader conn) newWorkbookHeaders
       DB.setWorkbook conn wb
       DB.setUser conn newUser
 
   -- perform DB actions
   mapM_ ($ ()) dbActions
 
-  -- perform strict migration of all other types
-  putStrLn "performing strict migration..."
-  migrateDBE conn
-  putStrLn "done."
+collateOldHeaders :: WorkbookID -> [([EvalHeader0], SheetName)] -> [EvalHeader]
+collateOldHeaders wid oldhs = processHeaders oldhs defaultHeaderSet
+  where
+    defaultHeaderSet = map (\lang -> EvalHeader wid lang "") headerLangs
+    processHeaders [] hs = for hs $ \h -> 
+      h & evalHeaderExpr %~ ((defaultHeaderText (h^.evalHeaderLang) ++ "\n") ++)
+    processHeaders ((headers, sname):ss) hs = processHeaders ss hs'
+      where
+        hs' = for (zip hs headers) $ \(h, h') -> 
+                LD.mergeHeaders ("SHEET: " ++ sname) h (migrate h')
+
+onboard :: Connection -> IO ()
+onboard conn = do
+  -- load onboarding data into new workbook from disk
+  let origUid = "alphasheetsdemo@gmail.com"
+  let importOldSheets :: [(SheetID, SheetName)] -> SheetID -> WorkbookID -> WorkbookName -> IO ()
+      importOldSheets sheets openedSheet wid wname = do
+        let wb = Workbook wid wname (Set.fromList $ map fst sheets) origUid openedSheet
+        DB.setWorkbook conn wb
+        oldHeaders <- forM sheets $ \(sid, sname) -> do
+          ex <- fromJust . Serial.maybeDecode <$> B.readFile ("sheets/" ++ sname ++ ".as") :: IO ExportData0
+          putStrLn $ "[SUCCESS] decoded sheet: " ++ sname
+          DB.setSheet conn $ Sheet sid sname origUid False
+          DB.clearSheet conn sid 
+          DB.setCellsPropagated conn origUid $ ex^.exportCells0
+          mapM_ (DB.setBar conn) $ ex^.exportBars0
+          mapM_ (DB.setDescriptor conn) $ ex^.exportDescriptors0
+          DB.setCondFormattingRules conn sid $ ex^.exportCondFormatRules0
+          return (ex^.exportHeaders0, sname)
+        let newHeaders = collateOldHeaders wid oldHeaders 
+        mapM_ (DB.setEvalHeader conn) newHeaders
+
+  importOldSheets tutorialSheets tutorialOpen tutorialWorkbookId tutorialWorkbookName
+  importOldSheets templateSheets templateOpen templateWorkbookId templateWorkbookName
+  putStrLn "finished importing onboarding sheets."
+      
+tutorialSheets :: [(SheetID, SheetName)]
+tutorialSheets = [
+    ("d814c688-2115-11e6-8001-0401dbcded01", "python_tutorial")
+  , ("d847bbea-2117-11e6-8001-0401dbcded01", "python_tutorial_advanced")
+  , ("ddca8692-2117-11e6-8001-0401dbcded01", "r_tutorial")
+  , ("e355f92a-2117-11e6-8001-0401dbcded01", "sql_tutorial")
+  ]
+
+tutorialOpen :: SheetID
+tutorialOpen = "d814c688-2115-11e6-8001-0401dbcded01"
+
+templateSheets :: [(SheetID, SheetName)]
+templateSheets = [
+    ("eae1cf2a-2117-11e6-8001-0401dbcded01", "moving_averages")
+  , ("ff8f4f4c-2117-11e6-8001-0401dbcded01", "task_times")
+  ]
+
+templateOpen :: SheetID
+templateOpen = "eae1cf2a-2117-11e6-8001-0401dbcded01"
+
 
 main' :: IO ()
 main' = alphaMain $ do  

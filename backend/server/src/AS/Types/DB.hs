@@ -126,29 +126,58 @@ instance Migrate DBKey where
 ---------------------------------------------------------------------------------------------------------------
 -- Exporting
 
-data ExportData = ExportData { _exportCells           :: [ASCell]
-                             , _exportBars            :: [Bar]
-                             , _exportDescriptors     :: [RangeDescriptor]
-                             , _exportCondFormatRules :: [CondFormatRule]
-                             , _exportHeaders         :: [EvalHeader] } deriving (Show, Read, Eq, Generic)
+data SheetExportData = SheetExportData 
+  { _exportSheetId         :: SheetID
+  , _exportSheetName       :: SheetName
+  , _exportCells           :: [ASCell]
+  , _exportBars            :: [Bar]
+  , _exportDescriptors     :: [RangeDescriptor]
+  , _exportCondFormatRules :: [CondFormatRule]
+  } deriving (Show, Eq, Generic)
 
-makeLenses ''ExportData
-deriveSafeCopy 1 'base ''ExportData
+makeLenses ''SheetExportData
+deriveSafeCopy 2 'extension ''SheetExportData
 
--- #incomplete Assumes the export has at least one cell. 
-exportDataSheetId :: ExportData -> SheetID
-exportDataSheetId = (view (cellLocation.locSheetId)) . head . view exportCells
+data ExportData0 = ExportData0 
+  { _exportCells0           :: [ASCell]
+  , _exportBars0            :: [Bar]
+  , _exportDescriptors0     :: [RangeDescriptor]
+  , _exportCondFormatRules0 :: [CondFormatRule]
+  , _exportHeaders0         :: [EvalHeader0]
+  } deriving (Show, Eq, Generic)
 
-cloneData :: SheetID -> ExportData -> ExportData
-cloneData sid ex = 
-    (& exportCells %~ map moveCell)
+makeLenses ''ExportData0
+deriveSafeCopy 1 'base ''ExportData0
+
+instance Migrate SheetExportData where
+  type MigrateFrom SheetExportData = ExportData0
+  migrate (ExportData0 cs bs ds rs hs) = undefined -- this instance should never be used
+
+data WorkbookExportData = WorkbookExportData
+  { _exportWorkbookId       :: WorkbookID
+  , _exportWorkbookName     :: WorkbookName
+  , _exportLastOpenSheet    :: SheetID
+  , _exportWorkbookSheets   :: [SheetExportData]
+  , _exportHeaders          :: [EvalHeader]
+  } deriving (Show, Eq, Generic)
+
+makeLenses ''WorkbookExportData
+deriveSafeCopy 1 'base ''WorkbookExportData
+
+---------------------------------------------------------------------------------------------------------------
+-- Export helpers
+
+cloneSheetData :: SheetID -> SheetExportData -> SheetExportData
+cloneSheetData sid ex = 
+    (& exportSheetId .~ sid)
+  . (& exportCells %~ map moveCell)
   . (& exportBars %~ map moveBar)
   . (& exportDescriptors %~ map moveDescriptor)
   . (& exportCondFormatRules %~ map moveRule)
-  . (& exportHeaders %~ map moveHeader)
   $ ex
   where
-    moveCell = (& cellLocation.locSheetId .~ sid)
+    moveCell = (& cellLocation.locSheetId .~ sid) . (& cellRangeKey %~ (moveRangeKey <$>))
+    moveRangeKey r = r { keyIndex = (keyIndex r) & locSheetId .~ sid}
     moveBar b = b {barIndex = (barIndex b) {barSheetId = sid}}
     moveDescriptor d = d 
       { descriptorKey = 
@@ -157,7 +186,12 @@ cloneData sid ex =
       }
     moveRule r = r {cellLocs = map moveRange (cellLocs r)} 
     moveRange r = r {rangeSheetId = sid}
-    moveHeader = (& evalHeaderWorkbookId .~ sid)
+
+cloneWorkbookData :: WorkbookID -> WorkbookExportData -> WorkbookExportData 
+cloneWorkbookData wid ex = 
+    (& exportWorkbookId .~ wid)
+  . (& exportHeaders %~ map (& evalHeaderWorkbookId .~ wid))
+  $ ex
   
 ---------------------------------------------------------------------------------------------------------------
 -- Conversion from DBValue 

@@ -2,8 +2,6 @@
 
 module AS.Parsing.Common where
 
-import Control.Applicative
-import Control.Monad
 import System.IO.Unsafe (unsafePerformIO)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr
@@ -154,7 +152,7 @@ float = do
       plus  = 43
   sign <- peekWord8'
   let !positive = sign == plus || sign /= minus
-  when (sign == plus || sign == minus) $ void anyWord8 -- consume the plus or minus
+  when (sign == plus || sign == minus) $ anyWord8 -- consume the plus or minus
   possiblyDot <- peekWord8
   -- If the first byte after the sign is a dot (46), set the integer part to 0
   n <- case possiblyDot of 

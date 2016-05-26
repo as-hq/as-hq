@@ -18,7 +18,7 @@ import AS.Kernels.Excel.Compiler as C
 import AS.Kernels.Excel.Lib as L
 import AS.Kernels.Excel.Util as U
 
-import AS.DB.Users (getOpenedSheets)
+import AS.DB.API (getOpenedSheets)
 
 -- | Convert Either EError EEntity ->  Formatted ASValue; lift from Excel to AS
 -- | In the case of an error, return a ValueExcelError

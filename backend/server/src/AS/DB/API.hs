@@ -23,6 +23,8 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString as B
 
+import qualified AS.LanguageDefs as LD
+
 import AS.Prelude
 import AS.Types.Cell
 import AS.Types.Bar
@@ -178,7 +180,7 @@ getAllSheets conn = do
   catMaybes <$> multiGet id dbValToSheet conn keys
 
 -- | Creates a sheet with unique id
-createSheet :: Connection -> UserID -> String -> IO Sheet
+createSheet :: Connection -> UserID -> SheetName -> IO Sheet
 createSheet conn uid name = do
   sid <- T.pack <$> getUUID
   let sheet = Sheet sid name uid False
@@ -195,6 +197,16 @@ deleteSheet :: Connection -> SheetID -> IO ()
 deleteSheet conn sid = do
   multiDel SheetKey conn [sid]
   remS conn AllSheetsKey (KeyValue $ SheetKey sid)
+
+getContainingWorkbook :: Connection -> SheetID -> IO WorkbookID
+getContainingWorkbook conn sid = do
+  sheet <- fromJust <$> getSheet conn sid
+  user <- fromJust <$> getUser conn (sheet^.sheetOwner)
+  let wids = Set.toList $ user^.workbookIds
+  sidSets <- mapM (getWorkbookSheetIds conn) wids
+  let sidSets' = zip wids sidSets
+  let [(containerWid, _)] = filter (\(_,sids) -> sid `elem` sids) sidSets'
+  return containerWid
 
 --------------------------------------------------------------------------------
 -- Workbooks
@@ -228,7 +240,7 @@ getWorkbookSheetIds conn wid =
     $ \wb -> 
       return $ Set.toList . view workbookSheetIds $ wb 
 
-createWorkbook :: Connection -> UserID -> String -> IO Workbook
+createWorkbook :: Connection -> UserID -> WorkbookName -> IO Workbook
 createWorkbook conn uid wname = do 
   sheet <- createSheet conn uid new_sheet_name
   let sid = sheet^.sheetId
@@ -242,6 +254,10 @@ setWorkbook conn workbook = do
   let dbKey = WorkbookKey $ workbook^.workbookId
   setV conn dbKey (WorkbookValue workbook)
   addS conn AllWorkbooksKey (KeyValue dbKey)
+
+modifyWorkbook :: Connection -> WorkbookID -> (Workbook -> Workbook) -> IO Workbook
+modifyWorkbook conn wid f = 
+  getWorkbook conn wid >>= return . f . fromJust >>= \w -> setWorkbook conn w >> return w
 
 getAllWorkbooks :: Connection -> IO [Workbook]
 getAllWorkbooks conn = do 
@@ -259,6 +275,29 @@ setUser conn user = setV conn (UserKey $ view AS.Types.User.userId $ user) (User
 
 deleteUser :: Connection -> UserID -> IO ()
 deleteUser conn uid = delV conn (UserKey uid)
+
+modifyUser :: Connection -> UserID -> (User -> User) -> IO User
+modifyUser conn uid f = 
+  getUser conn uid >>= return . f . fromJust >>= \u -> setUser conn u >> return u
+
+-- | Get all sheets in the user's currently open workbook.
+getOpenedSheets :: Connection -> UserID -> IO [Sheet]
+getOpenedSheets conn uid = do
+  maybeM 
+    (getUser conn uid)
+    (return [])
+    $ \user -> do
+      wb <- fromJust <$> getWorkbook conn (user^.lastOpenWorkbook)
+      let sids = Set.toList $ wb^.workbookSheetIds
+      map fromJust <$> mapM (getSheet conn) sids
+
+getUserWorkbookRefs :: Connection -> UserID -> IO [WorkbookRef]
+getUserWorkbookRefs conn uid = do
+  user <- fromJust <$> getUser conn uid
+  let wids = Set.toList $ user^.workbookIds
+  wbs <- forM wids $ fmap fromJust . getWorkbook conn
+  return $ map (\wb -> WorkbookRef (wb^.workbookId) (wb^.workbookName) (wb^.workbookOwner)) wbs
+
 
 --------------------------------------------------------------------------------
 -- Repeat handlers
@@ -359,6 +398,22 @@ getAllHeaders :: Connection -> ASLanguage -> IO [EvalHeader]
 getAllHeaders conn lang = do
   wids <- map (view workbookId) <$> getAllWorkbooks conn
   mapM (\wid -> getEvalHeader conn wid lang) wids
+
+-- | Invoked when "acquiring" a sheet from another user. EvalHeaders are 
+-- workbook-specific, so the rather messy solution now is to just concatenate
+-- the other user's headers to your own. anand 5/25
+acquireHeaders :: Connection -> WorkbookID -> SheetID -> IO [EvalHeader]
+acquireHeaders conn toWid fromSid = do
+  (Just acquiredWb) <- getWorkbook conn =<< getContainingWorkbook conn fromSid
+  headers <- getEvalHeaders conn toWid
+  acquiredHeaders <- getEvalHeaders conn $ acquiredWb^.workbookId
+  let wname = acquiredWb^.workbookName
+  let uid = acquiredWb^.workbookOwner
+  let title = "WORKBOOK: (owned by " ++ show uid ++ ") " ++ wname
+  let headers' = zipWith (LD.mergeHeaders title) headers acquiredHeaders 
+  mapM_ (setEvalHeader conn) headers'
+  return headers'
+
 ------------------------------------------------------------------------------------------------------------------------
 
 -- Each commit source has a temp commit, used for decouple warnings

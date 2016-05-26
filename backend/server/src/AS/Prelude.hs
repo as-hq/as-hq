@@ -44,6 +44,8 @@ module AS.Prelude (
   , for
   , catLines
   , threadDelaySeconds
+  , when
+  , none
   ) where
 
 -- NOTE: THIS FILE SHOULD BE AN IMPORT ROOT!!
@@ -143,6 +145,7 @@ import Control.Lens hiding (
   , Getter
   , set
   , get
+  , none
   )
 import Data.Maybe.Located     as LocatedPartials
 import Text.Read.Located      as LocatedPartials (read)
@@ -173,7 +176,11 @@ import GHC.Generics hiding (
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Concurrent       (threadDelay)
-import Control.Monad
+import Control.Monad hiding (
+  when
+  )
+import qualified Control.Monad as Monad
+
 import qualified Control.Monad.Catch as MC
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Either 
@@ -304,3 +311,9 @@ catLines = foldl' (++) "" . lines
 
 threadDelaySeconds :: Int -> IO ()
 threadDelaySeconds = threadDelay . (1000000 *)
+
+when :: (Monad m) => Bool -> m a -> m ()
+when c = Monad.when c . void
+
+none :: (a -> Bool) -> [a] -> Bool
+none f xs = not $ any f xs

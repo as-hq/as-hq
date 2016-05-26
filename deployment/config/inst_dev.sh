@@ -3,34 +3,44 @@
 
 source install_core.sh
 
+dependencies="/root/.alphasheets_dependencies"
+
+initialize_installer
+
 #### INSTALLATION # Ubuntu 14.04
 
+function test_system {
+	echo 1 2 3 test 1 2 3
+}
+
 function update_system {
-    try apt_update apt_update apt-get update
+    apt-get update
 
-    try install_libtool apt-get -y install libtool
-    try install_boost apt-get -y install libboost-all-dev 
-    try install_zmq3dev apt-get -y install libzmq3-dev 
-	try install_pkgconfig apt-get -y install pkg-config 
-    try install_build_essential apt-get -y install build-essential 
-    try install_autoconf apt-get -y install autoconf 
-    try install_automake apt-get -y install automake  
-    try install_python apt-get -y install python-all-dev 
-    try install_png apt-get -y install libpng-dev 
-    try install_zlib apt-get -y install zlib1g-dev 
-    try install_freetype apt-get -y install libfreetype6-dev 
-    try install_python apt-get -y install python-dev 
-    try install_python_tools apt-get -y install python-setuptools 
+    apt-get -y install libtool
+    apt-get -y install libboost-all-dev 
+    apt-get -y install libzmq3-dev 
+    apt-get -y install pkg-config 
+    apt-get -y install build-essential 
+    apt-get -y install autoconf 
+    apt-get -y install automake  
+    apt-get -y install python-all-dev 
+    apt-get -y install libpng-dev 
+    apt-get -y install zlib1g-dev 
+    apt-get -y install libfreetype6-dev 
+    apt-get -y install python-dev 
+    apt-get -y install python-setuptools 
 
-    try install_mysql_server apt-get -y install mysql-server
-    try install_mysql_client apt-get -y install mysql-client-core-5.5
-    try install_mysqlclient_dev apt-get -y install libmysqlclient-dev
+    apt-get -y install mysql-server
+    apt-get -y install mysql-client-core-5.5
+    apt-get -y install libmysqlclient-dev
 
-    try install_s3 apt-get -y install s3cmd
-    try install_nginx apt-get -y install nginx
-    try install_tmux apt-get -y install tmux
+    apt-get -y install s3cmd
+    apt-get -y install nginx
+    apt-get -y install tmux
 
-    try install_binutils_gold apt-get -y install binutils-gold
+    apt-get -y install libcurl4-openssl-dev
+
+    apt-get -y install binutils-gold
 }
 
 function install_redis {
@@ -94,6 +104,8 @@ function install_R_packages {
 	try r_pack_ggplot2 Rscript -e "install.packages('ggplot2')"
 	try r_pack_party Rscript -e "install.packages('party')"
 	try r_pack_jpeg Rscript -e "install.packages('jpeg')"
+	try r_pack_jpeg Rscript -e "install.packages('devtools')"
+	try r_pack_jpeg Rscript -e "install.packages('twitteR')"
 }
 
 function install_Stack {
@@ -186,12 +198,7 @@ function deploy_server {
 	cd ~/codebase/frontend
 	tmux new -s "frontend" -d "npm start"
 }
-
-
-dependencies="~/.alphasheets-dependencies"
-
-initialize_installer
-
+stage /root/ test_system 
 stage /root/ update_system
 stage $dependencies install_redis
 stage $dependencies/utils install_redis_utils
@@ -209,3 +216,4 @@ stage $dependencies install_Codebase
 stage ~/codebase/ deploy_server
 
 run_install
+

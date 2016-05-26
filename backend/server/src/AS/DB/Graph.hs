@@ -27,7 +27,6 @@ import AS.Logging
 
 import qualified AS.DB.API as DB
 import AS.DB.Internal
-import AS.DB.Users (getOpenedSheets)
 
 import AS.Parsing.References (getDependencies)
 
@@ -43,7 +42,7 @@ import Database.Redis (Connection)
 -- including pointer, range, and index. 
 setCellsAncestors :: Connection -> UserID -> [ASCell] -> EitherTExec ()
 setCellsAncestors conn uid cells = do
-  sheets <- liftIO $ getOpenedSheets conn uid
+  sheets <- liftIO $ DB.getOpenedSheets conn uid
   let depSets = map (getAncestorsForCell sheets) cells
       relations = (zip (mapCellLocation cells) depSets) :: [ASRelation]
   setRelations relations 
@@ -188,9 +187,9 @@ shouldSetRelationsOfCellWhenRecomputing cell =  maybe True ((== cell^.cellLocati
 recomputeAllDAGs :: R.Connection -> IO ()
 recomputeAllDAGs conn = do
   sheets <- DB.getAllSheets conn
-  forM_ sheets $ \s -> 
-    let src = CommitSource (s^.sheetOwner) (s^.sheetId)
-    in recomputeSheetDAG conn src
+  forM_ sheets $ \s -> do
+    let src = CommitSource (s^.sheetId) (s^.sheetOwner)
+    recomputeSheetDAG conn src
 
 recomputeSheetDAG :: R.Connection -> CommitSource -> IO ()
 recomputeSheetDAG conn src = do

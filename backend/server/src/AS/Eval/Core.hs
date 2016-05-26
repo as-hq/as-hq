@@ -52,7 +52,7 @@ import AS.Config.Settings
 import qualified AS.DB.API as DB
 import qualified AS.DB.Eval as DE
 import qualified AS.DB.Graph as G
-import AS.DB.Users (getOpenedSheets)
+import AS.DB.API (getOpenedSheets)
 
 ----------------------------------------------------------------------------------------------------
 -- Exposed functions
@@ -85,7 +85,6 @@ evaluateLanguage msgctx evalctx idx xp f = catchEitherT $ do
       -- Get the new expression after interpolation as well as all of the Excel references in xp
       -- in one parsing fell swoop.
       (interpolatedXp, refs) <- lift $ getSubstitutedXpAndReferences replaceFunc xp'
-      putsConsole $ "got refs: " ++ show refs
       let depRefs = map (exRefToASRef sid sheets) refs
       let depInds = concat <$> mapM (DE.refToIndicesWithContextDuringEval conn evalctx) depRefs
       -- Check for potentially bad inputs (NoValue or ValueError) among the arguments passed in. 
@@ -174,7 +173,6 @@ sqlToPythonCode msgctx evalctx xp f = do
   let query = show . catLines . trimWhitespace SQL $ newExp^.expression
   -- print query
   let evalStmt = "evalSql(" ++ query ++ ", " ++ show datasetVals ++ ")"
-  putStrLn $ "GOT SQL QUERY: " ++ show evalStmt
   return evalStmt
 
 ----------------------------------------------------------------------------------------------------

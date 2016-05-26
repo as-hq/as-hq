@@ -62,6 +62,7 @@ data ClientAction =
   | SetSheetData { updateSheetId :: SheetID, update :: SheetUpdate } -- list of expressions in header
   | SetOpenedWorkbook OpenedWorkbook
   | SetMyWorkbooks [WorkbookRef]
+  | SetEvalHeaders [EvalHeader]
   | ShowFailureMessage String
   | UpdateSheet SheetUpdate 
   | ClearSheet SheetID

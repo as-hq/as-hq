@@ -2,8 +2,6 @@
 
 module AS.Parsing.Excel where
 
-import Control.Applicative
-import Control.Monad
 import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
 import Data.Word8 as W

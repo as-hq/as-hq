@@ -102,9 +102,9 @@ initApp = do
   --KR.initialize conn >> 
   putsConsole "R done."
   -- start diagnostics server
-  host <- getSetting serverHost
-  port <- getSetting ekgPort
-  Monitor.forkServer (BC.pack host) port
+  ekgHost <- getSetting serverHost
+  ekgPort <- getSetting diagnosticsPort
+  Monitor.forkServer (BC.pack ekgHost) ekgPort
   return $ State state
 
 -- |  for debugging. Only called if isDebug is true.

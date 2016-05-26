@@ -7,13 +7,16 @@
   "rKernelAddress_client": "tcp://localhost:21000",
   "graphDbAddress_cpp": "tcp://*:6000",
   "pyKernelAddress_python": "tcp://*:7000",
-  "redisPort": 6379, 
+  "redisPort": 6379,
   "redisHost": "localhost",
+  "redisPassword": "40a00d6110873f61c786f28cd79cfa47302041a5",
   "backendLogsOn": true,
   "rkernelLogsOn": true,
   "slackLogsOn": false,
   "frontendPort": 8080,
   "fileInputHandlerPort": 9000,
+  "diagnosticsPort": 11000,
   "host": "0.0.0.0",
-  "diagnosticsPort": 11000 
+  "useWhitelist": false,
+  "introSheetsOn": false
 }

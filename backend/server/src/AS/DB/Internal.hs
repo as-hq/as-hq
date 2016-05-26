@@ -48,3 +48,4 @@ toDecoupled c = c
 -- | Converts a coupled cell to a normal cell
 toUncoupled :: ASCell -> ASCell
 toUncoupled c@(Cell { _cellRangeKey = Just _ }) = c & cellRangeKey .~ Nothing
+

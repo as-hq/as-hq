@@ -12,9 +12,11 @@
   "redisPassword": "40a00d6110873f61c786f28cd79cfa47302041a5",
   "backendLogsOn": true,
   "rkernelLogsOn": true,
-  "slackLogsOn": true,
+  "slackLogsOn": false,
   "frontendPort": 8080,
   "fileInputHandlerPort": 9000,
   "diagnosticsPort": 11000,
-  "host": "0.0.0.0"
+  "host": "0.0.0.0",
+  "useWhitelist": true,
+  "introSheetsOn": false
 }

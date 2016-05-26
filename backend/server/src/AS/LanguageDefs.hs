@@ -2,6 +2,7 @@ module AS.LanguageDefs where
 
 import AS.Prelude
 import AS.Types.Cell
+import AS.Types.EvalHeader
 import Data.Char (isSpace)
 
 import qualified Data.List as L
@@ -101,3 +102,26 @@ commented lang str = flip (++) str $ case lang of
 trimWhitespace :: ASLanguage -> String -> String  -- TODO use the language to get block delimiters
 trimWhitespace lang = dropWhileEnd isWhitespace . dropWhile isWhitespace
   where isWhitespace c = isSpace c || (c == ';')
+
+isNontrivialHeader :: EvalHeader -> Bool
+isNontrivialHeader h = 
+  let lang = h^.evalHeaderLang
+      xp   = h^.evalHeaderExpr
+  in none id [
+    trimWhitespace lang xp == ""
+  , isDefaultHeader xp
+  ]
+
+mergeHeaders :: String -> EvalHeader -> EvalHeader -> EvalHeader
+mergeHeaders spacer h1 h2 = h1 & evalHeaderExpr .~ xp
+  where 
+    lang = h1^.evalHeaderLang
+    xp = if isNontrivialHeader h2
+      then unlines [
+          h1^.evalHeaderExpr
+        , commented lang "-----------------------------------"
+        , commented lang spacer
+        , commented lang "-----------------------------------"
+        , h2^.evalHeaderExpr
+        ]
+      else h1^.evalHeaderExpr

@@ -18,16 +18,14 @@ import AS.Types.Commits
 
 import qualified AS.Kernels.API as Kernels
 
-import AS.Handlers.Eval (handleEvalHeader)
 
 import AS.Serialize
 import AS.Eval.Core
 import AS.Reply
-import AS.DB.API
+import qualified AS.DB.API    as DB
 import AS.DB.Users
 import AS.DB.Export
 import AS.Users
-import AS.Config.Settings (headerLangs)
 
 --------------------------------------------------------------------------------
 
@@ -35,22 +33,26 @@ handleGetMyWorkbooks :: MessageContext -> IO ()
 handleGetMyWorkbooks msgctx = do
   let conn = msgctx^.dbConnection
       uid = msgctx^.userClient.userId
-  refs <- getUserWorkbookRefs conn uid
+  refs <- DB.getUserWorkbookRefs conn uid
   sendAction msgctx $ SetMyWorkbooks refs
 
 handleGetOpenedWorkbook :: MessageContext -> IO ()
 handleGetOpenedWorkbook msgctx = do
   let conn = msgctx^.dbConnection
       wid  = msgctx^.userClient.userWindow.windowWorkbookId
-  fwb <- fromJust <$> getOpenedWorkbook conn wid
+  fwb <- fromJust <$> DB.getOpenedWorkbook conn wid
   sendAction msgctx $ SetOpenedWorkbook fwb
+  -- send eval headers
+  let wid = messageWorkbookId msgctx
+  headers <- DB.getEvalHeaders conn wid
+  sendAction msgctx $ SetEvalHeaders headers
 
 handleNewWorkbook :: MessageContext -> WorkbookName -> IO ()
 handleNewWorkbook msgctx name = do
   let conn = msgctx^.dbConnection
       uid = msgctx^.userClient.userId
       state = msgctx^.messageState
-  wid <- view workbookId <$> createWorkbook conn uid name
+  wid <- view workbookId <$> DB.createWorkbook conn uid name
   -- place new workbook under user ownership
   msgctx' <- modifyUser msgctx (& workbookIds %~ Set.insert wid)
   -- update user's workbooks
@@ -62,7 +64,7 @@ handleNewSheet :: MessageContext -> SheetName -> IO ()
 handleNewSheet msgctx name = do
   let conn = msgctx^.dbConnection
       uid = msgctx^.userClient.userId
-  sid <- view sheetId <$> createSheet conn uid name
+  sid <- view sheetId <$> DB.createSheet conn uid name
   -- place new sheet under user ownership
   modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert sid)
   -- update user's workbook
@@ -78,35 +80,22 @@ handleRenameSheet :: MessageContext -> SheetID -> SheetName -> IO ()
 handleRenameSheet msgctx sid sname = 
   let conn = msgctx^.dbConnection
   in maybeM 
-    (getSheet conn sid)
+    (DB.getSheet conn sid)
     (sendFailure msgctx "cannot rename nonexistent sheet") 
     $ \sheet -> do
-      setSheet conn (sheet & sheetName .~ sname)
+      DB.setSheet conn (sheet & sheetName .~ sname)
       handleGetOpenedWorkbook msgctx
 
 handleCloneSheet :: MessageContext -> SheetID -> IO ()
 handleCloneSheet msgctx sid = do
   let conn = msgctx^.dbConnection
   let uid = msgctx^.userClient.userId
-  names <- Set.fromList . map (view sheetName) <$> getOpenedSheets conn uid
-  -- create unique sheet name
-  let cloneName name copyNum =  let cur = name ++ " (" ++ show copyNum ++ ")"
-                                in if cur `Set.member` names
-                                  then cloneName name (copyNum + 1)
-                                  else cur
-  maybeM 
-    (getSheet conn sid)
-    (sendFailure msgctx "cannot clone nonexistent sheet") 
-    $ \sheet -> do
-      let curName = sheet^.sheetName
-      newSid <- view sheetId <$> createSheet conn uid (cloneName curName 1)
-      modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert newSid)
-      ex <- cloneData newSid <$> exportSheetData conn sid
-      importSheetData conn uid ex
-      -- update user's workbook
-      handleGetOpenedWorkbook msgctx
-      -- open the cloned sheet
-      handleOpenSheet msgctx newSid
+  cloneSid <- cloneSheet conn uid sid
+  modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert cloneSid)
+  -- update user's workbook
+  handleGetOpenedWorkbook msgctx
+  -- open the cloned sheet
+  handleOpenSheet msgctx cloneSid
 
 handleOpenWorkbook :: MessageContext -> WorkbookID -> IO ()
 handleOpenWorkbook msgctx wid = do
@@ -119,7 +108,7 @@ handleOpenWorkbook msgctx wid = do
   -- notify kernels of opened workbook
   Kernels.openWorkbook conn wid
   -- open the last opened sheet in that workbook
-  wb <- fromJust <$> getWorkbook conn wid
+  wb <- fromJust <$> DB.getWorkbook conn wid
   handleOpenSheet msgctx' $ wb^.lastOpenSheet
 
 handleOpenSheet :: MessageContext -> SheetID -> IO ()
@@ -127,10 +116,10 @@ handleOpenSheet msgctx sid = do
   let conn  = msgctx^.dbConnection
       mid   = msgctx^.messageId
   -- get initial sheet data
-  cells <- getCellsInSheet conn sid
-  bars <- getBarsInSheet conn sid
-  rangeDescriptors <- getRangeDescriptorsInSheet conn sid
-  condFormatRules <- getCondFormattingRulesInSheet conn sid
+  cells <- DB.getCellsInSheet conn sid
+  bars <- DB.getBarsInSheet conn sid
+  rangeDescriptors <- DB.getRangeDescriptorsInSheet conn sid
+  condFormatRules <- DB.getCondFormattingRulesInSheet conn sid
 
   -- update database & state
   modifyCurrentWorkbook msgctx (& lastOpenSheet .~ sid)
@@ -146,14 +135,17 @@ handleAcquireSheet :: MessageContext -> SheetID -> IO ()
 handleAcquireSheet msgctx sid = do
   let conn = msgctx^.dbConnection
       wid  = messageWorkbookId msgctx
-  wb <- fromJust <$> getWorkbook conn wid
+  wb <- fromJust <$> DB.getWorkbook conn wid
   unless (Set.member sid $ wb^.workbookSheetIds) $ do
     -- designate sheet as shared to user
     modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert sid)
-  -- update user's workbook
+    -- update user's workbook
     handleGetOpenedWorkbook msgctx
     -- automatically open the acquired sheet
     handleOpenSheet msgctx sid
+    -- bring in headers
+    newHeaders <- DB.acquireHeaders conn wid sid
+    sendAction msgctx $ SetEvalHeaders newHeaders
 
 handleDeleteSheet :: MessageContext -> SheetID -> IO ()
 handleDeleteSheet msgctx sid = do
@@ -166,7 +158,7 @@ handleDeleteSheet msgctx sid = do
   unless (wb^.lastOpenSheet == msgctx^.userClient.userWindow.windowSheetId) $ 
     handleOpenSheet msgctx (wb^.lastOpenSheet)
   -- actually delete the sheet from database
-  deleteSheet conn sid
+  DB.deleteSheet conn sid
 
 --------------------------------------------------------------------------------
 

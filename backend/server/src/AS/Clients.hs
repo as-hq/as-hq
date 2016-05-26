@@ -3,7 +3,6 @@ module AS.Clients where
 import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Data.Aeson as A
-import Control.Monad (when)
 
 import AS.Prelude
 import AS.Types.Network 

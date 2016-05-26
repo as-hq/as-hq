@@ -5,8 +5,7 @@ import Data.Aeson
 import Control.Monad.Trans.Class (lift)
 import Data.Time.Clock (getCurrentTime)
 import Control.Exception (catch, SomeException)
-import Control.Monad (when, void)
-import Control.Monad.State
+import Control.Monad.State hiding (when)
 import Control.Concurrent
 import Control.Concurrent.Chan
 import qualified Data.Map as M
@@ -158,7 +157,8 @@ logSlack :: String -> IO ()
 logSlack msg = forkIO_ $ do
   appShouldLog <- getSetting slackLogsOn
   let shouldIgnore = msg `elem` S.ignoredErrorMessages
-  when (appShouldLog && not shouldIgnore) $ void $ Wreq.post webhookUrl payload
+  when (appShouldLog && not shouldIgnore) $ 
+    Wreq.post webhookUrl payload
   where
     webhookUrl = "https://hooks.slack.com/services/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"
     payload = object [

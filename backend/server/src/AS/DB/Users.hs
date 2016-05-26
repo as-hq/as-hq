@@ -14,6 +14,7 @@ import qualified Network.WebSockets as WS
 import AS.Prelude
 import AS.Util
 import AS.Config.Constants 
+import AS.Config.Settings
 import AS.Serialize (encode, maybeDecode) 
 import AS.Types.Network hiding (_userId, userId)
 import qualified  AS.Types.Network as Network
@@ -24,6 +25,7 @@ import AS.Types.DB
 import AS.Types.Messages
 
 import qualified AS.DB.API as DB
+import qualified AS.DB.Export as DB
 
 --------------------------------------------------------------------------------
 -- User session info in MySQL (for logging/replaying)
@@ -78,37 +80,29 @@ createUserClient dbConn wsConn user = do
 createUser :: Connection -> UserID -> IO User
 createUser conn uid = do
   wid <- view workbookId <$> DB.createWorkbook conn uid new_workbook_name
-  let user  = User 
-              { _userId = uid
-              , _workbookIds = Set.singleton wid
-              , _lastOpenWorkbook = wid
-              }
+  let user = User { _userId = uid
+                  , _workbookIds = Set.singleton wid
+                  , _lastOpenWorkbook = wid
+                  }
   DB.setUser conn user 
   return user
 
-produceUser :: Connection -> UserID -> IO User
-produceUser conn uid = maybeM (DB.getUser conn uid) (createUser conn uid) pure 
+produceUser :: Connection -> Bool -> UserID -> IO User
+produceUser conn shouldIntro uid = do
+  user <- maybeM (DB.getUser conn uid) (createUser conn uid) pure 
+  let isOnboardWorkbook w = (workbookRefName w) `elem` [tutorialWorkbookName, templateWorkbookName]
+  wbrefs <- DB.getUserWorkbookRefs conn uid
+  doIntro <- getSetting introSheetsOn
+  if (none isOnboardWorkbook wbrefs && doIntro && shouldIntro) 
+    then do
+      cloneTutorialWid <- DB.cloneWorkbook conn uid tutorialWorkbookId
+      cloneTemplateWid <- DB.cloneWorkbook conn uid templateWorkbookId
+      DB.modifyUser conn uid 
+        ((& lastOpenWorkbook .~ cloneTutorialWid) 
+          . (& workbookIds %~ Set.insert cloneTutorialWid)
+          . (& workbookIds %~ Set.insert cloneTemplateWid))
+    else return user
 
---------------------------------------------------------------------------------
--- Reading users
-
--- | Get all sheets in the user's currently open workbook.
-getOpenedSheets :: Connection -> UserID -> IO [Sheet]
-getOpenedSheets conn uid = do
-  maybeM 
-    (DB.getUser conn uid)
-    (return [])
-    $ \user -> do
-      wb <- fromJust <$> DB.getWorkbook conn (user^.lastOpenWorkbook)
-      let sids = Set.toList $ wb^.workbookSheetIds
-      map fromJust <$> mapM (DB.getSheet conn) sids
-
-getUserWorkbookRefs :: Connection -> UserID -> IO [WorkbookRef]
-getUserWorkbookRefs conn uid = do
-  user <- fromJust <$> DB.getUser conn uid
-  let wids = Set.toList $ user^.workbookIds
-  wbs <- forM wids $ fmap fromJust . DB.getWorkbook conn
-  return $ map (\wb -> WorkbookRef (wb^.workbookId) (wb^.workbookName) (wb^.workbookOwner)) wbs
 
 --------------------------------------------------------------------------------
 -- Modifying/setting users
@@ -122,13 +116,11 @@ modifyUser msgctx f = do
       uc = msgctx^.userClient
       uid = view Network.userId uc
       seshId = uc^.userSessionId
-  user <- fromJust <$> DB.getUser conn uid
-  let user' = f user
-  DB.setUser conn user'
-  if (uc^.userWindow.windowWorkbookId == user'^.lastOpenWorkbook) 
+  user <- DB.modifyUser conn uid f
+  if (uc^.userWindow.windowWorkbookId == user^.lastOpenWorkbook) 
     then return msgctx
     else do
-      let fuc = (& userWindow.windowWorkbookId .~ user'^.lastOpenWorkbook)
+      let fuc = (& userWindow.windowWorkbookId .~ user^.lastOpenWorkbook)
       modifyUserClientInState state seshId fuc
       return $ msgctx & userClient %~ fuc
 

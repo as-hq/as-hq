@@ -4,9 +4,6 @@ module AS.Kernels.R.Client where
 
 import qualified Database.Redis as Redis
 import System.ZMQ4.Monadic
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Either
-import Control.Applicative
 import Database.Redis (Connection)
 
 import AS.Types.Cell hiding (Cell)

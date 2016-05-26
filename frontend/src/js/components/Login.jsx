@@ -84,8 +84,8 @@ class Login extends React.Component {
     this.setState({isLoggingIn: true});
 
     pws.whenReady(() => {
-      const idToken = user.getAuthResponse().id_token;
-      LoginActions.login(idToken);
+      const { id_token } = user.getAuthResponse();
+      LoginActions.login(id_token);
     });
 
     // Warn user if login submit appears to take more than 5 seconds.

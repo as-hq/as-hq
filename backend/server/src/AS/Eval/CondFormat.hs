@@ -31,7 +31,7 @@ import Control.Monad.Trans.Either (left)
 import Data.Maybe
 import AS.Logging
 
-import AS.DB.Users (getOpenedSheets)
+import AS.DB.API (getOpenedSheets)
 
 
 -- | Conditionally formats the cells based on the set of rules passed in -- all conditional formatting originally
