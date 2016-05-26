@@ -17,6 +17,6 @@
   "fileInputHandlerPort": 9000,
   "diagnosticsPort": 11000,
   "host": "0.0.0.0",
-  "useWhitelist": true,
+  "useWhitelist": false,
   "introSheetsOn": false
 }
