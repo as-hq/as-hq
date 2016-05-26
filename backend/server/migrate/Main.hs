@@ -205,24 +205,16 @@ migrateDBE conn = catch (migrateDB conn) (\e -> print (e :: MigrateError))
 -- (3) Getting the values for each key, and converting them to the new serialization, while
 -- exiting if there's any errors here
 -- (4) Do the DB transformation (delete old keys, set new keys)
--- Some sort of streaming would be more performant, but this is fine for now. 
--- We're building up DBSetterObjects in memory so that we don't modify the DB if any errors.
+-- streams.
 migrateDB :: Connection -> IO ()
 migrateDB conn = do 
-  bStrKeys <- runRedis conn $ handleErr $ keys "*"
-  let maybeKeys = (map toDBKey bStrKeys) :: [Maybe DBKey]
-  let rawKeys = zip [1..] bStrKeys
-  -- These are the (Int, ByteString) undecodeable key pairs
-  let badRawKeys = map fst $ filter (isNothing . snd) $ zip rawKeys maybeKeys
-  if null badRawKeys
-    then do 
-      let keys = catMaybes maybeKeys
-      let rawKeys = zip [1..] bStrKeys
-      let pairs = zip keys rawKeys
-      dbObjects <- mapM (\(key, rawKey) -> getDBSetterObject key rawKey conn) pairs
-      mapM_ (applyDBSetterObject conn) dbObjects
-
-    else throwIO $ CouldNotDecodeKeys $ take 5 badRawKeys
+  bs <- runRedis conn $ handleErr $ keys "*"
+  let ks = map toDBKey bs :: [Maybe DBKey]
+  let bsi = zip [1..] bs
+  forM_ (zip ks bsi) $ \(Just key, rawKey) -> do
+    let i = fst rawKey
+    when (i `mod` 1000 == 0) $ putStrLn $ show i
+    getDBSetterObject key rawKey conn >>= applyDBSetterObject conn
 
 -- Given a DBKey, obtain a Getter and Setter DB function (list, set, value)
 keyToDBFuncs :: DBKey -> (Getter, Setter)
