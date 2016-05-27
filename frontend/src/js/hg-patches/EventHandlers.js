@@ -41,9 +41,9 @@ const callbacks: Array<InitCallback> = [
         const {x, y} = event.detail.gridCell;
         const val = hg.getBehavior().getValue(x, y);
 
-        // navigate to the link upon ctrl+click of the cell.
-        if (ctrlKey && typeof val === 'string' && U.String.isLink(val)) {
-          window.location.href = (
+        // open link in new tab upon click of the cell.
+        if (typeof val === 'string' && U.String.isLink(val)) {
+          window.open(
             U.String.linkHasProtocol(val) ?
             val :
             'http://' + val
