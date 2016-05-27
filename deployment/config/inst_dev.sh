@@ -39,6 +39,7 @@ function update_system {
     apt-get -y install tmux
 
     apt-get -y install libcurl4-openssl-dev
+    apt-get install binutils-dev
 
     apt-get -y install binutils-gold
 }

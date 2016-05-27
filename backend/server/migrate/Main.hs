@@ -68,11 +68,7 @@ main = alphaMain $ do
 migrateWorkbooks :: Connection -> IO ()
 migrateWorkbooks conn = do
   (Right bs) <- runRedis conn $ keys "*"
-  oldks <- forM bs $ \b -> do
-    case (Serial.decode b :: Either String DBKey0) of 
-      Left err -> error $ "got retarded  key: " ++ show b ++ "\n\n" ++ err
-      Right b' -> return b'
-  let ks = map migrate oldks :: [DBKey]
+  let ks = map (fromJust . Serial.maybeDecode) bs :: [DBKey]
 
   -- users
   let f (UserKey _) = True
