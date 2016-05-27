@@ -308,6 +308,9 @@ executable alphasheets-migrate
                      , deepseq-generics
                      , safecopy
                      , lens
+                     , directory
+                     , stringsearch
+                     , async
   default-language:    Haskell2010
 
 executable ipc-exe

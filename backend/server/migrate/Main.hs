@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main where
 
@@ -6,6 +8,8 @@ import qualified Data.Text as T
 import qualified Data.Set as Set
 import qualified Data.ByteString.Char8  as BC
 import qualified Data.ByteString        as B
+import qualified Data.ByteString.Search as BS
+import qualified Data.ByteString.Lazy   as BL
 import Data.ByteString (ByteString)
 import Control.Exception
 import qualified Data.Set as Set
@@ -13,6 +17,8 @@ import qualified Data.Set as Set
 import Prelude()
 import AS.Prelude
 import AS.Mock.DB
+
+import Data.List.Split
 
 import qualified AS.DB.API as DB
 import qualified AS.DB.Export as DB
@@ -28,9 +34,13 @@ import AS.Types.User
 import AS.Types.Eval
 import AS.Types.EvalHeader
 
+import Control.Concurrent.Async
+
 import qualified AS.Serialize as Serial
 
 import Data.SafeCopy
+
+import System.Directory
 
 import Conv
 import Types
@@ -47,7 +57,7 @@ main = alphaMain $ do
 
   -- perform strict migration of all other types
   putStrLn "\n\nperforming strict migration..."
-  migrateDBE conn
+  migrateDB conn
   putStrLn "done."
 
   -- add onboarding sheets
@@ -194,10 +204,7 @@ main' :: IO ()
 main' = alphaMain $ do  
   -- perform migration
   conn <- connectRedis 
-  migrateDBE conn 
-
-migrateDBE :: Connection -> IO ()
-migrateDBE conn = catch (migrateDB conn) (\e -> print (e :: MigrateError)) 
+  migrateDB conn 
 
 -- This function does the migration by 
 -- (1) Getting all keys from the DB
@@ -208,13 +215,31 @@ migrateDBE conn = catch (migrateDB conn) (\e -> print (e :: MigrateError))
 -- streams.
 migrateDB :: Connection -> IO ()
 migrateDB conn = do 
-  bs <- runRedis conn $ handleErr $ keys "*"
-  let ks = map toDBKey bs :: [Maybe DBKey]
-  let bsi = zip [1..] bs
-  forM_ (zip ks bsi) $ \(Just key, rawKey) -> do
-    let i = fst rawKey
-    when (i `mod` 1000 == 0) $ putStrLn $ show i
-    getDBSetterObject key rawKey conn >>= applyDBSetterObject conn
+  Right bs <- runRedis conn $ keys "*"
+  _ <- flip mapConcurrently (zip [1..] $ chunksOf 20000 $ zip [1..] bs) $ \(chunkI, chunk) -> do
+    putStrLn $ "forked chunk: " ++ show chunkI
+    forM_ chunk $ \(i, b) -> do
+      when (i `mod` 1000 == 0) $ putStrLn $ "chunk " ++ show chunkI ++ " processed: " ++ show i
+      let k = fromJust $ toDBKey b :: DBKey
+      getDBSetterObject k b conn >>= applyDBSetterObject conn
+  return ()
+  --handleIgnored $ removeFile "keys.dump"
+  --keysH <- openFile "keys.dump" WriteMode
+  --let rep = "\\n" :: B.ByteString
+  --forM_ ks $ B.hPutStrLn keysH . BL.toStrict. BS.replace "\n" rep
+  --hClose keysH
+  --putStrLn "...dumped the keys"
+
+  --keysH <- openFile "keys.dump" ReadMode
+  --let go !i = do
+  --              putStrLn $ show i
+  --              --handleAny (const $ putStrLn "finished strict migration") $ do
+  --              b <- B.hGetLine keysH
+  --              putStrLn $ show b
+  --              let k = fromJust $ toDBKey b :: DBKey
+  --              getDBSetterObject k b conn >>= applyDBSetterObject conn
+  --              go (i+1)
+  --go 1
 
 -- Given a DBKey, obtain a Getter and Setter DB function (list, set, value)
 keyToDBFuncs :: DBKey -> (Getter, Setter)
@@ -246,18 +271,18 @@ keyToDBFuncs (SheetGroupKey (SheetLocsKey _)) = sPair
 -- return a DBSetterObject with the old bytestring, the DBKey, and the list of values
 -- associated with this key. We return a dbSetterObject and build them up in memory so that
 -- migrations are atomic, although this sacrifices some memory/performance.
-getDBSetterObject :: DBKey -> RawKey -> Connection -> IO DBSetterObject
-getDBSetterObject key rawKey@(num, bs) conn = do 
+getDBSetterObject :: DBKey -> B.ByteString -> Connection -> IO DBSetterObject
+getDBSetterObject key bkey conn = do 
   let (getter, _) = keyToDBFuncs key
-  bsVals <- getter conn bs 
+  bsVals <- getter conn bkey 
   let maybeNewValsBS = map (newValueBS key) bsVals
   if any isNothing maybeNewValsBS
     then do 
       let badVals = map fst $ filter (isNothing . snd) $ zip bsVals maybeNewValsBS
-      throwIO $ CouldNotDecodeValues rawKey key badVals
+      error "could not decode value"
     else do 
       let newValsBS = catMaybes maybeNewValsBS
-      return $ DBSetterObject bs key newValsBS
+      return $ DBSetterObject bkey key newValsBS
 
 -- Do the actual setting/modification of the DB given a DBSetterObject
 applyDBSetterObject :: Connection -> DBSetterObject -> IO ()

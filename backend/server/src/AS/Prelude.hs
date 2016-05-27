@@ -25,6 +25,7 @@ module AS.Prelude (
   , modifyMVar_'
   , catchAny
   , handleAny
+  , handleIgnored
   , lift
   , liftIO
   , showConstructor
@@ -224,6 +225,9 @@ catchAny m f = MC.catch m onExc
 -- | a version of handle that never swallows asynchronous exceptions.
 handleAny :: (MC.MonadCatch m, MonadIO m) => (SomeException -> m a) -> m a -> m a
 handleAny h f = catchAny f h
+
+handleIgnored :: (MC.MonadCatch m, MonadIO m) => m a -> m ()
+handleIgnored f = handleAny (const $ return ()) (void f)
 
 -------------------------------------------------------------------------------------------------------------------------
 -- other standard functions we want
