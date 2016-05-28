@@ -162,8 +162,8 @@ onboard conn = do
           ex <- fromJust . Serial.maybeDecode <$> B.readFile ("sheets/" ++ sname ++ ".as") :: IO ExportData0
           putStrLn $ "[SUCCESS] decoded sheet: " ++ sname
           DB.setSheet conn $ Sheet sid sname origUid False
-          DB.clearSheet conn sid 
-          DB.setCellsPropagated conn origUid $ ex^.exportCells0
+          DB.clearSheetDB conn sid 
+          DB.setCells conn $ ex^.exportCells0
           mapM_ (DB.setBar conn) $ ex^.exportBars0
           mapM_ (DB.setDescriptor conn) $ ex^.exportDescriptors0
           DB.setCondFormattingRules conn sid $ ex^.exportCondFormatRules0
