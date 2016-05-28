@@ -183,10 +183,11 @@ getPoke req dealer = case getMessageId req of
 
 -- | Helper to get message ids
 getMessageId :: KernelRequest -> Maybe MessageId
-getMessageId (EvaluateRequest _ mid _ _) = Just mid
-getMessageId (EvaluateFormatRequest _ _) = Nothing
-getMessageId (ClearRequest _) = Nothing
-getMessageId (HaltMessageRequest mid) = Just mid
-getMessageId (GetStatusRequest mid) = Just mid
+getMessageId (EvaluateRequest _ mid _ _)  = Just mid
+getMessageId (OpenWorkbookRequest {})     = Nothing
+getMessageId (EvaluateFormatRequest _ _)  = Nothing
+getMessageId (ClearRequest _)             = Nothing
+getMessageId (HaltMessageRequest mid)     = Just mid
+getMessageId (GetStatusRequest mid)       = Just mid
 
 --------------------------------------------------------------------------------
