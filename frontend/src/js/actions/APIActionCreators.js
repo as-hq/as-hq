@@ -51,28 +51,24 @@ export default {
   // Used to open sheets that the user owns.
   openSheet(mySheetId?: string) {
     const sheetId = mySheetId || WorkbookStore.getCurrentSheetId();
-    Dispatcher.dispatch({
-      _type: 'API_OPENING_SHEET',
-      sheetId
-    });
+    Dispatcher.dispatch({ _type: 'LOADING_DATA' });
     API.openSheet(sheetId);
   },
 
   openWorkbook(myWorkbookId?: string) {
     const workbookId = myWorkbookId || WorkbookStore.getCurrentWorkbookId();
-    Dispatcher.dispatch({
-      _type: 'API_OPENING_WORKBOOK',
-      workbookId
-    });
+    Dispatcher.dispatch({ _type: 'LOADING_DATA' });
     API.openWorkbook(workbookId);
   },
 
   // Used to open sheets that the user has received a link to.
   acquireSheet(sheetId: string) {
-    Dispatcher.dispatch({
-      _type: 'API_OPENING_SHEET',
-      sheetId
-    });
+    Dispatcher.dispatch({ _type: 'LOADING_DATA' });
     API.acquireSheet(sheetId);
+  },
+
+  acquireWorkbook(workbookId: string) {
+    Dispatcher.dispatch({ _type: 'LOADING_DATA' });
+    API.acquireWorkbook(workbookId);
   },
 }

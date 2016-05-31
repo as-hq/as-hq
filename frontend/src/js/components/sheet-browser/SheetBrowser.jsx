@@ -121,10 +121,11 @@ class SheetBrowser extends React.Component {
           {mySheets.map(s =>
             <Tab title={s.name}
                  active={s.id === currentSheet}
+                 value={s.id}
                  mutable={true}
                  onSelect={() => APIActions.openSheet(s.id)}
-                 onLabelChange={name => API.renameSheet(s.id, name)}
-                 onDelete={() => API.deleteSheet(s.id)}
+                 onTitleChange={name => API.renameSheet(s.id, name)}
+                 menuItems={menuItems}
                  key={s.id}
                  />
             )
@@ -133,8 +134,10 @@ class SheetBrowser extends React.Component {
           {sharedSheets.map(s =>
             <Tab title={s.name + ' [shared]'}
                  active={s.id === currentSheet}
+                 value={s.id}
                  mutable={false}
                  onSelect={() => APIActions.openSheet(s.id)}
+                 menuItems={sharedMenuItems}
                  key={s.id}
                  />
             )
@@ -181,6 +184,24 @@ class SheetBrowser extends React.Component {
     return <div style={finalStyle} {...props} />;
   }
 }
+
+const menuItems = {
+  Delete: {
+    disabled: false,
+    action: (sid) => API.deleteSheet(sid)
+  },
+};
+
+const sharedMenuItems = {
+  Delete: {
+    disabled: true,
+    action: () => {}
+  },
+  Unshare: {
+    disabled: false,
+    action: (sid) => API.dereferenceSheet(sid)
+  }
+};
 
 const height = 30;
 const width = 750;

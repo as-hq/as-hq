@@ -59,7 +59,10 @@ class ASShareDialog extends React.Component {
   render(): React.Element {
     const {open, onRequestClose} = this.props;
     const {accountRequired} = this.state;
-    const url = WorkbookStore.getSheetLink(accountRequired);
+    const url = WorkbookStore.getWorkbookLink(accountRequired);
+    const title = `Share workbook: ${
+      WorkbookStore.getWorkbookTitle(WorkbookStore.getCurrentWorkbookId())
+    }`;
 
     const dismissAction = <FlatButton
       label="Dismiss"
@@ -67,7 +70,7 @@ class ASShareDialog extends React.Component {
     />;
 
     return (
-      <Dialog title="Share"
+      <Dialog title={title}
               actions={[dismissAction]}
               open={open}
               onRequestClose={onRequestClose} >

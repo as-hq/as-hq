@@ -180,7 +180,6 @@ executable alphasheets-exe
   ghc-options:         -O2
                        -threaded
                        -W
-                       -Werror
                 -- profiling
                        -fprof-auto 
                        "-with-rtsopts=-s -h -i -T"

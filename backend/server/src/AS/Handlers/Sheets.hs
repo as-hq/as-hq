@@ -136,16 +136,34 @@ handleAcquireSheet msgctx sid = do
   let conn = msgctx^.dbConnection
       wid  = messageWorkbookId msgctx
   wb <- fromJust <$> DB.getWorkbook conn wid
-  unless (Set.member sid $ wb^.workbookSheetIds) $ do
-    -- designate sheet as shared to user
-    modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert sid)
-    -- update user's workbook
-    handleGetOpenedWorkbook msgctx
-    -- automatically open the acquired sheet
-    handleOpenSheet msgctx sid
-    -- bring in headers
-    newHeaders <- DB.acquireHeaders conn wid sid
-    sendAction msgctx $ SetEvalHeaders newHeaders
+  -- designate sheet as shared to user
+  modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.insert sid)
+  -- update user's workbook
+  handleGetOpenedWorkbook msgctx
+  -- automatically open the acquired sheet
+  handleOpenSheet msgctx sid
+  -- bring in headers
+  newHeaders <- DB.acquireHeaders conn wid sid
+  sendAction msgctx $ SetEvalHeaders newHeaders
+
+-- | Acquire a shared workbook.
+handleAcquireWorkbook :: MessageContext -> SheetID -> IO ()
+handleAcquireWorkbook msgctx wid = do
+  msgctx' <- modifyUser msgctx (& workbookIds %~ Set.insert wid) 
+  handleOpenWorkbook msgctx' wid
+  handleGetMyWorkbooks msgctx'
+
+-- | Dereference a shared sheet.
+handleDereferenceSheet :: MessageContext -> SheetID -> IO ()
+handleDereferenceSheet msgctx sid = do
+  let conn = msgctx^.dbConnection
+      wid  = messageWorkbookId msgctx
+  wb <- fromJust <$> DB.getWorkbook conn wid
+  -- designate sheet as shared to user
+  modifyCurrentWorkbook msgctx (& workbookSheetIds %~ Set.delete sid)
+  -- update user's workbook
+  handleGetOpenedWorkbook msgctx
+  handleOpenWorkbook msgctx wid
 
 handleDeleteSheet :: MessageContext -> SheetID -> IO ()
 handleDeleteSheet msgctx sid = do

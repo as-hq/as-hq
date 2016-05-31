@@ -11,6 +11,7 @@ import AS.Types.Messages hiding (LogSource)
 import AS.Types.User hiding (userId)
 import AS.Types.Window
 
+import qualified Data.ByteString.Lazy as BL
 import Data.Aeson
 --import Data.Text
 import Data.Time.Clock (getCurrentTime)
@@ -152,6 +153,7 @@ class Client c where
   addClient :: c -> ServerState -> ServerState
   removeClient :: c -> ServerState -> ServerState
   lookupClient :: c -> ServerState -> Maybe c
+  handleImportBinary :: c -> State -> BL.ByteString -> IO ()
   handleServerMessage :: c -> State -> ServerMessage -> IO ()
   clientCommitSource :: c -> CommitSource
 

@@ -23,7 +23,7 @@ const StateRecord = Immutable.Record({
   bottomPane: 'no_pane',
   findBarOpen: false,
   findModalOpen: false,
-  sheetLoading: false
+  loading: false
 });
 
 class ConfigurationStore extends ReduceStore<State> {
@@ -76,12 +76,8 @@ class ConfigurationStore extends ReduceStore<State> {
         );
       }
 
-      case 'API_OPENING_SHEET': {
-        return state.set('sheetLoading', true);
-      }
-
-      case 'API_OPENING_WORKBOOK': {
-        return state.set('sheetLoading', true);
+      case 'LOADING_DATA': {
+        return state.set('loading', true);
       }
 
       case 'CHANGED_SHEET': {
@@ -89,7 +85,7 @@ class ConfigurationStore extends ReduceStore<State> {
       }
 
       case 'SHEET_UPDATED': {
-        return state.set('sheetLoading', false);
+        return state.set('loading', false);
       }
 
       case 'SELECTION_CHANGED': {
@@ -137,8 +133,8 @@ class ConfigurationStore extends ReduceStore<State> {
     return this.getCurrentBottomPane() !== 'no_pane';
   }
 
-  isSheetLoading(): boolean {
-    return this.getState().sheetLoading;
+  isLoading(): boolean {
+    return this.getState().loading;
   }
 }
 

@@ -62,7 +62,11 @@ const FileImportDialog = {
 
   importExcel(files: Array<File>) {
     this.postFilesToBackend(files, this.importExcelCallback);
-  }
+  },
+
+  importAlphaSheets(files: Array<File>) {
+    files.forEach(f => API.importAlphaSheets(f));
+  },
 };
 
 export default FileImportDialog;

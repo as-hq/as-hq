@@ -19,6 +19,8 @@ import AS.Types.Graph
 import Control.Concurrent
 import Data.Either
 
+import AS.Handlers.Sheets (handleAcquireWorkbook, handleAcquireSheet)
+
 --  Used to custom parse json obtained from importing an xls file.
 import AS.Handlers.Misc (handleClear)
 import AS.Handlers.Sheets (handleOpenSheet)
@@ -58,12 +60,26 @@ import Control.Monad.Trans.Class (lift)
 -- import/export seems overkill given that it's a temporarily needed solution)
 -- so we just send alphasheets files as binary data over websockets and immediately load
 -- into the current sheet.
-handleImportBinary :: (Client c) => c -> State -> BL.ByteString -> IO ()
-handleImportBinary c mstate bin = undefined
+handleImportBinaryUser :: MessageContext -> BL.ByteString -> IO ()
+handleImportBinaryUser msgctx bin = do
+  let conn  = msgctx^.dbConnection
+      uid   = messageUserId msgctx
+  case (S.decodeLazy bin :: Either String SheetExportData) of
+    Left s -> do
+      case (S.decodeLazy bin :: Either String WorkbookExportData) of 
+        Left s -> do
+          putStrLn $ "import error: \n\n" ++ s
+          sendAction msgctx $ ShowFailureMessage $ "could not process binary file, decode error: " ++ s
+        Right ex -> 
+          DX.importWorkbookData conn uid ex >>=
+          handleAcquireWorkbook msgctx 
+    Right ex -> 
+      DX.importSheetData conn uid ex >>=
+      handleAcquireSheet msgctx 
 
-handleExport :: MessageContext -> SheetID -> IO ()
-handleExport msgctx exportSid = do
-  exported <- DX.exportSheetData (msgctx^.dbConnection) exportSid
+handleExportWorkbook :: MessageContext -> WorkbookID -> IO ()
+handleExportWorkbook msgctx wid = do
+  exported <- DX.exportWorkbookData (msgctx^.dbConnection) wid
   WS.sendBinaryData (msgctx^.userClient.userConn) (S.encodeLazy exported)
 
 handleExportCell :: MessageContext -> ASIndex -> IO ()

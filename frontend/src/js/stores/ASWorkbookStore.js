@@ -93,7 +93,7 @@ class WorkbookStore extends ReduceStore<State> {
     const title = this._withOpenedSheet(sheet => {
       let qualifier = '';
       if (sheet.owner !== LoginStore.getUserId()) {
-        qualifier = ` (owned by ${sheet.owner})`;
+        qualifier = ` (${sheet.owner})`;
       }
       return sheet.name + qualifier;
     });
@@ -101,20 +101,24 @@ class WorkbookStore extends ReduceStore<State> {
     return title || '';
   }
 
-  getCurrentWorkbookName(): string {
-    const name = this._withOpenedWorkbook(wb => wb.name);
-    return name || '';
+  getWorkbookTitle(workbookId: string): string {
+    const me = LoginStore.getUserId();
+    const wb = this.getState().workbookRefs.find(wbref => wbref.id === workbookId);
+    return ( wb ?
+      wb.name + (me === wb.owner ? '' : ` (${wb.owner})`)
+    : ''
+    );
   }
 
-  getSheetLink(accountRequired: boolean): string {
-    const sheetId = this.getCurrentSheetId();
-    invariant(sheetId, "Cannot produce a sheet link when there is no sheet id!");
+  getWorkbookLink(accountRequired: boolean): string {
+    const workbookId = this.getCurrentWorkbookId();
+    invariant(workbookId, "Cannot produce a workbook link when there is no workbook id!");
     return (
       'http://' +
       Constants.getFrontendHost() +
-      '/#/sheets/' +
+      '/#/workbooks/' +
       (accountRequired ? '' : 'public/') +
-      sheetId
+      workbookId
     );
   }
 

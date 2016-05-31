@@ -86,14 +86,16 @@ data ServerAction =
   | NewSheet SheetName
   | CloneSheet SheetID
   | DeleteSheet SheetID
-  -- currently used for sharing sheets.
+  -- currently used for sharing sheets & workbooks.
   | AcquireSheet SheetID 
+  | AcquireWorkbook WorkbookID 
+  | DereferenceSheet SheetID
   | GetOpenedWorkbook
   | GetMyWorkbooks
   -- | UpdateWindow Window
   -- | Import 
   -- | JumpSelect {jumpRange :: ASRange, jumpOrigin :: ASIndex, isShifted :: Bool, jumpDirection :: Direction}
-  | Export SheetID
+  | ExportWorkbook WorkbookID
   | ExportCell ASIndex
   | Evaluate [EvalInstruction]
   | EvaluateHeader EvalHeader

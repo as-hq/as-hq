@@ -292,7 +292,7 @@ class ASSpreadsheet extends React.Component {
     const {cursorStyle} = this.state;
 
     return (
-      <Dropzone onDrop={files => API.import(files[0])}
+      <Dropzone onDrop={files => API.importAlphaSheets(files[0])}
                 disableClick={true}
                 style={{cursor: cursorStyle, ...styles.root}}>
 

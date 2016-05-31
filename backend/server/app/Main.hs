@@ -25,7 +25,6 @@ import qualified AS.DB.Users as DB
 import qualified AS.DB.Graph as G
 import qualified AS.DB.Internal as DI
 import AS.Users as US
-import AS.Handlers.Import (handleImportBinary)
 import AS.Handlers.LogAction
 --import qualified AS.Kernels.Python.Client as KP
 --import qualified AS.Kernels.R.Client as KR
@@ -205,15 +204,17 @@ engageClient client state = do
 
 -- | Maintains connection until user disconnects
 talk :: (Client c) => c -> State -> IO ()
-talk client state = forever $ do
-  dmsg <- WS.receiveDataMessage (clientConn client)
+talk oldClient state = forever $ do
+  dmsg <- WS.receiveDataMessage (clientConn oldClient)
   putsConsole "=== RECEIVE MESSAGE ===="
+  -- the client's properties might have been mutated; read it anew
+  newClient <- fromJust <$> lookupClient oldClient <$> readState state 
   case dmsg of 
-    WS.Binary b -> handleImportBinary client state b
+    WS.Binary b -> handleImportBinary newClient state b
     WS.Text msg -> case (eitherDecode msg :: Either String ServerMessage) of
-      Right m -> processAsyncWithTimeout client state m
+      Right m -> processAsyncWithTimeout newClient state m
       Left s -> 
-        putsError (clientCommitSource client) ("SERVER ERROR: unable to decode message " 
+        putsError (clientCommitSource newClient) ("SERVER ERROR: unable to decode message " 
                                               ++ show msg
                                               ++ "\n\n due to parse error: " 
                                               ++ s)
@@ -234,7 +235,7 @@ processAsyncWithTimeout c state msg = case clientType c of
     successLock <- newEmptyMVar 
     tid <- timeoutAsync successLock $ \_ -> do
       putsServerMessage msg
-      processMessage c state msg
+      handleServerMessage c state msg
       putsConsole "=== FINISHED PROCESSING MESSAGE ====" 
     modifyState_ state $ \curState -> 
       return $ curState & threads %~ (M.insert mid tid)
@@ -253,7 +254,7 @@ processAsyncWithTimeout c state msg = case clientType c of
         takeMVar lock
         modifyState_ state $ \curState -> 
           return $ curState & threads %~ (M.delete mid)
-  DaemonType -> void $ forkIO (processMessage c state msg)
+  DaemonType -> void $ forkIO (handleServerMessage c state msg)
 
 handleRuntimeException :: UserClient -> State -> SomeException -> IO ()
 handleRuntimeException user state e = do
@@ -282,16 +283,6 @@ onDisconnect' :: (Client c) => c -> State -> SomeException -> IO ()
 onDisconnect' c state _ = do 
   onDisconnect c state
   putsError (clientCommitSource c) "ZOMBIE KILLED!!"
-
-processMessage :: (Client c) => c -> State -> ServerMessage -> IO ()
-processMessage oldClient mstate message = do
-  state <- readState mstate 
-  let (Just newClient) = lookupClient oldClient state -- the client's properties might have been mutated; read it anew
-  isPermissible <- DB.isPermissibleMessage (ownerName newClient) (state^.dbConn) message
-  if isPermissible || isDebug
-    then handleServerMessage newClient mstate message
-    else sendMessage (clientConn newClient) $
-      failureMessage (serverMessageId message) "Insufficient permissions" 
 
 onDisconnect :: (Client c) => c -> State -> IO ()
 onDisconnect c state = do

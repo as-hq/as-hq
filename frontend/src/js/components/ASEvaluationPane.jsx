@@ -35,7 +35,7 @@ import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
 
 type State = {
-  shouldShowSheetLoader: boolean;
+  shouldShowLoader: boolean;
 };
 type Props = {};
 
@@ -51,7 +51,7 @@ export default class ASEvalPane extends React.Component {
   constructor(props: Props) {
     super(props);
     this.state = {
-      shouldShowSheetLoader: false,
+      shouldShowLoader: false,
     };
   }
 
@@ -65,14 +65,14 @@ export default class ASEvalPane extends React.Component {
       // (1) immediately
       // (2) after 200ms.
       // This has the effect of showing the loader for sheets taking >200ms to load.
-      if (ConfigStore.isSheetLoading()) {
+      if (ConfigStore.isLoading()) {
         setTimeout(() => {
-          if (ConfigStore.isSheetLoading()) {
-            this.setState({shouldShowSheetLoader: true});
+          if (ConfigStore.isLoading()) {
+            this.setState({shouldShowLoader: true});
           }
         }, 200);
       } else {
-        this.setState({shouldShowSheetLoader: false});
+        this.setState({shouldShowLoader: false});
       }
     });
   }
@@ -87,14 +87,14 @@ export default class ASEvalPane extends React.Component {
     const headerOpen = ConfigStore.isHeaderOpen();
     const findBarOpen = ConfigStore.isFindBarOpen();
     const findModalOpen = ConfigStore.isFindModalOpen();
-    const { shouldShowSheetLoader } = this.state;
+    const { shouldShowLoader } = this.state;
 
     const leftEvalPane = (
       <div style={styles.root}>
 
-        {shouldShowSheetLoader &&
+        {shouldShowLoader &&
           <div style={styles.loaderContainer}>
-            <h1 style={styles.loaderTitle}>Loading sheet</h1>
+            <h1 style={styles.loaderTitle}>Loading data</h1>
             <CircularProgress size={3} color='white' />
           </div>
         }

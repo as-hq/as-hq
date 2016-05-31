@@ -35,6 +35,8 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 import FileImportDialog from '../AS/FileImportDialog';
 import {topBar as topBarZIndex} from '../styles/zIndex';
 
+import U from '../AS/Util';
+
 type Props = {
   toggleEvalHeader: Callback;
 };
@@ -58,11 +60,13 @@ function simple({callback, title}): SimpleItemSpec {
   });
 }
 
-function file({callback, title}): FileItemSpec {
+function file({callback, title}): SimpleItemSpec {
   return ({
-    tag: 'FileItemSpec',
+    tag: 'SimpleItemSpec',
     title: title,
-    callback: callback,
+    callback: () => {
+      U.File.promptOpen(fs => callback(fs))
+    },
   });
 }
 
@@ -92,7 +96,6 @@ export default class ASTopBar extends React.Component {
     let self = this;
     const { workbookPopoverOpen } = this.state;
     const paused = WorkbookStore.inPauseMode();
-    const me = LoginStore.getUserId();
 
     let testAlphaSheets =
       Constants.isProduction
@@ -158,7 +161,7 @@ export default class ASTopBar extends React.Component {
               menuItems:
                 WorkbookStore.getWorkbooks().map(wb =>
                   simple({
-                    title: wb.name + (me === wb.owner ? '' : ` [owned by ${wb.owner}]`),
+                    title: WorkbookStore.getWorkbookTitle(wb.id),
                     callback() {
                       API.openWorkbook(wb.id);
                     }
@@ -173,27 +176,39 @@ export default class ASTopBar extends React.Component {
               }
             }),
 
-            file({
-              title: 'Import CSV',
-              callback(files) {
-                FileImportDialog.importCSV(files)
-              },
-            }),
+            nested({
+              title: 'Import...',
+              menuItems: [
+                file({
+                  title: 'Workbook',
+                  callback(files) {
+                    FileImportDialog.importAlphaSheets(files)
+                  },
+                }),
 
-            file({
-              title: 'Import Excel',
-              callback(files) {
-                FileImportDialog.importExcel(files)
-              },
+                file({
+                  title: 'CSV',
+                  callback(files) {
+                    FileImportDialog.importCSV(files)
+                  },
+                }),
+
+                file({
+                  title: 'Excel',
+                  callback(files) {
+                    FileImportDialog.importExcel(files)
+                  },
+                }),
+              ]
             }),
 
             nested({
-              title: 'Export',
+              title: 'Export...',
               menuItems: [
                 simple({
-                  title: 'Save',
+                  title: 'Workbook',
                   callback() {
-                    API.export(WorkbookStore.getCurrentSheetId());
+                    API.exportWorkbook(WorkbookStore.getCurrentWorkbookId());
                   }
                 }),
                 simple({
@@ -294,7 +309,7 @@ export default class ASTopBar extends React.Component {
         ]} />
 
         <Paper style={styles.workbookTitle}>
-          {WorkbookStore.getCurrentWorkbookName()}
+          {WorkbookStore.getWorkbookTitle(WorkbookStore.getCurrentWorkbookId())}
         </Paper>
 
       </div>
@@ -316,7 +331,7 @@ const styles = {
     position: 'relative',
    },
    workbookTitle: {
-     flexGrow: 0,
+     flexGrow: 1,
      flexBasis: 'content',
      position: 'relative',
      backgroundColor: '#424242',

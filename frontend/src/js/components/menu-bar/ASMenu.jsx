@@ -37,7 +37,7 @@ const CONST_PROPS = {
 };
 
 export default class ASMenu extends React.Component {
-  static defaultProps = {}; 
+  static defaultProps = {};
   props: ASMenuProps;
   state: ASMenuState;
 
@@ -138,7 +138,6 @@ export default class ASMenu extends React.Component {
               type='file'
               style={inputStyle}
               ref={elem => this._fileInputs[fileItem.title] = elem}
-              onChange={() => this._handleFileItemClick(fileItem)}
             />
             <MenuItem
               primaryText={menuItem.title}

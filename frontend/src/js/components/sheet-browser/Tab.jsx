@@ -19,9 +19,11 @@ import MoreVertIcon from 'material-ui/lib/svg-icons/navigation/more-vert';
 type Props = {
   title: string;
   active: boolean;
+  value: any;
+  menuItems: any; // XXX
   mutable: boolean;
   onSelect?: () => void;
-  onLabelChange?: (name: string) => void;
+  onTitleChange?: (name: string) => void;
   onDelete?: () => void;
 };
 
@@ -50,32 +52,23 @@ class Tab extends React.Component {
     const {
       title,
       active,
+      value,
       mutable,
-      onLabelChange,
-      onDelete,
+      onSelect,
+      onTitleChange,
+      menuItems,
     } = this.props;
 
     const titleContent = isEditing && mutable?
       <div ref={elem => this._titleField = elem}
            contentEditable={true}
-           onKeyDown={e => this._onTabTitleChange(e)}
+           onKeyDown={e => this._onTitleChange(e)}
            >
         {title}
       </div>
       :
       title
       ;
-
-    const menuItems = {
-      Delete: {
-        disabled: ! mutable,
-        action: onDelete || noop
-      },
-      Rename: {
-        disabled: ! mutable,
-        action: () => this.setState({isEditing: true})
-      }
-    };
 
     if (isEditing) {
       setTimeout(() => {
@@ -85,6 +78,14 @@ class Tab extends React.Component {
         );
       }, 100);
     }
+
+    const allMenuItems = {
+      Rename: {
+        disabled: ! mutable,
+        action: () => this.setState({isEditing: true})
+      },
+      ...menuItems
+    };
 
     return (
       <div style={styles.root}
@@ -109,12 +110,12 @@ class Tab extends React.Component {
           anchorOrigin={{horizontal: 'left', vertical: 'bottom'}}
           targetOrigin={{horizontal: 'left', vertical: 'bottom'}}>
 
-          {_.map(menuItems, (v: any, k: string) => {
+          {_.map(allMenuItems, (v: any, k: string) => {
             const { disabled, action } = v;
             return (
               <MenuItem primaryText={k}
                         disabled={disabled}
-                        onTouchTap={() => action()} />
+                        onTouchTap={() => action(value)} />
             );
           })
           }
@@ -125,26 +126,24 @@ class Tab extends React.Component {
 
   }
 
-  _onTabTitleChange(e: SyntheticKeyboardEvent) {
+  _onTitleChange(e: SyntheticKeyboardEvent) {
     if (e.which === 13) {
-      const { onLabelChange } = this.props;
+      const { onTitleChange } = this.props;
       const newTitle = this._titleField.textContent;
       this.setState({isEditing: false});
-      if (onLabelChange) {
-        onLabelChange(newTitle);
+      if (onTitleChange) {
+        onTitleChange(newTitle);
       }
     }
   }
 
   _onClick() {
-    const { active, onSelect } = this.props;
+    const { active, onSelect, value } = this.props;
     if (! active && onSelect) {
-      onSelect();
+      onSelect(value);
     }
   }
 }
-
-const noop = () => {};
 
 function getStyles(props: Props, state: State): any {
   const { active } = props;

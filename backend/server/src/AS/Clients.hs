@@ -54,6 +54,14 @@ instance Client UserClient where
     | otherwise = s
   lookupClient uc s = L.find (== uc) (s^.userClients)
   clientCommitSource = userCommitSource
+  handleImportBinary uc state bin = do
+    curState <- readState state
+    let msgctx = MessageContext { _messageState = state
+                                , _messageId = "import_message_id"
+                                , _userClient = uc 
+                                , _dbConnection = curState^.dbConn
+                                }
+    handleImportBinaryUser msgctx bin
   handleServerMessage uc state message = do 
     -- second arg is supposed to be sheet id; temporary hack is to always set userId = sheetId
     -- on frontend. 
@@ -83,10 +91,12 @@ instance Client UserClient where
       NewSheet name               -> handleNewSheet msgctx name
       CloneSheet sid              -> handleCloneSheet msgctx sid
       AcquireSheet sid            -> handleAcquireSheet msgctx sid
+      AcquireWorkbook wid         -> handleAcquireWorkbook msgctx wid
+      DereferenceSheet sid        -> handleDereferenceSheet msgctx sid
       DeleteSheet sid             -> handleDeleteSheet msgctx sid
       GetOpenedWorkbook           -> handleGetOpenedWorkbook msgctx
       GetMyWorkbooks              -> handleGetMyWorkbooks msgctx
-      Export sid                  -> handleExport msgctx sid
+      ExportWorkbook wid          -> handleExportWorkbook msgctx wid
       ExportCell idx              -> handleExportCell msgctx idx
       Evaluate xpsAndIndices      -> handleEval msgctx xpsAndIndices
       EvaluateHeader evalHeader   -> handleEvalHeader msgctx evalHeader

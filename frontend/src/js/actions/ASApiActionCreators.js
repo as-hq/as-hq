@@ -211,10 +211,10 @@ pws.whenReady(() => {
   pws.onmessage = (event: MessageEvent) => {
     if (event.data instanceof Blob) {
       logDebug("Received binary data from server.");
-      let fName = WorkbookStore.getCurrentSheetId() + ".as";
+      const fName = WorkbookStore.getWorkbookTitle(WorkbookStore.getCurrentWorkbookId()) + ".as";
       // #anand event.data typecasts to Blob, because we already checked the instance above
       // and flow doesn't understand that event.data is type DOMString | Blob | ...
-      let f = U.File.blobToFile(((event.data: any): Blob), fName);
+      const f = U.File.blobToFile(((event.data: any): Blob), fName);
       U.File.promptSave(f);
 
       return;
@@ -385,7 +385,7 @@ pws.whenReady(() => {
           && !isTest
           && !LoginStore.userIsDev()
           && !LoginStore.isPublicLogin()) {
-          const slackMsg = WorkbookStore.getSheetLink(false) + '\n' + LoginStore.getUserId();
+          const slackMsg = WorkbookStore.getWorkbookLink(false) + '\n' + LoginStore.getUserId();
           logSlack(slackMsg, '#userlogins');
         }
         break;
@@ -483,10 +483,10 @@ const API = {
     pws.close();
   },
 
-  export(sheetId: string) {
-    let msg = {
-      tag: "Export",
-      contents: sheetId
+  exportWorkbook(workbookId: string) {
+    const msg = {
+      tag: "ExportWorkbook",
+      contents: workbookId
     };
     API.sendMessageWithAction(msg);
   },
@@ -507,9 +507,9 @@ const API = {
     }
   },
 
-  import(file: File) {
+  importAlphaSheets(file: File) {
     // any typecast necessary because pws.send is an overloaded, untyped function...
-    pws.send(((file: any): string), {binary: true});
+    pws._withNakedWS(ws => ws.send(file, {binary: true}));
   },
 
   importCSV(origin: ASIndex, lang: ASLanguage, fileName: string) {
@@ -967,6 +967,22 @@ const API = {
     const msg = {
       tag: "AcquireSheet",
       contents: sheetId
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  dereferenceSheet(sheetId: string) {
+    const msg = {
+      tag: "DereferenceSheet",
+      contents: sheetId
+    };
+    API.sendMessageWithAction(msg);
+  },
+
+  acquireWorkbook(workbookId: string) {
+    const msg = {
+      tag: "AcquireWorkbook",
+      contents: workbookId
     };
     API.sendMessageWithAction(msg);
   },

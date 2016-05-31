@@ -57,14 +57,21 @@ function regularAuth(nextState, replace) {
   }
 }
 
-function referredSheetAuth(nextState, replace, isPublicReferral) {
+function referredAuth(nextState, replace, options) {
+  const {isPublic, referralType} = options;
   if (! LoginStore.isLoggedIn()) {
     LoginActions.registerCallback(() => {
-      const {referredSheetId} = nextState.params;
-      console.error('REFERRED AUTH!!!');
-      APIActions.acquireSheet(referredSheetId);
+      if (referralType === 'sheet') {
+        const {referredSheetId} = nextState.params;
+        console.warn('REFERRED SHEET');
+        APIActions.acquireSheet(referredSheetId);
+      } else if (referralType === 'workbook') {
+        const {referredWorkbookId} = nextState.params;
+        console.warn('REFERRED SHEET');
+        APIActions.acquireWorkbook(referredWorkbookId);
+      }
     });
-    if (isPublicReferral) {
+    if (isPublic) {
       LoginActions.setPublicLogin();
     }
     replace({ nextPathName: nextState.location.pathname }, '/login');
@@ -74,19 +81,36 @@ function referredSheetAuth(nextState, replace, isPublicReferral) {
 const main = (
   <Router>
     <Route path="/" component={Index}>
-      <IndexRoute component={App}
-                  onEnter={(ns, rep) => regularAuth(ns, rep)} />
-      <Route path="login"
-             component={Login} />
-      <Route path="app"
-             component={App}
-             onEnter={(ns, rep) => regularAuth(ns, rep)} />
-      <Route path="sheets/:referredSheetId"
-             component={App}
-             onEnter={(ns, rep) => referredSheetAuth(ns, rep, false)} />
-      <Route path="sheets/public/:referredSheetId"
-             component={App}
-             onEnter={(ns, rep) => referredSheetAuth(ns, rep, true)} />
+        <IndexRoute component={App}
+                    onEnter={(ns, rep) => regularAuth(ns, rep)}
+                    />
+        <Route path="login"
+               component={Login}
+               />
+        <Route path="app"
+               component={App}
+               onEnter={(ns, rep) => regularAuth(ns, rep)}
+               />
+        <Route path="sheets/:referredSheetId"
+               component={App}
+               onEnter={(ns, rep) =>
+                 referredAuth(ns, rep, {isPublic: false, referralType: 'sheet'})}
+               />
+        <Route path="sheets/public/:referredSheetId"
+               component={App}
+               onEnter={(ns, rep) =>
+                 referredAuth(ns, rep, {isPublic: true, referralType: 'sheet'})}
+               />
+        <Route path="workbooks/:referredWorkbookId"
+              component={App}
+              onEnter={(ns, rep) =>
+                referredAuth(ns, rep, {isPublic: false, referralType: 'workbook'})}
+              />
+        <Route path="workbooks/public/:referredWorkbookId"
+              component={App}
+              onEnter={(ns, rep) =>
+                referredAuth(ns, rep, {isPublic: true, referralType: 'workbook'})}
+              />
     </Route>
   </Router>
 );
