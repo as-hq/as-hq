@@ -118,7 +118,15 @@
   <div id="main" class="full">
     <!-- Flux goes here -->
   </div>
-  <script src="js/index.js"></script>
+
+  <!-- cache-busted javascript loader -->
+  <script>
+    document.write(
+      "<script type='text/javascript' src='js/index.js?rev=" +
+      Date.now() +
+      "'><\/script>"
+    );
+  </script>
 
 </body>
 
