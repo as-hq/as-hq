@@ -3,5 +3,6 @@ export default {
 	noRouter: true,
 	logActions: false,
 	REMOTE_HOST: 'master.alphasheets.com',
-	BACKEND_WS_PORT: 5000
+	BACKEND_WS_PORT: 443,
+	BACKEND_STATIC_PORT: 53
 }

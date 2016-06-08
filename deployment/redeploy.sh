@@ -64,7 +64,11 @@ tmux new -s "fileinput" -d "./file-input-handler"
 
 # static
 tmux kill-session -t "static"
-tmux new -s "static" -d "python -m SimpleHTTPServer"
+if [ $BRANCH -eq  "master" ]; then
+  tmux new -s "static" -d "python -m SimpleHTTPServer 53"
+else
+  tmux new -s "static" -d "python -m SimpleHTTPServer"
+fi
 cd ../..
 
 # keepup scripts
