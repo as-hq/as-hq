@@ -64,8 +64,8 @@ tmux new -s "fileinput" -d "./file-input-handler"
 
 # static
 tmux kill-session -t "static"
-if [ $BRANCH -eq  "master" ]; then
-  tmux new -s "static" -d "python -m SimpleHTTPServer 53"
+if ($BRANCH ==  "master"); then
+  tmux new -s "static" -d "python -m SimpleHTTPServer 563"
 else
   tmux new -s "static" -d "python -m SimpleHTTPServer"
 fi
