@@ -34,9 +34,8 @@ const Constants = Object.assign({
   },
 
   REMOTE_HOST: window.location.hostname, // unless otherwise assigned
-  BACKEND_WS_PORT: '5000',
-  BACKEND_STATIC_PORT: '8000',
-  BACKEND_IMPORT_PORT: '9000',
+  BACKEND_SERVER_PORT: '81',
+  BACKEND_IMPORT_PORT: '82',
 
   // auth parameters
   google_client_id: '347875438909-e81ep6ofitkq4deio3kagakpr5ujeh20.apps.googleusercontent.com',

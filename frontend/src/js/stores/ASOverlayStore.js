@@ -130,9 +130,7 @@ function getPossibleOverlay(cell: ASCell): ?ASOverlaySpec {
     return null;
   } else {
     const {imagePath} = value;
-    const imageSrc = Constants.getBackendUrl(
-      'http',
-      Constants.BACKEND_STATIC_PORT)
+    const imageSrc = Constants.getBackendUrl('http',Constants.BACKEND_SERVER_PORT)
       + "/images/" + imagePath;
 
     // Initialize prop values, then see if the cell has data that overrides them

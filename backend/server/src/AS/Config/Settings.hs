@@ -32,8 +32,8 @@ import GHC.Conc (getNumProcessors, setNumCapabilities)
 --------------------------------------------------------------------------------------
 -- Types
 
-data AppSettings = AppSettings  { _backendWsAddress' :: String
-                                , _backendWsPort' :: Int
+data AppSettings = AppSettings  { _backendHost' :: String
+                                , _backendPort' :: Int
                                 , _graphDbAddress' :: String
                                 , _pyKernelAddress' :: String
                                 , _rKernelAddress_server' :: String
@@ -53,8 +53,8 @@ data AppSettings = AppSettings  { _backendWsAddress' :: String
 -- all be set remotely. 
 instance FromJSON AppSettings where
   parseJSON (Object v) = AppSettings 
-    <$> v .: "backendWsAddress"
-    <*> v .: "backendWsPort"
+    <$> v .: "backendHost"
+    <*> v .: "backendPort"
     <*> v .: "graphDbAddress_haskell"
     <*> v .: "pyKernelAddress_haskell"
     <*> v .: "rKernelAddress_server"
@@ -178,8 +178,8 @@ initializeSettings = do
   writeSetting pykernelAddress (appSettings^.pyKernelAddress')
   writeSetting rkernelAddress_server (appSettings^.rKernelAddress_server')
   writeSetting rkernelAddress_client (appSettings^.rKernelAddress_client')
-  writeSetting serverHost (appSettings^.backendWsAddress')
-  writeSetting serverPort (appSettings^.backendWsPort')
+  writeSetting serverHost (appSettings^.backendHost')
+  writeSetting serverPort (appSettings^.backendPort')
   writeSetting dbHost (appSettings^.redisHost')
   writeSetting dbPort (appSettings^.redisPort')
   writeSetting dbPassword (appSettings^.redisPassword')

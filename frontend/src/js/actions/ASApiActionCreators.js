@@ -165,12 +165,11 @@ function initConnection() {
       .get(Constants.getRouterUrl(host))
       .end((err, res) => {
         if (!! res && res.status == 200) {
-          const { name, filePort, backendPort, staticPort } = JSON.parse(res.text);
+          const { name, filePort, backendPort } = JSON.parse(res.text);
           Constants.REMOTE_HOST = host;
           Constants.CONTAINER_ID = name;
-          Constants.BACKEND_WS_PORT = backendPort;
+          Constants.BACKEND_SERVER_PORT = backendPort;
           Constants.BACKEND_IMPORT_PORT = filePort;
-          Constants.BACKEND_STATIC_PORT = staticPort;
 
           const url = Constants.getBackendUrl('ws', backendPort);
           pws.begin(url);
@@ -181,7 +180,7 @@ function initConnection() {
         }
       });
   } else {
-    const url = Constants.getBackendUrl('ws', Constants.BACKEND_WS_PORT);
+    const url = Constants.getBackendUrl('ws', Constants.BACKEND_SERVER_PORT);
     pws.begin(url);
   }
 }

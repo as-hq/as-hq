@@ -134,7 +134,7 @@ application state = WaiWS.websocketsOr WS.defaultConnectionOptions wsApp staticA
       when (isDebug && shouldPreprocess) $ preprocess conn state
       handshakeAndStart state conn msg
     staticApp :: Wai.Application
-    staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "static")
+    staticApp = Static.staticApp $ Static.defaultFileServerSettings S.static_dir
 
 handshakeAndStart ::  State -> WS.Connection -> BL.ByteString -> IO ()
 handshakeAndStart state wsConn msg =

@@ -60,15 +60,8 @@ tmux new -s "backend" -d "persistent.sh \"./alphasheets-exe\""
 # fileinput
 cd static
 tmux kill-session -t "fileinput"
-tmux new -s "fileinput" -d "./file-input-handler"
-
-# static
 tmux kill-session -t "static"
-if ($BRANCH ==  "master"); then
-  tmux new -s "static" -d "python -m SimpleHTTPServer 563"
-else
-  tmux new -s "static" -d "python -m SimpleHTTPServer"
-fi
+tmux new -s "fileinput" -d "./file-input-handler"
 cd ../..
 
 # keepup scripts
