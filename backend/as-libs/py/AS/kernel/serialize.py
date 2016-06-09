@@ -104,9 +104,12 @@ def serialize(val):
       return json.dumps(sVal)
 
   elif isinstance(val, pd.DataFrame):
-    labels = val.columns.values.tolist()
-    indices = val.index.values.tolist()
-    data = val.get_values().tolist()
+    # This is being used instead of toList so that we can choose how to 
+    # convert types, instead of toList's "closest Python datatype", which
+    # converts datetime64 objects to ints
+    labels = [serializeListElem(x) for x in val.columns.values]
+    indices = [serializeListElem(x) for x in val.index.values]
+    data = [serializeListElem(x) for x in val.get_values()]
     return json.dumps({'tag': 'Expanding', 
                        'expandingType': 'PDataFrame', 
                        'dfLabels': labels,
@@ -114,8 +117,8 @@ def serialize(val):
                        'dfData': data})
 
   elif isinstance(val, pd.Series):
-    indices = val.index.values.tolist()
-    data = val.get_values().tolist()
+    indices = [serializeListElem(x) for x in val.index.values]
+    data = [serializeListElem(x) for x in val.get_values()]
     return json.dumps({'tag': 'Expanding',
                        'expandingType': 'PSeries',
                        'seriesIndices': indices,
@@ -161,6 +164,10 @@ def serializeListElem(val):
       return generalSerialize(val, 'LIST')
     else:
       return [serializeListElem(e) for e in val]
+  elif isinstance(val, datetime.datetime):
+    return generalSerialize(val, str(val))
+  elif isinstance(val, np.datetime64):
+    return generalSerialize(val, str(val))
   elif isinstance(val, np.ndarray):
     if len(val) == 0:
       return None
