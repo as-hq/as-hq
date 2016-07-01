@@ -54,7 +54,11 @@ authenticateUser conn strat =
         _ -> return $ Left "received null app client id"
     -- a randomly generated, unique user id. Ensures that a publicly-referred user has access only to the sheet she was referred to.
     -- also, don't give onboarding sheets to publicly-referred users.
-    PublicAuth -> return . Right =<< produceUser conn False =<< return . T.pack =<< getUUID 
+    PublicAuth -> do 
+      useWL <- getSetting useWhitelist
+      if useWL
+        then return $ Left "Public logins not allowed on this server."
+        else return . Right =<< produceUser conn False =<< return . T.pack =<< getUUID 
     -- when running tests, no authentication performed.
     TestAuth -> Right <$> produceUser conn False "test_user_id" 
 -------------------------------------------------------------------------------------------------------------------------
