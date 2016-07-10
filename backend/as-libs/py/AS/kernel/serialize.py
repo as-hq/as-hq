@@ -18,6 +18,8 @@ import base64
 import uuid
 import datetime
 
+import bs4 # BeautifulSoup string serialization
+
 imageSavePath = os.path.dirname(os.getcwd()) + '/server/static/images/'
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
@@ -158,7 +160,9 @@ def serialize(val):
 # serialized. This function does that for lists, checking e.g. dimensionality
 # of sublists is <= 1.
 def serializeListElem(val):
-  if isinstance(val, list):
+  if isPrimitive(val):
+    return val
+  elif isinstance(val, list):
     if len(val) == 0:
       return None
     elif getDimensions(val) > 1:
@@ -181,8 +185,6 @@ def serializeListElem(val):
       return [serializeListElem(e) for e in val.tolist()]
   elif isinstance(val, dict):
     return generalSerialize(val, 'DICT')
-  elif isPrimitive(val):
-    return val
   else:
     return generalSerialize(val, 'GENERIC')
 
@@ -194,4 +196,13 @@ def generalSerialize(val, name):
           'displayName': name}
 
 def isPrimitive(val):
-  return (type(val) in (int, float, bool, str, unicode, np.int64, np.float64, np.string_)) or (val is None)
+  return (type(val) in (int, 
+                        float, 
+                        np.int64, 
+                        np.float64, 
+                        bool, 
+                        str, 
+                        unicode, 
+                        np.string_,
+                        bs4.element.NavigableString
+                        )) or (val is None)
