@@ -79,29 +79,27 @@ def getDimensions(val):
 def serialize(val):
   if isinstance(val, list):
     if len(val) == 0:
-      return json.dumps(None)
+      sval = None
     elif getDimensions(val) > 2:
-      return json.dumps(generalSerialize(val, 'LIST'))
+      sval = generalSerialize(val, 'LIST')
     else: 
       vals = [serializeListElem(e) for e in val]
-      sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
-      return json.dumps(sVal)
+      sval = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
 
   elif isinstance(val, dict):
-    return json.dumps(generalSerialize(val, 'DICT'))
+    sval = generalSerialize(val, 'DICT')
 
   elif isinstance(val, np.matrixlib.defmatrix.matrix):
-    return json.dumps({'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()})
+    sval = {'tag': 'Expanding', 'expandingType': 'NPMatrix', 'matrixVals': val.tolist()}
 
   elif isinstance(val, np.ndarray):
     if len(val) == 0:
-      return json.dumps(None)
+      sval = None
     elif val.ndim > 2:
-      return json.dumps(generalSerialize(val, 'NP ARRAY'))
+      sval = generalSerialize(val, 'NP ARRAY')
     else: 
       vals = [serializeListElem(e) for e in val.tolist()]
-      sVal = {'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals}
-      return json.dumps(sVal)
+      sval = {'tag': 'Expanding', 'expandingType': 'NPArray', 'arrayVals': vals}
 
   elif isinstance(val, pd.DataFrame):
     # This is being used instead of toList so that we can choose how to 
@@ -110,47 +108,50 @@ def serialize(val):
     labels = [serializeListElem(x) for x in val.columns.values]
     indices = [serializeListElem(x) for x in val.index.values]
     data = [serializeListElem(x) for x in val.get_values()]
-    return json.dumps({'tag': 'Expanding', 
-                       'expandingType': 'PDataFrame', 
-                       'dfLabels': labels,
-                       'dfIndices': indices,
-                       'dfData': data})
+    sval = {'tag': 'Expanding', 
+           'expandingType': 'PDataFrame', 
+           'dfLabels': labels,
+           'dfIndices': indices,
+           'dfData': data}
 
   elif isinstance(val, pd.Series):
     indices = [serializeListElem(x) for x in val.index.values]
     data = [serializeListElem(x) for x in val.get_values()]
-    return json.dumps({'tag': 'Expanding',
-                       'expandingType': 'PSeries',
-                       'seriesIndices': indices,
-                       'seriesData': data})
+    sval = {'tag': 'Expanding',
+             'expandingType': 'PSeries',
+             'seriesIndices': indices,
+             'seriesData': data}
 
   elif isinstance(val, ASIterable): 
     if len(val) == 0:
-      return json.dumps(None)
+      sval = None
     elif val.hidden or val.dimension() > 2:
       name = 'HIDDEN LIST'
       if val.name:
         name = val.name
-      return json.dumps(generalSerialize(val, name))
+      sval = generalSerialize(val, name)
     else: 
       vals = [serializeListElem(e) for e in val.tolist2d()]
       sVal = {'tag': 'Expanding', 'expandingType': 'List', 'listVals': vals}
-      return json.dumps(sVal)
+      sval = sVal
 
   elif isinstance(val, Hidden):
-    return json.dumps(generalSerialize(val, val.name))
+    sval = generalSerialize(val, val.name)
 
   elif isinstance(val, datetime.datetime):
-    return json.dumps(generalSerialize(val, str(val)))
+    sval = generalSerialize(val, str(val))
 
   elif isinstance(val, ex.Sheet):
-    return val.serialize()
+    sval = val.serialize()
 
   else: 
-    try:
-      return json.dumps(val)
-    except Exception as e:
-      return json.dumps(generalSerialize(val, 'GENERIC'))
+    sval = val
+
+  try: 
+    return json.dumps(sval, ensure_ascii=False)
+  except Exception as e:
+    sval = generalSerialize(sval, 'GENERIC')
+    return json.dumps(sval, ensure_ascii=False)
 
 # There are certain designated datatypes -- e.g. lists -- which expand
 # on the spreadsheet. These datastructures should be _recursively_

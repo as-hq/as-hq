@@ -21,6 +21,8 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 import qualified Data.Text as T
 
+import Data.String.Unicode (utf8ToUnicode)
+
 import qualified Data.Vector.SEXP as SV
 import Foreign.C.String (peekCString)
 import Foreign.Storable (peek)
@@ -45,6 +47,8 @@ import AS.Types.Errors
 import AS.Types.Sheets
 import AS.Kernels.Internal
 import AS.Kernels.R.Types
+
+import AS.Parsing.Show (showCode)
 
 -----------------------------------------------------------------------------------------------------------------------------
 -- Exposed functions
@@ -79,12 +83,13 @@ prepareExpression scope imagePath code =
     Cell    -> isolateCodeScope code'
     Header  -> code'
   where 
+    splice = showCode code
     code' = unlines
       [ "png(" ++ show imagePath ++ ")"
       , "f <- file(open = \"w+\", blocking = FALSE)"
       , "sink(file=f, append=TRUE, type=c(\"output\"))"
       , "result <- list()"
-      , "result$value <- tryCatch(eval(parse(text=" ++ show code ++ ")), finally = { dev.off() } )"
+      , "result$value <- tryCatch(eval(parse(text=" ++ splice ++ ")), finally = { dev.off() } )"
       , "result$display <- readLines(f)"
       , "sink()"
       , "close(f)"
@@ -109,7 +114,7 @@ execR ex = do
         d' = case d of 
           [] -> Nothing
           ds -> Just . unlines $ map fromValueS ds
-        fromValueS (ValueS s) = s
+        fromValueS (ValueS s) = fst $ utf8ToUnicode s
     -- for a single printed line, readLines() returns a char vector
     CellValue (ValueS s) -> EvalResult value (Just s)
     -- all else (e.g. Nil) should be ignored 
@@ -152,7 +157,7 @@ castSEXP origValue@(R.SomeSEXP x) = case x of
   (hexp -> H.DotDotDot s)  -> castSEXP $ R.SomeSEXP s
   (hexp -> H.Vector len v) -> castVector origValue v
   (hexp -> H.Builtin i)    -> return $ CellValue (ValueI $ fromIntegral i)
-  (hexp -> H.Raw v)        -> return $ CellValue (ValueS . bytesToString $ SV.toList v)
+  (hexp -> H.Raw v)        -> return . CellValue $ castRawString v
   (hexp -> H.S4 s)         -> CellValue <$> castS4 s
   _ -> return . CellValue $ ValueError "Could not cast R value." "R Error"
 
@@ -160,8 +165,12 @@ rdVector :: [ASValue] -> CompositeValue
 rdVector [v] = CellValue v
 rdVector vs  = Expanding . VList . A $ vs
 
+-- These two functions are the same but require different type variables...
 castString :: SV.Vector s 'R.Char Word8 -> ASValue
-castString v = ValueS . bytesToString $ SV.toList v
+castString = ValueS . fst . utf8ToUnicode . bytesToString . SV.toList
+
+castRawString :: SV.Vector s 'R.Raw Word8 -> ASValue
+castRawString = ValueS . fst . utf8ToUnicode . bytesToString . SV.toList
 
 castVector :: R.SomeSEXP m -> SV.Vector m 'R.Vector (R.SomeSEXP m) -> R m CompositeValue
 castVector origValue vec = do

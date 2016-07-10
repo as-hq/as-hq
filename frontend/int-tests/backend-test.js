@@ -160,6 +160,30 @@ describe('backend', () => {
 
     describe('eval', () => {
 
+      describe('string encoding', () => {
+        it ('should evaluate unicode characters properly', (done) => {
+          _do([
+            python('A1', '="Árting"'),
+            r('B1', '="Árting"'),
+            shouldBe('A1', valueS('Árting')),
+            shouldBe('B1', valueS('Árting')),
+            exec(done)
+          ])
+        })
+
+        it ('should reference unicode characters properly', (done) => {
+          _do([
+            python('A1', '="Árting"'),
+            python('A2', '=A1'),
+            r('B1', '="Árting"'),
+            r('B2', '=B1'),
+            shouldBe('A2', valueS('Árting')),
+            shouldBe('B2', valueS('Árting')),
+            exec(done)
+          ])
+        })
+      });
+
       describe('inference', () => {
         it ('should extend 2-elem arithmetic sequence', (done) => {
           _do([

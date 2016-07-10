@@ -19,6 +19,9 @@ import AS.Parsing.Common
 import AS.Util
 import qualified AS.LanguageDefs as LD
 
+import Data.String.Unicode (unicodeToUtf8, intToHexString)
+import Text.Read (readMaybe)
+
 --------------------------------------------------------------------------------
 -- Exposed show functions
 
@@ -36,13 +39,34 @@ showPrimitive lang v = case v of
   -- during dragging inference, where this function is used
   ValueS s   -> case lang of
     Excel -> s
-    _     -> show s
+    _ -> showCode s
   ValueI i   -> show i
   ValueD d   -> show d
   ValueB b   -> LD.outBool lang b
   ValueImage _ -> "IMAGE"
   ValueError e _ -> "ERROR"
   ValueSerialized s _ -> s
+
+showCode :: String -> String
+showCode = escapedDecToHex . show . unicodeToUtf8
+
+-- | Convert haskell decimal unicode rep to utf-8 rep
+escapedDecToHex :: String -> String
+escapedDecToHex s = go s []
+  where
+    go [] !acc = reverse acc
+    go (c:cs) !acc = 
+      let continue = go cs (c:acc)
+      in case c of 
+        '\\' -> case cs of 
+          (h1:h2:h3:cs) -> if (all isDigit [h1,h2,h3])
+            then  
+              let chr = read [h1,h2,h3] :: Int
+                  rep = c:'x':(intToHexString chr)
+              in go cs ((reverse rep) ++ acc)
+            else continue
+          _ -> continue
+        _ -> continue
 
 showExpanding :: ASLanguage -> ExpandingValue -> String
 showExpanding lang (VList coll) = wrapList lang $ showCollection lang coll
