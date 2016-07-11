@@ -128,6 +128,7 @@ instance Client UserClient where
       StartDebuggingLog            -> handleStopLoggingActions state
       GetAllSessions               -> handleGetAllSessions msgctx
       RenameSheet sid sname        -> handleRenameSheet msgctx sid sname
+      RenameWorkbook wname         -> handleRenameWorkbook msgctx wname
       -- #needsrefactor the object view should be a part of the cell
       GetObjectView idx            -> handleGetObjectView msgctx idx
       TogglePauseMode sid          -> handleTogglePauseMode msgctx sid

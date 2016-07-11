@@ -1002,6 +1002,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  renameWorkbook(workbookName: string) {
+    const msg = {
+      tag: "RenameWorkbook",
+      newWorkbookName: workbookName
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   newSheet(name: string) {
     const msg = {
       tag: "NewSheet",

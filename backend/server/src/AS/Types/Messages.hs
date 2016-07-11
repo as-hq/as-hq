@@ -127,6 +127,7 @@ data ServerAction =
   | StartDebuggingLog
   | GetAllSessions
   | RenameSheet { renameSheetId :: SheetID, newSheetName :: SheetName }
+  | RenameWorkbook { newWorkbookName :: SheetName }
   | GetObjectView ASIndex
   | TogglePauseMode SheetID
   | ReEval SheetID

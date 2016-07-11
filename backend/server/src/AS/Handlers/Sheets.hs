@@ -60,6 +60,21 @@ handleNewWorkbook msgctx name = do
   -- open the new workbook
   handleOpenWorkbook msgctx' wid
 
+-- | When a user wants to rename a sheet, they will send us the new sheet name, 
+-- which will contain the new sheetName and the old sheetId. 
+-- All we have to then do is modify the SheetId -> Sheet
+-- pair in the DB, and send back the updated sheets. 
+handleRenameWorkbook :: MessageContext -> WorkbookName -> IO ()
+handleRenameWorkbook msgctx wname = do 
+  let conn = msgctx^.dbConnection
+  let wid  = msgctx^.userClient.userWindow.windowWorkbookId
+  workbook <- (workbookName .~ wname) <$> $fromJust <$> getWorkbook conn wid
+  setWorkbook conn workbook 
+  -- updates the workbook name on frontend
+  handleGetOpenedWorkbook msgctx
+  -- updates the list of workbooks on frontend
+  handleGetMyWorkbooks msgctx
+
 handleNewSheet :: MessageContext -> SheetName -> IO ()
 handleNewSheet msgctx name = do
   let conn = msgctx^.dbConnection

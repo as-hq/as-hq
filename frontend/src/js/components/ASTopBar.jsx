@@ -170,7 +170,15 @@ export default class ASTopBar extends React.Component {
             }),
 
             simple({
-              title: 'Clone',
+              title: 'Rename workbook',
+              callback() {
+                const name = window.prompt('Enter workbook name:');
+                API.renameWorkbook(name);
+              }
+            }),
+
+            simple({
+              title: 'Clone sheet',
               callback() {
                 API.cloneSheet(WorkbookStore.getCurrentSheetId());
               }
