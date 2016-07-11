@@ -43,6 +43,9 @@ graph-database/server
 Environment.json
 server/src/AS/Config/Environment.hs
 
+# Email whitelist
+email_whitelist.txt
+
 # Profiling files
 alphasheets-profiling-exe.hp
 alphasheets-profiling-exe.prof
