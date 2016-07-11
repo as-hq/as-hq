@@ -33,6 +33,7 @@ import EvalHeaderController from './eval-header/EvalHeaderController.jsx'
 import ResizablePanel from './ResizablePanel.jsx'
 import ASFindBar from './ASFindBar.jsx';
 import ASFindModal from './ASFindModal.jsx';
+import CheckpointViewer from './CheckpointViewer.jsx';
 
 type State = {
   shouldShowLoader: boolean;
@@ -138,10 +139,16 @@ export default class ASEvalPane extends React.Component {
       </div>
     );
 
+    const paneWithHeader = 
+      <ResizablePanel content={leftEvalPane}
+                      sidebar={( <EvalHeaderController open={headerOpen} /> )}
+                      sidebarVisible={headerOpen} />;
+
     return (
-        <ResizablePanel content={leftEvalPane}
-                        sidebar={( <EvalHeaderController open={headerOpen} /> )}
-                        sidebarVisible={headerOpen} />
+      <ResizablePanel content={paneWithHeader}
+                      side={"left"}
+                      sidebar={<CheckpointViewer />}
+                      sidebarVisible={ConfigStore.isCheckpointViewOpen()} />
     );
   }
 }

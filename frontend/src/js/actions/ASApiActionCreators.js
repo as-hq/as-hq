@@ -407,6 +407,12 @@ pws.whenReady(() => {
           sessions: action.allSessions
         });
         break;
+      case 'AllCheckpoints':
+        Dispatcher.dispatch({
+          _type: 'GOT_ALL_CHECKPOINTS',
+          checkpoints: action.checkpoints,
+        });
+        break;
       default:
         break;
     }
@@ -611,6 +617,52 @@ const API = {
     ProgressActions.markReceived(messageId);
     API.sendMessageWithAction(msg);
   },
+
+  //----------------------------------------------------------------------------
+  // Checkpoints
+
+  makeCheckpoint(desc: string) {
+    const action = {
+      tag: 'MakeCheckpoint',
+      newCheckpointDesc: desc
+    }; 
+    API.sendMessageWithAction(action);
+  },
+
+  getAllCheckpoints() {
+    const action = {
+      tag: 'GetAllCheckpoints',
+      contents: []
+    }; 
+    API.sendMessageWithAction(action);
+  },
+
+  revertCheckpoint() {
+    const action = {
+      tag: 'RevertCheckpoint',
+      contents: []
+    }; 
+    API.sendMessageWithAction(action);
+  },
+
+  applyCheckpoint(name: string, user: string) {
+    const action = {
+      tag: 'ApplyCheckpoint',
+      applyFileName: name,
+      applyUserID: user
+    }; 
+    API.sendMessageWithAction(action);
+  },
+
+  viewCheckpoint(name: string, user: string) {
+    const action = {
+      tag: 'ViewCheckpoint',
+      viewFileName: name,
+      viewUserID: user
+    }; 
+    API.sendMessageWithAction(action);
+  },
+
   /**************************************************************************************************************************/
   /* Sending undo/redo/clear messages to the server */
 

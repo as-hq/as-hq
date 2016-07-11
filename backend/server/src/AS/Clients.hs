@@ -133,8 +133,11 @@ instance Client UserClient where
       GetObjectView idx            -> handleGetObjectView msgctx idx
       TogglePauseMode sid          -> handleTogglePauseMode msgctx sid
       ReEval sid                   -> handleReEval msgctx sid
-      --Undo         -> error "Simulated crash"
-      -- ^^ above is to test API endpoints which don't have a frontend implementation
+      MakeCheckpoint desc          -> handleMakeCheckpoint msgctx desc
+      GetAllCheckpoints            -> handleGetAllCheckpoints msgctx
+      ViewCheckpoint name user     -> handleViewCheckpoint msgctx name user
+      ApplyCheckpoint name user    -> handleApplyCheckpoint msgctx name user
+      RevertCheckpoint             -> handleRevertCheckpoint msgctx
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client

@@ -130,6 +130,7 @@ server_logs_dir = "./server_logs/"
 rkernel_logs_dir = "./rkernel_logs/"
 static_dir      = "static/"
 whitelist_path  = ".." </> "email_whitelist.txt"
+checkpoint_dir = "static/checkpoints"
 
 --------------------------------------------------------------------------------------
 -- Onboarding settings

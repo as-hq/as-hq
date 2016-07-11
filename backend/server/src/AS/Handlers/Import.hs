@@ -1,12 +1,30 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module AS.Handlers.Import where
+
+import System.Directory
+import System.IO
+import System.Posix.IO
+import System.Posix.Files
+import Control.Monad (void)
+import Control.Monad.Trans.Either
+import Control.Monad.Trans.Class (lift)
+import Control.Concurrent
+import Data.Either
+import Data.Maybe (mapMaybe)
+import Data.Attoparsec.ByteString
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Text as T
+import qualified Data.Csv as CSV
+import qualified Data.Vector as V
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as BLC
+import qualified Network.WebSockets as WS
 
 import AS.Prelude
 import AS.Logging
-
 import AS.Config.Constants (import_message_id)
-import AS.DB.Clear as DC
-import AS.DB.Graph as G
-import AS.DB.API as DB
+import AS.Config.Settings
 import AS.Types.Cell
 import AS.Types.CellProps as CP
 import AS.Types.Network
@@ -14,47 +32,27 @@ import AS.Types.Messages
 import AS.Types.Eval
 import AS.Types.Shift
 import AS.Types.Commits
+import AS.Types.RangeDescriptor (JSON)
 import AS.Types.DB hiding (Clear)
 import AS.Types.Graph
-import Control.Concurrent
-import Data.Either
 
+import AS.DB.Clear as DC
+import AS.DB.Graph as G
+import AS.DB.API as DB
 import AS.Handlers.Sheets (handleAcquireWorkbook, handleAcquireSheet)
-
---  Used to custom parse json obtained from importing an xls file.
 import AS.Handlers.Misc (handleClear)
 import AS.Handlers.Sheets (handleOpenSheet)
 import AS.Parsing.Read
+import AS.Parsing.Show (showValue)
 import AS.Parsing.Common as C
-import AS.Types.Graph (read2)
-import AS.Types.RangeDescriptor (JSON)
-import Data.Maybe (mapMaybe)
+import AS.Reply
 import qualified AS.Kernels.Python.Client as KP
 import qualified AS.Kernels.Python.Types as KT
-import Data.Attoparsec.ByteString
-import qualified Data.ByteString.Char8 as BC
--- end custom parse
-
-import AS.Reply
-
-import AS.Parsing.Show (showValue)
-import qualified AS.Parsing.Read          as PR
 import qualified AS.Util                  as U
 import qualified AS.Serialize             as S
 import qualified AS.DB.Transaction        as DT 
 import qualified AS.DB.Export             as DX
 
-import Data.Either
-import qualified Data.Csv as CSV
-import qualified Data.Vector as V
-import qualified Data.ByteString.Lazy as BL
-import qualified Network.WebSockets as WS
-
-import qualified AS.DB.Transaction as DT 
-
-import Control.Monad (void)
-import Control.Monad.Trans.Either
-import Control.Monad.Trans.Class (lift)
 
 -- #anand used for importing binary alphasheets files (making a separate REST server for alphasheets
 -- import/export seems overkill given that it's a temporarily needed solution)
@@ -88,6 +86,134 @@ handleExportCell msgctx idx = do
   whenJust cell $ \c -> 
     let exp = showValue (c^.cellExpression.language) (CellValue $ c^.cellValue)
     in sendAction msgctx $ ExportCellData idx exp
+
+--------------------------------------------------------------------------------
+-- Checkpoints
+
+-- TODO(riteshr) This is a somewhat hacky implementation that saves to files
+-- instead of the DB, where descriptions are at the top of the file, to avoid 
+-- migrations and because this probably won't be
+-- a significantly used feature. #needsrefactor
+
+-- | When the user asks to make a checkpoint, save exported data to a file
+-- in checkpoint/wid/uid, with the timestamp as name.
+handleMakeCheckpoint :: MessageContext -> String -> IO ()
+handleMakeCheckpoint msgctx desc = do 
+  let wid = messageWorkbookId msgctx
+  exported <- DX.exportWorkbookData (msgctx^.dbConnection) wid
+  fileName <- getTime
+  saveToFile msgctx exported fileName desc
+
+-- | Get all the file names of the checkpoints for a given user/workbook.
+handleGetAllCheckpoints :: MessageContext -> IO ()
+handleGetAllCheckpoints msgctx = do 
+  let uid = msgctx^.userClient.userId
+  let wid = messageWorkbookId msgctx
+  print wid
+  let wbDir = intercalate "/" [checkpoint_dir, T.unpack wid]
+  users <- listDirectory wbDir
+  checkpoints <- concat <$> (forM users $ \user -> do 
+    files <- listDirectory $ checkpointDirForUser msgctx user
+    let filePaths = map (\n -> checkpointPathForUser msgctx n user) files
+    descs <- forM filePaths getDescriptionInFile 
+    return $ zipWith3 Checkpoint (repeat user) descs files)
+  print checkpoints
+  sendAction msgctx $ AllCheckpoints checkpoints
+
+-- | When a user wants to view a checkpoint, we create a temporary checkpoint
+-- of the current workbook if it doesn't already exist and then just call
+-- import code (which modifies the DB).
+handleViewCheckpoint :: MessageContext -> String -> String -> IO ()
+handleViewCheckpoint msgctx fileName uid = do 
+  makeTempCheckpoint msgctx
+  let checkName = checkpointPathForUser msgctx fileName uid
+  importCheckpoint msgctx checkName
+
+-- | When applying a checkpoint, we just delete the temporary export and call
+-- view code, which modifies the DB.
+handleApplyCheckpoint :: MessageContext -> String -> String -> IO ()
+handleApplyCheckpoint msgctx fileName uid = do 
+  removeTempFile msgctx
+  handleViewCheckpoint msgctx fileName uid
+
+-- | If no checkpoint is to be applied, we restore the temporary checkpoint.
+handleRevertCheckpoint :: MessageContext -> IO ()
+handleRevertCheckpoint msgctx = do 
+  let tempFile = checkpointPath msgctx "temp"
+  importCheckpoint msgctx tempFile
+  removeTempFile msgctx
+
+-- | If a temp checkpoint file doesn't exist, create it
+makeTempCheckpoint :: MessageContext -> IO ()
+makeTempCheckpoint msgctx = do 
+  let tempFile = checkpointPath msgctx "temp"
+  let wid = messageWorkbookId msgctx
+  exists <- doesFileExist tempFile
+  unless exists $ do 
+    exported <- DX.exportWorkbookData (msgctx^.dbConnection) wid
+    saveToFile msgctx exported "temp" "temp checkpoint"
+
+saveToFile :: MessageContext -> WorkbookExportData -> String -> String -> IO ()
+saveToFile msgctx wbData fileName desc = do 
+  let filePath = checkpointPath msgctx fileName
+  createDirectoryIfMissing True (checkpointDir msgctx)
+  createFile filePath stdFileMode
+  let txt = BL.concat [BLC.pack desc, "\n", S.encodeLazy wbData]
+  BL.writeFile filePath txt
+
+getDescriptionInFile :: String -> IO String
+getDescriptionInFile fileName = withFile fileName ReadMode $ hGetLine
+
+importCheckpoint ::  MessageContext -> String -> IO ()
+importCheckpoint msgctx fileName = do 
+  let wid  = messageWorkbookId msgctx
+  let uid  = msgctx^.userClient.userId
+  let conn = msgctx^.dbConnection
+  contents <- BL.readFile fileName
+  -- Filter out description
+  let bin = BL.drop 1 $ BLC.dropWhile (/= '\n') contents
+  case (S.decodeLazy bin :: Either String WorkbookExportData) of 
+    Left s -> do
+      putStrLn $ "import error: \n\n" ++ s
+      sendAction msgctx $ ShowFailureMessage $ "Checkpoint import failure."
+    Right ex -> do
+      DX.importWorkbookDataWithID conn uid ex wid
+      handleAcquireWorkbook msgctx wid
+
+removeTempFile ::  MessageContext -> IO ()
+removeTempFile msgctx = do 
+  let tempFile = checkpointPath msgctx "temp"
+  removeFile tempFile
+
+-- TODO(riteshr) listDirectory isn't exported in System.Directory?
+listDirectory :: String -> IO [String]
+listDirectory name = do 
+  contents <- getDirectoryContents name
+  return $ filter (\n -> n /= "." && n /= ".." && n /= "temp") contents
+
+checkpointPath :: MessageContext -> String -> String
+checkpointPath msgctx name = intercalate "/" lst
+  where lst = [checkpoint_dir, T.unpack wid, T.unpack uid, name]
+        uid = msgctx^.userClient.userId
+        wid = messageWorkbookId msgctx
+
+checkpointPathForUser :: MessageContext -> String -> String -> String
+checkpointPathForUser msgctx name user = intercalate "/" lst
+  where lst = [checkpoint_dir, T.unpack wid, user, name]
+        wid = messageWorkbookId msgctx
+
+checkpointDir :: MessageContext -> String
+checkpointDir msgctx = (intercalate "/" lst) ++ "/"
+  where lst = [checkpoint_dir, T.unpack wid, T.unpack uid]
+        uid = msgctx^.userClient.userId
+        wid = messageWorkbookId msgctx
+
+checkpointDirForUser :: MessageContext -> String -> String
+checkpointDirForUser msgctx user = (intercalate "/" lst) ++ "/"
+  where lst = [checkpoint_dir, T.unpack wid, user]
+        wid = messageWorkbookId msgctx
+
+--------------------------------------------------------------------------------
 
 -- #RoomForImprovement: Timchu. Right now, any error in EvaluateRequest, or in
 -- pattern matching that that to an EvaluateReply, or in Parsing, or in
@@ -174,7 +300,7 @@ toList2D = V.toList . V.concat . V.toList
 -- Given a language and CSV data, produce an ASValue by trivial parsing (no eval)
 -- If parsing ever returns an expanding cell, return a ValueError. If parsing normally didn't work, return a ValueS.
 csvValue :: ASLanguage -> String -> ASValue
-csvValue lang s = case PR.parseValue lang (BC.pack s) of
+csvValue lang s = case parseValue lang (BC.pack s) of
   Left e -> ValueS s
   Right (Expanding _) -> ValueError "Couldn't parse value" "CSVParse"
   Right (CellValue v) -> v

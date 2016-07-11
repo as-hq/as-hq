@@ -23,6 +23,7 @@ const StateRecord = Immutable.Record({
   bottomPane: 'no_pane',
   findBarOpen: false,
   findModalOpen: false,
+  checkpointViewOpen: false,
   loading: false
 });
 
@@ -39,6 +40,10 @@ class ConfigurationStore extends ReduceStore<State> {
 
       case 'HEADER_TOGGLED': {
         return state.update('headerOpen', val => !val);
+      }
+
+      case 'CHECKPOINT_TOGGLED': {
+        return state.update('checkpointViewOpen', val => !val);
       }
 
       case 'BOTTOM_PANE_TOGGLED': {
@@ -131,6 +136,10 @@ class ConfigurationStore extends ReduceStore<State> {
 
   isBottomPaneOpen(): boolean {
     return this.getCurrentBottomPane() !== 'no_pane';
+  }
+
+  isCheckpointViewOpen(): boolean {
+    return this.getState().checkpointViewOpen;
   }
 
   isLoading(): boolean {

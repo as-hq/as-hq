@@ -21,6 +21,12 @@ export default {
     });
   },
 
+  toggleCheckpointView() {
+    Dispatcher.dispatch({
+      _type: 'CHECKPOINT_TOGGLED'
+    });
+  },
+
   closeBottomPane() {
     Dispatcher.dispatch({
       _type: 'BOTTOM_PANE_CLOSED'

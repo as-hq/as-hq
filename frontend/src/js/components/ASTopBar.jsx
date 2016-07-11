@@ -18,6 +18,7 @@ import {Paper} from 'material-ui';
 
 import API from '../actions/ASApiActionCreators';
 import APIActions from '../actions/APIActionCreators';
+import ConfigActions from '../actions/ASConfigActionCreators';
 import GridStore from '../stores/ASGridStore';
 import LoginStore from '../stores/ASLoginStore';
 import WorkbookStore from '../stores/ASWorkbookStore';
@@ -151,8 +152,12 @@ export default class ASTopBar extends React.Component {
             simple({
               title: 'New workbook',
               callback() {
-                const name = window.prompt('Enter workbook name.');
-                API.newWorkbook(name);
+                // Make the menu close before dialog shows up
+                const func = () => {
+                  const name = window.prompt('Enter workbook name.');
+                  API.newWorkbook(name);
+                };
+                setTimeout(func, 10);
               }
             }),
 
@@ -181,6 +186,28 @@ export default class ASTopBar extends React.Component {
               title: 'Clone sheet',
               callback() {
                 API.cloneSheet(WorkbookStore.getCurrentSheetId());
+              }
+            }),
+
+            simple({
+              title: 'Make checkpoint',
+              callback() {
+                const func = () => {
+                  const desc = window.prompt('Enter brief checkpoint description:');
+                  if (desc !== undefined && desc !== null) {
+                    API.makeCheckpoint(desc);
+                  }
+                };
+                setTimeout(func, 10);
+              }
+            }),
+
+            simple({
+              title: 'See revision history',
+              callback() {
+                // TODO(riteshr) sync
+                API.getAllCheckpoints();
+                ConfigActions.toggleCheckpointView();
               }
             }),
 

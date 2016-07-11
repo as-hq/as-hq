@@ -105,6 +105,31 @@ export type ASClientWindow = {
   sheetId: string;
 };
 
+export type ViewCheckpoint = {
+  tag: 'ViewCheckpoint';
+  viewFileName: string;
+  viewUserID: string;
+};
+
+export type ApplyCheckpoint = {
+  tag: 'ApplyCheckpoint';
+  applyFileName: string;
+  applyUserID: string;
+};
+
+export type RevertCheckpoint = {
+  tag: 'RevertCheckpoint';
+};
+
+export type GetAllCheckpoints = {
+  tag: 'GetAllCheckpoints';
+};
+
+export type MakeCheckpoint = {
+  tag: 'MakeCheckpoint';
+  newCheckpointDesc: string;
+};
+
 export type ServerMessage = {
   serverAction: ServerAction;
   messageId: string;
@@ -148,6 +173,11 @@ export type ServerAction =
   | SetBarProp
   | ImportCSV
   | ImportExcel
+  | ViewCheckpoint
+  | ApplyCheckpoint
+  | RevertCheckpoint
+  | GetAllCheckpoints
+  | MakeCheckpoint
   ;
 
 // These are the constructors of ServerAction.
@@ -187,6 +217,11 @@ export type ServerActionType =
   | 'SetBarProp'
   | 'ImportCSV'
   | 'ImportExcel'
+  | 'ViewCheckpoint'
+  | 'ApplyCheckpoint'
+  | 'RevertCheckpoint'
+  | 'GetAllCheckpoints'
+  | 'MakeCheckpoint'
   ;
 
 export type Initialize = {
@@ -422,7 +457,19 @@ export type ClientAction =
   | MakeSelection
   | LoadImportedCells
   | HandleEvaluatedHeader
+  | AllCheckpoints
   ;
+
+export type Checkpoint = {
+  checkpointUser: string;
+  checkpointDesc: string;
+  checkpointTime: string;
+};
+
+export type AllCheckpoints = {
+  tag: 'AllCheckpoints';
+  checkpoints: Array<Checkpoint>;
+};
 
 export type NoAction = {
   tag: "NoAction";

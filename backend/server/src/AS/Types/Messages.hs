@@ -76,6 +76,7 @@ data ClientAction =
   | SessionLog { sessionLog :: [LogData] }
   | AllSessions { allSessions :: [SessionData] }
   | SetObjectView { objectView :: String, location :: ASIndex }
+  | AllCheckpoints { checkpoints :: [Checkpoint] }
   deriving (Show, Read, Eq, Generic)
 
 data ServerAction =
@@ -131,6 +132,11 @@ data ServerAction =
   | GetObjectView ASIndex
   | TogglePauseMode SheetID
   | ReEval SheetID
+  | ViewCheckpoint { viewFileName :: String, viewUserID :: String}
+  | ApplyCheckpoint { applyFileName :: String, applyUserID :: String }
+  | RevertCheckpoint 
+  | GetAllCheckpoints 
+  | MakeCheckpoint { newCheckpointDesc :: String }
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
@@ -156,6 +162,12 @@ data SessionData = SessionData {seshUserId :: UserID, seshId :: SessionId, seshT
 -- Indicates where to eval and what to eval
 data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } 
   deriving (Show, Read, Eq, Data, Typeable, Generic)
+
+data Checkpoint = Checkpoint 
+  { checkpointUser :: String
+  , checkpointDesc :: String
+  , checkpointTime :: String
+  } deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- should get renamed
 -- data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Show, Read, Eq, Generic)
@@ -189,6 +201,7 @@ asToJSON ''ClientAction
 asToJSON ''LogData
 asToJSON ''LogSource
 asToJSON ''SessionData
+asToJSON ''Checkpoint
 
 asFromJSON ''FirstMessage
 asFromJSON ''AuthStrategy

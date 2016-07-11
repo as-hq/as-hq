@@ -72,15 +72,23 @@ exportWorkbookData conn wid = do
 
 importWorkbookData :: Connection -> UserID -> WorkbookExportData -> IO WorkbookID
 importWorkbookData conn uid ex = do
+  wid <- T.pack <$> getUUID
+  importWorkbookDataWithID conn uid ex wid
+  return wid
+
+importWorkbookDataWithID :: Connection 
+                         -> UserID 
+                         -> WorkbookExportData 
+                         -> WorkbookID
+                         -> IO ()
+importWorkbookDataWithID conn uid ex wid = do 
   cloneSids <- mapM (importSheetData conn uid) $ ex^.exportWorkbookSheets
   let sids = map (view exportSheetId) $ ex^.exportWorkbookSheets
   let cloneLastOpen = (Map.fromList $ zip sids cloneSids) Map.! (ex^.exportLastOpenSheet)
-  wid <- T.pack <$> getUUID
   DB.setWorkbook conn $
     Workbook wid (ex^.exportWorkbookName) (Set.fromList cloneSids) uid cloneLastOpen
   let ex' = cloneWorkbookData wid ex
   mapM_ (DB.setEvalHeader conn) $ ex'^.exportHeaders
-  return wid
 
 -- | Make a carbon-copy of a workbook.
 cloneWorkbook :: Connection -> UserID -> WorkbookID -> IO WorkbookID

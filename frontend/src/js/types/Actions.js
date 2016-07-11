@@ -42,7 +42,8 @@ import type {
 import type {
   ClientMessage,
   EvalHeader,
-  MessageId
+  MessageId,
+  Checkpoint
 } from './Messages';
 
 import type {
@@ -376,6 +377,15 @@ export type SheetUpdatedAction = {
   sheetId: string;
 };
 
+export type CheckpointToggledAction = {
+  _type: 'CHECKPOINT_TOGGLED';
+};
+
+export type GotAllCheckpointsAction = {
+  _type: 'GOT_ALL_CHECKPOINTS';
+  checkpoints: Array<Checkpoint>;
+};
+
 export type ASAction =
   ToggleShortcutHelper
   | CloseShortcutHelper
@@ -441,4 +451,6 @@ export type ASAction =
   | GridScrollOffsetAction
   | GridScrollDisabledAction
   | SheetUpdatedAction
+  | CheckpointToggledAction
+  | GotAllCheckpointsAction
   ;
