@@ -68,8 +68,8 @@ handleRenameWorkbook :: MessageContext -> WorkbookName -> IO ()
 handleRenameWorkbook msgctx wname = do 
   let conn = msgctx^.dbConnection
   let wid  = msgctx^.userClient.userWindow.windowWorkbookId
-  workbook <- (workbookName .~ wname) <$> $fromJust <$> getWorkbook conn wid
-  setWorkbook conn workbook 
+  workbook <- (workbookName .~ wname) <$> fromJust <$> DB.getWorkbook conn wid
+  DB.setWorkbook conn workbook 
   -- updates the workbook name on frontend
   handleGetOpenedWorkbook msgctx
   -- updates the list of workbooks on frontend
