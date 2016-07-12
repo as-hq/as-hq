@@ -131,7 +131,6 @@ cp -r backend/server/sheets build/migration/
 
 # backend environments are all the same, because they run on docker
 cp backend/Environment_$ENV_FILE.json build/Environment.json
-cp backend/email_whitelist.txt build/
 echo "backend build finished."
 
 # C++ executable (compile, move executable over to build/graph
