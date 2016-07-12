@@ -18,5 +18,5 @@
   "diagnosticsPort": 11000,
   "host": "0.0.0.0",
   "useWhitelist": true,
-  "introSheetsOn": true
+  "introSheetsOn": false
 }
