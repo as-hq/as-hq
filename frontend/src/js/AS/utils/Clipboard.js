@@ -90,38 +90,27 @@ const Clipboard = {
     }
   },
 
-	/* Takes a text/plain string like "3\t4\n5\6" and returns a list of list of values (row-major)
-  (row 1: [3,4], row 2: [5,6])
-	TODO: make correct in all cases (need to look at text/html for that)
-	Right now, if a row has a tab, separate by tab. Else, push the row as a single value.
-  Works for Sheets, MAY OR MAY NOT work for sheets,Libre,gfin.
-	-- Ritesh 10/16
-  -- Updated to not include commas, Alex 11/5*/
-	tabularStringToTable(s: string): Array<Array<string>> {
-		logDebug("CONVERTING PLAIN STRING TO VALS: " + s);
-		let rows = s.split('\n'),
-			vals = [],
-			self = Clipboard;
-		rows.forEach(function(row) {
-      vals.push(row.split('\t'));
-		});
-		logDebug("VALS: " + JSON.stringify(vals));
-		return vals;
-	},
+  // #incomplete doesn't take into account formatting in the tables
+  valsInClipboardHtml(html: string): Array<Array<string>> { 
+  	const htmlTable = html.match(/<table[\s\S]*?<\/table>/gm)[0];
+  	const parser = new DOMParser(); 
+  	const doc = parser.parseFromString(htmlTable, "text/html"); 
 
-	/* Takes an array of strings and replaces all possible entries with numbers */
-	formatRow(arr: Array<string>): Array<string|number> {
-		let newArr = [];
-		arr.forEach(function(elem) {
-			let f = parseFloat(elem);
-			if (isNaN(f)) {
-				newArr.push(elem);
-			} else {
-				newArr.push(f);
-			}
-		});
-		return newArr;
-	},
+  	const rows = doc.getElementsByTagName("tr"); 
+
+  	// I'd totally map, except I can't filter on childNodes... 
+  	let arr = []; 
+  	for (let i = 0; i < rows.length; i++) { 
+  	    let rowValues = []; 
+  	    const cols = rows[i].getElementsByTagName("td"); 
+  	    for (let j = 0; j < cols.length; ++j) {
+            rowValues.push(cols[j].innerHTML);
+  	    }
+  	    arr.push(rowValues); 
+  	}
+
+  	return arr; 
+  },
 
   /**************************************************************************************************************************/
   /* External conversions */

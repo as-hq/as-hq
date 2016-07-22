@@ -155,20 +155,15 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
 
     GridActions.repaint(); // render immediately
 
-  } else { // Not from AS
-
-    if (containsPlain) {
-      const lang = ExpressionStore.getLanguage();
-      const plain = e.clipboardData.getData("text/plain");
-      const vals = U.Clipboard.tabularStringToTable(plain);
-      const evalInstructions2d = U.Clipboard.externalStringsToEvalInstructions(sel.origin, vals, lang);
-      const evalInstructions = U.Array.concatAll(evalInstructions2d);
-      API.pasteSimple(evalInstructions);
-      // The normal eval handling will make the paste show up
-    } else {
-      // TODO: Not handling html conversion for now
-      // Not sure if getData is smart enough to do that for you
-    }
+  } else { 
+    // external copy/paste
+    const lang = ExpressionStore.getLanguage();
+    const htmlTable = e.clipboardData.getData("text/html");
+    const vals = U.Clipboard.valsInClipboardHtml(htmlTable);
+    const evalInstructions2d = U.Clipboard.externalStringsToEvalInstructions(sel.origin, vals, lang);
+    const evalInstructions = U.Array.concatAll(evalInstructions2d);
+    API.pasteSimple(evalInstructions);
+    // The normal eval handling will make the paste show up
   }
 }
 
