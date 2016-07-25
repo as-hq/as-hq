@@ -1345,6 +1345,53 @@ describe('backend', () => {
                 ]);
               });
             });
+
+
+            describe('dataframe builder', () => {
+              // putting this all in one test because we can't easily replicate the 
+              // initializations across a bunch of tests
+              it ('works as expected', (done) => {
+                _do([
+                  python('A1', 'num'),
+                  python('A2', '19'),
+                  python('A3', '37'),
+                  python('B1', 'date1'),
+                  python('B2', '3/1/10'), // B2 & B3 will eval to doubles
+                  python('B3', '3/1/15'), 
+                  python('C1', 'date2'),
+                  python('C2', 'March 2, 2010'),
+                  python('C3', 'March 2, 2015'),
+
+                  // it records the columns correctly
+                  python('A5', '=dataframe(A1:C3)'), 
+                  python('F5', '=@A5.columns[0]'),
+                  shouldBe('F5', valueS('num')),
+
+                  // sets index column and parses it
+                  python('A9', '=dataframe(A1:C3, index_col="date2", parse_dates=True)'),
+                  python('F10', '=str(A10)[0:10]'),
+                  shouldBe('F10', valueS('2010-03-02')),
+
+                  // sets index column without parsing it
+                  python('A13', '=dataframe(A1:C3, index_col="date2")'),
+                  shouldBe('A14', valueS('March 2, 2010')),
+
+                  // parses Excel-style dates
+                  python('A17', '=dataframe(A1:C3, parse_dates="date1")'),
+                  python('F18', '=str(C18)[0:10]'),
+                  shouldBe('F18', valueS('2010-03-01')),
+
+                  // can parse multiple date columns, and make one an index
+                  python('A21', '=dataframe(A1:C3, parse_dates=["date1", "date2"], index_col="date2")'),
+                  python('F22', '=str(A22)[0:10]'), 
+                  shouldBe('F22', valueS('2010-03-02')), 
+                  python('F23', '=str(C23)[0:10]'), 
+                  shouldBe('F23', valueS('2015-03-01')), 
+
+                  exec(done)
+                ]);
+              });
+            });
           });
         });
       });

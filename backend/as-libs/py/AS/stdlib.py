@@ -6,6 +6,7 @@ from AS.iterable import ASIterable
 from AS.hidden import Hidden
 from AS.errors import *
 from AS.formats import *
+from AS.dataframe import dataframe
 
 def arr(lst):
   return ASIterable(lst)
