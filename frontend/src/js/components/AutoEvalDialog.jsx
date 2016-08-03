@@ -67,7 +67,7 @@ class AutoEvalDialog extends React.Component {
   render(): React.Element {
     const {open, onRequestClose} = this.props;
     const {origin} = GridStore.getActiveSelection();
-    const title = `Auto-evaluation of cell ${origin.toExcel().toString()}`;
+    const title = `Auto-evaluator for cell ${origin.toExcel().toString()}`;
     const {delay} = this.state;
 
     const done = () => {
@@ -87,7 +87,7 @@ class AutoEvalDialog extends React.Component {
               onRequestClose={onRequestClose} >
 
               <SelectField value={delay}
-                           onChange={this._onDelayChange}
+                           onChange={(e,i,v) => this._onDelayChange(e,i,v)}
                            floatingLabelText="Run every..."
                            floatingLabelTextFixed={true}
                            >

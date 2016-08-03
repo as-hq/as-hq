@@ -256,8 +256,7 @@ class ASCellStore extends ReduceStore<CellStoreData> {
       body += "</tr>";
     }
     body += "</table>";
-
-    return `<!DOCTYPE html><html><body>${body}</body></html>`;
+    return body;
   }
 
   /**************************************************************************************************************************/

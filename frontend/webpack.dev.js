@@ -36,6 +36,6 @@ module.exports = {
         test: /eventemitter2/,
         loader: 'imports?define=>false',
       }
-    ]
+    ],
   },
 };

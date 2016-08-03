@@ -37,8 +37,6 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 import FileImportDialog from '../AS/FileImportDialog';
 import {topBar as topBarZIndex} from '../styles/zIndex';
 
-import HtmlDocx from 'html-docx-js';
-
 import U from '../AS/Util';
 
 type Props = {
@@ -237,6 +235,13 @@ export default class ASTopBar extends React.Component {
                     FileImportDialog.importExcel(files)
                   },
                 }),
+
+                file({
+                  title: 'XML',
+                  callback(files) {
+                    FileImportDialog.importCSV(files)
+                  }
+                }),
               ]
             }),
 
@@ -257,14 +262,21 @@ export default class ASTopBar extends React.Component {
                   }
                 }),
                 simple({
-                  title: 'Sheet (Microsoft Word DOCX)',
+                  title: 'Current sheet (Microsoft Word DOCX)',
                   callback() {
                     const sid = WorkbookStore.getCurrentSheetId();
                     const fname = WorkbookStore.getCurrentSheetTitle();
-                    const html = CellStore.getHtml(sid);
-                    const blob = HtmlDocx.asBlob(html);
-                    const file = U.File.blobToFile(blob, fname);
-                    U.file.promptSave(file);
+                    const htmlTags = 'xmlns:office="urn:schemas-microsoft-com:office:office" xmlns:word="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"';
+                    const head = '<xml><word:WordDocument><word:View>Print</word:View><word:Zoom>90</word:Zoom><word:DoNotOptimizeForBrowser/></word:WordDocument></xml>';
+                    const body = CellStore.getHtml(sid);
+                    const doc = `<!DOCTYPE html><html ${htmlTags}><head>${head}</head><body>${body}</body></html>`;
+                    const bytes = new Uint8Array(doc.length);
+                    for (let i=0; i<doc.length; i++) {
+                      bytes[i] = doc.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], {type: 'text/html'});
+                    const file = U.File.blobToFile(blob, fname + '.docx');
+                    U.File.promptSave(file);
                   }
                 }),
               ]

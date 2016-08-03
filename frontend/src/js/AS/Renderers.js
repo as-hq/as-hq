@@ -347,10 +347,10 @@ const Renderers = {
     _renderParams.autoEvals.forEach(idx => {
       gc.beginPath();
       gc.lineWidth = 2;
-      gc.strokeStyle = 'green';
+      gc.strokeStyle = 'white';
       gc.stroke();
       Util.Canvas.drawRect(ASRange.fromIndex(idx), this, gc);
-      gc.strokeStyle = 'white';
+      gc.strokeStyle = 'green';
       gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
       gc.stroke();
       gc.closePath();

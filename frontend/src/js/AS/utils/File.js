@@ -33,7 +33,6 @@ const FileUtils = {
     input.addEventListener("change", () => {
       const fs = [];
       for (var i=0; i<input.files.length; i++) {
-        debugger;
         fs.push(input.files[i]);
       }
       cb(fs);
