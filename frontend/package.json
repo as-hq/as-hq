@@ -101,6 +101,7 @@
     "gulp-env": "^0.4.0",
     "gulp-webserver": "^0.9.1",
     "history": "^1.17.0",
+    "html-docx-js": "^0.3.1",
     "immutable": "^3.7.6",
     "invariant": "^2.2.0",
     "json-stable-stringify": "^1.0.0",

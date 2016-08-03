@@ -22,6 +22,7 @@ import ConfigActions from '../actions/ASConfigActionCreators';
 import GridStore from '../stores/ASGridStore';
 import LoginStore from '../stores/ASLoginStore';
 import WorkbookStore from '../stores/ASWorkbookStore';
+import CellStore from '../stores/ASCellStore';
 import LogStore from '../stores/ASLoginStore';
 import * as LogViewerActionCreator from '../actions/ASLogViewerActionCreators';
 import WorkbookActions from '../actions/ASWorkbookActionCreators';
@@ -35,6 +36,8 @@ import ASMenuBar from './menu-bar/ASMenuBar.jsx';
 
 import FileImportDialog from '../AS/FileImportDialog';
 import {topBar as topBarZIndex} from '../styles/zIndex';
+
+import HtmlDocx from 'html-docx-js';
 
 import U from '../AS/Util';
 
@@ -251,6 +254,17 @@ export default class ASTopBar extends React.Component {
                   callback() {
                     const { origin } = GridStore.getActiveSelection();
                     API.exportCell(origin);
+                  }
+                }),
+                simple({
+                  title: 'Sheet (Microsoft Word DOCX)',
+                  callback() {
+                    const sid = WorkbookStore.getCurrentSheetId();
+                    const fname = WorkbookStore.getCurrentSheetTitle();
+                    const html = CellStore.getHtml(sid);
+                    const blob = HtmlDocx.asBlob(html);
+                    const file = U.File.blobToFile(blob, fname);
+                    U.file.promptSave(file);
                   }
                 }),
               ]

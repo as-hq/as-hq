@@ -236,6 +236,30 @@ class ASCellStore extends ReduceStore<CellStoreData> {
     return [].concat(...grid);
   }
 
+  getValues2D(sheetId: string): Array<Array<String>> {
+    return _.range(1,26).map(col => _.range(1,1000).map(row => {
+      const idx = ASIndex.fromNaked({row, col}, sheetId);
+      const mcell = this.getCell(idx);
+      return mcell ? U.Render.showValue(mcell.value) : '';
+    }));
+  }
+
+  getHtml(sheetId: string) {
+    const vs = this.getValues2D();
+
+    let body = "<table>";
+    for(let i = 0; i < vs.length; i++) {
+      body += "<tr>";
+      for(let j = 0; j < vs[i].length; j++){
+        body += "<td width=\"60px\">" + vs[i][j] + "</td>";
+      }
+      body += "</tr>";
+    }
+    body += "</table>";
+
+    return `<!DOCTYPE html><html><body>${body}</body></html>`;
+  }
+
   /**************************************************************************************************************************/
   /* Data boundaries */
 
