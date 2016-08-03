@@ -295,9 +295,9 @@ export default class ASTopBar extends React.Component {
               }
             }),
             simple({
-              title: 'Re-evaluate',
+              title: `Trigger auto-reevaluation of ${GridStore.getActiveSelection().origin.toExcel().toString()}`,
               callback() {
-                API.reEval();
+                DialogActions.openAutoEvalDialog();
               }
             }),
             simple({

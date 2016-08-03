@@ -71,6 +71,10 @@ export default class ASRange {
     }, sheetId);
   }
 
+  static fromIndex(idx: ASIndex): ASRange {
+    return ASRange.fromASIndices({tl: idx, br: idx});
+  }
+
   static fromExcelString(excStr: string): ASRange {
     return ASExcelRef.fromString(excStr).toRange();
   }

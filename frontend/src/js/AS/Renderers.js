@@ -35,7 +35,8 @@ let _renderParams : RenderParams = {
   topLeftBox: null, // {x,y} for the location of the top left corner of blue box, in pixels
   dragCorner: null, // {x,y} coordinate of corner of blue box dragging (not in pixels, in cells),
   draggedBoxSelection: null,
-  inProgressTimeout: 75
+  inProgressTimeout: 75,
+  autoEvals: [],
 };
 
 // I suspect this file should get split up
@@ -83,6 +84,8 @@ const Renderers = {
   setDragRect(rng: ?ASRange) { _renderParams.dragRect = rng; },
 
   getDragRect() : ?ASRange { return _renderParams.dragRect; },
+
+  setAutoEval(idx: ASIndex) { _renderParams.autoEvals.push(idx); },
 
   /*************************************************************************************************************************/
   // Misc utils
@@ -338,6 +341,20 @@ const Renderers = {
     gc.strokeStyle = 'blue';
     gc.lineWidth = 1;
     gc.stroke();
+  },
+
+  autoEvalRenderer(gc: GraphicsContext) {
+    _renderParams.autoEvals.forEach(idx => {
+      gc.beginPath();
+      gc.lineWidth = 2;
+      gc.strokeStyle = 'green';
+      gc.stroke();
+      Util.Canvas.drawRect(ASRange.fromIndex(idx), this, gc);
+      gc.strokeStyle = 'white';
+      gc.setLineDash(this.focusLineStep[Math.floor(10 * (Date.now() / 300 % 1)) % this.focusLineStep.length]);
+      gc.stroke();
+      gc.closePath();
+    });
   },
 
   dependencyRenderer(gc: GraphicsContext) {

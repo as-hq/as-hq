@@ -42,6 +42,13 @@ handleEval msgctx evalInstructions  = do
   errOrUpdate <- runDispatchCycle msgctx cells DescendantsWithParent id
   broadcastErrOrUpdate msgctx errOrUpdate
 
+handleAutoEval :: MessageContext -> ASIndex -> Int -> IO ()
+handleAutoEval ctx idx delay = 
+  whenJust (getCell (ctx^.dbConnection) idx)
+    $ \cell -> forkIO_ $ forever $ do
+      threadDelaySeconds delay
+      handleEval ctx [toEvalInstruction cell]
+
 handleEvalHeader :: MessageContext -> EvalHeader -> IO ()
 handleEvalHeader msgctx evalHeader = do
   let mid = msgctx^.messageId

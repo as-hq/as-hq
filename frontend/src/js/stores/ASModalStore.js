@@ -9,6 +9,7 @@ let _data = {
   condFormattingOpen: false,
   chartOpen: false,
   shareOpen: false,
+  autoEvalOpen: false,
 };
 
 let dispatcherIndex = Dispatcher.register((action) => {
@@ -44,6 +45,14 @@ let dispatcherIndex = Dispatcher.register((action) => {
       _data.shareOpen = false;
       ASModalStore.emitChange();
       break;
+    case 'OPEN_AUTO_EVAL_DIALOG':
+      _data.autoEvalOpen = true;
+      ASModalStore.emitChange();
+      break;
+    case 'CLOSE_AUTO_EVAL_DIALOG':
+      _data.autoEvalOpen = false;
+      ASModalStore.emitChange();
+      break;
   }
 });
 
@@ -51,11 +60,13 @@ const ASModalStore = Object.assign({}, BaseStore, {
   getCondFormattingOpen(): boolean { return _data.condFormattingOpen; },
   getChartingOpen(): boolean { return _data.chartOpen; },
   getShareOpen(): boolean { return _data.shareOpen; },
+  getAutoEvalOpen(): boolean {return _data.autoEvalOpen;},
   isAnyOpen(): boolean {
     return (
       _data.condFormattingOpen ||
       _data.chartOpen ||
-      _data.shareOpen
+      _data.shareOpen ||
+      _data.autoEvalOpen
     );
   },
 });

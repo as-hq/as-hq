@@ -138,6 +138,7 @@ instance Client UserClient where
       ViewCheckpoint name user     -> handleViewCheckpoint msgctx name user
       ApplyCheckpoint name user    -> handleApplyCheckpoint msgctx name user
       RevertCheckpoint             -> handleRevertCheckpoint msgctx
+      SetAutoEval idx delay        -> handleAutoEval msgctx idx delay
 
 -------------------------------------------------------------------------------------------------------------------------
 -- ASDaemonClient is a client

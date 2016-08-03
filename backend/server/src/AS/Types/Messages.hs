@@ -137,6 +137,7 @@ data ServerAction =
   | RevertCheckpoint 
   | GetAllCheckpoints 
   | MakeCheckpoint { newCheckpointDesc :: String }
+  | SetAutoEval ASIndex Int
   deriving (Show, Read, Eq, Data, Typeable, Generic)
 
 -- for open, close dialogs
@@ -162,6 +163,9 @@ data SessionData = SessionData {seshUserId :: UserID, seshId :: SessionId, seshT
 -- Indicates where to eval and what to eval
 data EvalInstruction = EvalInstruction { evalXp :: ASExpression, evalLoc :: ASIndex } 
   deriving (Show, Read, Eq, Data, Typeable, Generic)
+
+toEvalInstruction :: ASCell -> EvalInstruction
+toEvalInstruction c = EvalInstruction (c^.cellExpression) (c^.cellLocation)
 
 data Checkpoint = Checkpoint 
   { checkpointUser :: String

@@ -46,6 +46,7 @@ const callbacks: Array<InitCallback> = [
     renderer.addExtraRenderer(Render.draggingRenderer);
     renderer.addExtraRenderer(Render.cornerBoxRenderer);
     renderer.addExtraRenderer(Render.inProgressRenderer);
+    renderer.addExtraRenderer(Render.autoEvalRenderer);
     renderer.startAnimator();
   }
 ];

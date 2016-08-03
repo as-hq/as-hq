@@ -567,6 +567,14 @@ const API = {
     API.sendMessageWithAction(msg);
   },
 
+  setAutoEval(idx: ASIndex, delay: number) {
+    const msg = {
+      tag: 'SetAutoEval',
+      contents: [idx.obj(), delay]
+    };
+    API.sendMessageWithAction(msg);
+  },
+
   reEval() {
     const msg = {
       tag: "ReEval",
@@ -625,7 +633,7 @@ const API = {
     const action = {
       tag: 'MakeCheckpoint',
       newCheckpointDesc: desc
-    }; 
+    };
     API.sendMessageWithAction(action);
   },
 
@@ -633,7 +641,7 @@ const API = {
     const action = {
       tag: 'GetAllCheckpoints',
       contents: []
-    }; 
+    };
     API.sendMessageWithAction(action);
   },
 
@@ -641,7 +649,7 @@ const API = {
     const action = {
       tag: 'RevertCheckpoint',
       contents: []
-    }; 
+    };
     API.sendMessageWithAction(action);
   },
 
@@ -650,7 +658,7 @@ const API = {
       tag: 'ApplyCheckpoint',
       applyFileName: name,
       applyUserID: user
-    }; 
+    };
     API.sendMessageWithAction(action);
   },
 
@@ -659,7 +667,7 @@ const API = {
       tag: 'ViewCheckpoint',
       viewFileName: name,
       viewUserID: user
-    }; 
+    };
     API.sendMessageWithAction(action);
   },
 

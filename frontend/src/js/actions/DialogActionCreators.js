@@ -38,4 +38,16 @@ export default {
       _type: 'CLOSE_SHARE_DIALOG'
     });
   },
+
+  openAutoEvalDialog() {
+    Dispatcher.dispatch({
+      _type: 'OPEN_AUTO_EVAL_DIALOG'
+    });
+  },
+
+  closeAutoEvalDialog() {
+    Dispatcher.dispatch({
+      _type: 'CLOSE_AUTO_EVAL_DIALOG'
+    });
+  },
 }

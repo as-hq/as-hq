@@ -26,6 +26,7 @@ import ASBottomBarController from './ASBottomBarController.jsx';
 import ASCondFormattingDialog from './cond-formatting/ASCondFormattingDialog.jsx';
 import ASChartDialog from './chart/ASChartDialog.jsx';
 import ASShareDialog from './ASShareDialog.jsx';
+import AutoEvalDialog from './AutoEvalDialog.jsx';
 
 import ResizablePanel from './ResizablePanel.jsx';
 import Toolbar from './toolbar/Toolbar.jsx';
@@ -167,6 +168,10 @@ class App extends React.Component {
         <ASShareDialog
           open={ModalStore.getShareOpen()}
           onRequestClose={() => DialogActions.closeShareDialog()} />
+
+        <AutoEvalDialog
+          open={ModalStore.getAutoEvalOpen()}
+          onRequestClose={() => DialogActions.closeAutoEvalDialog()} />
 
         <ASTopBar toggleEvalHeader={() => ConfigActions.toggleHeader()} />
 

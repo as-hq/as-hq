@@ -12,6 +12,8 @@ import ExpressionStore from '../stores/ASExpressionStore';
 import HeaderStore from '../stores/ASHeaderStore';
 import WorkbookStore from '../stores/ASWorkbookStore';
 
+import Render from '../AS/Renderers';
+
 let lastEval = 0;
 let lastHeaderEval = 0;
 
@@ -71,4 +73,9 @@ export default {
     Dispatcher.dispatch({ _type: 'LOADING_DATA' });
     API.acquireWorkbook(workbookId);
   },
+
+  setAutoEval(idx: ASIndex, delay: number) {
+    Render.setAutoEval(idx);
+    API.setAutoEval(idx, delay);
+  }
 }

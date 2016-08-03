@@ -15,11 +15,11 @@
               "transform": "react-transform-hmr",
               "imports": ["react"],
               "locals": ["module"]
-            },
-            {
+            }
+            /*{ TODO (anand) this transform doesn't build properly 8/3
               "transform": "react-transform-catch-errors",
               "imports": ["react", "redbox-react"]
-            }
+            }*/
           ]
         }
       }
