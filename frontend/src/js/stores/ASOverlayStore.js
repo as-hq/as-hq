@@ -37,6 +37,8 @@ import Constants from '../Constants';
 import U from '../AS/Util';
 import CellStore from './ASCellStore';
 
+import Plot3D from '../components/Plot3D.jsx';
+
 // TODO: make the very definitions of ASIndex and OverlaySpec immutable so that no from/toJS is necessary
 
 type State = any;
@@ -144,6 +146,22 @@ function getPossibleOverlay(cell: ASCell): ?ASOverlaySpec {
       }
     });
 
+    if (imagePath === 'plot3d') {
+      return {
+        id: U.Render.getUniqueId(),
+        renderElem: (style) => {
+          return (
+            <Plot3D />
+          );
+        },
+        imageWidth: 800,
+        imageHeight: 600,
+        dragOffsetTop,
+        dragOffsetLeft,
+        loc: cell.location,
+        shouldDrag: false
+      };
+    }
     return {
       id: U.Render.getUniqueId(),
       renderElem: (style) => {
@@ -155,7 +173,8 @@ function getPossibleOverlay(cell: ASCell): ?ASOverlaySpec {
       imageHeight,
       dragOffsetTop,
       dragOffsetLeft,
-      loc: cell.location
+      loc: cell.location,
+      shouldDrag: true
     };
   }
 }

@@ -8,6 +8,9 @@ from AS.errors import *
 from AS.formats import *
 from AS.dataframe import dataframe
 
+def plot3d():
+  return {'imagePath': 'plot3d'}
+
 def arr(lst):
   return ASIterable(lst)
 

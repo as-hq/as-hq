@@ -57,30 +57,38 @@ const ASOverlay = (props: ASOverlayProps) => {
   // The span between Draggable and Resizable only exists because Draggable injects its own
   // CSS transform, but we're using one as well (because it has about 6x painting speed compared
   // to setting top and left in CSS). It is thus a "buffer element".
-  return (
-    <Draggable
-      zIndex={overlayOuterZIndex}
-      onStop={(e, d) => props.onDragStop(overlay, d)}
-      onDrag={() => props.onDrag()} >
-        <span style={{
-          display: 'block',
-          zIndex: overlayOuterZIndex}} >
-        <Resizable
-          height={overlay.imageHeight}
-          width={overlay.imageWidth}
-          onResize={(e, r) => props.onResize(overlay, r)}
-          onResizeStart={() => props.onResizeStart()}
-          onResizeStop={(e, r) => props.onResizeStop(overlay, r)} >
-              <div tabIndex="-1" 
-                   style={baseStyle} 
-                   onKeyDown={(e) => props.onKeyDown(overlay, e)}>
-              {overlay.renderElem({
-                width: overlay.imageWidth, height: overlay.imageHeight})}
-              </div>
-        </Resizable>
-        </span>
-    </Draggable>
-  );
+  const resizeable = 
+    <Resizable
+      height={overlay.imageHeight}
+      width={overlay.imageWidth}
+      onResize={(e, r) => props.onResize(overlay, r)}
+      onResizeStart={() => props.onResizeStart()}
+      onResizeStop={(e, r) => props.onResizeStop(overlay, r)} >
+          <div tabIndex="-1" 
+               style={baseStyle} 
+               onKeyDown={(e) => props.onKeyDown(overlay, e)}>
+          {overlay.renderElem({
+            width: overlay.imageWidth, height: overlay.imageHeight})}
+          </div>
+    </Resizable>;
+
+  if (overlay.shouldDrag) {
+    return (
+      <Draggable
+        zIndex={overlayOuterZIndex}
+        onStop={(e, d) => props.onDragStop(overlay, d)}
+        onDrag={() => props.onDrag()} >
+          <span style={{
+            display: 'block',
+            zIndex: overlayOuterZIndex}} >
+          {resizeable}
+          </span>
+      </Draggable>
+    );
+  } else {
+    return resizeable;
+  }
+
 }
 
 export default ASOverlay;

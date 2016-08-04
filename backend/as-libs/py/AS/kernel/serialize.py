@@ -50,7 +50,7 @@ def wrap_serialize(node):
 #-- Serialization helpers
 
 def wrapValue(val):
-  if isImageInScope() and shouldShowImage(val):
+  if (isImageInScope() and shouldShowImage(val)):
     figures = [manager.canvas.figure for manager in mpl.Gcf.get_all_fig_managers()]
     uid = uuid.uuid4().hex + '.png'
     savePath = imageSavePath + uid
@@ -60,6 +60,10 @@ def wrapValue(val):
     return json.dumps({'tag': 'CellValue',
                        'cellValueType': 'Image',
                        'imagePath': uid})
+  elif 'imagePath' in val and val['imagePath'] == 'plot3d':
+    return json.dumps({'tag': 'CellValue',
+                       'cellValueType': 'Image',
+                       'imagePath': 'plot3d'})
   else:
     return serialize(val)
 
