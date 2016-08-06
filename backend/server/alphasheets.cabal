@@ -150,7 +150,6 @@ library
                      , wreq
                      , random
                      , lens-aeson
-                     , mysql-simple
                      , old-time
                      , old-locale
                      , parallel-io
