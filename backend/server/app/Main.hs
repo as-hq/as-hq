@@ -148,11 +148,11 @@ handshakeAndStart state wsConn msg =
           userClient <- DB.createUserClient dbConn wsConn user 
           -- If this is a test session, don't log. Otherwise, set logging = true (another preflight request
           -- will shut this off if we're debugging). Also, don't log testing users in the MySQL db
-          case auth of 
-            TestAuth  -> do 
-              handleStopLoggingActions state
-            _         -> do 
-              startLoggingActions state
+          -- case auth of 
+          --   TestAuth  -> do 
+          --     handleStopLoggingActions state
+          --   _         -> do 
+          --     startLoggingActions state
               -- Modify the MySQL DB of users
               --updateUserSession (userId userClient) (userSessionId userClient)
           let uid = userClient^.userId

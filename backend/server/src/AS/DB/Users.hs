@@ -6,7 +6,7 @@ import Database.Redis
 import Control.Monad (void)
 import System.Time
 import System.Locale
-import qualified Database.MySQL.Simple as DM
+-- import qualified Database.MySQL.Simple as DM
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Network.WebSockets as WS
@@ -30,35 +30,35 @@ import qualified AS.DB.Export as DB
 --------------------------------------------------------------------------------
 -- User session info in MySQL (for logging/replaying)
 
-connInfo :: DM.ConnectInfo 
-connInfo = DM.defaultConnectInfo {
- DM.connectPassword = "92c6b1451ebf141a2704be3772592b0b069940be" }
+-- connInfo :: DM.ConnectInfo 
+-- connInfo = DM.defaultConnectInfo {
+--  DM.connectPassword = "92c6b1451ebf141a2704be3772592b0b069940be" }
  
-getFormattedTime :: IO String
-getFormattedTime = do 
-  ct <- getClockTime
-  cal <- toCalendarTime ct
-  return $ formatCalendarTime defaultTimeLocale "%a %b %e %H:%M:%S %Y" cal
+-- getFormattedTime :: IO String
+-- getFormattedTime = do 
+--   ct <- getClockTime
+--   cal <- toCalendarTime ct
+--   return $ formatCalendarTime defaultTimeLocale "%a %b %e %H:%M:%S %Y" cal
 
--- Update user metadata (userId, sessionId) in the MySQL tables, 
--- called after each successful login
-updateUserSession :: UserID -> SessionId -> IO ()
-updateUserSession uId sId = void $ do
-  let userId = T.unpack uId
-  let sessionId = T.unpack sId
-  time <- getFormattedTime
-  conn <- DM.connect connInfo
-  DM.execute conn "insert ignore into users (userId) values (?)" [userId]
-  DM.executeMany conn 
-    "insert into sessions (userId, sessionId, time) values (?,?,?)" 
-    [(userId, sessionId, time)]
+-- -- Update user metadata (userId, sessionId) in the MySQL tables, 
+-- -- called after each successful login
+-- updateUserSession :: UserID -> SessionId -> IO ()
+-- updateUserSession uId sId = void $ do
+--   let userId = T.unpack uId
+--   let sessionId = T.unpack sId
+--   time <- getFormattedTime
+--   conn <- DM.connect connInfo
+--   DM.execute conn "insert ignore into users (userId) values (?)" [userId]
+--   DM.executeMany conn 
+--     "insert into sessions (userId, sessionId, time) values (?,?,?)" 
+--     [(userId, sessionId, time)]
 
-getAllSessions :: IO [SessionData]
-getAllSessions = do 
-  conn <- DM.connect connInfo 
-  xs <- DM.query_ conn "select userId,sessionId,time from sessions"
-  let f (uid, sid, time) = SessionData (T.pack uid) (T.pack sid) time
-  return $ map f xs
+-- getAllSessions :: IO [SessionData]
+-- getAllSessions = do 
+--   conn <- DM.connect connInfo 
+--   xs <- DM.query_ conn "select userId,sessionId,time from sessions"
+--   let f (uid, sid, time) = SessionData (T.pack uid) (T.pack sid) time
+--   return $ map f xs
 
 --------------------------------------------------------------------------------
 -- Creating users

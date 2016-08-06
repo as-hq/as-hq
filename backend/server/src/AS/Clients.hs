@@ -79,10 +79,10 @@ instance Client UserClient where
                                 , _userClient = uc 
                                 , _dbConnection = curState^.dbConn
                                 }
-    case serverAction message of
-      LogAction _ -> return ()
-      GetSessionLogs _ -> return ()
-      otherwise -> handleLogMessage msgctx $ A.encode message
+    -- case serverAction message of
+    --   LogAction _ -> return ()
+    --   GetSessionLogs _ -> return ()
+    --   otherwise -> handleLogMessage msgctx $ A.encode message
     case (serverAction message) of
       -- the following 3 actions take the mutable state rather than ServerState because it updates the uc's window
       OpenWorkbook wid            -> handleOpenWorkbook msgctx wid
@@ -123,10 +123,10 @@ instance Client UserClient where
       ImportCSV ind lang fileName -> handleCSVImport msgctx ind lang fileName
       ImportExcel sid fileName    -> handleExcelImport msgctx sid fileName
       SetLanguagesInRange lang rng -> handleSetLanguagesInRange msgctx lang rng
-      LogAction fAction            -> handleLogAction msgctx fAction
-      GetSessionLogs logSource     -> handleGetSessionLogs msgctx logSource
-      StartDebuggingLog            -> handleStopLoggingActions state
-      GetAllSessions               -> handleGetAllSessions msgctx
+      -- LogAction fAction            -> handleLogAction msgctx fAction
+      -- GetSessionLogs logSource     -> handleGetSessionLogs msgctx logSource
+      -- StartDebuggingLog            -> handleStopLoggingActions state
+      -- GetAllSessions               -> handleGetAllSessions msgctx
       RenameSheet sid sname        -> handleRenameSheet msgctx sid sname
       RenameWorkbook wname         -> handleRenameWorkbook msgctx wname
       -- #needsrefactor the object view should be a part of the cell
