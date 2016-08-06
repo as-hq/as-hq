@@ -128,7 +128,11 @@ castR s = do
   CellValue (ValueB isMatrix) <- castSEXP =<< [r|is.matrix(s_hs)|]
   if isMatrix
     then castMatrix s
-    else castSEXP s
+    else do
+      CellValue (ValueB isS4) <- castSEXP =<< [r|isS4(s_hs)|]
+      if isS4
+        then castS4 s
+        else castSEXP s
 
 -- | In the R code, png(imagePath_hs) means that any image generated gets saved into the file
 -- named imagePath (within the directory of fpStatic). If any code generates an image without returning
@@ -158,7 +162,6 @@ castSEXP origValue@(R.SomeSEXP x) = case x of
   (hexp -> H.Vector len v) -> castVector origValue v
   (hexp -> H.Builtin i)    -> return $ CellValue (ValueI $ fromIntegral i)
   (hexp -> H.Raw v)        -> return . CellValue $ castRawString v
-  (hexp -> H.S4 s)         -> CellValue <$> castS4 s
   _ -> return . CellValue $ ValueError "Could not cast R value." "R Error"
 
 rdVector :: [ASValue] -> CompositeValue
@@ -211,6 +214,20 @@ castMatrix s = do
   let [(ValueI nrows), _] = dims
   return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
 
+castS4 :: R.SomeSEXP m -> R m CompositeValue
+castS4 s = do
+  CellValue (ValueS str) <- castSEXP =<< [r|
+      R_TEMP_OBJ <<- s_hs
+      fn <- tempfile(); 
+      save(R_TEMP_OBJ, ascii=TRUE, file=fn); 
+      lines <- readLines(fn)
+      paste(lines, collapse="\n")
+    |]
+  let iife x = "(function() {" ++ x ++ "})()"
+      deserialize x = "fn<-tempfile(); writeLines(" ++ show x ++  ",fn); load(fn); R_TEMP_OBJ"
+      serialize = iife . deserialize 
+  return . CellValue $ ValueSerialized (serialize str) "S4"
+
 rdVectorVals :: [CompositeValue] -> Matrix
 rdVectorVals = map mkArray
   where
@@ -225,10 +242,6 @@ castNames val = case val of
   CellValue (ValueS s)        -> [ValueS s]
   CellValue NoValue           -> [ValueS "NULL"]
   _ -> error $ "could not cast dataframe labels from composite value " ++ (show val)
-
--- TODO figure out S4 casting
-castS4 :: SEXP m a -> R m ASValue
-castS4 s = return $ ValueError "S4 objects not currently supported." "R Error"
 
 fromLogical :: R.Logical -> ASValue
 fromLogical R.TRUE  = ValueB True
