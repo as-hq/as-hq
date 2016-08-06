@@ -43,8 +43,9 @@ handleEval msgctx evalInstructions  = do
   broadcastErrOrUpdate msgctx errOrUpdate
 
 handleAutoEval :: MessageContext -> ASIndex -> Int -> IO ()
-handleAutoEval ctx idx delay = 
-  whenJust (getCell (ctx^.dbConnection) idx)
+handleAutoEval ctx idx delay = do
+  mcell <- getCell (ctx^.dbConnection) idx
+  whenJust mcell
     $ \cell -> forkIO_ $ forever $ do
       threadDelaySeconds delay
       handleEval ctx [toEvalInstruction cell]

@@ -34,10 +34,6 @@ apt-get -y install libfreetype6-dev
 apt-get -y install python-dev 
 apt-get -y install python-setuptools 
 
-apt-get -y install mysql-server
-apt-get -y install mysql-client-core-5.5
-apt-get -y install libmysqlclient-dev
-
 apt-get -y install s3cmd
 apt-get -y install nginx
 
