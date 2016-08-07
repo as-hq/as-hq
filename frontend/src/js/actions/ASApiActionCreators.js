@@ -1170,36 +1170,36 @@ const API = {
 
   // Get all logs data for a session
   getSessionLogs(logUserId: string, logSessionId: string) {
-    const msg = {
-      tag: 'GetSessionLogs',
-      contents: {
-        logUserId,
-        logSessionId
-      }
-    };
-    API.sendMessageWithAction(msg);
+    // const msg = {
+    //   tag: 'GetSessionLogs',
+    //   contents: {
+    //     logUserId,
+    //     logSessionId
+    //   }
+    // };
+    // API.sendMessageWithAction(msg);
   },
 
   // Send a pre-flight request to stop logging now that we're debugging
   startDebuggingLog() {
-    const msg = {
-      tag: "StartDebuggingLog",
-      contents: []
-    };
-    API.sendMessageWithAction(msg);
+    // const msg = {
+    //   tag: "StartDebuggingLog",
+    //   contents: []
+    // };
+    // API.sendMessageWithAction(msg);
   },
 
   // Gets all sessions
   getAllSessions() {
-    const msg = {
-      tag: "GetAllSessions",
-      contents: []
-    };
-    API.sendMessageWithAction(msg);
+    // const msg = {
+    //   tag: "GetAllSessions",
+    //   contents: []
+    // };
+    // API.sendMessageWithAction(msg);
   },
 
   logAction(msg: string) {
-    pws.send(msg);
+    // pws.send(msg);
   },
 
   /**************************************************************************************************************************/
