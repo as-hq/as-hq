@@ -25,7 +25,8 @@ type HeaderStoreData = Immutable.Record$Class;
 
 const HeaderRecord = Immutable.Record({
   expression: '',
-  wasEvaluated: true
+  wasEvaluated: true,
+  isEvaluating: false
 });
 
 const HeaderStoreRecord = Immutable.Record({
@@ -56,7 +57,14 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
       case 'HEADER_EVALUATED': {
         return state.mergeIn(
           ['data', this.getCurrentLanguage()],
-          { wasEvaluated: true }
+          { wasEvaluated: true, isEvaluating: false }
+        );
+      }
+
+      case 'API_EVALUATE_HEADER': {
+        return state.mergeIn(
+          ['data', this.getCurrentLanguage()],
+          { isEvaluating: true }
         );
       }
 
@@ -94,8 +102,13 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
   // current language) was not evaluated.
   // #needsrefactor This should eventually count as "dirty" as long as ANY of the
   // headers (as opposed to just the current one) have an unevaluated expression.
+  // A header isn't considered dirty if it's currently being evaluated; this 
+  // prevents multiple EvalHeaders from being sent to backend upon grid-clicks
+  // for long-running headers
   isDirty(): boolean {
-    return !this._getCurrentHeader().get('wasEvaluated');
+    const notEvaluating = !this._getCurrentHeader().get('isEvaluating');
+    const wasNotEvaluated = !this._getCurrentHeader().get('wasEvaluated');
+    return notEvaluating && wasNotEvaluated;
   }
 
   _getCurrentHeader(): HeaderData {

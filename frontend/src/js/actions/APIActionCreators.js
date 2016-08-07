@@ -42,6 +42,9 @@ export default {
       
       const expression = HeaderStore.getCurrentExpression();
       const language = HeaderStore.getCurrentLanguage();
+      Dispatcher.dispatch({
+        _type: 'API_EVALUATE_HEADER',
+      });
       API.evaluateHeader(expression, language);
     }
   },

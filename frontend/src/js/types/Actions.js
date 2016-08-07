@@ -302,6 +302,10 @@ export type APIEvaluateAction = {
   offset: Offset;
 };
 
+export type APIEvaluateHeaderAction = {
+  _type: 'API_EVALUATE_HEADER';
+};
+
 export type StartEditingAction = {
   _type: 'START_EDITING';
   inputText: string;
@@ -435,6 +439,7 @@ export type ASAction =
   | LoginSuccessAction
   | LoginCallbackRegisteredAction
   | APIEvaluateAction
+  | APIEvaluateHeaderAction
   | StartEditingAction
   | StopEditingAction
   | ExpressionChangedAction
