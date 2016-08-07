@@ -21,6 +21,7 @@ setup(name='AS',
                         'colour', \
                         'pysqldf', \
                         'openpyxl', \
-                        'shortid'
+                        'shortid', \
+                        'bs4'
                         ],
       zip_safe=False)

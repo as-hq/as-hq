@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# This script deploys AlphaSheets on a clean server. It:
+# This script prepares a clean server for AlphaSheets deployment. It:
 # * installs dependencies
 # * writes the various configuration files
-# * deploys frontend via nginx
-# * builds the backend container image
 
 # Requirements:
-# * the alphasheets-builds folder (if you see this file, you have it.)
 # * Ubuntu 14.04 (trusty)
 
 # Run this script from the directory it lives in.
@@ -15,8 +12,8 @@
 THIS_DIR=`pwd`
 
 ###### Install dependencies ######
-mkdir ~/.alphasheets-dependencies
-cd ~/.alphasheets-dependencies
+mkdir ~/.installs
+cd ~/.installs
 
 apt-get update
 
@@ -73,7 +70,6 @@ git clone https://github.com/zeromq/zeromq4-1
 cd zeromq4-1
 ./autogen.sh
 ./configure
-make check
 make install
 ldconfig
 cd ..
