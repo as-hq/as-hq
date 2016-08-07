@@ -131,7 +131,7 @@ castR s = do
     else do
       CellValue (ValueB isS4) <- castSEXP =<< [r|isS4(s_hs)|]
       if isS4
-        then castS4 s
+        then castSerializable "S4" s
         else castSEXP s
 
 -- | In the R code, png(imagePath_hs) means that any image generated gets saved into the file
@@ -176,28 +176,28 @@ castRawString :: SV.Vector s 'R.Raw Word8 -> ASValue
 castRawString = ValueS . fst . utf8ToUnicode . bytesToString . SV.toList
 
 castVector :: R.SomeSEXP m -> SV.Vector m 'R.Vector (R.SomeSEXP m) -> R m CompositeValue
-castVector origValue vec = do
+castVector s vec = do
   vals <- rdVectorVals <$> mapM castR (SV.toList vec)
-  (CellValue (ValueB isList)) <- castR =<< [r|is.list(origValue_hs)|]
-  (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(origValue_hs)|]
+  (CellValue (ValueB isList)) <- castR =<< [r|is.list(s_hs)|]
+  (CellValue (ValueB isDf)) <- castR =<< [r|is.data.frame(s_hs)|]
 
   if isList
     then if isDf
       then do
-        names <- castNames <$> (castR =<< [r|names(origValue_hs)|])
-        indices <- castNames <$> (castR =<< [r|rownames(origValue_hs)|])
+        names <- castNames <$> (castR =<< [r|names(s_hs)|])
+        indices <- castNames <$> (castR =<< [r|rownames(s_hs)|])
         return . Expanding $ VRDataFrame names indices (transpose vals)
       else do
-        listNames <- castNames <$> (castR =<< [r|names(origValue_hs)|])
+        listNames <- castNames <$> (castR =<< [r|names(s_hs)|])
         let nameStrs = map (\(ValueS s) -> s) listNames
         if (isRGgPlot nameStrs)
           then do
             uid <- liftIO getUUID
             let imageName = uid ++ ".png"
                 savePath = S.images_dir ++ imageName
-            [r|ggsave(filename=savePath_hs, plot=origValue_hs)|]
+            [r|ggsave(filename=savePath_hs, plot=s_hs)|]
             return . CellValue $ ValueImage imageName
-          else return . Expanding . VRList $ zip nameStrs vals
+          else castList s
           -- ggplot plots generated within functions don't save, so we're adding
           -- special case code here to deal with this. 
           -- http://stackoverflow.com/questions/7034647/save-ggplot-within-a-function
@@ -214,8 +214,21 @@ castMatrix s = do
   let [(ValueI nrows), _] = dims
   return . Expanding . VList . M $ transpose' $ chunksOf (fromInteger nrows) vals
 
-castS4 :: R.SomeSEXP m -> R m CompositeValue
-castS4 s = do
+castList :: R.SomeSEXP m -> R m CompositeValue 
+castList s = do
+  cv <- castSEXP =<< [r|
+      tryCatch({
+        as.data.frame(s_hs)
+      }, error = function(e) {
+        NULL
+      })
+    |]
+  case cv of 
+    Expanding (VRDataFrame {}) -> return cv
+    CellValue NoValue -> castSerializable "LIST" s
+
+castSerializable :: String -> R.SomeSEXP m -> R m CompositeValue
+castSerializable tag s = do
   CellValue (ValueS str) <- castSEXP =<< [r|
       R_TEMP_OBJ <<- s_hs
       fn <- tempfile(); 
@@ -226,7 +239,7 @@ castS4 s = do
   let iife x = "(function() {" ++ x ++ "})()"
       deserialize x = "fn<-tempfile(); writeLines(" ++ show x ++  ",fn); load(fn); R_TEMP_OBJ"
       serialize = iife . deserialize 
-  return . CellValue $ ValueSerialized (serialize str) "S4"
+  return . CellValue $ ValueSerialized (serialize str) tag
 
 rdVectorVals :: [CompositeValue] -> Matrix
 rdVectorVals = map mkArray
