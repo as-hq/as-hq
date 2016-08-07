@@ -68,34 +68,38 @@ getResponse :: Maybe MessageId -> -- id of message
                (B.ByteString -> Either String rep) -> -- decode
                Socket z Dealer -> -- client
                ZMQ z (Either String rep)
-getResponse mMid send poke isStill defErr decode client =  
-  send >> getResponse' send poke 0 0 True client
-  where
-    -- Given resend action, poke action,  number of resends, number of poke
-    -- cycles, and the client, try to extract a response.
-    getResponse' rsAct pkAct resends cycles lenient client = do
-      -- The poll timeout (ms) should have the property that a poke can get back
-      -- within the timeout.
-      [evts] <- poll poll_timeout [Sock client [In] Nothing]
-      if In `elem` evts
-        then do 
-          reply <- decode <$> receive client
-          case reply of 
-            Right r -> if isStill r
-              then getResponse' rsAct pkAct resends (cycles + 1) True client
-              else return reply
-            _ -> return reply
-        else do 
-          if resends > resend_max
-            then return $ Right defErr
-            else do
-              if cycles > poke_max && not lenient 
-                then do 
-                  rsAct
-                  getResponse' rsAct pkAct (resends + 1) 0 True client 
-                else do
-                  pkAct
-                  getResponse' rsAct pkAct resends (cycles + 1) False client
+getResponse mMid send poke isStill defErr decode client =  do
+  send
+  decode <$> receive client
+
+
+  -- send >> getResponse' send poke 0 0 True client
+  -- where
+  --   -- Given resend action, poke action,  number of resends, number of poke
+  --   -- cycles, and the client, try to extract a response.
+  --   getResponse' rsAct pkAct resends cycles lenient client = do
+  --     -- The poll timeout (ms) should have the property that a poke can get back
+  --     -- within the timeout.
+  --     [evts] <- poll poll_timeout [Sock client [In] Nothing]
+  --     if In `elem` evts
+  --       then do 
+  --         reply <- decode <$> receive client
+  --         case reply of 
+  --           Right r -> if isStill r
+  --             then getResponse' rsAct pkAct resends (cycles + 1) True client
+  --             else return reply
+  --           _ -> return reply
+  --       else do 
+  --         if resends > resend_max
+  --           then return $ Right defErr
+  --           else do
+  --             if cycles > poke_max && not lenient 
+  --               then do 
+  --                 rsAct
+  --                 getResponse' rsAct pkAct (resends + 1) 0 True client 
+  --               else do
+  --                 pkAct
+  --                 getResponse' rsAct pkAct resends (cycles + 1) False client
 
 --------------------------------------------------------------------------------
 -- ZMQ connection
