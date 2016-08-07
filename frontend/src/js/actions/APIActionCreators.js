@@ -39,11 +39,7 @@ export default {
     if (curTime - lastHeaderEval >= Constants.EVAL_RATE_LIMIT) {
       lastHeaderEval = curTime;
 
-      NotificationActions.addNotification({
-        title: 'Evaluated!',
-        level: 'success',
-        autoDismiss: 1
-      });
+      
       const expression = HeaderStore.getCurrentExpression();
       const language = HeaderStore.getCurrentLanguage();
       API.evaluateHeader(expression, language);

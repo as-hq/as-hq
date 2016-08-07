@@ -346,13 +346,14 @@ pws.whenReady(() => {
         const {headerEvaluator} = action;
 
         HeaderActions.update(evalHeaderExpr, evalHeaderLang);
-        // Don't display the output if you're not the one who updated the header; only update
-        // the contents of the header.
-        // Ideally we'd be comparing the current session against the session of the user
-        // who sent the update; for now we're just comparing the usernames.
+        // Don't display the output if you're not the one who updated the header
+        // Only update the contents of the header.
+        // Ideally we'd be comparing the current session against the session 
+        // of the user who sent the update; for now compare usernames.
         if (headerEvaluator === LoginStore.getUserId()) {
           HeaderActions.setOutput(headerValue, headerDisplay);
         }
+
         break;
       case 'ExportCellData':
         const {exportedIndex, contents} = action;

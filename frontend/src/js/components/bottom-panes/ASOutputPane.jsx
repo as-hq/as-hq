@@ -100,10 +100,13 @@ const styles = {
   contentPane: {
     flexGrow: 1,
     width: '100%',
+    // Scroll the content if it overflows
     overflow: 'auto',
   },
 
   outputLine: {
+    // A scroll bar shouldn't show up right under a line
+    overflow: 'visible',
     lineHeight: '14px',
     fontFamily: 'monospace',
     color: '#f8f8f2' // the default un-formatted text color

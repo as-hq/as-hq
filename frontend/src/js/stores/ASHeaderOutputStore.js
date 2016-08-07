@@ -42,10 +42,12 @@ class HeaderOutputStore extends ReduceStore<HeaderOutputStoreData> {
         this.__emitChange();
         const language = HeaderStore.getCurrentLanguage(); // I find this a little sketchy. (Alex 3/2)
         const {value, display} = action;
-        const output = `${value || ""}\n-------------------\n${display || ""}`;
+        const result = "HEADER RESULT: \n" + (value || "");
+        const output = "\n\nHEADER OUTPUT: \n" + (display || "")
+        const content = result + output;
         return state.setIn(
           ['data', language],
-          output
+          content
         );
       }
 
