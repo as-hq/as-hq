@@ -91,25 +91,29 @@ const Clipboard = {
   },
 
   // #incomplete doesn't take into account formatting in the tables
-  valsInClipboardHtml(html: string): Array<Array<string>> { 
-  	const htmlTable = html.match(/<table[\s\S]*?<\/table>/gm)[0];
-  	const parser = new DOMParser(); 
-  	const doc = parser.parseFromString(htmlTable, "text/html"); 
+  valsInClipboardTable(html: string): ?Array<Array<string>> { 
+  	const tableMatches = html.match(/<table[\s\S]*?<\/table>/gm); 
+    if (tableMatches !== null) {
+      const htmlTable = tableMatches[0];
+    	const parser = new DOMParser(); 
+    	const doc = parser.parseFromString(htmlTable, "text/html"); 
 
-  	const rows = doc.getElementsByTagName("tr"); 
+    	const rows = doc.getElementsByTagName("tr"); 
 
-  	// I'd totally map, except I can't filter on childNodes... 
-  	let arr = []; 
-  	for (let i = 0; i < rows.length; i++) { 
-  	    let rowValues = []; 
-  	    const cols = rows[i].getElementsByTagName("td"); 
-  	    for (let j = 0; j < cols.length; ++j) {
-            rowValues.push(cols[j].innerHTML);
-  	    }
-  	    arr.push(rowValues); 
-  	}
+    	// I'd totally map, except I can't filter on childNodes... 
+    	let arr = []; 
+    	for (let i = 0; i < rows.length; i++) { 
+    	    let rowValues = []; 
+    	    const cols = rows[i].getElementsByTagName("td"); 
+    	    for (let j = 0; j < cols.length; ++j) {
+              rowValues.push(cols[j].innerHTML);
+    	    }
+    	    arr.push(rowValues); 
+    	}
+    	return arr; 
+    }
 
-  	return arr; 
+    return null; 
   },
 
   /**************************************************************************************************************************/

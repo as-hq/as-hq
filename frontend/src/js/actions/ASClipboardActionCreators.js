@@ -159,7 +159,8 @@ function handlePasteEventForGrid(e: SyntheticClipboardEvent) {
     // external copy/paste
     const lang = ExpressionStore.getLanguage();
     const htmlTable = e.clipboardData.getData("text/html");
-    const vals = U.Clipboard.valsInClipboardHtml(htmlTable);
+    const tableVals = U.Clipboard.valsInClipboardTable(htmlTable);
+    const vals = tableVals || [[e.clipboardData.getData("text/plain")]]; // if the external data is not in a table, just get the raw values
     const evalInstructions2d = U.Clipboard.externalStringsToEvalInstructions(sel.origin, vals, lang);
     const evalInstructions = U.Array.concatAll(evalInstructions2d);
     API.pasteSimple(evalInstructions);
