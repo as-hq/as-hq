@@ -81,12 +81,7 @@ const ASControlledCodeField = HOPurify({
       manuallySilenced: true,
 
       addChangeListener({component, listener}) {
-        component.editor.on('alphasheets-text-change', (e) => {
-          if (! (U.Key.isNavKey(e) || U.Key.isModifierKey(e)) ) {
-            listener();
-          }
-        });
-
+        component.editor.on('alphasheets-text-change', (e) => listener());
         component.editor.on('alphasheets-paste', () => listener());
         component.editor.on('alphasheets-cut', () => listener());
       },
