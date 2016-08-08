@@ -266,7 +266,7 @@ pws.whenReady(() => {
       case 'SetEvalHeaders':
         const headers = action.contents;
         headers.forEach(({evalHeaderExpr, evalHeaderLang}) => {
-          HeaderActions.update(evalHeaderExpr, evalHeaderLang);
+          HeaderActions.initialize(evalHeaderExpr, evalHeaderLang);
         });
         break;
       case 'SetMyWorkbooks':

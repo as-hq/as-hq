@@ -12,6 +12,14 @@ import type {
 } from '../types/Messages';
 
 export default {
+  initialize(expression: string, language: ASLanguage) {
+    Dispatcher.dispatch({
+      _type: 'HEADER_INITIALIZED',
+      expression,
+      language
+    });
+  },
+
   update(expression: string, language: ASLanguage) {
     Dispatcher.dispatch({
       _type: 'HEADER_UPDATED',

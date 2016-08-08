@@ -46,6 +46,14 @@ class HeaderStore extends ReduceStore<HeaderStoreData> {
 
   reduce(state: HeaderStoreData, action: ASAction): HeaderStoreData {
     switch (action._type) {
+      case 'HEADER_INITIALIZED': {
+        const {language, expression} = action;
+        return state.mergeIn(
+          ['data', language],
+          { expression, wasEvaluated: true }
+        );
+      }
+
       case 'HEADER_UPDATED': {
         const {language, expression} = action;
         return state.mergeIn(

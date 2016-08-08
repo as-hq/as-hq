@@ -156,6 +156,12 @@ export type HeaderDataResetAction = {
   headers: Array<EvalHeader>;
 };
 
+export type HeaderInitializedAction = {
+  _type: 'HEADER_INITIALIZED';
+  expression: string;
+  language: ASLanguage;
+};
+
 export type HeaderUpdatedAction = {
   _type: 'HEADER_UPDATED';
   expression: string;

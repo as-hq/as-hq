@@ -36,6 +36,10 @@ handleGetMyWorkbooks msgctx = do
   refs <- DB.getUserWorkbookRefs conn uid
   sendAction msgctx $ SetMyWorkbooks refs
 
+-- #needsrefactor
+-- The logic that we should only be telling it to set the headers and the opened workbooks 
+-- shouldn't just live in handleGetOpenedWorkbook -- it should at least be abstracted into 
+-- a separate function, and at best put into a new type
 handleGetOpenedWorkbook :: MessageContext -> IO ()
 handleGetOpenedWorkbook msgctx = do
   let conn = msgctx^.dbConnection
