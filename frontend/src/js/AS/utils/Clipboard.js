@@ -106,7 +106,10 @@ const Clipboard = {
     	    let rowValues = []; 
     	    const cols = rows[i].getElementsByTagName("td"); 
     	    for (let j = 0; j < cols.length; ++j) {
-              rowValues.push(cols[j].innerHTML);
+              rowValues.push(Clipboard._stripHTML(cols[j].innerHTML));
+              // need to strip HTML, so if for example cols[j].innerHTML is
+              // <font color="#000000">CLAIMNUMBER</font>
+              // we only show CLAIMNUMBER. 
     	    }
     	    arr.push(rowValues); 
     	}
@@ -114,6 +117,13 @@ const Clipboard = {
     }
 
     return null; 
+  },
+
+  // taken from http://stackoverflow.com/questions/822452/strip-html-from-text-javascript
+  _stripHTML(html: string): string { 
+    let tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
   },
 
   /**************************************************************************************************************************/
