@@ -1,13 +1,14 @@
-traitlets==4.0.0
+traitlets
 numpy
 matplotlib
 pandas
 wget
 statistics
 scipy
-ipython==4.0.0
+ipython
 zmq
 colour
 pysqldf
 openpyxl
 shortid
+beautifulsoup4

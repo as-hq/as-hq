@@ -9,19 +9,19 @@ setup(name='AS',
       license='',
       packages=find_packages(),
       package_data={'AS': ['data/*.txt']},
-      install_requires=['traitlets==4.0.0', \
+      install_requires=['traitlets', \
                         'numpy', \
                         'matplotlib', \
                         'pandas', \
                         'wget', \
                         'statistics', \
                         'scipy', \
-                        'ipython==4.0.0', \
+                        'ipython', \
                         'zmq', \
                         'colour', \
                         'pysqldf', \
                         'openpyxl', \
                         'shortid', \
-                        'bs4'
+                        'beautifulsoup4'
                         ],
       zip_safe=False)

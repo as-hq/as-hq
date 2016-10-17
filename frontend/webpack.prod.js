@@ -31,7 +31,6 @@ module.exports = {
     // `if (production === "production")`.
     new webpack.DefinePlugin({
       __DEV__: false,
-      __COMMIT__: JSON.stringify(gitrev.long()),
       'process.env': {
         NODE_ENV: JSON.stringify('production'),
       },
