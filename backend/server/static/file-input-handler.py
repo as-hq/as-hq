@@ -21,7 +21,7 @@ class FileInputHandler(BaseHTTPRequestHandler):
    
 if __name__ == '__main__':
 
-  f = open('../../Environment.json', 'r')
+  f = open('./Environment.json', 'r')
   settings = json.loads(f.read())
   f.close()
 

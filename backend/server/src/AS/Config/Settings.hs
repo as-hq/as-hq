@@ -125,7 +125,7 @@ shouldPreprocess = False
 
 images_dir      = "../server/static/images/"
 eval_dir        = "eval_files/"
-env_path        = ".." </> "Environment.json"
+env_path        = "Environment.json"
 server_logs_dir = "./server_logs/"
 rkernel_logs_dir = "./rkernel_logs/"
 static_dir      = "static/"

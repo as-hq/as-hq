@@ -19,7 +19,7 @@ if __name__ == '__main__':
   
   settings = None
   try:
-    f = open('../Environment.json', 'r')
+    f = open('./Environment.json', 'r')
     settings = json.loads(f.read())
     f.close()
   except:
