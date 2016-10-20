@@ -10,6 +10,7 @@
 , which
 , zeromq4
 , wget
+, glibcLocales
 }:
 let r   = callPackage (import ./R.nix) { };
     ghc = haskell.packages.ghc7102.ghcWithPackages (pkgs: [pkgs.shelly]);
@@ -25,13 +26,14 @@ in stdenv.mkDerivation {
                     which
                     zeromq4
                     wget
+                    glibcLocales
                     ghc
                     r
                   ];
     LD_LIBRARY_PATH="${zlib}/lib:${zeromq4}/lib:${r}/lib/R/lib";
     GHC_PACKAGE_PATH="${ghc}/lib/${ghc.name}/package.conf.d";
     SSL_CERT_FILE="${cacert}/etc/ssl/certs/ca-bundle.crt";
-    LANG="en_US.utf8";
+    LANG="en_US.UTF-8";
     builder = ./builder.sh;
     shellHook = ''
         export STACK_ROOT=$(realpath ../../backend/server/.stack-work)

@@ -327,44 +327,44 @@ executable ipc-exe
                      , aeson
   default-language:    Haskell2010
 
-test-suite alphasheets-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       base
-                     , alphasheets
-                     , text
-                     , hedis
-                     , bytestring
-                     , parsec
-                     , either
-                     , containers
-                     , vector
-                     , mtl
-                     , transformers
-                     , inline-r
-  ghc-options:         -O2
-                       -threaded
-  default-language:    Haskell2010
-
-test-suite excel-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             ExcelTest.hs
-  build-depends:       base
-                     , alphasheets
-                     , text
-                     , bytestring
-                     , parsec
-                     , either
-                     , containers
-                     , vector
-                     , mtl
-                     , transformers
-                     , hspec
-  ghc-options:         -O2
-                       -threaded
-  default-language:    Haskell2010
+--test-suite alphasheets-test
+--  type:                exitcode-stdio-1.0
+--  hs-source-dirs:      test
+--  main-is:             Spec.hs
+--  build-depends:       base
+--                     , alphasheets
+--                     , text
+--                     , hedis
+--                     , bytestring
+--                     , parsec
+--                     , either
+--                     , containers
+--                     , vector
+--                     , mtl
+--                     , transformers
+--                     , inline-r
+--  ghc-options:         -O2
+--                       -threaded
+--  default-language:    Haskell2010
+--
+--test-suite excel-test
+--  type:                exitcode-stdio-1.0
+--  hs-source-dirs:      test
+--  main-is:             ExcelTest.hs
+--  build-depends:       base
+--                     , alphasheets
+--                     , text
+--                     , bytestring
+--                     , parsec
+--                     , either
+--                     , containers
+--                     , vector
+--                     , mtl
+--                     , transformers
+--                     , hspec
+--  ghc-options:         -O2
+--                       -threaded
+--  default-language:    Haskell2010
 
 source-repository head
   type:     git
